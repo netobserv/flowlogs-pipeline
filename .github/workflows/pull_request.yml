@@ -1,4 +1,4 @@
-name: Makefile CI
+name: Check pull request
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.7']
+        go: ['1.17']
         
     steps:
     - name: Install make
