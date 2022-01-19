@@ -1,0 +1,36 @@
+log-level: debug
+pipeline:
+  ingest:
+    type: file
+    file:
+      filename: playground/goflow2_input.txt
+  decode:
+    type: json
+  transform:
+    - type: generic
+      generic:
+        - input: Bytes
+          output: fl2m_bytes
+        - input: DstAddr
+          output: fl2m_dstAddr
+        - input: DstHostIP
+          output: fl2m_dstHostIP
+        - input: DstPort
+          output: fl2m_dstPort
+        - input: Packets
+          output: fl2m_packets
+        - input: SrcAddr
+          output: fl2m_srcAddr
+        - input: SrcHostIP
+          output: fl2m_srcHostIP
+        - input: SrcPort
+          output: fl2m_srcPort
+        - input: TimeReceived
+          output: fl2m_timestamp
+  extract:
+    type: none
+  encode:
+    type: none
+  write:
+    type: stdout
+

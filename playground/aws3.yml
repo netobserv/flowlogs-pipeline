@@ -1,0 +1,39 @@
+pipeline:
+  ingest:
+    type: file
+    file:
+      filename: playground/aws3_input.txt
+  decode:
+    type: aws
+    aws:
+      fields:
+        - version
+        - vpc-id
+        - subnet-id
+        - instance-id
+        - interface-id
+        - account-id
+        - type
+        - srcaddr
+        - dstaddr
+        - srcport
+        - dstport
+        - pkt-srcaddr
+        - pkt-dstaddr
+        - protocol
+        - bytes
+        - packets
+        - start
+        - end
+        - action
+        - tcp-flags
+        - log-status
+  transform:
+    - type: none
+  extract:
+    type: none
+  encode:
+    type: none
+  write:
+    type: none
+

@@ -1,0 +1,36 @@
+#fl2m_confgen
+description:
+  This metric counts network connections per source Autonomous System (AS)
+details:
+  Aggregates flow records by values of "SrcAS" field and counts the number of entries in each aggregate with non zero value
+usage:
+  Evaluate amount of connections initiated by different Autonomous Systems
+labels:
+  - rate
+  - count
+  - AS
+extract:
+  type: aggregates
+  aggregates:
+    - name: src_as_connection_count
+      by:
+        - srcAS
+      operation: count
+encode:
+  type: prom
+  prom:
+    metrics:
+      - name: connections_per_source_as
+        type: gauge
+        valuekey: src_as_connection_count_value
+        labels:
+          - by
+          - aggregate
+visualization:
+  type: grafana
+  grafana:
+    - expr: 'topk(10,rate(fl2m_connections_per_source_as[1m]))'
+      type: graphPanel
+      dashboard: details
+      title:
+        Connections rate per source AS

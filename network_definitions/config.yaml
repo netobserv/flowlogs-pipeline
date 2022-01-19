@@ -1,0 +1,46 @@
+## This is the main configuration file for flowlogs2metrics. It holds
+## all parameters needed for the creation of the configuration
+##
+description:
+  general configuration for all metrics
+ingest:
+  collector:
+    port: 2055
+    hostName: 0.0.0.0
+transform:
+  generic:
+    rules:
+      - input: DstAddr
+        output: dstIP
+      - input: SrcAddr
+        output: srcIP
+      - input: Bytes
+        output: bytes
+      - input: DstPort
+        output: dstPort
+      - input: Proto
+        output: proto
+      - input: TCPFlags
+        output: TCPFlags
+      - input: SrcAS
+        output: srcAS
+      - input: DstAS
+        output: dstAS
+encode:
+  prom:
+    prefix: fl2m_
+    port: 9102
+visualization:
+  grafana:
+    dashboards:
+      - name: "totals"
+        title: "Flow-Logs to Metrics - Totals"
+        time_from: "now"
+        tags: "['fl2m','grafana','dashboard','total']"
+        schemaVersion: "16"
+      - name: "details"
+        title: "Flow-Logs to Metrics - Details"
+        time_from: "now-15m"
+        tags: "['fl2m','grafana','dashboard','details']"
+        schemaVersion: "16"
+

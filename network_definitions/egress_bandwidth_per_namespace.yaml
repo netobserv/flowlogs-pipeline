@@ -1,0 +1,42 @@
+#fl2m_confgen
+description:
+  This metric observes the network bandwidth per namespace
+details:
+  Sum egress bytes for all traffic per namespace
+usage:
+  Evaluate network usage breakdown per namespace
+labels:
+  - kubernetes
+  - bandwidth
+  - graph
+transform:
+  rules:
+    - input: srcIP
+      output: srcK8S
+      type: add_kubernetes
+extract:
+  aggregates:
+    - name: bandwidth_namespace
+      by:
+        - srcK8S_Namespace
+        - srcK8S_Type
+      operation: sum
+      RecordKey: Bytes
+encode:
+  type: prom
+  prom:
+    metrics:
+      - name: egress_per_namespace
+        type: gauge
+        valuekey: bandwidth_namespace_value
+        labels:
+          - by
+          - aggregate
+visualization:
+  type: grafana
+  grafana:
+    - expr: 'topk(10,rate(fl2m_egress_per_namespace{aggregate=~".*pod.*"}[1m]))'
+      type: graphPanel
+      dashboard: details
+      title:
+        Bandwidth per namespace

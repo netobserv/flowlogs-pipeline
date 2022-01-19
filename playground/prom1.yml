@@ -1,0 +1,58 @@
+log-level: debug
+pipeline:
+  ingest:
+    type: file_loop
+    file:
+      filename: playground/goflow2_input.txt
+  decode:
+    type: json
+  transform:
+    - type: generic
+      generic:
+        - input: Bytes
+          output: bytes
+        - input: DstAddr
+          output: dstAddr
+        - input: DstHostIP
+          output: dstHostIP
+        - input: DstPort
+          output: dstPort
+        - input: Packets
+          output: packets
+        - input: SrcAddr
+          output: srcAddr
+        - input: SrcHostIP
+          output: srcHostIP
+        - input: SrcPort
+          output: srcPort
+        - input: TimeReceived
+          output: timestamp
+  extract:
+    type: none
+  encode:
+    type: prom
+    prom:
+      port: 9102
+      prefix: fl2m_
+      metrics:
+        - name: totalBytes
+          type: gauge
+          valuekey: bytes
+          labels:
+            - srcAddr
+            - dstAddr
+            - srcPort
+        - name: totalPackets
+          type: gauge
+          valuekey: packets
+          labels:
+            - srcAddr
+            - dstAddr
+            - dstPort
+        - name: subnetHistogram
+          type: histogram
+          valuekey: aggregate
+          labels:
+  write:
+    type: stdout
+

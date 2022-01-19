@@ -1,0 +1,38 @@
+log-level: debug
+pipeline:
+  ingest:
+    type: file
+    file:
+      filename: playground/goflow2_input.txt
+  decode:
+    type: json
+  transform:
+    - type: generic
+      generic:
+        - input: Bytes
+          output: v1_bytes
+        - input: DstAddr
+          output: v1_dstAddr
+        - input: Packets
+          output: v1_packets
+        - input: SrcPort
+          output: v1_srcPort
+    - type: generic
+      generic:
+        - input: v1_srcPort
+          output: v1_srcPort
+        - input: v1_packets
+          output: v1_packets
+        - input: v1_packets
+          output: v2_packets
+        - input: v1_bytes
+          output: v2_bytes
+        - input: v1_dstAddr
+          output: v2_dstAddr
+  extract:
+    type: none
+  encode:
+    type: none
+  write:
+    type: stdout
+

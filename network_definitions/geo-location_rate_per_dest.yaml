@@ -1,0 +1,42 @@
+#fl2m_confgen
+description:
+  This metric observes connections geo-location rate per destination IP
+details:
+  Counts the number of connections per geo-location based on destination IP
+usage:
+  Evaluate network connections geo-location
+labels:
+  - rate
+  - connections-count
+  - geo-location
+  - destinationIP
+transform:
+  rules:
+    - input: dstIP
+      output: dstLocation
+      type: add_location
+extract:
+  type: aggregates
+  aggregates:
+    - name: dest_connection_location_count
+      by:
+        - dstLocation_CountryName
+      operation: count
+encode:
+  type: prom
+  prom:
+    metrics:
+      - name: connections_per_destination_location
+        type: gauge
+        valuekey: dest_connection_location_count_value
+        labels:
+          - by
+          - aggregate
+visualization:
+  type: grafana
+  grafana:
+    - expr: 'topk(10,rate(fl2m_connections_per_destination_location[1m]))'
+      type: graphPanel
+      dashboard: details
+      title:
+        Connections rate per destinationIP geo-location

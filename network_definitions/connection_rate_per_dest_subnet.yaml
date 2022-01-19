@@ -1,0 +1,41 @@
+#fl2m_confgen
+description:
+  This metric observes network connections rate per destination subnet
+details:
+  Counts the number of connections per subnet with network prefix length /16
+usage:
+  Evaluate network connections per subnet
+labels:
+  - rate
+  - subnet
+transform:
+  rules:
+    - input: dstIP
+      output: dstSubnet
+      type: add_subnet
+      parameters: /16
+extract:
+  type: aggregates
+  aggregates:
+    - name: dest_connection_subnet_count
+      by:
+        - dstSubnet
+      operation: count
+encode:
+  type: prom
+  prom:
+    metrics:
+      - name: connections_per_destination_subnet
+        type: gauge
+        valuekey: dest_connection_subnet_count_value
+        labels:
+          - by
+          - aggregate
+visualization:
+  type: grafana
+  grafana:
+    - expr: 'topk(10,rate(fl2m_connections_per_destination_subnet[1m]))'
+      type: graphPanel
+      dashboard: details
+      title:
+        Connections rate per destinationIP /16 subnets

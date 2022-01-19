@@ -1,0 +1,61 @@
+#fl2m_confgen
+description:
+  This metric counts mice and elephant flows
+details:
+  Count connections with bytes lower than 0.5K and bigger than 0.5K
+usage:
+  Evaluate network behaviour
+labels:
+  - bandwidth
+  - mice
+  - elephant
+  - rate
+transform:
+  rules:
+    - input: bytes
+      output: mice
+      type: add_if
+      parameters: "<512"
+    - input: bytes
+      output: elephant
+      type: add_if
+      parameters: ">=512"
+extract:
+  aggregates:
+    - name: mice_count
+      by:
+        - mice_Evaluate
+      operation: count
+    - name: elephant_count
+      by:
+        - elephant_Evaluate
+      operation: count
+encode:
+  type: prom
+  prom:
+    metrics:
+      - name: mice_count
+        type: gauge
+        valuekey: mice_count_value
+        labels:
+          - by
+          - aggregate
+      - name: elephant_count
+        type: gauge
+        valuekey: elephant_count_value
+        labels:
+          - by
+          - aggregate
+visualization:
+  type: grafana
+  grafana:
+    - expr: 'rate(fl2m_mice_count{}[1m])'
+      type: graphPanel
+      dashboard: details
+      title:
+        Mice flows count
+    - expr: 'rate(fl2m_elephant_count{}[1m])'
+      type: graphPanel
+      dashboard: details
+      title:
+        Elephant flows count

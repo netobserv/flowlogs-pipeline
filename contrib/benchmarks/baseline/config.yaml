@@ -1,0 +1,17 @@
+log-level: error
+pipeline:
+  ingest:
+    type: file
+    file:
+      filename: ../../contrib/benchmarks/baseline/log-lines.json
+  decode:
+    type: json
+  encode:
+    type: none
+  extract:
+    type: none
+  transform:
+    - type: none
+  write:
+    type: none
+

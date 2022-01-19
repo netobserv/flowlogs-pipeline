@@ -1,0 +1,9 @@
+pipeline:
+  ingest:
+    type: file
+    file:
+      filename: hack/examples/ocp-ipfix-flowlogs.json
+  decode:
+    type: json
+  transform:
+    type: generic

@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowlogs2metrics
+  labels:
+    app: flowlogs2metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flowlogs2metrics
+  template:
+    metadata:
+      labels:
+        app: flowlogs2metrics
+    spec:
+      containers:
+        - name: flowlogs2metrics
+          image: %DOCKER_IMG%:%DOCKER_TAG%
+          args:
+          - "--config=/etc/flowlogs2metrics/flowlogs2metrics.conf.yaml"
+          ports:
+            - containerPort: 6343
+            - containerPort: 2055
+            - containerPort: 2056
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: configuration
+              mountPath: "/etc/flowlogs2metrics/"
+      volumes:
+        - name: configuration
+          configMap:
+            name: flowlogs2metrics-configuration
+      serviceAccountName: flowlogs2metrics
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flowlogs2metrics
+  labels:
+    app: flowlogs2metrics
+spec:
+  ports:
+    - port: 6343
+      targetPort: 6343
+      protocol: UDP
+      name: sflow
+    - port: 2055
+      targetPort: 2055
+      protocol: UDP
+      name: netflow
+    - port: 2056
+      targetPort: 2056
+      protocol: UDP
+      name: netflow-legacy
+  selector:
+    app: flowlogs2metrics
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flowlogs2metrics-metrics
+  labels:
+    app: flowlogs2metrics
+spec:
+  ports:
+    - port: 9102
+      targetPort: 9102
+      name: prometheous
+  selector:
+    app: flowlogs2metrics
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: flowlogs2metrics
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flowlogs2metrics
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flowlogs2metrics
+subjects:
+  - kind: ServiceAccount
+    name: flowlogs2metrics
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flowlogs2metrics
+---

@@ -1,0 +1,43 @@
+#fl2m_confgen
+description:
+  This metric observes the network bandwidth per network service
+details:
+  Sum bytes for all traffic per network service
+usage:
+  Evaluate network usage breakdown per network service
+labels:
+  - bandwidth
+  - graph
+  - rate
+  - network-service
+transform:
+  rules:
+    - input: dstPort
+      output: service
+      type: add_service
+      parameters: proto
+extract:
+  aggregates:
+    - name: bandwidth_network_service
+      by:
+        - service
+      operation: sum
+      RecordKey: bytes
+encode:
+  type: prom
+  prom:
+    metrics:
+      - name: bandwidth_per_network_service
+        type: gauge
+        valuekey: bandwidth_network_service_value
+        labels:
+          - by
+          - aggregate
+visualization:
+  type: grafana
+  grafana:
+    - expr: 'topk(10,rate(fl2m_bandwidth_per_network_service[1m]))'
+      type: graphPanel
+      dashboard: details
+      title:
+        Bandwidth per network service

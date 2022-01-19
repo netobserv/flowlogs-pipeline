@@ -1,0 +1,16 @@
+pipeline:
+  ingest:
+    type: file
+    file:
+      filename: playground/aws2_input.txt
+  decode:
+    type: aws
+  transform:
+    - type: none
+  extract:
+    type: none
+  encode:
+    type: none
+  write:
+    type: none
+
