@@ -114,7 +114,7 @@ The pipeline is constructed of a sequence of stages:
 - **encode** - make the data available in appropriate format (e.g. prometheus)
 - **write** - provide the means to transfer the data to some target, e.g. prometheus, object store, standard output, etc
 
-The **encode** and **write** stages may be combined in some cases (as in prometheus), in which case **write**is set to **none**
+The **encode** and **write** stages may be combined in some cases (as in prometheus), in which case **write** is set to **none**
 
 It is expected that the **ingest** module will receive flows every so often, and this ingestion event will then trigger the rest of the pipeline. So, it is the responsibility of the **ingest** module to provide the timing of when (and how often) the pipeline will run.
 
