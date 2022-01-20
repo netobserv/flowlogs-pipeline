@@ -6,16 +6,16 @@ pipeline:
   encode:
     prom:
       metrics:
-      - name: bandwidthPerSourceDestinationSubnet
+      - name: bandwidth_per_network_service
         type: gauge
-        valuekey: bandwidth_source_destination_subnet_value
+        valuekey: bandwidth_network_service_value
         labels:
         - by
         - aggregate
         buckets: []
-      - name: bandwidth_per_network_service
+      - name: bandwidth_per_source_destination_subnet
         type: gauge
-        valuekey: bandwidth_network_service_value
+        valuekey: bandwidth_source_destination_subnet_value
         labels:
         - by
         - aggregate
@@ -62,7 +62,7 @@ pipeline:
         - by
         - aggregate
         buckets: []
-      - name: countPerSourceDestinationSubnet
+      - name: count_per_source_destination_subnet
         type: gauge
         valuekey: count_source_destination_subnet_value
         labels:
@@ -116,15 +116,15 @@ pipeline:
     type: prom
   extract:
     aggregates:
+    - name: bandwidth_network_service
+      by:
+      - service
+      operation: sum
+      recordkey: bytes
     - name: bandwidth_source_destination_subnet
       by:
       - dstSubnet24
       - srcSubnet24
-      operation: sum
-      recordkey: bytes
-    - name: bandwidth_network_service
-      by:
-      - service
       operation: sum
       recordkey: bytes
     - name: bandwidth_source_subnet
@@ -222,6 +222,10 @@ pipeline:
     type: generic
   - network:
       rules:
+      - input: dstPort
+        output: service
+        type: add_service
+        parameters: proto
       - input: dstIP
         output: dstSubnet24
         type: add_subnet
@@ -230,10 +234,6 @@ pipeline:
         output: srcSubnet24
         type: add_subnet
         parameters: /24
-      - input: dstPort
-        output: service
-        type: add_service
-        parameters: proto
       - input: srcIP
         output: srcSubnet
         type: add_subnet

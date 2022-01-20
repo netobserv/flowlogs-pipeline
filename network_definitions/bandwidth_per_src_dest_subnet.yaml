@@ -32,7 +32,7 @@ encode:
   type: prom
   prom:
     metrics:
-      - name: bandwidthPerSourceDestinationSubnet
+      - name: bandwidth_per_source_destination_subnet
         type: gauge
         valuekey: bandwidth_source_destination_subnet_value
         labels:
@@ -41,7 +41,7 @@ encode:
 visualization:
   type: grafana
   grafana:
-    - expr: 'topk(10,rate(fl2m_bandwidthPerSourceDestinationSubnet[1m]))'
+    - expr: 'topk(10,rate(fl2m_bandwidth_per_source_destination_subnet[1m]))'
       type: graphPanel
       dashboard: details
       title:

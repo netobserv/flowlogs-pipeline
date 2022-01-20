@@ -12,18 +12,6 @@ and the transformation to generate the exported metric.
 
 	
 
-### bandwdth per src dest subnet
-| **Description** | This metric observes the network bandwidth per source and destination subnets | 
-|:---|:---|
-| **Details** | Sum bandwidth bytes for all traffic per source / destination subnet pair | 
-| **Usage** | Evaluate network usage breakdown per source / destination subnet pair | 
-| **Labels** | bandwidth, graph, rate, subnet |
-| **Operation** | aggregate by `dstSubnet24, srcSubnet24` and `sum` field `bytes` |
-| **Exposed as** | `fl2m_bandwidthPerSourceDestinationSubnet` of type `gauge` |
-| **Visualized as** | "Bandwidth per src and destination subnet" on dashboard `details` |
-|||  
-
-
 ### bandwidth per network service
 | **Description** | This metric observes the network bandwidth per network service | 
 |:---|:---|
@@ -33,6 +21,18 @@ and the transformation to generate the exported metric.
 | **Operation** | aggregate by `service` and `sum` field `bytes` |
 | **Exposed as** | `fl2m_bandwidth_per_network_service` of type `gauge` |
 | **Visualized as** | "Bandwidth per network service" on dashboard `details` |
+|||  
+
+
+### bandwidth per src dest subnet
+| **Description** | This metric observes the network bandwidth per source and destination subnets | 
+|:---|:---|
+| **Details** | Sum bandwidth bytes for all traffic per source / destination subnet pair | 
+| **Usage** | Evaluate network usage breakdown per source / destination subnet pair | 
+| **Labels** | bandwidth, graph, rate, subnet |
+| **Operation** | aggregate by `dstSubnet24, srcSubnet24` and `sum` field `bytes` |
+| **Exposed as** | `fl2m_bandwidth_per_source_destination_subnet` of type `gauge` |
+| **Visualized as** | "Bandwidth per src and destination subnet" on dashboard `details` |
 |||  
 
 
@@ -115,8 +115,8 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate network usage breakdown per source / destination subnet pair | 
 | **Labels** | count, graph, rate, subnet |
 | **Operation** | aggregate by `dstSubnet24, srcSubnet24` and `count`  |
-| **Exposed as** | `fl2m_countPerSourceDestinationSubnet` of type `gauge` |
-| **Visualized as** | "Count of src / destination subnet occurences" on dashboard `details` |
+| **Exposed as** | `fl2m_count_per_source_destination_subnet` of type `gauge` |
+| **Visualized as** | "Connections rate of src / destination subnet occurences" on dashboard `details` |
 |||  
 
 
