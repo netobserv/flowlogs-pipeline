@@ -118,7 +118,7 @@ deploy: ## Deploy the image
 undeploy: ## Undeploy the image
 	sed 's|%DOCKER_IMG%|$(DOCKER_IMG)|g;s|%DOCKER_TAG%|$(DOCKER_TAG)|g' contrib/kubernetes/deployment.yaml > /tmp/deployment.yaml
 	kubectl --ignore-not-found=true  delete configmap flowlogs2metrics-configuration || true
-	kubectl --ignore-not-found=true delete -f contrib/kubernetes/deployment.yaml || true
+	kubectl --ignore-not-found=true delete -f /tmp/deployment.yaml || true
 
 .PHONY: deploy-prometheus
 deploy-prometheus: ## Deploy prometheus
