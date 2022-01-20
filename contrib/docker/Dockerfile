@@ -21,6 +21,7 @@ RUN --mount=type=cache,mode=0755,target=/root/.cache/go-build --mount=type=cache
 FROM ubuntu
 RUN apt-get update -y
 RUN apt-get install -y netbase
+RUN apt-get install -y curl
 COPY --from=builder /app/flowlogs2metrics /app/
 
 # expose ports
