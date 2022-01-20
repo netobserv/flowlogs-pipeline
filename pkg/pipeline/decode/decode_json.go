@@ -20,8 +20,8 @@ package decode
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/config"
 )
 
 type decodeJson struct {

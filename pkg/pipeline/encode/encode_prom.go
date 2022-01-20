@@ -20,11 +20,11 @@ package encode
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/netobserv/flowlogs2metrics/pkg/api"
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/api"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/config"
 	"net/http"
 	"os"
 	"strconv"
@@ -39,8 +39,8 @@ type gaugeInfo struct {
 }
 
 type counterInfo struct {
-	input     string
-	tags      []string
+	input       string
+	tags        []string
 	promCounter *prometheus.CounterVec
 }
 
@@ -53,7 +53,7 @@ type histInfo struct {
 type counterEntryInfo struct {
 	counterName  string
 	counterValue float64
-	labels     map[string]string
+	labels       map[string]string
 }
 
 type gaugeEntryInfo struct {
@@ -69,7 +69,6 @@ type encodeProm struct {
 	gauges     map[string]gaugeInfo
 	histograms map[string]histInfo
 }
-
 
 func (e *encodeProm) EncodeCounter(metric config.GenericMap) []interface{} {
 	out := make([]interface{}, 0)
@@ -92,7 +91,7 @@ func (e *encodeProm) EncodeCounter(metric config.GenericMap) []interface{} {
 		entry := counterEntryInfo{
 			counterName:  e.prefix + counterName,
 			counterValue: valueFloat,
-			labels:     entryLabels,
+			labels:       entryLabels,
 		}
 		out = append(out, entry)
 		// push the metric to prometheus
@@ -218,7 +217,7 @@ func NewEncodeProm() (Encoder, error) {
 	}
 
 	w := &encodeProm{
-		port:       fmt.Sprintf(":%v",portNum),
+		port:       fmt.Sprintf(":%v", portNum),
 		prefix:     promPrefix,
 		counters:   counters,
 		gauges:     gauges,

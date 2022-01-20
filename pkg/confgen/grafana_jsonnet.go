@@ -87,7 +87,7 @@ const singleStatTemplate = `
 type Dashboards map[string]Dashboard
 
 type Dashboard struct {
-	Name string
+	Name   string
 	Header []byte
 	Panels []byte
 }
@@ -114,14 +114,13 @@ func (cg *ConfGen) generateGrafanaJsonnet(folderName string) error {
 		output = append(output, dashboard.Header...)
 		output = append(output, dashboard.Panels...)
 
-		fileName := folderName + "dashboard_" + dashboard.Name +".jsonnet"
+		fileName := folderName + "dashboard_" + dashboard.Name + ".jsonnet"
 		err = os.WriteFile(fileName, output, 0644)
 		if err != nil {
 			log.Debugf("os.WriteFile to file %s err: %v ", fileName, err)
 			return err
 		}
 	}
-
 
 	return nil
 }
@@ -138,7 +137,7 @@ func (cg *ConfGen) generateGrafanaJsonnetDashboards() (Dashboards, error) {
 		}
 
 		dashboards[dashboard.Name] = Dashboard{
-			Name: dashboard.Name,
+			Name:   dashboard.Name,
 			Header: newDashboard.Bytes(),
 			Panels: []byte{},
 		}
@@ -181,7 +180,7 @@ func (cg *ConfGen) addPanelsToDashboards(dashboards Dashboards) (Dashboards, err
 			dashboard, ok := dashboards[panelTarget.Dashboard]
 			if ok {
 				dashboards[panelTarget.Dashboard] = Dashboard{
-					Name: dashboard.Name,
+					Name:   dashboard.Name,
 					Header: dashboard.Header,
 					Panels: append(dashboard.Panels, newPanel.Bytes()...),
 				}

@@ -1,4 +1,4 @@
-module github.ibm.com/MCNM/observability/flowlogs2metrics
+module github.com/netobserv/flowlogs2metrics
 
 go 1.17
 

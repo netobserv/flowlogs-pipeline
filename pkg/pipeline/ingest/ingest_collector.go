@@ -22,8 +22,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/api"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs2metrics/pkg/api"
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"net"
 	"time"
 

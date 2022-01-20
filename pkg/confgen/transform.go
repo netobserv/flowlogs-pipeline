@@ -20,23 +20,23 @@ package confgen
 import (
 	"encoding/json"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/netobserv/flowlogs2metrics/pkg/api"
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/api"
 )
 
-func (cg *ConfGen) parseTransport(transform *map[string]interface{}) (*api.TransformNetwork,error) {
+func (cg *ConfGen) parseTransport(transform *map[string]interface{}) (*api.TransformNetwork, error) {
 	var jsoniterJson = jsoniter.ConfigCompatibleWithStandardLibrary
 	b, err := jsoniterJson.Marshal(transform)
 	if err != nil {
 		log.Debugf("jsoniterJson.Marshal err: %v ", err)
-		return nil,err
+		return nil, err
 	}
 
 	var jsonNetworkTransform api.TransformNetwork
 	err = json.Unmarshal(b, &jsonNetworkTransform)
 	if err != nil {
 		log.Debugf("Unmarshal transform.TransformNetwork err: %v ", err)
-		return nil,err
+		return nil, err
 	}
 
 	cg.transformRules = append(cg.transformRules, jsonNetworkTransform.Rules...)

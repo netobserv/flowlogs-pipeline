@@ -30,7 +30,7 @@ func (cg *ConfGen) generateFlowlogs2MetricsConfig(fileName string) error {
 			"ingest": map[string]interface{}{
 				"type": "collector",
 				"collector": map[string]interface{}{
-					"port": cg.config.Ingest.Collector.Port,
+					"port":     cg.config.Ingest.Collector.Port,
 					"hostname": cg.config.Ingest.Collector.HostName,
 				},
 			},
@@ -40,13 +40,13 @@ func (cg *ConfGen) generateFlowlogs2MetricsConfig(fileName string) error {
 			"transform": []interface{}{
 				map[string]interface{}{
 					"type": "generic",
-					"generic" : map[string]interface{}{
+					"generic": map[string]interface{}{
 						"rules": cg.config.Transform.Generic.Rules,
 					},
 				},
 				map[string]interface{}{
 					"type": "network",
-					"network" : map[string]interface{}{
+					"network": map[string]interface{}{
 						"rules": cg.transformRules,
 					},
 				},
@@ -82,4 +82,3 @@ func (cg *ConfGen) generateFlowlogs2MetricsConfig(fileName string) error {
 
 	return nil
 }
-

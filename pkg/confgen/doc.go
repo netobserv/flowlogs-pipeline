@@ -19,8 +19,8 @@ package confgen
 
 import (
 	"fmt"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/api"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/pipeline/extract/aggregate"
+	"github.com/netobserv/flowlogs2metrics/pkg/api"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/extract/aggregate"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -55,7 +55,7 @@ func (cg *ConfGen) generateOperationText(definitions aggregate.Definitions) stri
 		operation := definition.Operation
 		recordKey := definition.RecordKey
 		if recordKey != "" {
-			recordKey = fmt.Sprintf("field `%s`",recordKey)
+			recordKey = fmt.Sprintf("field `%s`", recordKey)
 		}
 		section = section + fmt.Sprintf("| **Operation** | aggregate by `%s` and `%s` %s |\n", by, operation, recordKey)
 	}

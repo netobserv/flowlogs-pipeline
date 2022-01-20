@@ -18,9 +18,9 @@
 package transform
 
 import (
+	"github.com/netobserv/flowlogs2metrics/pkg/api"
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/api"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/config"
 )
 
 type Generic struct {

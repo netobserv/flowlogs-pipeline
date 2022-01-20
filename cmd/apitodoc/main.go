@@ -20,7 +20,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/api"
+	"github.com/netobserv/flowlogs2metrics/pkg/api"
 	"io"
 	"reflect"
 	"strings"
@@ -41,7 +41,7 @@ func iterate(output io.Writer, data interface{}, indent int) {
 		for i := 0; i < d.NumField(); i++ {
 			val := reflect.Indirect(reflect.ValueOf(data))
 			// fieldName := val.Type().Field(i).Name
-			fieldName:= val.Type().Field(i).Tag.Get(api.TagYaml)
+			fieldName := val.Type().Field(i).Tag.Get(api.TagYaml)
 			fieldDocTag := val.Type().Field(i).Tag.Get(api.TagDoc)
 			fieldEnumTag := val.Type().Field(i).Tag.Get(api.TagEnum)
 

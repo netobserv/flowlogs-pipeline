@@ -18,9 +18,9 @@
 package extract
 
 import (
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/extract/aggregate"
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/config"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/pipeline/extract/aggregate"
 )
 
 type extractAggregate struct {

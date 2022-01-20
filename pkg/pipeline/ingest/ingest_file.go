@@ -20,8 +20,8 @@ package ingest
 import (
 	"bufio"
 	"fmt"
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/config"
 	"os"
 	"time"
 )
@@ -46,10 +46,10 @@ func (r *ingestFile) Ingest(process ProcessFunction) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		text := scanner.Text()
-		log.Debugf ("%s", text)
+		log.Debugf("%s", text)
 		lines = append(lines, text)
 	}
-	log.Infof ("Ingesting %d log lines from %s", len(lines), r.fileName)
+	log.Infof("Ingesting %d log lines from %s", len(lines), r.fileName)
 	switch config.Opt.PipeLine.Ingest.Type {
 	case "file":
 		process(lines)
@@ -57,7 +57,7 @@ func (r *ingestFile) Ingest(process ProcessFunction) {
 		// loop forever
 		for {
 			process(lines)
-			log.Infof ("going to sleep for %d seconds", delaySeconds)
+			log.Infof("going to sleep for %d seconds", delaySeconds)
 			time.Sleep(delaySeconds * time.Second)
 		}
 	}
@@ -65,12 +65,12 @@ func (r *ingestFile) Ingest(process ProcessFunction) {
 
 // NewIngestFile create a new ingester
 func NewIngestFile() (Ingester, error) {
-	log.Debugf ("entering NewIngestFile")
+	log.Debugf("entering NewIngestFile")
 	if config.Opt.PipeLine.Ingest.File.Filename == "" {
 		return nil, fmt.Errorf("ingest filename not specified")
 	}
 
-	log.Infof ("input file name = %s", config.Opt.PipeLine.Ingest.File.Filename)
+	log.Infof("input file name = %s", config.Opt.PipeLine.Ingest.File.Filename)
 
 	return &ingestFile{
 		fileName: config.Opt.PipeLine.Ingest.File.Filename,

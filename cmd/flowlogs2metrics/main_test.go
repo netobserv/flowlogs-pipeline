@@ -23,7 +23,6 @@ import (
 	"testing"
 )
 
-
 func TestTheMain(t *testing.T) {
 	if os.Getenv("BE_CRASHER") == "1" {
 		main()
@@ -37,4 +36,3 @@ func TestTheMain(t *testing.T) {
 	}
 	t.Fatalf("process ran with err %v, want exit status 1", err)
 }
-
