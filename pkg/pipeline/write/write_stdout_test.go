@@ -28,8 +28,8 @@ func Test_WriteStdout(t *testing.T) {
 }
 
 func Test_NewWriteStdout(t *testing.T) {
-	writer,err := NewWriteStdout()
+	writer, err := NewWriteStdout()
 	require.Nil(t, err)
-	require.Equal(t, writer,&writeStdout{})
+	require.Equal(t, writer, &writeStdout{})
 
 }

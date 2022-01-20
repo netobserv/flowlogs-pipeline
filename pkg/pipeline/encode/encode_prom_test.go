@@ -19,10 +19,10 @@ package encode
 
 import (
 	jsoniter "github.com/json-iterator/go"
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs2metrics/pkg/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/config"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/test"
 	"testing"
 )
 
@@ -111,7 +111,7 @@ func Test_NewEncodeProm(t *testing.T) {
 	gEntryInfo2 := counterEntryInfo{
 		counterName:  "test_Packets",
 		counterValue: float64(34),
-		labels:     entryLabels2,
+		labels:       entryLabels2,
 	}
 	expectedOutput := []interface{}{gEntryInfo1, gEntryInfo2}
 	require.Equal(t, output, expectedOutput)

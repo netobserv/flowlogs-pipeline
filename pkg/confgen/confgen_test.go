@@ -18,8 +18,8 @@
 package confgen
 
 import (
+	"github.com/netobserv/flowlogs2metrics/pkg/api"
 	"github.com/stretchr/testify/require"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/api"
 	"os"
 	"testing"
 )

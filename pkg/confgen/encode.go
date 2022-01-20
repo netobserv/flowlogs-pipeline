@@ -20,11 +20,11 @@ package confgen
 import (
 	"encoding/json"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/netobserv/flowlogs2metrics/pkg/api"
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/api"
 )
 
-func (cg *ConfGen) parseEncode(encode *map[string]interface{}) (*api.PromEncode,error) {
+func (cg *ConfGen) parseEncode(encode *map[string]interface{}) (*api.PromEncode, error) {
 	var jsoniterJson = jsoniter.ConfigCompatibleWithStandardLibrary
 	promEncode := (*encode)["prom"]
 	b, err := jsoniterJson.Marshal(promEncode)

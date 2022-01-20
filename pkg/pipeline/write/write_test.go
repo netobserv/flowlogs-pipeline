@@ -28,8 +28,8 @@ func Test_Write(t *testing.T) {
 }
 
 func Test_NewWriteNone(t *testing.T) {
-	writer,err := NewWriteNone()
+	writer, err := NewWriteNone()
 	require.Nil(t, err)
-	require.Equal(t, writer,&writeNone{})
+	require.Equal(t, writer, &writeNone{})
 
 }

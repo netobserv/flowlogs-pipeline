@@ -27,4 +27,3 @@ type GenericTransformRule struct {
 }
 
 type GenericTransform []GenericTransformRule
-

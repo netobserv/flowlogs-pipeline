@@ -19,9 +19,9 @@ package transform
 
 import (
 	"github.com/json-iterator/go"
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs2metrics/pkg/test"
 	"github.com/stretchr/testify/require"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/config"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/test"
 	"testing"
 )
 

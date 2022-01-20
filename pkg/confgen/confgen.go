@@ -19,9 +19,9 @@ package confgen
 
 import (
 	"fmt"
+	"github.com/netobserv/flowlogs2metrics/pkg/api"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/extract/aggregate"
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/api"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/pipeline/extract/aggregate"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"

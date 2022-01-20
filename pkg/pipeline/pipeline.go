@@ -18,14 +18,14 @@
 package pipeline
 
 import (
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/decode"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/encode"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/extract"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/ingest"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/transform"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/write"
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/config"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/pipeline/decode"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/pipeline/encode"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/pipeline/extract"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/pipeline/ingest"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/pipeline/transform"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/pipeline/write"
 )
 
 // CfgRoot configuration root path

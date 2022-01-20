@@ -20,9 +20,9 @@ package aggregate
 import (
 	"bytes"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/config"
 	"testing"
 )
 

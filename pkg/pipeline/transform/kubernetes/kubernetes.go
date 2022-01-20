@@ -97,7 +97,8 @@ func (k KubeData) NewNodeInformer(informerFactory informers.SharedInformerFactor
 			node := obj.(*v1.Node)
 			ips := make([]string, 0, len(node.Status.Addresses))
 			for _, address := range node.Status.Addresses {
-				ip := net.ParseIP(address.Address); if ip != nil {
+				ip := net.ParseIP(address.Address)
+				if ip != nil {
 					ips = append(ips, ip.String())
 				}
 			}

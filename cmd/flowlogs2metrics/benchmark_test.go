@@ -35,7 +35,7 @@ func Benchmark_Test(b *testing.B) {
 	for _, bm := range benchmarks {
 		b.Run(bm.confFile,
 			func(b *testing.B) {
-				os.Args = []string{"test","--config="+bm.confFile}
+				os.Args = []string{"test", "--config=" + bm.confFile}
 				b.ResetTimer()
 				for i := 1; i <= 100; i++ {
 					_ = rootCmd.Execute()
@@ -44,4 +44,3 @@ func Benchmark_Test(b *testing.B) {
 		)
 	}
 }
-

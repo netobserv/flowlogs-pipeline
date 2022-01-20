@@ -51,7 +51,7 @@ type ConfigVisualizationGrafana struct {
 
 type Visualizations []Visualization
 
-func (cg *ConfGen) parseVisualization(visualization *Visualization)  (*Visualization,error) {
+func (cg *ConfGen) parseVisualization(visualization *Visualization) (*Visualization, error) {
 	var jsoniterJson = jsoniter.ConfigCompatibleWithStandardLibrary
 	localVisualization := *visualization
 	b, err := jsoniterJson.Marshal(&localVisualization)

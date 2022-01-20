@@ -150,13 +150,13 @@ func Test_unzip(t *testing.T) {
 	_osio.MkdirAll = os.MkdirAll
 
 	//failed os.OpenFile
-	_osio.OpenFile = func(string, int,  os.FileMode) (*os.File, error) { return nil,fmt.Errorf("test") }
+	_osio.OpenFile = func(string, int, os.FileMode) (*os.File, error) { return nil, fmt.Errorf("test") }
 	err = unzip("/tmp/test_zip.zip", "/tmp/")
 	require.Error(t, err)
 	_osio.OpenFile = os.OpenFile
 
 	//failed io.Copy
-	_osio.Copy = func(io.Writer, io.Reader) (int64, error) { return 0,fmt.Errorf("test") }
+	_osio.Copy = func(io.Writer, io.Reader) (int64, error) { return 0, fmt.Errorf("test") }
 	err = unzip("/tmp/test_zip.zip", "/tmp/")
 	require.Error(t, err)
 	_osio.Copy = io.Copy
@@ -170,6 +170,5 @@ func Test_unzip(t *testing.T) {
 	_ = ioutil.WriteFile("/tmp/test_zip.zip", buf.Bytes(), 0777)
 	err = unzip("/tmp/test_zip.zip", "/tmp/")
 	require.Error(t, err)
-
 
 }

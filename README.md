@@ -390,7 +390,7 @@ to prometheus counter.
 ## Build
 
 - Clone this repository from github into a local machine (Linux/X86):
-  `git clone git@github.ibm.com:MCNM/observability.git`
+  `git clone git@github.com:netobserv/flowlogs2metrics.git`
 - Change directory into flowlogs2metrics into:
   `cd flowlogs2metrics`
 - Build the code:

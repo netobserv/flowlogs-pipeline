@@ -20,8 +20,8 @@ package confgen
 import (
 	"encoding/json"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/extract/aggregate"
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/MCNM/observability/flowlogs2metrics/pkg/pipeline/extract/aggregate"
 )
 
 func (cg *ConfGen) parseExtract(extract *map[string]interface{}) (*aggregate.Definitions, error) {
@@ -37,7 +37,7 @@ func (cg *ConfGen) parseExtract(extract *map[string]interface{}) (*aggregate.Def
 	err = json.Unmarshal(b, &jsonNetworkAggregate)
 	if err != nil {
 		log.Debugf("Unmarshal aggregate.Definitions err: %v ", err)
-		return nil,err
+		return nil, err
 	}
 
 	cg.aggregateDefinitions = append(cg.aggregateDefinitions, jsonNetworkAggregate...)
