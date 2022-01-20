@@ -15,6 +15,7 @@ Following is the supported API format for prometheus encode:
                  buckets: histogram buckets
          port: port number to expose "/metrics" endpoint
          prefix: prefix added to each metric name
+         expirytime: seconds of no-flow to wait before deleting prometheus data item
 </pre>
 ## Ingest collector API
 Following is the supported API format for the netflow collector:
