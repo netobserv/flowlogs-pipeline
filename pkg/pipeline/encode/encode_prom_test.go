@@ -19,7 +19,6 @@ package encode
 
 import (
 	"container/list"
-	"encoding/json"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/test"
@@ -88,14 +87,14 @@ func Test_NewEncodeProm(t *testing.T) {
 	gInfo := gauges["Bytes"]
 	require.Equal(t, gInfo.input, "bytes")
 	expectedList := []string{"srcAddr", "dstAddr", "srcPort"}
-	require.Equal(t, gInfo.tags, expectedList)
+	require.Equal(t, gInfo.labelNames, expectedList)
 
 	counters := encodeProm.counters
 	assert.Contains(t, counters, "Packets")
 	cInfo := counters["Packets"]
 	require.Equal(t, cInfo.input, "packets")
 	expectedList = []string{"srcAddr", "dstAddr", "dstPort"}
-	require.Equal(t, cInfo.tags, expectedList)
+	require.Equal(t, cInfo.labelNames, expectedList)
 
 	entry := test.GetExtractMockEntry()
 	input := []config.GenericMap{entry}
@@ -135,7 +134,7 @@ func Test_NewEncodeProm(t *testing.T) {
 	entriesMap := encodeProm.mCache
 	require.Equal(t, 2, len(entriesMap))
 
-	eInfoBytes, _ := json.Marshal(&gEntryInfo1.eInfo)
+	eInfoBytes := generateCacheKey(&gEntryInfo1.eInfo)
 	encodeProm.mu.Lock()
 	_, found := encodeProm.mCache[string(eInfoBytes)]
 	encodeProm.mu.Unlock()
@@ -165,10 +164,10 @@ func Test_EncodeAggregate(t *testing.T) {
 	newEncode := &encodeProm{
 		port:   ":0000",
 		prefix: "test_",
-		gauges: map[string]genericMetricInfo{
+		gauges: map[string]metricInfo{
 			"gauge": {
-				input: "test_aggregate_value",
-				tags:  []string{"by", "aggregate"},
+				input:      "test_aggregate_value",
+				labelNames: []string{"by", "aggregate"},
 			},
 		},
 		mList:  list.New(),
