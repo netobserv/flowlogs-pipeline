@@ -6,6 +6,13 @@ pipeline:
   encode:
     prom:
       metrics:
+      - name: bandwidthPerSourceDestinationSubnet
+        type: gauge
+        valuekey: bandwidth_source_destination_subnet_value
+        labels:
+        - by
+        - aggregate
+        buckets: []
       - name: bandwidth_per_network_service
         type: gauge
         valuekey: bandwidth_network_service_value
@@ -51,6 +58,13 @@ pipeline:
       - name: connections_per_source_as
         type: gauge
         valuekey: src_as_connection_count_value
+        labels:
+        - by
+        - aggregate
+        buckets: []
+      - name: countPerSourceDestinationSubnet
+        type: gauge
+        valuekey: count_source_destination_subnet_value
         labels:
         - by
         - aggregate
@@ -102,6 +116,12 @@ pipeline:
     type: prom
   extract:
     aggregates:
+    - name: bandwidth_source_destination_subnet
+      by:
+      - dstSubnet24
+      - srcSubnet24
+      operation: sum
+      recordkey: bytes
     - name: bandwidth_network_service
       by:
       - service
@@ -135,6 +155,12 @@ pipeline:
     - name: src_as_connection_count
       by:
       - srcAS
+      operation: count
+      recordkey: ""
+    - name: count_source_destination_subnet
+      by:
+      - dstSubnet24
+      - srcSubnet24
       operation: count
       recordkey: ""
     - name: bandwidth_destination_subnet
@@ -196,6 +222,14 @@ pipeline:
     type: generic
   - network:
       rules:
+      - input: dstIP
+        output: dstSubnet24
+        type: add_subnet
+        parameters: /24
+      - input: srcIP
+        output: srcSubnet24
+        type: add_subnet
+        parameters: /24
       - input: dstPort
         output: service
         type: add_service
@@ -212,6 +246,14 @@ pipeline:
         output: srcSubnet
         type: add_subnet
         parameters: /16
+      - input: dstIP
+        output: dstSubnet24
+        type: add_subnet
+        parameters: /24
+      - input: srcIP
+        output: srcSubnet24
+        type: add_subnet
+        parameters: /24
       - input: dstIP
         output: dstSubnet
         type: add_subnet

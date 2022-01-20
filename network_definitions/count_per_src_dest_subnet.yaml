@@ -1,0 +1,47 @@
+#fl2m_confgen
+description:
+  This metric counts the number of distinct source / destination subnet pairs
+details:
+  Count the number of distinct source / destination subnet pairs
+usage:
+  Evaluate network usage breakdown per source / destination subnet pair
+labels:
+  - count
+  - graph
+  - rate
+  - subnet
+transform:
+  rules:
+    - input: dstIP
+      output: dstSubnet24
+      type: add_subnet
+      parameters: /24
+    - input: srcIP
+      output: srcSubnet24
+      type: add_subnet
+      parameters: /24
+extract:
+  aggregates:
+    - name: count_source_destination_subnet
+      by:
+        - dstSubnet24
+        - srcSubnet24
+      operation: count
+encode:
+  type: prom
+  prom:
+    metrics:
+      - name: countPerSourceDestinationSubnet
+        type: gauge
+        valuekey: count_source_destination_subnet_value
+        labels:
+          - by
+          - aggregate
+visualization:
+  type: grafana
+  grafana:
+    - expr: 'topk(10,rate(fl2m_countPerSourceDestinationSubnet[1m]))'
+      type: graphPanel
+      dashboard: details
+      title:
+        Count of src / destination subnet occurences
