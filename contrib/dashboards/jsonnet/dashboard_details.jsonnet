@@ -34,6 +34,22 @@ dashboard.new(
 .addPanel(
   graphPanel.new(
     datasource='prometheus',
+    title="Bandwidth per src and destination subnet",
+  )
+  .addTarget(
+    prometheus.target(
+      expr='topk(10,rate(fl2m_bandwidth_per_source_destination_subnet[1m]))',
+    )
+  ), gridPos={
+    x: 0,
+    y: 0,
+    w: 25,
+    h: 20,
+  }
+)
+.addPanel(
+  graphPanel.new(
+    datasource='prometheus',
     title="Bandwidth per source subnet",
   )
   .addTarget(
@@ -119,6 +135,22 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(fl2m_connections_per_source_as[1m]))',
+    )
+  ), gridPos={
+    x: 0,
+    y: 0,
+    w: 25,
+    h: 20,
+  }
+)
+.addPanel(
+  graphPanel.new(
+    datasource='prometheus',
+    title="Connections rate of src / destination subnet occurences",
+  )
+  .addTarget(
+    prometheus.target(
+      expr='topk(10,rate(fl2m_count_per_source_destination_subnet[1m]))',
     )
   ), gridPos={
     x: 0,
