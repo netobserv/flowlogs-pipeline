@@ -20,6 +20,7 @@ FL2M_BIN_FILE=flowlogs2metrics
 CG_BIN_FILE=confgenerator
 NETFLOW_GENERATOR=nflow-generator
 CMD_DIR=./cmd/
+FL2M_CONF_FILE ?= contrib/kubernetes/flowlogs2metrics.conf.yaml
 
 .DEFAULT_GOAL := help
 
@@ -58,7 +59,7 @@ lint: $(GOLANGCI_LINT) ## Lint the code
 .PHONY: build_code
 build_code: validate_go lint
 	@go mod vendor
-	go build "${CMD_DIR}${FL2M_BIN_FILE}"
+	VERSION=$$(date); go build -ldflags "-X 'main.Version=$$VERSION'" "${CMD_DIR}${FL2M_BIN_FILE}"
 
 .PHONY: build
 build: build_code docs ## Build flowlogs2metrics executable and update the docs
@@ -113,7 +114,7 @@ push-image: build-image ## Push latest image
 .PHONY: deploy
 deploy: ## Deploy the image
 	sed 's|%DOCKER_IMG%|$(DOCKER_IMG)|g;s|%DOCKER_TAG%|$(DOCKER_TAG)|g' contrib/kubernetes/deployment.yaml > /tmp/deployment.yaml
-	kubectl create configmap flowlogs2metrics-configuration --from-file=flowlogs2metrics.conf.yaml=contrib/kubernetes/flowlogs2metrics.conf.yaml
+	kubectl create configmap flowlogs2metrics-configuration --from-file=flowlogs2metrics.conf.yaml=$(FL2M_CONF_FILE)
 	kubectl apply -f /tmp/deployment.yaml
 	kubectl rollout status "deploy/flowlogs2metrics" --timeout=600s
 
@@ -177,7 +178,7 @@ delete-kind-cluster: $(KIND) ## Delete cluster
 generate-configuration: $(KIND) ## Generate metrics configuration
 	go build "${CMD_DIR}${CG_BIN_FILE}"
 	./${CG_BIN_FILE} --log-level debug --srcFolder network_definitions \
-					--destConfFile contrib/kubernetes/flowlogs2metrics.conf.yaml \
+					--destConfFile $(FL2M_CONF_FILE) \
 					--destDocFile docs/metrics.md \
 					--destGrafanaJsonnetFolder contrib/dashboards/jsonnet/
 

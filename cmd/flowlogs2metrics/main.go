@@ -33,6 +33,7 @@ import (
 )
 
 var (
+	Version            string
 	cfgFile            string
 	logLevel           string
 	envPrefix          = "FLOWLOGS2METRICS"
@@ -89,8 +90,8 @@ func initLogger() {
 }
 
 func dumpConfig() {
-	configAsJSON, _ := json.MarshalIndent(config.Opt, "", "\t")
-	log.Infof("configuration:\n%s\n", configAsJSON)
+	configAsJSON, _ := json.MarshalIndent(config.Opt, "", "    ")
+	fmt.Printf("Using configuration:\n%s\n", configAsJSON)
 }
 
 func bindFlags(cmd *cobra.Command, v *viper.Viper) {
@@ -155,7 +156,7 @@ func run() {
 	)
 
 	// Starting log message
-	log.Infof("starting %s", filepath.Base(os.Args[0]))
+	fmt.Printf("%s starting - version [%s]\n\n", filepath.Base(os.Args[0]), Version)
 	// Dump the configuration
 	dumpConfig()
 	// creating a new pipeline

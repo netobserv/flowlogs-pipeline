@@ -25,7 +25,7 @@ import (
 
 func (cg *ConfGen) generateFlowlogs2MetricsConfig(fileName string) error {
 	config := map[string]interface{}{
-		"log-level": "debug", // TODO: remove this temporal debug statement
+		"log-level": "error",
 		"pipeline": map[string]interface{}{
 			"ingest": map[string]interface{}{
 				"type": "collector",
