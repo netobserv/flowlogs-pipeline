@@ -97,11 +97,14 @@ run: build ## Run
 
 ##@ Docker
 
-# note: to push custom image tag use: DOCKER_TAG=test make push-image
-.PHONY: push-image
-push-image: ## Push latest image
-	@echo 'publish image $(DOCKER_TAG) to $(DOCKER_IMG)'
+# note: to build and push custom image tag use: DOCKER_TAG=test make push-image
+.PHONY: build-image
+build-image:
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build -t $(DOCKER_IMG):$(DOCKER_TAG) -f contrib/docker/Dockerfile .
+
+.PHONY: push-image
+push-image: build-image ## Push latest image
+	@echo 'publish image $(DOCKER_TAG) to $(DOCKER_IMG)'
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)
 
 ##@ kubernetes
