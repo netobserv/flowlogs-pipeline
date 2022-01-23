@@ -13,8 +13,8 @@ export CGO_ENABLED=1
 
 SHELL := /bin/bash
 DOCKER_TAG ?= latest
-DOCKER_IMG ?= docker.io/cognetive/flowlogs2metrics
-OCI_RUNTIME ?= $(shell which docker  || which podman)
+DOCKER_IMG ?= quay.io/netobserv/flowlogs2metrics
+OCI_RUNTIME ?= $(shell which podman  || which docker)
 MIN_GO_VERSION := 1.17.0
 FL2M_BIN_FILE=flowlogs2metrics
 CG_BIN_FILE=confgenerator
