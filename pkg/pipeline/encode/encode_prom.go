@@ -178,9 +178,9 @@ func (e *encodeProm) saveEntryInCache(entry entryInfo, entryLabels map[string]st
 }
 
 func (e *encodeProm) cleanupExpiredEntriesLoop() {
-	for {
+	ticker := time.NewTicker(time.Duration(e.expiryTime) * time.Second)
+	for range ticker.C {
 		e.cleanupExpiredEntries()
-		time.Sleep(time.Duration(e.expiryTime) * time.Second)
 	}
 }
 
