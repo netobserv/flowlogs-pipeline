@@ -1,3 +1,8 @@
+
+[![pull request](https://github.com/netobserv/flowlogs2metrics/actions/workflows/pull_request.yml/badge.svg?branch=main)](https://github.com/netobserv/flowlogs2metrics/actions/workflows/pull_request.yml)
+[![Push image to quay.io](https://github.com/netobserv/flowlogs2metrics/actions/workflows/push_image.yml/badge.svg)](https://github.com/netobserv/flowlogs2metrics/actions/workflows/push_image.yml)
+[![codecov](https://codecov.io/gh/netobserv/flowlogs2metrics/branch/main/graph/badge.svg?token=KMZKG6PRS9)](https://codecov.io/gh/netobserv/flowlogs2metrics)
+
 # Overview
 
 **Flow-Logs to Metrics** (a.k.a. FL2M) is an **observability tool** that consumes raw **network flow-logs** and
