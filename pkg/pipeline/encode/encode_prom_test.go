@@ -77,25 +77,21 @@ func Test_NewEncodeProm(t *testing.T) {
 	encodeProm := newEncode.(*encodeProm)
 	require.Equal(t, ":9103", encodeProm.port)
 	require.Equal(t, "test_", encodeProm.prefix)
-	require.Equal(t, 1, len(encodeProm.gauges))
-	require.Equal(t, 1, len(encodeProm.counters))
-	require.Equal(t, 1, len(encodeProm.histograms))
+	require.Equal(t, 3, len(encodeProm.metrics))
 	require.Equal(t, int64(1), encodeProm.expiryTime)
 
-	gauges := encodeProm.gauges
-	assert.Contains(t, gauges, "Bytes")
-	gInfo := gauges["Bytes"]
+	metrics := encodeProm.metrics
+	assert.Contains(t, metrics, "Bytes")
+	gInfo := metrics["Bytes"]
 	require.Equal(t, gInfo.input, "bytes")
 	expectedList := []string{"srcAddr", "dstAddr", "srcPort"}
 	require.Equal(t, gInfo.labelNames, expectedList)
 
-	counters := encodeProm.counters
-	assert.Contains(t, counters, "Packets")
-	cInfo := counters["Packets"]
+	assert.Contains(t, metrics, "Packets")
+	cInfo := metrics["Packets"]
 	require.Equal(t, cInfo.input, "packets")
 	expectedList = []string{"srcAddr", "dstAddr", "dstPort"}
 	require.Equal(t, cInfo.labelNames, expectedList)
-
 	entry := test.GetExtractMockEntry()
 	input := []config.GenericMap{entry}
 	output := encodeProm.Encode(input)
@@ -123,8 +119,7 @@ func Test_NewEncodeProm(t *testing.T) {
 		value: float64(34),
 	}
 	expectedOutput := []interface{}{gEntryInfo1, gEntryInfo2}
-	require.Equal(t, output, expectedOutput)
-
+	require.Equal(t, expectedOutput, output)
 	gaugeA, err := gInfo.promGauge.GetMetricWith(entryLabels1)
 	require.Equal(t, nil, err)
 	bytesA := testutil.ToFloat64(gaugeA)
@@ -164,7 +159,7 @@ func Test_EncodeAggregate(t *testing.T) {
 	newEncode := &encodeProm{
 		port:   ":0000",
 		prefix: "test_",
-		gauges: map[string]metricInfo{
+		metrics: map[string]metricInfo{
 			"gauge": {
 				input:      "test_aggregate_value",
 				labelNames: []string{"by", "aggregate"},

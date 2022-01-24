@@ -72,84 +72,74 @@ type encodeProm struct {
 	mu         sync.Mutex
 	port       string
 	prefix     string
-	counters   map[string]metricInfo
-	gauges     map[string]metricInfo
-	histograms map[string]metricInfo
+	metrics    map[string]metricInfo
 	expiryTime int64
 	mList      *list.List
 	mCache     metricCache
 }
 
-func (e *encodeProm) EncodeCounter(metric config.GenericMap) []interface{} {
+// Encode encodes a metric before being stored
+func (e *encodeProm) Encode(metrics []config.GenericMap) []interface{} {
+	log.Debugf("entering encodeProm Encode")
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	out := make([]interface{}, 0)
-	for counterName, counterInfo := range e.counters {
-		counterValue, ok := metric[counterInfo.input]
-		if !ok {
-			log.Debugf("field %v is missing", counterName)
-			continue
-		}
-		counterValueString := fmt.Sprintf("%v", counterValue)
-		valueFloat, err := strconv.ParseFloat(counterValueString, 64)
-		if err != nil {
-			log.Debugf("field cannot be converted to float: %v, %s", counterValue, counterValueString)
-			continue
-		}
-		entryLabels := make(map[string]string, len(counterInfo.labelNames))
-		for _, t := range counterInfo.labelNames {
-			entryLabels[t] = fmt.Sprintf("%v", metric[t])
-		}
-		entry := entryInfo{
-			eInfo: entrySignature{
-				Name:   e.prefix + counterName,
-				Labels: entryLabels,
-			},
-			value: valueFloat,
-		}
-		out = append(out, entry)
-		// push the metric to prometheus
-		if counterInfo.promCounter != nil {
-			counterInfo.promCounter.With(entryLabels).Add(valueFloat)
-		}
-		cEntry := e.saveEntryInCache(entry, entryLabels)
-		cEntry.PromMetric.metricType = api.PromEncodeOperationName("Counter")
-		cEntry.PromMetric.promCounter = counterInfo.promCounter
+	for _, metric := range metrics {
+		// TODO: We may need different handling for histograms
+		metricOut := e.EncodeMetric(metric)
+		out = append(out, metricOut...)
 	}
+	log.Debugf("out = %v", out)
+	log.Debugf("cache = %v", e.mCache)
+	log.Debugf("list = %v", e.mList)
 	return out
 }
-func (e *encodeProm) EncodeGauge(metric config.GenericMap) []interface{} {
+
+func (e *encodeProm) EncodeMetric(metric config.GenericMap) []interface{} {
+	log.Debugf("entering EncodeMetric metric = %v", metric)
+	// TODO: We may need different handling for histograms
 	out := make([]interface{}, 0)
-	for gaugeName, gaugeInfo := range e.gauges {
-		gaugeValue, ok := metric[gaugeInfo.input]
+	for metricName, mInfo := range e.metrics {
+		metricValue, ok := metric[mInfo.input]
 		if !ok {
-			log.Debugf("field %v is missing", gaugeName)
+			log.Debugf("field %v is missing", metricName)
 			continue
 		}
-		gaugeValueString := fmt.Sprintf("%v", gaugeValue)
-		valueFloat, err := strconv.ParseFloat(gaugeValueString, 64)
+		metricValueString := fmt.Sprintf("%v", metricValue)
+		valueFloat, err := strconv.ParseFloat(metricValueString, 64)
 		if err != nil {
-			log.Debugf("field cannot be converted to float: %v, %s", gaugeValue, gaugeValueString)
+			log.Debugf("field cannot be converted to float: %v, %s", metricValue, metricValueString)
 			continue
 		}
-		entryLabels := make(map[string]string, len(gaugeInfo.labelNames))
-		for _, t := range gaugeInfo.labelNames {
+		log.Debugf("metricName = %v, metricValue = %v, valueFloat = %v", metricName, metricValue, valueFloat)
+		entryLabels := make(map[string]string, len(mInfo.labelNames))
+		for _, t := range mInfo.labelNames {
 			entryLabels[t] = fmt.Sprintf("%v", metric[t])
 		}
 		entry := entryInfo{
 			eInfo: entrySignature{
-				Name:   e.prefix + gaugeName,
+				Name:   e.prefix + metricName,
 				Labels: entryLabels,
 			},
 			value: valueFloat,
 		}
 		out = append(out, entry)
-		// push the metric to prometheus
-		if gaugeInfo.promGauge != nil {
-			gaugeInfo.promGauge.With(entryLabels).Set(valueFloat)
-		}
 
 		cEntry := e.saveEntryInCache(entry, entryLabels)
-		cEntry.PromMetric.metricType = api.PromEncodeOperationName("Gauge")
-		cEntry.PromMetric.promGauge = gaugeInfo.promGauge
+		cEntry.PromMetric.metricType = mInfo.PromMetric.metricType
+		// push the metric to prometheus
+		switch mInfo.PromMetric.metricType {
+		case api.PromEncodeOperationName("Gauge"):
+			mInfo.promGauge.With(entryLabels).Set(valueFloat)
+			cEntry.PromMetric.promGauge = mInfo.promGauge
+		case api.PromEncodeOperationName("Counter"):
+			mInfo.promCounter.With(entryLabels).Add(valueFloat)
+			cEntry.PromMetric.promCounter = mInfo.promCounter
+		case api.PromEncodeOperationName("Histogram"):
+			// TODO: Need to perform proper function for histogram
+			//mInfo.promHist.With(entryLabels).Set(valueFloat)
+			cEntry.PromMetric.promHist = mInfo.promHist
+		}
 	}
 	return out
 }
@@ -187,23 +177,6 @@ func (e *encodeProm) saveEntryInCache(entry entryInfo, entryLabels map[string]st
 	return cEntry
 }
 
-// Encode encodes a metric before being stored
-func (e *encodeProm) Encode(metrics []config.GenericMap) []interface{} {
-	log.Debugf("entering encodeProm Encode")
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	out := make([]interface{}, 0)
-	for _, metric := range metrics {
-		gaugeOut := e.EncodeGauge(metric)
-		out = append(out, gaugeOut...)
-		counterOut := e.EncodeCounter(metric)
-		out = append(out, counterOut...)
-	}
-	log.Debugf("cache = %v", e.mCache)
-	log.Debugf("list = %v", e.mList)
-	return out
-}
-
 func (e *encodeProm) cleanupExpiredEntriesLoop() {
 	for {
 		e.cleanupExpiredEntries()
@@ -220,7 +193,7 @@ func (e *encodeProm) cleanupExpiredEntries() {
 	log.Debugf("list = %v", e.mList)
 	nowInSecs := time.Now().Unix()
 	expireTime := nowInSecs - e.expiryTime
-	// go through the list until we reach recently used connections
+	// go through the list until we reach recently used entries
 	for {
 		entry := e.mList.Front()
 		if entry == nil {
@@ -235,7 +208,7 @@ func (e *encodeProm) cleanupExpiredEntries() {
 		}
 
 		// clean up the entry
-		log.Debugf("nowInSecs = %d, deleting %s", nowInSecs, c.labels)
+		log.Debugf("nowInSecs = %d, deleting %v", nowInSecs, c)
 		switch c.PromMetric.metricType {
 		case api.PromEncodeOperationName("Gauge"):
 			c.PromMetric.promGauge.Delete(c.labels)
@@ -282,14 +255,14 @@ func NewEncodeProm() (Encoder, error) {
 	}
 	log.Debugf("expiryTime = %d", expiryTime)
 
-	counters := make(map[string]metricInfo)
-	gauges := make(map[string]metricInfo)
-	histograms := make(map[string]metricInfo)
+	metrics := make(map[string]metricInfo)
 	for _, mInfo := range jsonEncodeProm.Metrics {
+		var pMetric PromMetric
 		fullMetricName := promPrefix + mInfo.Name
 		labels := mInfo.Labels
 		log.Debugf("fullMetricName = %v", fullMetricName)
 		log.Debugf("Labels = %v", labels)
+		pMetric.metricType = mInfo.Type
 		switch mInfo.Type {
 		case api.PromEncodeOperationName("Counter"):
 			counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: ""}, labels)
@@ -298,14 +271,7 @@ func NewEncodeProm() (Encoder, error) {
 				log.Errorf("error during prometheus.Register: %v", err)
 				return nil, err
 			}
-			counters[mInfo.Name] = metricInfo{
-				input:      mInfo.ValueKey,
-				labelNames: labels,
-				PromMetric: PromMetric{
-					metricType:  api.PromEncodeOperationName("Counter"),
-					promCounter: counter,
-				},
-			}
+			pMetric.promCounter = counter
 		case api.PromEncodeOperationName("Gauge"):
 			gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: ""}, labels)
 			err := prometheus.Register(gauge)
@@ -313,14 +279,7 @@ func NewEncodeProm() (Encoder, error) {
 				log.Errorf("error during prometheus.Register: %v", err)
 				return nil, err
 			}
-			gauges[mInfo.Name] = metricInfo{
-				input:      mInfo.ValueKey,
-				labelNames: labels,
-				PromMetric: PromMetric{
-					metricType: api.PromEncodeOperationName("Gauge"),
-					promGauge:  gauge,
-				},
-			}
+			pMetric.promGauge = gauge
 		case api.PromEncodeOperationName("Histogram"):
 			log.Debugf("buckets = %v", mInfo.Buckets)
 			hist := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: "", Buckets: mInfo.Buckets}, labels)
@@ -329,25 +288,23 @@ func NewEncodeProm() (Encoder, error) {
 				log.Errorf("error during prometheus.Register: %v", err)
 				return nil, err
 			}
-			histograms[mInfo.Name] = metricInfo{
-				input:      mInfo.ValueKey,
-				labelNames: labels,
-				PromMetric: PromMetric{
-					metricType: api.PromEncodeOperationName("Histogram"),
-					promHist:   hist,
-				},
-			}
+			pMetric.promHist = hist
 		case "default":
 			log.Errorf("invalid metric type = %v, skipping", mInfo.Type)
+			continue
+		}
+		metrics[mInfo.Name] = metricInfo{
+			input:      mInfo.ValueKey,
+			labelNames: labels,
+			PromMetric: pMetric,
 		}
 	}
 
+	log.Debugf("metrics = %v", metrics)
 	w := &encodeProm{
 		port:       fmt.Sprintf(":%v", portNum),
 		prefix:     promPrefix,
-		counters:   counters,
-		gauges:     gauges,
-		histograms: histograms,
+		metrics:    metrics,
 		expiryTime: expiryTime,
 		mList:      list.New(),
 		mCache:     make(metricCache),
