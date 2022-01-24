@@ -1,4 +1,4 @@
-name: Check pull request
+name: pull request checks
 
 on:
   push:
@@ -25,5 +25,12 @@ jobs:
       uses: actions/checkout@v2
     - name: run build
       run: make build
-    - name: run test
+    - name: run tests
       run: make test
+    - name: upload coverage to codecov.io
+      uses: codecov/codecov-action@v2
+      with:
+        files: /tmp/coverage.out
+        token: ${{ secrets.CODECOV_SECRET }}
+        flags: unittests
+        fail_ci_if_error: true
