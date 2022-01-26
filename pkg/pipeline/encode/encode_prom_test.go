@@ -18,12 +18,15 @@
 package encode
 
 import (
+	"container/list"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/test"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
+	"time"
 )
 
 const testConfig = `---
@@ -34,6 +37,7 @@ pipeline:
     prom:
       port: 9103
       prefix: test_
+      expirytime: 1
       metrics:
         - name: Bytes
           type: gauge
@@ -71,26 +75,23 @@ func initNewEncodeProm(t *testing.T) Encoder {
 func Test_NewEncodeProm(t *testing.T) {
 	newEncode := initNewEncodeProm(t)
 	encodeProm := newEncode.(*encodeProm)
-	require.Equal(t, encodeProm.port, ":9103")
-	require.Equal(t, encodeProm.prefix, "test_")
-	require.Equal(t, len(encodeProm.gauges), 1)
-	require.Equal(t, len(encodeProm.counters), 1)
-	require.Equal(t, len(encodeProm.histograms), 1)
+	require.Equal(t, ":9103", encodeProm.port)
+	require.Equal(t, "test_", encodeProm.prefix)
+	require.Equal(t, 3, len(encodeProm.metrics))
+	require.Equal(t, int64(1), encodeProm.expiryTime)
 
-	gauges := encodeProm.gauges
-	assert.Contains(t, gauges, "Bytes")
-	gInfo := gauges["Bytes"]
+	metrics := encodeProm.metrics
+	assert.Contains(t, metrics, "Bytes")
+	gInfo := metrics["Bytes"]
 	require.Equal(t, gInfo.input, "bytes")
 	expectedList := []string{"srcAddr", "dstAddr", "srcPort"}
-	require.Equal(t, gInfo.tags, expectedList)
+	require.Equal(t, gInfo.labelNames, expectedList)
 
-	counters := encodeProm.counters
-	assert.Contains(t, counters, "Packets")
-	cInfo := counters["Packets"]
+	assert.Contains(t, metrics, "Packets")
+	cInfo := metrics["Packets"]
 	require.Equal(t, cInfo.input, "packets")
 	expectedList = []string{"srcAddr", "dstAddr", "dstPort"}
-	require.Equal(t, cInfo.tags, expectedList)
-
+	require.Equal(t, cInfo.labelNames, expectedList)
 	entry := test.GetExtractMockEntry()
 	input := []config.GenericMap{entry}
 	output := encodeProm.Encode(input)
@@ -103,18 +104,44 @@ func Test_NewEncodeProm(t *testing.T) {
 	entryLabels2["srcAddr"] = "10.1.2.3"
 	entryLabels2["dstAddr"] = "10.1.2.4"
 	entryLabels2["dstPort"] = "39504"
-	gEntryInfo1 := gaugeEntryInfo{
-		gaugeName:  "test_Bytes",
-		gaugeValue: float64(1234),
-		labels:     entryLabels1,
+	gEntryInfo1 := entryInfo{
+		value: float64(1234),
+		eInfo: entrySignature{
+			Name:   "test_Bytes",
+			Labels: entryLabels1,
+		},
 	}
-	gEntryInfo2 := counterEntryInfo{
-		counterName:  "test_Packets",
-		counterValue: float64(34),
-		labels:       entryLabels2,
+	gEntryInfo2 := entryInfo{
+		eInfo: entrySignature{
+			Name:   "test_Packets",
+			Labels: entryLabels2,
+		},
+		value: float64(34),
 	}
 	expectedOutput := []interface{}{gEntryInfo1, gEntryInfo2}
-	require.Equal(t, output, expectedOutput)
+	require.Equal(t, expectedOutput, output)
+	gaugeA, err := gInfo.promGauge.GetMetricWith(entryLabels1)
+	require.Equal(t, nil, err)
+	bytesA := testutil.ToFloat64(gaugeA)
+	require.Equal(t, gEntryInfo1.value, bytesA)
+
+	// verify entries are in cache; one for the gauge and one for the counter
+	entriesMap := encodeProm.mCache
+	require.Equal(t, 2, len(entriesMap))
+
+	eInfoBytes := generateCacheKey(&gEntryInfo1.eInfo)
+	encodeProm.mu.Lock()
+	_, found := encodeProm.mCache[string(eInfoBytes)]
+	encodeProm.mu.Unlock()
+	require.Equal(t, true, found)
+
+	// wait a couple seconds so that the entry will expire
+	time.Sleep(2 * time.Second)
+	encodeProm.cleanupExpiredEntries()
+	entriesMap = encodeProm.mCache
+	encodeProm.mu.Lock()
+	require.Equal(t, 0, len(entriesMap))
+	encodeProm.mu.Unlock()
 }
 
 func Test_EncodeAggregate(t *testing.T) {
@@ -132,23 +159,27 @@ func Test_EncodeAggregate(t *testing.T) {
 	newEncode := &encodeProm{
 		port:   ":0000",
 		prefix: "test_",
-		gauges: map[string]gaugeInfo{
+		metrics: map[string]metricInfo{
 			"gauge": {
-				input: "test_aggregate_value",
-				tags:  []string{"by", "aggregate"},
+				input:      "test_aggregate_value",
+				labelNames: []string{"by", "aggregate"},
 			},
 		},
+		mList:  list.New(),
+		mCache: make(metricCache),
 	}
 
 	output := newEncode.Encode(metrics)
 
-	gEntryInfo1 := gaugeEntryInfo{
-		gaugeName:  "test_gauge",
-		gaugeValue: float64(7),
-		labels: map[string]string{
-			"by":        "[dstIP srcIP]",
-			"aggregate": "20.0.0.2,10.0.0.1",
+	gEntryInfo1 := entryInfo{
+		eInfo: entrySignature{
+			Name: "test_gauge",
+			Labels: map[string]string{
+				"by":        "[dstIP srcIP]",
+				"aggregate": "20.0.0.2,10.0.0.1",
+			},
 		},
+		value: float64(7),
 	}
 
 	expectedOutput := []interface{}{gEntryInfo1}

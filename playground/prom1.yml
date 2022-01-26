@@ -9,24 +9,25 @@ pipeline:
   transform:
     - type: generic
       generic:
-        - input: Bytes
-          output: bytes
-        - input: DstAddr
-          output: dstAddr
-        - input: DstHostIP
-          output: dstHostIP
-        - input: DstPort
-          output: dstPort
-        - input: Packets
-          output: packets
-        - input: SrcAddr
-          output: srcAddr
-        - input: SrcHostIP
-          output: srcHostIP
-        - input: SrcPort
-          output: srcPort
-        - input: TimeReceived
-          output: timestamp
+        rules:
+          - input: Bytes
+            output: bytes
+          - input: DstAddr
+            output: dstAddr
+          - input: DstHostIP
+            output: dstHostIP
+          - input: DstPort
+            output: dstPort
+          - input: Packets
+            output: packets
+          - input: SrcAddr
+            output: srcAddr
+          - input: SrcHostIP
+            output: srcHostIP
+          - input: SrcPort
+            output: srcPort
+          - input: TimeReceived
+            output: timestamp
   extract:
     type: none
   encode:
@@ -34,6 +35,7 @@ pipeline:
     prom:
       port: 9102
       prefix: fl2m_
+      expirytime: 15
       metrics:
         - name: totalBytes
           type: gauge

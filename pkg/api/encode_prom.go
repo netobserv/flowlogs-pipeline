@@ -18,9 +18,10 @@
 package api
 
 type PromEncode struct {
-	Metrics PromMetricsItems `yaml:"metrics" doc:"list of prometheus metric definitions, each includes:"`
-	Port    int              `yaml:"port" doc:"port number to expose \"/metrics\" endpoint"`
-	Prefix  string           `yaml:"prefix" doc:"prefix added to each metric name"`
+	Metrics    PromMetricsItems `yaml:"metrics" doc:"list of prometheus metric definitions, each includes:"`
+	Port       int              `yaml:"port" doc:"port number to expose \"/metrics\" endpoint"`
+	Prefix     string           `yaml:"prefix" doc:"prefix added to each metric name"`
+	ExpiryTime int              `yaml:"expirytime" doc:"seconds of no-flow to wait before deleting prometheus data item"`
 }
 
 type PromEncodeOperationEnum struct {
