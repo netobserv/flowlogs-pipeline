@@ -139,7 +139,7 @@
             "uid": "P1809F7CD0C75ACF3"
           },
           "exemplar": false,
-          "expr": "fl2m_connectionsPerDestinationLocation",
+          "expr": "fl2m_connections_per_destination_location",
           "format": "table",
           "instant": true,
           "interval": "",
