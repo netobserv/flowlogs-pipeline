@@ -1,5 +1,5 @@
 # This file was generated automatically by flowlogs2metrics confgenerator
-log-level: debug
+log-level: error
 pipeline:
   decode:
     type: json
@@ -173,7 +173,7 @@ pipeline:
       - srcK8S_Namespace
       - srcK8S_Type
       operation: sum
-      recordkey: Bytes
+      recordkey: bytes
     - name: dest_connection_location_count
       by:
       - dstLocation_CountryName

@@ -18,7 +18,9 @@
 package write
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type writeStdout struct {
@@ -28,7 +30,7 @@ type writeStdout struct {
 func (t *writeStdout) Write(in []interface{}) {
 	log.Debugf("entering writeStdout Write")
 	for _, v := range in {
-		log.Infof("%v", v)
+		fmt.Printf("%s: %v\n", time.Now().Format(time.StampMilli), v)
 	}
 }
 

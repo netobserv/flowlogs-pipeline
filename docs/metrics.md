@@ -139,7 +139,7 @@ and the transformation to generate the exported metric.
 | **Details** | Sum egress bytes for all traffic per namespace | 
 | **Usage** | Evaluate network usage breakdown per namespace | 
 | **Labels** | kubernetes, bandwidth, graph |
-| **Operation** | aggregate by `srcK8S_Namespace, srcK8S_Type` and `sum` field `Bytes` |
+| **Operation** | aggregate by `srcK8S_Namespace, srcK8S_Type` and `sum` field `bytes` |
 | **Exposed as** | `fl2m_egress_per_namespace` of type `gauge` |
 | **Visualized as** | "Bandwidth per namespace" on dashboard `details` |
 |||  
