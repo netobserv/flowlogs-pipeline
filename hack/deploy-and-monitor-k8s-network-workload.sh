@@ -51,6 +51,10 @@ pipeline:
         output: proto
       - input: Bytes
         output: bytes
+      - input: SequenceNum
+        output: sequenceNum
+      - input: Packets
+        output: packets
     type: generic
   - network:
       rules:
@@ -228,9 +232,10 @@ main() {
   deploy-pod-to-pod-workload
   deploy-flowlogs2metrics
   echo ":::====> Done executing"
-  echo "Use: kubectl logs -l app=flowlogs2metrics  | grep ingress-workload"
-  echo "Use: kubectl logs -l app=flowlogs2metrics  | grep egress-workload"
-  echo "Use: kubectl logs -l app=flowlogs2metrics  | grep pod-to-pod-workload"
+  POD_NAME=$(oc get pod -n default -l app=flowlogs2metrics -o jsonpath="{.items[0].metadata.name}")
+  echo "Use: kubectl logs $POD_NAME  | grep ingress-workload"
+  echo "Use: kubectl logs $POD_NAME  | grep egress-workload"
+  echo "Use: kubectl logs $POD_NAME  | grep pod-to-pod-workload"
 }
 
 main
