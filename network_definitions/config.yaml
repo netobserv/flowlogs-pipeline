@@ -10,16 +10,18 @@ ingest:
 transform:
   generic:
     rules:
-      - input: DstAddr
-        output: dstIP
       - input: SrcAddr
         output: srcIP
-      - input: Bytes
-        output: bytes
+      - input: SrcPort
+        output: srcPort
+      - input: DstAddr
+        output: dstIP
       - input: DstPort
         output: dstPort
       - input: Proto
         output: proto
+      - input: Bytes
+        output: bytes
       - input: TCPFlags
         output: TCPFlags
       - input: SrcAS

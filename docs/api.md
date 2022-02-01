@@ -43,6 +43,7 @@ Following is the supported API format for network transformations:
                  input: entry input field
                  output: entry output field
                  type: (enum) one of the following:
+                     conn_tracking: set output field to value of parameters field only for new flows by matching template in input field
                      add_regex_if: add output field if input field satisfies regex pattern from parameters field
                      add_if: add output field if input field satisfies criteria from parameters field
                      add_subnet: add output subnet field from input field and prefix length from parameters field

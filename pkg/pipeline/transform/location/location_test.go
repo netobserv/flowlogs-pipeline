@@ -32,7 +32,6 @@ import (
 )
 
 func Test_InitLocationDB(t *testing.T) {
-
 	// fail in os.Create
 	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
 	_osio.Create = func(name string) (*os.File, error) { return nil, fmt.Errorf("test") }
@@ -108,13 +107,12 @@ func Test_InitLocationDB(t *testing.T) {
 	testServer.Close()
 	_dbURL = DbUrl
 	_osio.Stat = os.Stat
-
 	// success
 	// NOTE:: Downloading the DB is a long operation, about 30 seconds, and this delays the tests
 	// TODO: Consider remove this test
 	os.RemoveAll(DBFileLocation)
-	err = InitLocationDB()
-	require.Nil(t, err)
+	initLocationDBErr := InitLocationDB()
+	require.Nil(t, initLocationDBErr)
 }
 
 func Test_GetLocation(t *testing.T) {
@@ -170,5 +168,5 @@ func Test_unzip(t *testing.T) {
 	_ = ioutil.WriteFile("/tmp/test_zip.zip", buf.Bytes(), 0777)
 	err = unzip("/tmp/test_zip.zip", "/tmp/")
 	require.Error(t, err)
-
+	_osio.MkdirAll = os.MkdirAll
 }

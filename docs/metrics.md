@@ -51,10 +51,10 @@ and the transformation to generate the exported metric.
 ### connection rate per dest subnet
 | **Description** | This metric observes network connections rate per destination subnet | 
 |:---|:---|
-| **Details** | Counts the number of connections per subnet with network prefix length /16 | 
+| **Details** | Counts the number of connections per subnet with network prefix length /16 (using conn_tracking sum isNewFlow field) | 
 | **Usage** | Evaluate network connections per subnet | 
 | **Labels** | rate, subnet |
-| **Operation** | aggregate by `dstSubnet` and `count`  |
+| **Operation** | aggregate by `dstSubnet` and `sum`  |
 | **Exposed as** | `fl2m_connections_per_destination_subnet` of type `gauge` |
 | **Visualized as** | "Connections rate per destinationIP /16 subnets" on dashboard `details` |
 |||  
