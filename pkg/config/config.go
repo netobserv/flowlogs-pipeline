@@ -40,7 +40,6 @@ type Ingest struct {
 	Type      string
 	File      File
 	Collector string
-	Aws       Aws
 }
 
 type File struct {
@@ -53,6 +52,7 @@ type Aws struct {
 
 type Decode struct {
 	Type string
+	Aws  string
 }
 
 type Extract struct {
