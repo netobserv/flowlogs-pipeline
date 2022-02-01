@@ -1,3 +1,4 @@
+log-level: debug
 pipeline:
   ingest:
     type: file

@@ -23,33 +23,27 @@ import (
 	"testing"
 )
 
-func initNewDecodeJson(t *testing.T) Decoder {
-	newDecode, err := NewDecodeJson()
-	require.Equal(t, nil, err)
+func initNewDecodeNone(t *testing.T) Decoder {
+	newDecode, err := NewDecodeNone()
+	require.Equal(t, err, nil)
 	return newDecode
 }
 
-func TestDecodeJson(t *testing.T) {
-	newDecode := initNewDecodeJson(t)
-	decodeJson := newDecode.(*decodeJson)
+func TestDecodeNone(t *testing.T) {
+	newDecode := initNewDecodeNone(t)
+	decodeNone := newDecode.(*decodeNone)
 	inputString1 := "{\"varInt\": 12, \"varString\":\"testString\", \"varBool\":false}"
 	inputString2 := "{\"varInt\": 14, \"varString\":\"testString2\", \"varBool\":true}"
 	inputString3 := "{}"
 	inputStringErr := "{\"varInt\": 14, \"varString\",\"testString2\", \"varBool\":true}"
 	var in []interface{}
 	var out []config.GenericMap
-	out = decodeJson.Decode(in)
+	out = decodeNone.Decode(in)
 	require.Equal(t, 0, len(out))
 	in = append(in, inputString1)
 	in = append(in, inputString2)
 	in = append(in, inputString3)
 	in = append(in, inputStringErr)
-	out = decodeJson.Decode(in)
-	require.Equal(t, len(out), 3)
-	// verify that all items come back as strings
-	require.Equal(t, "12", out[0]["varInt"])
-	require.Equal(t, "testString", out[0]["varString"])
-	require.Equal(t, "false", out[0]["varBool"])
-
-	// TODO: Check for more complicated json structures
+	out = decodeNone.Decode(in)
+	require.Equal(t, len(out), 0)
 }
