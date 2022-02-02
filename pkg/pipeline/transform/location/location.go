@@ -45,7 +45,7 @@ const (
 	DBFileLocation    = "/tmp/location_db.bin"
 	DBZIPFileLocation = "/tmp/location_db.bin" + ".zip"
 	// REF: Original location from ip2location DB is: "https://www.ip2location.com/download/?token=OpOljbgT6K2WJnFrFBBmBzRVNpHlcYqNN4CMeGavvh0pPOpyu16gKQyqvDMxTDF4&file=DB9LITEBIN"
-	DbUrl = "https://drive.google.com/uc?export=download&id=19T0H7gBG-LX2YkvQ7RS_2gtIU7jbkseS"
+	DbUrl = "https://raw.githubusercontent.com/netobserv/flowlogs2metrics/main/contrib/location/location.db"
 )
 
 var locationDB *ip2location.DB
