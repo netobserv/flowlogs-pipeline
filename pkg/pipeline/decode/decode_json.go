@@ -37,7 +37,7 @@ func (c *decodeJson) Decode(in []interface{}) []config.GenericMap {
 		var decodedLine map[string]interface{}
 		err := json.Unmarshal(line2, &decodedLine)
 		if err != nil {
-			log.Errorf("error unmarshalling a line: %v", err)
+			log.Errorf("decodeJson Decode: error unmarshalling a line: %v", err)
 			continue
 		}
 		decodedLine2 := make(config.GenericMap, len(decodedLine))

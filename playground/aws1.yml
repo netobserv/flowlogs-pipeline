@@ -1,3 +1,4 @@
+log-level: debug
 pipeline:
   ingest:
     type: file
@@ -28,5 +29,5 @@ pipeline:
   encode:
     type: none
   write:
-    type: none
+    type: stdout
 
