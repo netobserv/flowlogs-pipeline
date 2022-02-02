@@ -53,16 +53,16 @@ func (c *decodeAws) Decode(in []interface{}) []config.GenericMap {
 	out := make([]config.GenericMap, 0)
 	nItems := len(in)
 	log.Debugf("nItems = %d", nItems)
-	for i, line := range in {
+	for lineNum, line := range in {
 		lineSlice := strings.Fields(line.(string))
 		nFields := len(lineSlice)
 		if nFields != len(c.keyTags) {
-			log.Errorf("decodeAws Decode: wrong number of fields in line %d", i+1)
+			log.Errorf("decodeAws Decode: wrong number of fields in line %d", lineNum+1)
 			continue
 		}
 		record := make(config.GenericMap)
-		for i := 0; i < nFields; i++ {
-			record[c.keyTags[i]] = lineSlice[i]
+		for fieldNum := 0; fieldNum < nFields; fieldNum++ {
+			record[c.keyTags[fieldNum]] = lineSlice[fieldNum]
 		}
 		log.Debugf("record = %v", record)
 		out = append(out, record)
@@ -78,7 +78,7 @@ func NewDecodeAws() (Decoder, error) {
 	fieldsString := config.Opt.PipeLine.Decode.Aws
 	log.Debugf("fieldsString = %v", fieldsString)
 	if fieldsString != "" {
-		var awsFields api.EncodeAwsStruct
+		var awsFields api.EncodeAws
 		err := json.Unmarshal([]byte(fieldsString), &awsFields)
 		if err != nil {
 			log.Errorf("NewDecodeAws: error in unmarshalling fields: %v", err)
