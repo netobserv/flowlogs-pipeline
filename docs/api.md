@@ -31,6 +31,14 @@ Following is the supported API format for Aws flow entries:
 <pre>
  aws:
          fields: list of aws flow log fields
+## Ingest Kafka API
+Following is the supported API format for the kafka ingest:
+
+<pre>
+ ingestKafka:
+         brokers: list of kafka broker addresses
+         topic: kafka topic to listen on
+         groupid: separate groupid for each consumer on specified topic
 </pre>
 ## Transform Generic API
 Following is the supported API format for generic transformations:
