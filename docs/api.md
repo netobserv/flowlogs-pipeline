@@ -25,12 +25,6 @@ Following is the supported API format for the netflow collector:
          hostName: the hostname to listen on
          port: the port number to listen on
 </pre>
-## Aws ingest API
-Following is the supported API format for Aws flow entries:
-
-<pre>
- aws:
-         fields: list of aws flow log fields
 ## Ingest Kafka API
 Following is the supported API format for the kafka ingest:
 
@@ -39,6 +33,13 @@ Following is the supported API format for the kafka ingest:
          brokers: list of kafka broker addresses
          topic: kafka topic to listen on
          groupid: separate groupid for each consumer on specified topic
+</pre>
+## Aws ingest API
+Following is the supported API format for Aws flow entries:
+
+<pre>
+ aws:
+         fields: list of aws flow log fields
 </pre>
 ## Transform Generic API
 Following is the supported API format for generic transformations:
