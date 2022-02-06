@@ -30,4 +30,5 @@ type API struct {
 	DecodeAws        DecodeAws        `yaml:"aws" doc:"## Aws decode API\nFollowing is the supported API format for Aws flow entries:\n"`
 	TransformGeneric TransformGeneric `yaml:"generic" doc:"## Transform Generic API\nFollowing is the supported API format for generic transformations:\n"`
 	TransformNetwork TransformNetwork `yaml:"network" doc:"## Transform Network API\nFollowing is the supported API format for network transformations:\n"`
+	EncodeKafka      EncodeKafka      `yaml:"encodeKafka" doc:"## Kafka output API\nFollowing is the supported API format for the kafka output:\n"`
 }

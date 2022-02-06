@@ -137,8 +137,9 @@ func initFlags() {
 	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine.Extract.Type, "pipeline.extract.type", "none", "Extract type: aggregates, none")
 	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine.Extract.Aggregates, "pipeline.extract.aggregates", "", "Aggregates (see docs)")
 	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine.Encode.Type, "pipeline.encode.type", "none", "Encode type: prom, none")
-	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine.Write.Type, "pipeline.write.type", "none", "Write type: stdout, none")
 	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine.Encode.Prom, "pipeline.encode.prom", "", "Prometheus encode API")
+	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine.Encode.Kafka, "pipeline.encode.kafka", "", "Kafka output API")
+	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine.Write.Type, "pipeline.write.type", "none", "Write type: stdout, none")
 
 	_ = rootCmd.MarkPersistentFlagRequired("pipeline.ingest.type")
 }

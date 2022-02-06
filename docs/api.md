@@ -34,7 +34,7 @@ Following is the supported API format for the kafka ingest:
          topic: kafka topic to listen on
          groupid: separate groupid for each consumer on specified topic
 </pre>
-## Aws ingest API
+## Aws decode API
 Following is the supported API format for Aws flow entries:
 
 <pre>
@@ -68,4 +68,12 @@ Following is the supported API format for network transformations:
                      add_kubernetes: add output kubernetes fields from input
                  parameters: parameters specific to type
          kubeconfigpath: path to kubeconfig file (optional)
+</pre>
+## Kafka output API
+Following is the supported API format for the kafka output:
+
+<pre>
+ encodeKafka:
+         addr: address of kafka server
+         topic: kafka topic to write to
 </pre>

@@ -35,9 +35,9 @@ Flags:
       --config string                          config file (default is $HOME/.flowlogs2metrics)  
   -h, --help                                   help for flowlogs2metrics  
       --log-level string                       Log level: debug, info, warning, error (default "error")  
-      --pipeLine.ingest.collector string       Ingest collector API  
       --pipeline.decode.aws string             aws fields  
       --pipeline.decode.type string            Decode type: aws, json, none (default "none")  
+      --pipeline.encode.kafka string           Kafka output API  
       --pipeline.encode.prom string            Prometheus encode API  
       --pipeline.encode.type string            Encode type: prom, none (default "none")  
       --pipeline.extract.aggregates string     Aggregates (see docs)  

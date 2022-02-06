@@ -99,6 +99,8 @@ func getEncoder() (encode.Encoder, error) {
 	switch config.Opt.PipeLine.Encode.Type {
 	case "prom":
 		encoder, _ = encode.NewEncodeProm()
+	case "kafka":
+		encoder, _ = encode.NewEncodeKafka()
 	case "none":
 		encoder, _ = encode.NewEncodeNone()
 	default:
