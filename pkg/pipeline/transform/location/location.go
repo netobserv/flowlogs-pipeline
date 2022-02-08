@@ -25,10 +25,12 @@ import (
 	"github.com/ip2location/ip2location-go/v9"
 	log "github.com/sirupsen/logrus"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 type Info struct {
@@ -60,6 +62,7 @@ type OSIO struct {
 
 var _osio = OSIO{}
 var _dbURL string
+var locationDBMutex *sync.Mutex
 
 func init() {
 	_osio.Stat = os.Stat
@@ -68,53 +71,81 @@ func init() {
 	_osio.OpenFile = os.OpenFile
 	_osio.Copy = io.Copy
 	_dbURL = DbUrl
+	locationDBMutex = &sync.Mutex{}
 }
 
-func InitLocationDB() error {
 
-	if _, err := _osio.Stat(DBFileLocation); errors.Is(err, os.ErrNotExist) {
+func InitLocationDB() error {
+	locationDBMutex.Lock()
+	defer locationDBMutex.Unlock()
+
+	if _, statErr := _osio.Stat(DBFileLocation); errors.Is(statErr, os.ErrNotExist) {
 		log.Infof("Downloading location DB into local file %s ", DBFileLocation)
-		out, err := _osio.Create(DBZIPFileLocation)
-		if err != nil {
-			return fmt.Errorf("failed os.Create %v ", err)
+		out, createErr := _osio.Create(DBZIPFileLocation)
+		if createErr != nil {
+			return fmt.Errorf("failed os.Create %v ", createErr)
 		}
 
 		tr := &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
 		client := &http.Client{Transport: tr}
-		resp, err := client.Get(_dbURL)
-		if err != nil {
-			return fmt.Errorf("failed http.Get %v ", err)
+		resp, getErr := client.Get(_dbURL)
+		if getErr != nil {
+			return fmt.Errorf("failed http.Get %v ", getErr)
 		}
 
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
-			return fmt.Errorf("failed io.Copy %v ", err)
+		log.Infof("Got reponse %s", resp.Status)
+
+		written, copyErr := io.Copy(out, resp.Body)
+		if copyErr != nil {
+			return fmt.Errorf("failed io.Copy %v ", copyErr)
 		}
 
-		err = resp.Body.Close()
-		if err != nil {
-			return fmt.Errorf("failed resp.Body.Close %v ", err)
+		log.Infof("Wrote %d bytes to %s", written, DBZIPFileLocation)
+
+		bodyCloseErr := resp.Body.Close()
+		if bodyCloseErr != nil {
+			return fmt.Errorf("failed resp.Body.Close %v ", bodyCloseErr)
 		}
 
-		err = out.Close()
-		if err != nil {
-			return fmt.Errorf("failed out.Close %v ", err)
+		outCloseErr := out.Close()
+		if outCloseErr != nil {
+			return fmt.Errorf("failed out.Close %v ", outCloseErr)
 		}
 
-		err = unzip(DBZIPFileLocation, DBFileLocation)
-		if err != nil {
-			return fmt.Errorf("failed unzip %v ", err)
+		unzipErr := unzip(DBZIPFileLocation, DBFileLocation)
+		if unzipErr != nil {
+			file, openErr := os.Open(DBFileLocation + "/" + DBFilename)
+			if openErr == nil {
+				fi, fileStatErr := file.Stat()
+				if fileStatErr == nil {
+					log.Infof("length of %s is: %d", DBFileLocation+"/"+DBFilename, fi.Size())
+					_ = file.Close()
+				} else {
+					log.Infof("file.Stat err %v", fileStatErr)
+				}
+			} else {
+				log.Infof("os.Open err %v", openErr)
+			}
+
+			fileContent, readFileErr := ioutil.ReadFile(DBFileLocation + "/" + DBFilename)
+			if readFileErr == nil {
+				log.Infof("content of first 100 bytes of %s  is: %s", DBFileLocation+"/"+DBFilename, fileContent[:100])
+			} else {
+				log.Infof("ioutil.ReadFile err %v", readFileErr)
+			}
+
+			return fmt.Errorf("failed unzip %v ", unzipErr)
 		}
 
 		log.Infof("Download completed succeful")
 	}
 
 	log.Debugf("Loading location DB")
-	db, err := ip2location.OpenDB(DBFileLocation + "/" + DBFilename)
-	if err != nil {
-		return fmt.Errorf("OpenDB err - %v ", err)
+	db, openDBErr := ip2location.OpenDB(DBFileLocation + "/" + DBFilename)
+	if openDBErr != nil {
+		return fmt.Errorf("OpenDB err - %v ", openDBErr)
 	}
 
 	locationDB = db

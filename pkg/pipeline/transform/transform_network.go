@@ -18,10 +18,12 @@
 package transform
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/Knetic/govaluate"
 	"github.com/netobserv/flowlogs2metrics/pkg/api"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/transform/connection_tracking"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/transform/location"
 	log "github.com/sirupsen/logrus"
@@ -29,6 +31,7 @@ import (
 	"net"
 	"regexp"
 	"strconv"
+	"text/template"
 )
 
 type Network struct {
@@ -40,6 +43,26 @@ func (n *Network) Transform(inputEntry config.GenericMap) config.GenericMap {
 
 	for _, rule := range n.Rules {
 		switch rule.Type {
+		case api.TransformNetworkOperationName("ConnTracking"):
+			template, err := template.New("").Parse(rule.Input)
+			if err != nil {
+				panic(err)
+			}
+			buf := &bytes.Buffer{}
+			err = template.Execute(buf, outputEntries)
+			if err != nil {
+				panic(err)
+			}
+			FlowIDFieldsAsString := buf.String()
+			isNew := connection_tracking.CT.AddFlow(FlowIDFieldsAsString)
+			if isNew {
+				if rule.Parameters != "" {
+					outputEntries[rule.Output] = rule.Parameters
+				} else {
+					outputEntries[rule.Output] = true
+				}
+			}
+
 		case api.TransformNetworkOperationName("AddRegExIf"):
 			matched, err := regexp.MatchString(rule.Parameters, fmt.Sprintf("%s", outputEntries[rule.Input]))
 			if err != nil {
@@ -125,13 +148,21 @@ func (n *Network) Transform(inputEntry config.GenericMap) config.GenericMap {
 func NewTransformNetwork(jsonNetworkTransform api.TransformNetwork) (Transformer, error) {
 	var needToInitLocationDB = false
 	var needToInitKubeData = false
+	var needToInitConnectionTracking = false
+
 	for _, rule := range jsonNetworkTransform.Rules {
 		switch rule.Type {
 		case api.TransformNetworkOperationName("AddLocation"):
 			needToInitLocationDB = true
 		case api.TransformNetworkOperationName("AddKubernetes"):
 			needToInitKubeData = true
+		case api.TransformNetworkOperationName("ConnTracking"):
+			needToInitConnectionTracking = true
 		}
+	}
+
+	if needToInitConnectionTracking {
+		connection_tracking.InitConnectionTracking()
 	}
 
 	if needToInitLocationDB {

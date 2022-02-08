@@ -130,10 +130,13 @@ func Test_Transform(t *testing.T) {
 			Rules: rules,
 		},
 	}
-	_ = location.InitLocationDB()
+
+	err := location.InitLocationDB()
+	require.NoError(t, err)
+
 	output := networkTransform.Transform(entry)
 
-	require.Equal(t, output, expectedOutput)
+	require.Equal(t, expectedOutput, output)
 }
 
 func Test_TransformAddSubnetParseCIDRFailure(t *testing.T) {
@@ -150,10 +153,13 @@ func Test_TransformAddSubnetParseCIDRFailure(t *testing.T) {
 			Rules: rules,
 		},
 	}
-	_ = location.InitLocationDB()
+
+	err := location.InitLocationDB()
+	require.NoError(t, err)
+
 	output := networkTransform.Transform(entry)
 
-	require.Equal(t, output, expectedOutput)
+	require.Equal(t, expectedOutput, output)
 }
 
 func Test_NewTransformNetwork(t *testing.T) {
@@ -184,8 +190,37 @@ pipeline:
 	entry := test.GetIngestMockEntry(false)
 	output := newNetworkTransform.Transform(entry)
 
-	require.Equal(t, output["srcIP"], "10.0.0.1")
-	require.Equal(t, output["subnetSrcIP"], "10.0.0.0/24")
+	require.Equal(t, "10.0.0.1", output["srcIP"])
+	require.Equal(t, "10.0.0.0/24", output["subnetSrcIP"])
+}
+
+func Test_ConnTrackingTransformNetwork(t *testing.T) {
+	var yamlConfig = []byte(`
+log-level: debug
+pipeline:
+  transform:
+    - type: network
+      network:
+        rules:
+        - input: "{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.protocol}}"
+          output: isNewFlow
+          type: conn_tracking
+          parameters: "777"
+  write:
+    type: stdout
+`)
+	newNetworkTransform := InitNewTransform(t, string(yamlConfig)).(*Network)
+	require.NotNil(t, newNetworkTransform)
+
+	// first time flow is new
+	entry := test.GetIngestMockEntry(false)
+	output := newNetworkTransform.Transform(entry)
+	require.Equal(t, "777", output["isNewFlow"])
+
+	// second time, same flow is not new
+	entry = test.GetIngestMockEntry(false)
+	output = newNetworkTransform.Transform(entry)
+	require.Equal(t, nil, output["isNewFlow"])
 }
 
 func Test_TransformNetworkDependentRulesAddRegExIf(t *testing.T) {
@@ -224,8 +259,8 @@ pipeline:
 	entry := test.GetIngestMockEntry(false)
 	output := newNetworkTransform.Transform(entry)
 
-	require.Equal(t, output["srcIP"], "10.0.0.1")
-	require.Equal(t, output["subnetSrcIP"], "10.0.0.0/24")
-	require.Equal(t, output["match-10.0.*"], "10.0.0.0/24")
-	require.NotEqual(t, output["match-11.0.*"], "10.0.0.0/24")
+	require.Equal(t, "10.0.0.1", output["srcIP"])
+	require.Equal(t, "10.0.0.0/24", output["subnetSrcIP"])
+	require.Equal(t, "10.0.0.0/24", output["match-10.0.*"])
+	require.NotEqual(t, "10.0.0.0/24", output["match-11.0.*"])
 }

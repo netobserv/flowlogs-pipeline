@@ -2,7 +2,7 @@
 description:
   This metric observes network connections rate per destination subnet
 details:
-  Counts the number of connections per subnet with network prefix length /16
+  Counts the number of connections per subnet with network prefix length /16 (using conn_tracking sum isNewFlow field)
 usage:
   Evaluate network connections per subnet
 labels:
@@ -10,6 +10,10 @@ labels:
   - subnet
 transform:
   rules:
+    - input: "{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.proto}}"
+      output: isNewFlow
+      type: conn_tracking
+      parameters: "1"
     - input: dstIP
       output: dstSubnet
       type: add_subnet
@@ -20,7 +24,8 @@ extract:
     - name: dest_connection_subnet_count
       by:
         - dstSubnet
-      operation: count
+      operation: sum
+      recordKey: isNewFlow
 encode:
   type: prom
   prom:

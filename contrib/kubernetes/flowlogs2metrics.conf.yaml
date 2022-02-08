@@ -135,7 +135,7 @@ pipeline:
     - name: dest_connection_subnet_count
       by:
       - dstSubnet
-      operation: count
+      operation: sum
       recordkey: ""
     - name: src_connection_count
       by:
@@ -203,16 +203,18 @@ pipeline:
   transform:
   - generic:
       rules:
-      - input: DstAddr
-        output: dstIP
       - input: SrcAddr
         output: srcIP
-      - input: Bytes
-        output: bytes
+      - input: SrcPort
+        output: srcPort
+      - input: DstAddr
+        output: dstIP
       - input: DstPort
         output: dstPort
       - input: Proto
         output: proto
+      - input: Bytes
+        output: bytes
       - input: TCPFlags
         output: TCPFlags
       - input: SrcAS
@@ -238,6 +240,10 @@ pipeline:
         output: srcSubnet
         type: add_subnet
         parameters: /16
+      - input: '{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.proto}}'
+        output: isNewFlow
+        type: conn_tracking
+        parameters: "1"
       - input: dstIP
         output: dstSubnet
         type: add_subnet

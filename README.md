@@ -275,6 +275,10 @@ pipeline:
           output: match-10.0
           type: add_regex_if
           parameters: 10.0.*
+        - input: "{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.protocol}}"
+          output: isNewFlow
+          type: conn_tracking
+          parameters: "1"
 ```
 
 The first rule `add_subnet` generates a new field named `srcSubnet` with the 
@@ -306,10 +310,14 @@ All the kubernetes fields will be named by appending `output` value
 > 2. using `KUBECONFIG` environment variable
 > 3. using local `~/.kube/config`
 
-The sixth `add_regex_if` generates a new field named `match-10.0` that contains
-the contents of the `srcSubnet` field for entries that match regex expression specified
+The sixth rule `add_regex_if` generates a new field named `match-10.0` that contains
+the contents of the `srcSubnet` field for entries that match regex expression specified 
 in the `parameters` variable. In addition, the field `match-10.0_Matched` with 
 value `true` is added to all matched entries
+
+The seventh rule `conn_tracking` generates a new field named `isNewFlow` that contains
+the contents of the `parameters` variable **only for new entries** (first seen in 120 seconds) 
+that match hash of template fields from the `input` variable. 
 
 
 > Note: above example describes all available transform network `Type` options
