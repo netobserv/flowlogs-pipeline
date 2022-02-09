@@ -51,6 +51,8 @@ func getIngester() (ingest.Ingester, error) {
 		ingester, err = ingest.NewIngestFile()
 	case "collector":
 		ingester, err = ingest.NewIngestCollector()
+	case "kafka":
+		ingester, err = ingest.NewIngestKafka()
 	default:
 		panic("`ingester` not defined")
 	}
