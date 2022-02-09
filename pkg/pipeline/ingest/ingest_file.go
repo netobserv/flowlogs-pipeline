@@ -65,7 +65,7 @@ func (r *ingestFile) Ingest(process ProcessFunction) {
 				log.Debugf("exiting ingestFile because of signal")
 				return
 			case <-ticker.C:
-				log.Infof("ingestFile; for loop; before process")
+				log.Debugf("ingestFile; for loop; before process")
 				process(lines)
 			}
 		}
