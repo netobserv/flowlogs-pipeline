@@ -40,6 +40,7 @@ type Ingest struct {
 	Type      string
 	File      File
 	Collector string
+	Kafka     string
 }
 
 type File struct {
