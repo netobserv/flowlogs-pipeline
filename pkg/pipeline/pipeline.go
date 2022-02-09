@@ -115,6 +115,8 @@ func getEncoder() (encode.Encoder, error) {
 	switch config.Opt.PipeLine.Encode.Type {
 	case "prom":
 		encoder, _ = encode.NewEncodeProm()
+	case "json":
+		encoder, _ = encode.NewEncodeJson()
 	case "none":
 		encoder, _ = encode.NewEncodeNone()
 	default:
