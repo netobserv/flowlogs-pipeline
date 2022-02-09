@@ -57,14 +57,17 @@ func (r *ingestFile) Ingest(process ProcessFunction) {
 		process(lines)
 	case "file_loop":
 		// loop forever
+		ticker := time.NewTicker(time.Duration(delaySeconds) * time.Second)
 		for {
-			if <-r.exitChan {
+			log.Infof("ingestFile; top of for loop; before if")
+			select {
+			case <-r.exitChan:
 				log.Debugf("exiting ingestFile because of signal")
 				return
+			case <-ticker.C:
+				log.Infof("ingestFile; for loop; before process")
+				process(lines)
 			}
-			process(lines)
-			log.Infof("going to sleep for %d seconds", delaySeconds)
-			time.Sleep(delaySeconds * time.Second)
 		}
 	}
 }
