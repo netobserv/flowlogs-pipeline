@@ -1,36 +1,42 @@
 package utils
 
 import (
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 )
 
 var (
 	registeredChannels []chan bool
+	chanMutex          sync.Mutex
 )
 
 func RegisterExitChannel(ch chan bool) {
+	chanMutex.Lock()
 	registeredChannels = append(registeredChannels, ch)
+	chanMutex.Unlock()
 }
 
 func SetupElegantExit() {
-	logrus.Debugf("entering SetupElegantExit")
+	log.Debugf("entering SetupElegantExit")
 	// handle elegant exit; create support for channels of go routines that want to exit cleanly
 	registeredChannels = make([]chan bool, 0)
 	exitSigChan := make(chan os.Signal, 1)
-	logrus.Debugf("registered exit signal channel")
+	log.Debugf("registered exit signal channel")
 	signal.Notify(exitSigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		// wait for exit signal; then stop all the other go functions
 		sig := <-exitSigChan
-		logrus.Debugf("received exit signal = %v", sig)
+		log.Debugf("received exit signal = %v", sig)
+		chanMutex.Lock()
 		// exit signal received; stop other go functions
 		for _, ch := range registeredChannels {
 			ch <- true
 		}
-		logrus.Debugf("exiting SetupElegantExit go function")
+		chanMutex.Unlock()
+		log.Debugf("exiting SetupElegantExit go function")
 	}()
-	logrus.Debugf("exiting SetupElegantExit")
+	log.Debugf("exiting SetupElegantExit")
 }
