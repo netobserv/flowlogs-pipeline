@@ -23,6 +23,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -159,6 +160,9 @@ func run() {
 	fmt.Printf("%s starting - version [%s]\n\n", filepath.Base(os.Args[0]), Version)
 	// Dump the configuration
 	dumpConfig()
+
+	utils.SetupElegantExit()
+
 	// creating a new pipeline
 	mainPipeline, err = pipeline.NewPipeline()
 	if err != nil {
