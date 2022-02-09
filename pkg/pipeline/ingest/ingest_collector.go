@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"github.com/netobserv/flowlogs2metrics/pkg/api"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	pUtils "github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
 	"net"
 	"time"
 
@@ -44,6 +45,7 @@ type ingestCollector struct {
 	hostname string
 	port     int
 	in       chan map[string]interface{}
+	exitChan chan bool
 }
 
 // TransportWrapper is an implementation of the goflow2 transport interface
@@ -142,6 +144,9 @@ func (r *ingestCollector) processLogLines(process ProcessFunction) {
 	var records []interface{}
 	for {
 		select {
+		case <-r.exitChan:
+			log.Debugf("exiting ingestCollector because of signal")
+			return
 		case record := <-r.in:
 			recordAsBytes, _ := json.Marshal(record)
 			records = append(records, string(recordAsBytes))
@@ -175,8 +180,12 @@ func NewIngestCollector() (Ingester, error) {
 	log.Infof("hostname = %s", jsonIngestCollector.HostName)
 	log.Infof("port = %d", jsonIngestCollector.Port)
 
+	ch := make(chan bool, 1)
+	pUtils.RegisterExitChannel(ch)
+
 	return &ingestCollector{
 		hostname: jsonIngestCollector.HostName,
 		port:     jsonIngestCollector.Port,
+		exitChan: ch,
 	}, nil
 }

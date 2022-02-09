@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"github.com/netobserv/flowlogs2metrics/pkg/api"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -76,6 +77,7 @@ type encodeProm struct {
 	expiryTime int64
 	mList      *list.List
 	mCache     metricCache
+	exitChan   chan bool
 }
 
 // Encode encodes a metric before being stored
@@ -179,8 +181,14 @@ func (e *encodeProm) saveEntryInCache(entry entryInfo, entryLabels map[string]st
 
 func (e *encodeProm) cleanupExpiredEntriesLoop() {
 	ticker := time.NewTicker(time.Duration(e.expiryTime) * time.Second)
-	for range ticker.C {
-		e.cleanupExpiredEntries()
+	for {
+		select {
+		case <-e.exitChan:
+			log.Debugf("exiting cleanupExpiredEntriesLoop because of signal")
+			return
+		case <-ticker.C:
+			e.cleanupExpiredEntries()
+		}
 	}
 }
 
@@ -300,6 +308,9 @@ func NewEncodeProm() (Encoder, error) {
 		}
 	}
 
+	ch := make(chan bool, 1)
+	utils.RegisterExitChannel(ch)
+
 	log.Debugf("metrics = %v", metrics)
 	w := &encodeProm{
 		port:       fmt.Sprintf(":%v", portNum),
@@ -308,6 +319,7 @@ func NewEncodeProm() (Encoder, error) {
 		expiryTime: expiryTime,
 		mList:      list.New(),
 		mCache:     make(metricCache),
+		exitChan:   ch,
 	}
 	go startPrometheusInterface(w)
 	go w.cleanupExpiredEntriesLoop()

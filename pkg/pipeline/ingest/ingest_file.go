@@ -21,6 +21,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"time"
@@ -28,6 +29,7 @@ import (
 
 type ingestFile struct {
 	fileName string
+	exitChan chan bool
 }
 
 const delaySeconds = 10
@@ -49,16 +51,22 @@ func (r *ingestFile) Ingest(process ProcessFunction) {
 		log.Debugf("%s", text)
 		lines = append(lines, text)
 	}
-	log.Infof("Ingesting %d log lines from %s", len(lines), r.fileName)
+	log.Debugf("Ingesting %d log lines from %s", len(lines), r.fileName)
 	switch config.Opt.PipeLine.Ingest.Type {
 	case "file":
 		process(lines)
 	case "file_loop":
 		// loop forever
+		ticker := time.NewTicker(time.Duration(delaySeconds) * time.Second)
 		for {
-			process(lines)
-			log.Infof("going to sleep for %d seconds", delaySeconds)
-			time.Sleep(delaySeconds * time.Second)
+			select {
+			case <-r.exitChan:
+				log.Debugf("exiting ingestFile because of signal")
+				return
+			case <-ticker.C:
+				log.Debugf("ingestFile; for loop; before process")
+				process(lines)
+			}
 		}
 	}
 }
@@ -72,7 +80,10 @@ func NewIngestFile() (Ingester, error) {
 
 	log.Infof("input file name = %s", config.Opt.PipeLine.Ingest.File.Filename)
 
+	ch := make(chan bool, 1)
+	utils.RegisterExitChannel(ch)
 	return &ingestFile{
 		fileName: config.Opt.PipeLine.Ingest.File.Filename,
+		exitChan: ch,
 	}, nil
 }
