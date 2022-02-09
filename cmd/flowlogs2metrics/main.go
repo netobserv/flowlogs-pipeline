@@ -31,6 +31,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 var (
@@ -171,4 +172,10 @@ func run() {
 	}
 
 	mainPipeline.Run()
+
+	// give all threads a chance to exit and then exit the process
+	time.Sleep(time.Second)
+	log.Debugf("exiting main run")
+	os.Exit(0)
+
 }

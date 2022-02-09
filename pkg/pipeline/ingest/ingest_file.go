@@ -51,7 +51,7 @@ func (r *ingestFile) Ingest(process ProcessFunction) {
 		log.Debugf("%s", text)
 		lines = append(lines, text)
 	}
-	log.Infof("Ingesting %d log lines from %s", len(lines), r.fileName)
+	log.Debugf("Ingesting %d log lines from %s", len(lines), r.fileName)
 	switch config.Opt.PipeLine.Ingest.Type {
 	case "file":
 		process(lines)
@@ -59,7 +59,6 @@ func (r *ingestFile) Ingest(process ProcessFunction) {
 		// loop forever
 		ticker := time.NewTicker(time.Duration(delaySeconds) * time.Second)
 		for {
-			log.Infof("ingestFile; top of for loop; before if")
 			select {
 			case <-r.exitChan:
 				log.Debugf("exiting ingestFile because of signal")

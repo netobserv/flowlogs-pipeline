@@ -15,8 +15,8 @@ var (
 
 func RegisterExitChannel(ch chan bool) {
 	chanMutex.Lock()
+	defer chanMutex.Unlock()
 	registeredChannels = append(registeredChannels, ch)
-	chanMutex.Unlock()
 }
 
 func SetupElegantExit() {
@@ -31,11 +31,11 @@ func SetupElegantExit() {
 		sig := <-exitSigChan
 		log.Debugf("received exit signal = %v", sig)
 		chanMutex.Lock()
+		defer chanMutex.Unlock()
 		// exit signal received; stop other go functions
 		for _, ch := range registeredChannels {
 			ch <- true
 		}
-		chanMutex.Unlock()
 		log.Debugf("exiting SetupElegantExit go function")
 	}()
 	log.Debugf("exiting SetupElegantExit")

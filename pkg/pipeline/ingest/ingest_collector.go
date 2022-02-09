@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"github.com/netobserv/flowlogs2metrics/pkg/api"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
-	exitUtils "github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
+	pUtils "github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
 	"net"
 	"time"
 
@@ -181,7 +181,7 @@ func NewIngestCollector() (Ingester, error) {
 	log.Infof("port = %d", jsonIngestCollector.Port)
 
 	ch := make(chan bool, 1)
-	exitUtils.RegisterExitChannel(ch)
+	pUtils.RegisterExitChannel(ch)
 
 	return &ingestCollector{
 		hostname: jsonIngestCollector.HostName,
