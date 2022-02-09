@@ -29,7 +29,8 @@ func Test_SetupElegantExit(t *testing.T) {
 	}
 
 	// send signal and see that it is propagated
-	syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	require.Equal(t, nil, err)
 
 	select {
 	case <-ch1:
