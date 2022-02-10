@@ -18,13 +18,14 @@
 package write
 
 import (
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func Test_Write(t *testing.T) {
 	wn := writeNone{}
-	wn.Write([]interface{}{"test"})
+	wn.Write([]config.GenericMap{{"key": "test"}})
 }
 
 func Test_NewWriteNone(t *testing.T) {

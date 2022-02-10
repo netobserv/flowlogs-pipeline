@@ -29,4 +29,5 @@ type API struct {
 	EncodeAws        EncodeAws        `yaml:"aws" doc:"## Aws ingest API\nFollowing is the supported API format for Aws flow entries:\n"`
 	TransformGeneric TransformGeneric `yaml:"generic" doc:"## Transform Generic API\nFollowing is the supported API format for generic transformations:\n"`
 	TransformNetwork TransformNetwork `yaml:"network" doc:"## Transform Network API\nFollowing is the supported API format for network transformations:\n"`
+	WriteLoki        WriteLoki        `yaml:"loki" doc:"## Write Loki API\nFollowing is the supported API format for writing to loki:\n"`
 }

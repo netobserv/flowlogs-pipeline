@@ -136,7 +136,7 @@ pipeline:
       by:
       - dstSubnet
       operation: sum
-      recordkey: ""
+      recordkey: isNewFlow
     - name: src_connection_count
       by:
       - srcSubnet
@@ -286,5 +286,9 @@ pipeline:
         parameters: proto
     type: network
   write:
-    type: none
+    loki:
+      url: http://loki.default.svc.cluster.local:3100
+      staticLabels:
+        job: flowlogs2metrics
+    type: loki
 

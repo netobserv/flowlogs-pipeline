@@ -160,7 +160,12 @@
   "refresh": "",
   "schemaVersion": 34,
   "style": "dark",
-  "tags": [],
+  "tags": [
+    "fl2m",
+    "location",
+    "map",
+    "dashboard"
+  ],
   "templating": {
     "list": []
   },

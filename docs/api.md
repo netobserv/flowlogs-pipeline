@@ -60,3 +60,23 @@ Following is the supported API format for network transformations:
                  parameters: parameters specific to type
          kubeconfigpath: path to kubeconfig file (optional)
 </pre>
+## Write Loki API
+Following is the supported API format for writing to loki:
+
+<pre>
+ loki:
+         url: the address of an existing Loki service to push the flows to
+         tenantID: identifies the tenant for the request
+         batchWait: maximum amount of time to wait before sending a batch
+         batchSize: maximum batch size (in bytes) of logs to accumulate before sending
+         timeout: maximum time to wait for a server to respond to a request
+         minBackoff: initial backoff time for client connection between retries
+         maxBackoff: maximum backoff time for client connection between retries
+         maxRetries: maximum number of retries for client connections
+         labels: map of record fields to be used as labels
+         staticLabels: map of common labels to set on each flow
+         ignoreList: map of record fields to be removed from the record
+         clientConfig: clientConfig
+         timestampLabel: label to use for time indexing
+         timestampScale: timestamp units scale (e.g. for UNIX = 1s)
+</pre>

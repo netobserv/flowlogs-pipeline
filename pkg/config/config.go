@@ -67,4 +67,5 @@ type Encode struct {
 
 type Write struct {
 	Type string
+	Loki string
 }

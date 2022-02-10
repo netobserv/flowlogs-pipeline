@@ -124,6 +124,21 @@ undeploy: ## Undeploy the image
 	kubectl --ignore-not-found=true  delete configmap flowlogs2metrics-configuration || true
 	kubectl --ignore-not-found=true delete -f /tmp/deployment.yaml || true
 
+.PHONY: deploy-loki
+deploy-loki: ## Deploy loki
+	kubectl apply -f contrib/kubernetes/deployment-loki-storage.yaml
+	kubectl apply -f contrib/kubernetes/deployment-loki.yaml
+	kubectl rollout status "deploy/loki" --timeout=600s
+	-pkill --oldest --full "3100:3100"
+	kubectl port-forward --address 0.0.0.0 svc/loki 3100:3100 2>&1 >/dev/null &
+	@echo -e "\nloki endpoint is available on http://localhost:3100\n"
+
+.PHONY: undeploy-loki
+undeploy-loki: ## Undeploy loki
+	kubectl --ignore-not-found=true delete -f contrib/kubernetes/deployment-loki.yaml || true
+	kubectl --ignore-not-found=true delete -f contrib/kubernetes/deployment-loki-storage.yaml || true
+	-pkill --oldest --full "3100:3100"
+
 .PHONY: deploy-prometheus
 deploy-prometheus: ## Deploy prometheus
 	kubectl apply -f contrib/kubernetes/deployment-prometheus.yaml
@@ -185,7 +200,7 @@ generate-configuration: $(KIND) ## Generate metrics configuration
 ##@ End2End
 
 .PHONY: local-deployments-deploy
-local-deployments-deploy: $(KIND) deploy-prometheus deploy-grafana deploy deploy-netflow-simulator
+local-deployments-deploy: $(KIND) deploy-prometheus deploy-loki deploy-grafana deploy deploy-netflow-simulator
 	kubectl get pods
 	kubectl rollout status -w deployment/flowlogs2metrics
 	kubectl logs -l app=flowlogs2metrics
@@ -194,7 +209,7 @@ local-deployments-deploy: $(KIND) deploy-prometheus deploy-grafana deploy deploy
 local-deploy: $(KIND) local-cleanup create-kind-cluster local-deployments-deploy ## Deploy locally on kind (with simulated flowlogs)
 
 .PHONY: local-deployments-cleanup
-local-deployments-cleanup: $(KIND) undeploy-netflow-simulator undeploy undeploy-grafana undeploy-prometheus
+local-deployments-cleanup: $(KIND) undeploy-netflow-simulator undeploy undeploy-grafana undeploy-loki undeploy-prometheus
 
 .PHONY: local-cleanup
 local-cleanup: $(KIND) local-deployments-cleanup delete-kind-cluster ## Undeploy from local kind
@@ -203,7 +218,7 @@ local-cleanup: $(KIND) local-deployments-cleanup delete-kind-cluster ## Undeploy
 local-redeploy:  local-deployments-cleanup local-deployments-deploy ## Redeploy locally (on current kind)
 
 .PHONY: ocp-deploy
-ocp-deploy: ocp-cleanup deploy-prometheus deploy-grafana deploy ## Deploy to OCP
+ocp-deploy: ocp-cleanup deploy-prometheus deploy-loki deploy-grafana deploy ## Deploy to OCP
 	flowlogs2metrics_svc_ip=$$(kubectl get svc flowlogs2metrics -o jsonpath='{.spec.clusterIP}'); \
 	./hack/enable-ocp-flow-export.sh $$flowlogs2metrics_svc_ip
 	kubectl get pods
@@ -215,9 +230,12 @@ ocp-deploy: ocp-cleanup deploy-prometheus deploy-grafana deploy ## Deploy to OCP
 	oc expose service grafana || true
 	@grafana_url=$$(oc get route grafana -o jsonpath='{.spec.host}'); \
 	echo -e "\nAccess grafana on OCP using: http://"$$grafana_url"\n"
+	oc expose service loki || true
+	@loki_url=$$(oc get route loki -o jsonpath='{.spec.host}'); \
+	echo -e "\nAccess loki on OCP using: http://"$$loki_url"\n"
 
 .PHONY: ocp-cleanup
-ocp-cleanup: undeploy undeploy-prometheus undeploy-grafana ## Undeploy from OCP
+ocp-cleanup: undeploy undeploy-loki undeploy-prometheus undeploy-grafana ## Undeploy from OCP
 
 .PHONY: dev-local-deploy
 dev-local-deploy: ## Deploy locally with simulated netflows
