@@ -28,7 +28,7 @@ type writeStdout struct {
 
 // Write writes a flow before being stored
 func (t *writeStdout) Write(in []interface{}) {
-	log.Debugf("entering writeStdout Write")
+	log.Debugf("writeStdout: number of entries = %d", len(in))
 	for _, v := range in {
 		fmt.Printf("%s: %v\n", time.Now().Format(time.StampMilli), v)
 	}

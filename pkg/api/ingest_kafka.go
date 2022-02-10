@@ -23,5 +23,5 @@ type IngestKafka struct {
 	GroupId          string   `yaml:"groupid" doc:"separate groupid for each consumer on specified topic"`
 	GroupBalancers   []string `yaml:"groupbalancers" doc:"list of balancing stategies (range, roundRobin, rackAffinity)"`
 	StartOffset      string   `yaml:"startoffset" doc:"FirstOffset (least recent - default) or LastOffset (most recent) offset available for a partition"`
-	BatchReadTimeout int64    `yaml:"batchreadtimeout" doc:"time to wait (in milliseconds) for additional messages to arrive after first message"`
+	BatchReadTimeout int64    `yaml:"batchreadtimeout" doc:"how often (in milliseconds) to process input"`
 }
