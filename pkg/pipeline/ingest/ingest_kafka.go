@@ -43,8 +43,6 @@ const defaultBatchReadTimeout = int64(100)
 
 // Ingest ingests entries from kafka topic
 func (r *ingestKafka) Ingest(process ProcessFunction) {
-	r.in = make(chan string, channelSizeKafka)
-
 	// initialize background listener
 	r.kafkaListener()
 
@@ -53,6 +51,7 @@ func (r *ingestKafka) Ingest(process ProcessFunction) {
 
 }
 
+// background thread to read kafka messages; place received items into ingestKafka input channel
 func (r *ingestKafka) kafkaListener() {
 	log.Debugf("entering  kafkaListener")
 
@@ -75,6 +74,7 @@ func (r *ingestKafka) kafkaListener() {
 
 }
 
+// read items from ingestKafka input channel, pool them, and send down the pipeline
 func (r *ingestKafka) processLogLines(process ProcessFunction) {
 	var records []interface{}
 	duration := time.Duration(r.kafkaParams.BatchReadTimeout) * time.Millisecond
@@ -89,8 +89,9 @@ func (r *ingestKafka) processLogLines(process ProcessFunction) {
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
 				process(records)
+				r.prevRecords = records
+				log.Debugf("prevRecords = %v", r.prevRecords)
 			}
-			r.prevRecords = records
 			records = []interface{}{}
 		}
 	}
@@ -148,10 +149,10 @@ func NewIngestKafka() (Ingester, error) {
 	})
 	if kafkaReader == nil {
 		errMsg := "NewIngestKafka: failed to create kafkago reader"
-		log.Debugf("%s", errMsg)
+		log.Errorf("%s", errMsg)
 		return nil, errors.New(errMsg)
 	}
-	log.Infof("kafkaReader = %v", kafkaReader)
+	log.Debugf("kafkaReader = %v", kafkaReader)
 
 	ch := make(chan bool, 1)
 	utils.RegisterExitChannel(ch)
@@ -160,5 +161,7 @@ func NewIngestKafka() (Ingester, error) {
 		kafkaParams: jsonIngestKafka,
 		kafkaReader: kafkaReader,
 		exitChan:    ch,
+		in:          make(chan string, channelSizeKafka),
+		prevRecords: make([]interface{}, 0),
 	}, nil
 }
