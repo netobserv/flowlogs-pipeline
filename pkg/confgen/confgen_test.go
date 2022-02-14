@@ -18,54 +18,107 @@
 package confgen
 
 import (
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
 	"github.com/stretchr/testify/require"
 	"os"
+	"path"
+	"path/filepath"
 	"testing"
 )
-
-const testConfig = `---
-## This is the main configuration file for flowlogs2metrics. It holds
-## all parameters needed for the creation of the configuration
-##
-description:
-  test description
-ingest:
-  collector:
-    port: 8888
-encode:
-  prom:
-    port: 7777
-    prefix: prefix
-`
 
 func getConfGen() *ConfGen {
 	return &ConfGen{}
 }
 
-func expectedConfig() *Config {
-	return &Config{
-		Description: "test description",
-		Encode: ConfigEncode{
-			Prom: api.PromEncode{
-				Port:   7777,
-				Prefix: "prefix",
-			},
-		},
-		Ingest: ConfigIngest{
-			Collector: api.IngestCollector{
-				Port: 8888,
-			},
-		},
-	}
+func Test_checkHeader(t *testing.T) {
+	filename := "/tmp/header.check.txt"
+	fakeFilename := "/tmp/fake_file.does.exist"
+	wrongHeader := "#wrong_confgen"
+	cg := getConfGen()
+	err := cg.checkHeader(fakeFilename)
+	require.Error(t, err)
+
+	err = os.WriteFile(filename, []byte(wrongHeader), 0644)
+	require.NoError(t, err)
+	err = cg.checkHeader(filename)
+	require.Error(t, err)
+
+	err = os.WriteFile(filename, []byte(definitionHeader), 0644)
+	require.NoError(t, err)
+	err = cg.checkHeader(filename)
+	require.NoError(t, err)
 }
 
-func Test_parseConfigFile(t *testing.T) {
-	filename := "/tmp/config"
+const networkDefinitionConfiguration = `#fl2m_confgen
+description:
+  test description
+details:
+  test details
+usage:
+  test usage
+labels:
+  - test
+  - label
+transform:
+  rules:
+    - input: testInput
+      output: testOutput
+      type: add_service
+      parameters: proto
+extract:
+  aggregates:
+    - name: test_aggregates
+      by:
+        - service
+      operation: sum
+      recordKey: test_record_key
+encode:
+  type: prom
+  prom:
+    metrics:
+      - name: test_metric
+        type: gauge
+        valuekey: test_aggregates_value
+        labels:
+          - by
+          - aggregate
+visualization:
+  type: grafana
+  grafana:
+    - expr: 'test expression'
+      type: graphPanel
+      dashboard: test
+      title:
+        Test grafana title
+`
+
+func Test_parseFile(t *testing.T) {
+	fakeFilename := "/tmp/fake_file.does.exist"
+	filename := "/tmp/parse_file.check.txt"
 	cg := getConfGen()
-	err := os.WriteFile(filename, []byte(testConfig), 0644)
-	require.Equal(t, err, nil)
-	config, err := cg.parseConfigFile(filename)
-	require.Equal(t, err, nil)
-	require.Equal(t, config, expectedConfig())
+	err := cg.parseFile(fakeFilename)
+	require.Error(t, err)
+
+	err = os.WriteFile(filename, []byte(networkDefinitionConfiguration), 0644)
+	require.NoError(t, err)
+	err = cg.parseFile(filename)
+	require.NoError(t, err)
+}
+
+func Test_getDefinitionFiles(t *testing.T) {
+	dirPath := "/tmp/getDefinitionFilesTest"
+	filename := "/def.yaml"
+	cg := getConfGen()
+	err := os.MkdirAll(dirPath, 0755)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(dirPath, filename), []byte(networkDefinitionConfiguration), 0644)
+	require.NoError(t, err)
+	files := cg.getDefinitionFiles(dirPath)
+	require.Equal(t, 1, len(files))
+	expected := []string{path.Join(dirPath, filename)}
+	require.ElementsMatch(t, expected, files)
+}
+
+func Test_NewConfGen(t *testing.T) {
+	_, err := NewConfGen()
+	require.NoError(t, err)
 }
