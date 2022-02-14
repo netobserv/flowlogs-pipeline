@@ -62,8 +62,9 @@ type Extract struct {
 }
 
 type Encode struct {
-	Type string
-	Prom string
+	Type  string
+	Prom  string
+	Kafka string
 }
 
 type Write struct {

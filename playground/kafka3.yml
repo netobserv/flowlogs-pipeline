@@ -1,0 +1,20 @@
+log-level: debug
+pipeline:
+  ingest:
+    type: file_loop
+    file:
+      filename: playground/goflow2_input.txt
+  decode:
+    type: json
+  transform:
+    - type: none
+  extract:
+    type: none
+  encode:
+    type: kafka
+    kafka:
+      addr: 192.168.56.103:9092
+      topic: topic1
+  write:
+    type: stdout
+

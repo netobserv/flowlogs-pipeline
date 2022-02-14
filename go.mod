@@ -12,7 +12,7 @@ require (
 	github.com/netsampler/goflow2 v1.0.4
 	github.com/prometheus/client_golang v1.12.0
 	github.com/prometheus/common v0.32.1
-	github.com/segmentio/kafka-go v0.4.27
+	github.com/segmentio/kafka-go v0.4.28
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/pflag v1.0.5
