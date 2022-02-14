@@ -136,7 +136,7 @@ pipeline:
       by:
       - dstSubnet
       operation: sum
-      recordkey: ""
+      recordkey: isNewFlow
     - name: src_connection_count
       by:
       - srcSubnet
@@ -249,22 +249,6 @@ pipeline:
         type: add_subnet
         parameters: /16
       - input: srcIP
-        output: srcSubnet
-        type: add_subnet
-        parameters: /16
-      - input: dstIP
-        output: dstSubnet24
-        type: add_subnet
-        parameters: /24
-      - input: srcIP
-        output: srcSubnet24
-        type: add_subnet
-        parameters: /24
-      - input: dstIP
-        output: dstSubnet
-        type: add_subnet
-        parameters: /16
-      - input: srcIP
         output: srcK8S
         type: add_kubernetes
         parameters: ""
@@ -280,10 +264,6 @@ pipeline:
         output: elephant
         type: add_if
         parameters: '>=512'
-      - input: dstPort
-        output: service
-        type: add_service
-        parameters: proto
     type: network
   write:
     type: none
