@@ -21,7 +21,10 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/test"
+	kafkago "github.com/segmentio/kafka-go"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/context"
 	"testing"
 	"time"
 )
@@ -152,4 +155,58 @@ func Test_IngestKafka(t *testing.T) {
 	// make the ingest thread exit
 	ingestKafka.exitChan <- true
 	time.Sleep(time.Second)
+}
+
+type fakeKafkaReader struct {
+	mock.Mock
+}
+
+var fakeRecord = []byte(`{"Bytes":20801,"DstAddr":"10.130.2.1","DstPort":36936,"Packets":401,"SrcAddr":"10.130.2.13","SrcPort":3100}`)
+
+var performedRead = false
+
+// ReadMessage runs in the kafka client thread, which blocks until data is avaialble.
+// If data is always available, we have an infinite loop. So we return data only once.
+func (f *fakeKafkaReader) ReadMessage(ctx context.Context) (kafkago.Message, error) {
+	if performedRead {
+		// block indefinitely
+		c := make(chan struct{})
+		<-c
+	}
+	message := kafkago.Message{
+		Topic: "topic1",
+		Value: fakeRecord,
+	}
+	performedRead = true
+	return message, nil
+}
+
+func (f *fakeKafkaReader) Config() kafkago.ReaderConfig {
+	return kafkago.ReaderConfig{}
+}
+
+func Test_KafkaListener(t *testing.T) {
+	dummyChan = make(chan bool)
+	newIngest := initNewIngestKafka(t, testConfig1)
+	ingestKafka := newIngest.(*ingestKafka)
+
+	// change the ReadMessage function to the mock-up
+	fr := fakeKafkaReader{}
+	ingestKafka.kafkaReader = &fr
+
+	// run Ingest in a separate thread
+	go func() {
+		ingestKafka.Ingest(dummyProcessFunction)
+	}()
+
+	// wait for the data to have been processed
+	<-dummyChan
+
+	require.Equal(t, 1, len(receivedEntries))
+	require.Equal(t, string(fakeRecord), receivedEntries[0])
+
+	// make the ingest thread exit
+	ingestKafka.exitChan <- true
+	time.Sleep(time.Second)
+
 }

@@ -30,9 +30,14 @@ import (
 	"time"
 )
 
+type kafkaReadMessage interface {
+	ReadMessage(ctx context.Context) (kafkago.Message, error)
+	Config() kafkago.ReaderConfig
+}
+
 type ingestKafka struct {
 	kafkaParams api.IngestKafka
-	kafkaReader *kafkago.Reader
+	kafkaReader kafkaReadMessage
 	in          chan string
 	exitChan    chan bool
 	prevRecords []interface{} // copy of most recently sent records; for testing and debugging
