@@ -1,6 +1,6 @@
 name: greetings
 
-on: [pull_request, issues]
+on: [issues]
 
 jobs:
   greeting:
@@ -13,4 +13,3 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         issue-message: 'Congratulations for contributing your first flowlogs2metrics issue'
-        pr-message: 'Congratulations for contributing your first flowlogs2metrics pull request'
