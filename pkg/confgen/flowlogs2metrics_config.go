@@ -64,7 +64,8 @@ func (cg *ConfGen) generateFlowlogs2MetricsConfig(fileName string) error {
 				},
 			},
 			"write": map[string]interface{}{
-				"type": "none",
+				"type": cg.config.Write.Type,
+				"loki": cg.config.Write.Loki,
 			},
 		},
 	}

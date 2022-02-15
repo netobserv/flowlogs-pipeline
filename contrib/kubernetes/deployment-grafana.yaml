@@ -68,6 +68,12 @@ data:
       type: prometheus
       url: http://prometheus.default.svc.cluster.local:9090
       version: 1
+    - access: proxy
+      isDefault: false
+      name: loki
+      type: loki
+      url: http://loki.default.svc.cluster.local:3100
+      version: 1
 ---
 apiVersion: v1
 kind: ConfigMap

@@ -48,6 +48,11 @@ type ConfigEncode struct {
 	Prom api.PromEncode `yaml:"prom"`
 }
 
+type ConfigWrite struct {
+	Loki api.WriteLoki `yaml:"loki"`
+	Type string        `yaml:"type"`
+}
+
 type ConfigVisualization struct {
 	Grafana ConfigVisualizationGrafana `yaml:"grafana"`
 }
@@ -56,6 +61,7 @@ type Config struct {
 	Description   string              `yaml:"description"`
 	Ingest        ConfigIngest        `yaml:"ingest"`
 	Transform     ConfigTransform     `yaml:"transform"`
+	Write         ConfigWrite         `yaml:"write"`
 	Encode        ConfigEncode        `yaml:"encode"`
 	Visualization ConfigVisualization `yaml:"visualization"`
 }

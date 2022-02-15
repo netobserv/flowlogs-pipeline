@@ -37,9 +37,9 @@ type Pipeline struct {
 	Ingester     ingest.Ingester
 	Decoder      decode.Decoder
 	Transformers []transform.Transformer
+	Writer       write.Writer
 	Extractor    extract.Extractor
 	Encoder      encode.Encoder
-	Writer       write.Writer
 }
 
 func getIngester() (ingest.Ingester, error) {
@@ -77,6 +77,22 @@ func getTransformers() ([]transform.Transformer, error) {
 	return transform.GetTransformers()
 }
 
+func getWriter() (write.Writer, error) {
+	var writer write.Writer
+	var err error
+	switch config.Opt.PipeLine.Write.Type {
+	case "stdout":
+		writer, _ = write.NewWriteStdout()
+	case "none":
+		writer, _ = write.NewWriteNone()
+	case "loki":
+		writer, _ = write.NewWriteLoki()
+	default:
+		panic("`write` not defined; if no writer needed, specify `none`")
+	}
+	return writer, err
+}
+
 func getExtractor() (extract.Extractor, error) {
 	var extractor extract.Extractor
 	var err error
@@ -105,29 +121,15 @@ func getEncoder() (encode.Encoder, error) {
 	return encoder, err
 }
 
-func getWriter() (write.Writer, error) {
-	var writer write.Writer
-	var err error
-	switch config.Opt.PipeLine.Write.Type {
-	case "stdout":
-		writer, _ = write.NewWriteStdout()
-	case "none":
-		writer, _ = write.NewWriteNone()
-	default:
-		panic("`write` not defined; if no writer needed, specify `none`")
-	}
-	return writer, err
-}
-
 // NewPipeline defines the pipeline elements
 func NewPipeline() (*Pipeline, error) {
 	log.Debugf("entering NewPipeline")
 	ingester, _ := getIngester()
 	decoder, _ := getDecoder()
 	transformers, _ := getTransformers()
+	writer, _ := getWriter()
 	extractor, _ := getExtractor()
 	encoder, _ := getEncoder()
-	writer, _ := getWriter()
 
 	p := &Pipeline{
 		Ingester:     ingester,
@@ -156,8 +158,9 @@ func (p Pipeline) Process(entries []interface{}) {
 		flowEntry = transform.ExecuteTransforms(p.Transformers, entry)
 		transformed = append(transformed, flowEntry)
 	}
-	log.Debugf("transformed = %v", transformed)
+
+	_ = p.Writer.Write(transformed)
+
 	extracted := p.Extractor.Extract(transformed)
-	encoded := p.Encoder.Encode(extracted)
-	p.Writer.Write(encoded)
+	_ = p.Encoder.Encode(extracted)
 }

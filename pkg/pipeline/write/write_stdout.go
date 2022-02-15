@@ -19,6 +19,7 @@ package write
 
 import (
 	"fmt"
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
@@ -27,11 +28,13 @@ type writeStdout struct {
 }
 
 // Write writes a flow before being stored
-func (t *writeStdout) Write(in []interface{}) {
+func (t *writeStdout) Write(in []config.GenericMap) []config.GenericMap {
 	log.Debugf("entering writeStdout Write")
 	for _, v := range in {
 		fmt.Printf("%s: %v\n", time.Now().Format(time.StampMilli), v)
 	}
+
+	return in
 }
 
 // NewWriteStdout create a new write

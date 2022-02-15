@@ -42,6 +42,8 @@ func iterate(output io.Writer, data interface{}, indent int) {
 			val := reflect.Indirect(reflect.ValueOf(data))
 			// fieldName := val.Type().Field(i).Name
 			fieldName := val.Type().Field(i).Tag.Get(api.TagYaml)
+			fieldName = strings.ReplaceAll(fieldName, ",omitempty", "")
+
 			fieldDocTag := val.Type().Field(i).Tag.Get(api.TagDoc)
 			fieldEnumTag := val.Type().Field(i).Tag.Get(api.TagEnum)
 

@@ -32,6 +32,12 @@ encode:
   prom:
     prefix: fl2m_
     port: 9102
+write:
+  type: loki
+  loki:
+    url: http://loki.default.svc.cluster.local:3100
+    staticLabels:
+      job: flowlogs2metrics
 visualization:
   grafana:
     dashboards:

@@ -266,5 +266,9 @@ pipeline:
         parameters: '>=512'
     type: network
   write:
-    type: none
+    loki:
+      url: http://loki.default.svc.cluster.local:3100
+      staticLabels:
+        job: flowlogs2metrics
+    type: loki
 

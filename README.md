@@ -45,6 +45,7 @@ Flags:
       --pipeline.ingest.file.filename string   Ingest filename (file)  
       --pipeline.ingest.type string            Ingest type: file, collector,file_loop (required)  
       --pipeline.transform string              Transforms (list) API (default "[{"type": "none"}]")  
+      --pipeline.write.loki string             Loki write API  
       --pipeline.write.type string             Write type: stdout, none (default "none")
 ```
 <!---END-AUTO-flowlogs2metrics_help--->
@@ -115,9 +116,9 @@ The pipeline is constructed of a sequence of stages:
 - **ingest** - obtain flows from some source, one entry per line
 - **decode** - parse input lines into a known format, e.g., dictionary (map) of AWS or goflow data
 - **transform** - convert entries into a standard format; can include multiple transform stages
+- **write** - provide the means to write the data to some target, e.g. loki, standard output, etc
 - **extract** - derive a set of metrics from the imported flows
 - **encode** - make the data available in appropriate format (e.g. prometheus)
-- **write** - provide the means to transfer the data to some target, e.g. prometheus, object store, standard output, etc
 
 The **encode** and **write** stages may be combined in some cases (as in prometheus), in which case **write** is set to **none**
 
@@ -398,6 +399,34 @@ The name of the prometheus gauge is set to `test_Bytes` by concatenating the pre
 The `packets` metric is very similar. It makes use of the `counter` prometheus type which adds reported values
 to prometheus counter.
 
+### Loki writer
+
+The loki writer persist flow-logs into [Loki](https://github.com/grafana/loki). The flow-logs are sent with defined 
+tenant ID and with a set static labels and dynamic labels from the record fields. 
+For example, sending flow-logs into tenant `theTenant` with labels 
+from `foo` and `bar` fields 
+and including static label with key `job` with value `flowlogs2metrics`. 
+Additional parameters such as `url` and `batchWait` are defined in 
+Loki writer API [docs/api.md](docs/api.md)
+
+```bash
+pipeline:
+  write:
+    type: loki
+    loki:
+      tenantID: theTenant
+      loki:
+        url: http://loki.default.svc.cluster.local:3100
+      staticLabels:
+        job: flowlogs2metrics
+      batchWait: 1m
+      labels:
+        - foo
+        - bar
+  ```
+
+> Note: to view loki flow-logs in `grafana`:: Use the `Explore` tab and choose the `loki` datasource. In the `Log Browser` enter `{job="flowlogs2metrics"}` and press `Run query` 
+
 # Development
 
 ## Build
@@ -436,6 +465,8 @@ Docker
 kubernetes  
   deploy                Deploy the image  
   undeploy              Undeploy the image  
+  deploy-loki           Deploy loki  
+  undeploy-loki         Undeploy loki  
   deploy-prometheus     Deploy prometheus  
   undeploy-prometheus   Undeploy prometheus  
   deploy-grafana        Deploy grafana  

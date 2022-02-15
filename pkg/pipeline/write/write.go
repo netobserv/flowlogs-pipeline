@@ -18,19 +18,22 @@
 package write
 
 import (
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
 type Writer interface {
-	Write(in []interface{})
+	Write(in []config.GenericMap) []config.GenericMap
 }
 
 type writeNone struct {
 }
 
-// Write writes a flow before being stored
-func (t *writeNone) Write(in []interface{}) {
+// Write writes entries
+func (t *writeNone) Write(in []config.GenericMap) []config.GenericMap {
 	log.Debugf("entering Write none, in = %v", in)
+
+	return in
 }
 
 // NewWriteNone create a new write

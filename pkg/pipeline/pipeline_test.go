@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 IBM, Inc.
+ * Copyright (C) 2019 IBM, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,22 +15,25 @@
  *
  */
 
-package write
+package pipeline
 
 import (
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/transform"
+	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/write"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-func Test_WriteStdout(t *testing.T) {
-	ws := writeStdout{}
-	ws.Write([]config.GenericMap{{"key": "test"}})
-}
+func Test_transformToLoki(t *testing.T) {
+	var transformed []config.GenericMap
+	input := config.GenericMap{"key": "value"}
+	transform, err := transform.NewTransformNone()
+	require.NoError(t, err)
+	transformed = append(transformed, transform.Transform(input))
 
-func Test_NewWriteStdout(t *testing.T) {
-	writer, err := NewWriteStdout()
-	require.Nil(t, err)
-	require.Equal(t, writer, &writeStdout{})
-
+	config.Opt.PipeLine.Write.Loki = "{}"
+	loki, err := write.NewWriteLoki()
+	loki.Write(transformed)
+	require.NoError(t, err)
 }
