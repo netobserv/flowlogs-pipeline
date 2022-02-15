@@ -17,6 +17,14 @@ Following is the supported API format for prometheus encode:
          prefix: prefix added to each metric name
          expirytime: seconds of no-flow to wait before deleting prometheus data item
 </pre>
+## Kafka encode API
+Following is the supported API format for prometheus encode:
+
+<pre>
+ prom:
+         addr: address of kafka server
+         topic: kafka topic to write to
+</pre>
 ## Ingest collector API
 Following is the supported API format for the netflow collector:
 
