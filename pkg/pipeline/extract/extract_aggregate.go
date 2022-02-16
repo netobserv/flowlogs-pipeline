@@ -39,7 +39,7 @@ func (ea *extractAggregate) Extract(entries []config.GenericMap) []config.Generi
 	return ea.aggregates.GetMetrics()
 }
 
-// NewExtractNone create a new extract
+// NewExtractAggregate creates a new extractor
 func NewExtractAggregate() (Extractor, error) {
 	log.Debugf("entering NewExtractAggregate")
 	aggregates, err := aggregate.NewAggregatesFromConfig()
