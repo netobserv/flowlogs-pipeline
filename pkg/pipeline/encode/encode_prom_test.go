@@ -118,8 +118,8 @@ func Test_NewEncodeProm(t *testing.T) {
 		},
 		value: float64(34),
 	}
-	expectedOutput := []interface{}{gEntryInfo1, gEntryInfo2}
-	require.Equal(t, expectedOutput, output)
+	require.Contains(t, output, gEntryInfo1)
+	require.Contains(t, output, gEntryInfo2)
 	gaugeA, err := gInfo.promGauge.GetMetricWith(entryLabels1)
 	require.Equal(t, nil, err)
 	bytesA := testutil.ToFloat64(gaugeA)

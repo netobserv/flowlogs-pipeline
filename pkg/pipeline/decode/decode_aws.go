@@ -78,7 +78,7 @@ func NewDecodeAws() (Decoder, error) {
 	fieldsString := config.Opt.PipeLine.Decode.Aws
 	log.Debugf("fieldsString = %v", fieldsString)
 	if fieldsString != "" {
-		var awsFields api.EncodeAws
+		var awsFields api.DecodeAws
 		err := json.Unmarshal([]byte(fieldsString), &awsFields)
 		if err != nil {
 			log.Errorf("NewDecodeAws: error in unmarshalling fields: %v", err)

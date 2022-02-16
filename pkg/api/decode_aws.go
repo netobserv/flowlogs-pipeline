@@ -17,6 +17,6 @@
 
 package api
 
-type EncodeAws struct {
+type DecodeAws struct {
 	Fields []string `yaml:"fields" doc:"list of aws flow log fields"`
 }

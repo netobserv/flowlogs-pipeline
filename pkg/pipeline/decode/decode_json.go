@@ -54,7 +54,7 @@ func (c *decodeJson) Decode(in []interface{}) []config.GenericMap {
 	return out
 }
 
-// NewDecodeAws create a new decode
+// NewDecodeJson create a new decode
 func NewDecodeJson() (Decoder, error) {
 	log.Debugf("entering NewDecodeJson")
 	return &decodeJson{}, nil

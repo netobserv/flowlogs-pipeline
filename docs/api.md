@@ -25,6 +25,18 @@ Following is the supported API format for the netflow collector:
          hostName: the hostname to listen on
          port: the port number to listen on
 </pre>
+## Ingest Kafka API
+Following is the supported API format for the kafka ingest:
+
+<pre>
+ kafka:
+         brokers: list of kafka broker addresses
+         topic: kafka topic to listen on
+         groupid: separate groupid for each consumer on specified topic
+         groupbalancers: list of balancing strategies (range, roundRobin, rackAffinity)
+         startoffset: FirstOffset (least recent - default) or LastOffset (most recent) offset available for a partition
+         batchreadtimeout: how often (in milliseconds) to process input
+</pre>
 ## Aws ingest API
 Following is the supported API format for Aws flow entries:
 
