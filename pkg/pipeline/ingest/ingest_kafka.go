@@ -20,7 +20,6 @@ package ingest
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/netobserv/flowlogs2metrics/pkg/api"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
@@ -136,7 +135,8 @@ func NewIngestKafka() (Ingester, error) {
 		case "rackAffinity":
 			groupBalancers = append(groupBalancers, &kafkago.RackAffinityGroupBalancer{})
 		default:
-			return nil, fmt.Errorf("the provided kafka balancer is not valid: %s", gb)
+			log.Warningf("groupbalancers parameter missing")
+			groupBalancers = append(groupBalancers, &kafkago.RoundRobinGroupBalancer{})
 		}
 	}
 
@@ -153,7 +153,7 @@ func NewIngestKafka() (Ingester, error) {
 		StartOffset:    startOffset,
 	})
 	if kafkaReader == nil {
-		errMsg := "NewIngestKafka: failed to create kafkago reader"
+		errMsg := "NewIngestKafka: failed to create kafka-go reader"
 		log.Errorf("%s", errMsg)
 		return nil, errors.New(errMsg)
 	}

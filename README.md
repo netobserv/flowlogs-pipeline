@@ -43,7 +43,7 @@ Flags:
       --pipeline.extract.type string           Extract type: aggregates, none (default "none")  
       --pipeline.ingest.collector string       Ingest collector API  
       --pipeline.ingest.file.filename string   Ingest filename (file)  
-      --pipeline.ingest.kafka string           kafka parameters: brokers, topic, etc  
+      --pipeline.ingest.kafka string           Ingest Kafka API  
       --pipeline.ingest.type string            Ingest type: file, collector,file_loop (required)  
       --pipeline.transform string              Transforms (list) API (default "[{"type": "none"}]")  
       --pipeline.write.loki string             Loki write API  

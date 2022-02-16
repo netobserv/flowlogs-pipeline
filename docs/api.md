@@ -33,7 +33,7 @@ Following is the supported API format for the kafka ingest:
          brokers: list of kafka broker addresses
          topic: kafka topic to listen on
          groupid: separate groupid for each consumer on specified topic
-         groupbalancers: list of balancing stategies (range, roundRobin, rackAffinity)
+         groupbalancers: list of balancing strategies (range, roundRobin, rackAffinity)
          startoffset: FirstOffset (least recent - default) or LastOffset (most recent) offset available for a partition
          batchreadtimeout: how often (in milliseconds) to process input
 </pre>

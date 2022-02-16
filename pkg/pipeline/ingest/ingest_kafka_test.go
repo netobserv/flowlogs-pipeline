@@ -165,7 +165,7 @@ var fakeRecord = []byte(`{"Bytes":20801,"DstAddr":"10.130.2.1","DstPort":36936,"
 
 var performedRead = false
 
-// ReadMessage runs in the kafka client thread, which blocks until data is avaialble.
+// ReadMessage runs in the kafka client thread, which blocks until data is available.
 // If data is always available, we have an infinite loop. So we return data only once.
 func (f *fakeKafkaReader) ReadMessage(ctx context.Context) (kafkago.Message, error) {
 	if performedRead {
