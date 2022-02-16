@@ -115,13 +115,10 @@ func getEncoder() (encode.Encoder, error) {
 	switch config.Opt.PipeLine.Encode.Type {
 	case "prom":
 		encoder, _ = encode.NewEncodeProm()
-<<<<<<< HEAD
 	case "json":
 		encoder, _ = encode.NewEncodeJson()
-=======
 	case "kafka":
 		encoder, _ = encode.NewEncodeKafka()
->>>>>>> kafka egress
 	case "none":
 		encoder, _ = encode.NewEncodeNone()
 	default:
