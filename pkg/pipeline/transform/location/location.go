@@ -139,7 +139,7 @@ func InitLocationDB() error {
 			return fmt.Errorf("failed unzip %v ", unzipErr)
 		}
 
-		log.Infof("Download completed succeful")
+		log.Infof("Download completed successfully")
 	}
 
 	log.Debugf("Loading location DB")
