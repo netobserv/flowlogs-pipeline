@@ -36,18 +36,18 @@ Flags:
   -h, --help                                   help for flowlogs2metrics  
       --log-level string                       Log level: debug, info, warning, error (default "error")  
       --pipeline.decode.aws string             aws fields  
-      --pipeline.decode.type string            Decode type: aws, json, none (default "none")  
+      --pipeline.decode.type string            Decode type: aws, json, none  
       --pipeline.encode.prom string            Prometheus encode API  
-      --pipeline.encode.type string            Encode type: prom, none (default "none")  
+      --pipeline.encode.type string            Encode type: prom, json, none  
       --pipeline.extract.aggregates string     Aggregates (see docs)  
-      --pipeline.extract.type string           Extract type: aggregates, none (default "none")  
+      --pipeline.extract.type string           Extract type: aggregates, none  
       --pipeline.ingest.collector string       Ingest collector API  
       --pipeline.ingest.file.filename string   Ingest filename (file)  
       --pipeline.ingest.kafka string           Ingest Kafka API  
       --pipeline.ingest.type string            Ingest type: file, collector,file_loop (required)  
       --pipeline.transform string              Transforms (list) API (default "[{"type": "none"}]")  
       --pipeline.write.loki string             Loki write API  
-      --pipeline.write.type string             Write type: stdout, none (default "none")
+      --pipeline.write.type string             Write type: stdout, none
 ```
 <!---END-AUTO-flowlogs2metrics_help--->
 
@@ -360,6 +360,12 @@ pipeline:
       Operation: "avg"
       RecordKey: "value"
 ```
+
+### Json Encoder
+
+The json encoder takes each entry in the internal representation of the data and converts it to a json byte array.
+These byte arrays may then be output by a `write` stage.
+
 
 ### Prometheus encoder
 
