@@ -13,8 +13,8 @@ pipeline:
   encode:
     type: kafka
     kafka:
-      addr: 192.168.56.103:9092
-      topic: topic1
+      address: 192.168.56.103:9092
+      topic: topic2
   write:
     type: stdout
 

@@ -39,7 +39,7 @@ Flags:
       --pipeline.decode.type string            Decode type: aws, json, none  
       --pipeline.encode.kafka string           Kafka encode API  
       --pipeline.encode.prom string            Prometheus encode API  
-      --pipeline.encode.type string            Encode type: prom, json, none  
+      --pipeline.encode.type string            Encode type: prom, json, kafka, none  
       --pipeline.extract.aggregates string     Aggregates (see docs)  
       --pipeline.extract.type string           Extract type: aggregates, none  
       --pipeline.ingest.collector string       Ingest collector API  

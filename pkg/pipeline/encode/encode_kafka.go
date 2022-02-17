@@ -24,10 +24,16 @@ import (
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"time"
+)
+
+const (
+	defaultReadTimeoutSeconds  = int64(10)
+	defaultWriteTimeoutSeconds = int64(10)
 )
 
 type kafkaWriteMessage interface {
-	WriteMessages(ctx context.Context, msg ...kafkago.Message) error
+	WriteMessages(ctx context.Context, msgs ...kafkago.Message) error
 }
 
 type encodeKafka struct {
@@ -38,19 +44,21 @@ type encodeKafka struct {
 // Encode writes entries to kafka topic
 func (r *encodeKafka) Encode(in []config.GenericMap) []interface{} {
 	log.Debugf("entering encodeKafka Encode, #items = %d", len(in))
-	var msg kafkago.Message
+	var msgs []kafkago.Message
+	msgs = make([]kafkago.Message, 0)
 	out := make([]interface{}, 0)
 	for _, entry := range in {
 		var entryByteArray []byte
 		entryByteArray, _ = json.Marshal(entry)
-		msg = kafkago.Message{
+		msg := kafkago.Message{
 			Value: entryByteArray,
 		}
-		err := r.kafkaWriter.WriteMessages(context.Background(), msg)
-		if err != nil {
-			log.Errorf("encodeKafka error: %v", err)
-		}
+		msgs = append(msgs, msg)
 		out = append(out, entry)
+	}
+	err := r.kafkaWriter.WriteMessages(context.Background(), msgs...)
+	if err != nil {
+		log.Errorf("encodeKafka error: %v", err)
 	}
 	return out
 }
@@ -66,10 +74,41 @@ func NewEncodeKafka() (Encoder, error) {
 		return nil, err
 	}
 
+	var balancer kafkago.Balancer
+	switch jsonEncodeKafka.Balancer {
+	case api.KafkaEncodeBalancerName("RoundRobin"):
+		balancer = &kafkago.RoundRobin{}
+	case api.KafkaEncodeBalancerName("LeastBytes"):
+		balancer = &kafkago.LeastBytes{}
+	case api.KafkaEncodeBalancerName("Hash"):
+		balancer = &kafkago.Hash{}
+	case api.KafkaEncodeBalancerName("Crc32"):
+		balancer = &kafkago.CRC32Balancer{}
+	case api.KafkaEncodeBalancerName("Murmur2"):
+		balancer = &kafkago.Murmur2Balancer{}
+	default:
+		balancer = nil
+	}
+
+	readTimeoutSecs := defaultReadTimeoutSeconds
+	if jsonEncodeKafka.ReadTimeout != 0 {
+		readTimeoutSecs = jsonEncodeKafka.ReadTimeout
+	}
+
+	writeTimeoutSecs := defaultWriteTimeoutSeconds
+	if jsonEncodeKafka.WriteTimeout != 0 {
+		writeTimeoutSecs = jsonEncodeKafka.WriteTimeout
+	}
+
 	// connect to the kafka server
 	kafkaWriter := kafkago.Writer{
-		Addr:  kafkago.TCP(jsonEncodeKafka.Addr),
-		Topic: jsonEncodeKafka.Topic,
+		Addr:         kafkago.TCP(jsonEncodeKafka.Address),
+		Topic:        jsonEncodeKafka.Topic,
+		Balancer:     balancer,
+		ReadTimeout:  time.Duration(readTimeoutSecs) * time.Second,
+		WriteTimeout: time.Duration(writeTimeoutSecs) * time.Second,
+		BatchSize:    jsonEncodeKafka.BatchSize,
+		BatchBytes:   jsonEncodeKafka.BatchBytes,
 	}
 
 	return &encodeKafka{

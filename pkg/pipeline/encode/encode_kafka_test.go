@@ -35,7 +35,7 @@ pipeline:
   encode:
     type: kafka
     kafka:
-      addr: 1.2.3.4:9092
+      address: 1.2.3.4:9092
       topic: topic1
 `
 
@@ -66,7 +66,7 @@ func initNewEncodeKafka(t *testing.T) Encoder {
 func Test_EncodeKafka(t *testing.T) {
 	newEncode := initNewEncodeKafka(t)
 	encodeKafka := newEncode.(*encodeKafka)
-	require.Equal(t, "1.2.3.4:9092", encodeKafka.kafkaParams.Addr)
+	require.Equal(t, "1.2.3.4:9092", encodeKafka.kafkaParams.Address)
 	require.Equal(t, "topic1", encodeKafka.kafkaParams.Topic)
 
 	fw := fakeKafkaWriter{}
@@ -81,16 +81,13 @@ func Test_EncodeKafka(t *testing.T) {
 	var expectedOutputString2 []byte
 	expectedOutputString1, _ = json.Marshal(entry1)
 	expectedOutputString2, _ = json.Marshal(entry2)
-	message1 := []kafkago.Message{
+	expectedOutput := []kafkago.Message{
 		{
 			Value: expectedOutputString1,
 		},
-	}
-	message2 := []kafkago.Message{
 		{
 			Value: expectedOutputString2,
 		},
 	}
-	require.Equal(t, message1, receivedData[0])
-	require.Equal(t, message2, receivedData[1])
+	require.Equal(t, expectedOutput, receivedData[0])
 }
