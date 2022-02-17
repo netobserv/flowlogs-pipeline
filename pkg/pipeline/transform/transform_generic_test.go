@@ -50,10 +50,10 @@ func getGenericExpectedOutput() config.GenericMap {
 	return config.GenericMap{
 		"SrcAddr":  "10.0.0.1",
 		"srcIP":    "10.0.0.1",
-		"SrcPort":  "11777",
+		"SrcPort":  11777,
 		"Protocol": "tcp",
 		"DstAddr":  "20.0.0.2",
-		"DstPort":  "22",
+		"DstPort":  22,
 	}
 }
 

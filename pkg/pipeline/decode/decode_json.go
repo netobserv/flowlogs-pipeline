@@ -19,7 +19,6 @@ package decode
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -45,9 +44,7 @@ func (c *decodeJson) Decode(in []interface{}) []config.GenericMap {
 			if v == nil {
 				continue
 			}
-			// ensure we have a string variable
-			s := fmt.Sprintf("%v", v)
-			decodedLine2[k] = s
+			decodedLine2[k] = v
 		}
 		out = append(out, decodedLine2)
 	}

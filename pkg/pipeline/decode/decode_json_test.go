@@ -46,10 +46,23 @@ func TestDecodeJson(t *testing.T) {
 	in = append(in, inputStringErr)
 	out = decodeJson.Decode(in)
 	require.Equal(t, len(out), 3)
-	// verify that all items come back as strings
-	require.Equal(t, "12", out[0]["varInt"])
+	require.Equal(t, float64(12), out[0]["varInt"])
 	require.Equal(t, "testString", out[0]["varString"])
-	require.Equal(t, "false", out[0]["varBool"])
+	require.Equal(t, bool(false), out[0]["varBool"])
 
 	// TODO: Check for more complicated json structures
+}
+
+func TestDecodeJsonTimestamps(t *testing.T) {
+	newDecode := initNewDecodeJson(t)
+	decodeJson := newDecode.(*decodeJson)
+	inputString1 := "{\"unixTime\": 1645104030 }"
+	var in []interface{}
+	var out []config.GenericMap
+	out = decodeJson.Decode(in)
+	require.Equal(t, 0, len(out))
+	in = append(in, inputString1)
+	out = decodeJson.Decode(in)
+	require.Equal(t, len(out), 1)
+	require.Equal(t, float64(1645104030), out[0]["unixTime"])
 }
