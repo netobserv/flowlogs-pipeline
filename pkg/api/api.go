@@ -25,6 +25,7 @@ const TagEnum = "enum"
 
 type API struct {
 	PromEncode       PromEncode       `yaml:"prom" doc:"## Prometheus encode API\nFollowing is the supported API format for prometheus encode:\n"`
+	KafkaEncode      EncodeKafka      `yaml:"kafka" doc:"## Kafka encode API\nFollowing is the supported API format for kafka encode:\n"`
 	IngestCollector  IngestCollector  `yaml:"collector" doc:"## Ingest collector API\nFollowing is the supported API format for the netflow collector:\n"`
 	IngestKafka      IngestKafka      `yaml:"kafka" doc:"## Ingest Kafka API\nFollowing is the supported API format for the kafka ingest:\n"`
 	DecodeAws        DecodeAws        `yaml:"aws" doc:"## Aws ingest API\nFollowing is the supported API format for Aws flow entries:\n"`

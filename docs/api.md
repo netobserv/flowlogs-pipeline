@@ -17,6 +17,24 @@ Following is the supported API format for prometheus encode:
          prefix: prefix added to each metric name
          expirytime: seconds of no-flow to wait before deleting prometheus data item
 </pre>
+## Kafka encode API
+Following is the supported API format for kafka encode:
+
+<pre>
+ kafka:
+         addr: address of kafka server
+         topic: kafka topic to write to
+         balancer: (enum) one of the following:
+             roundRobin: RoundRobin balancer
+             leastBytes: LeastBytes balancer
+             hash: Hash balancer
+             crc32: Crc32 balancer
+             murmur2: Murmur2 balancer
+         writeTimeout: timeout (in seconds) for write operation performed by the Writer
+         readTimeout: timeout (in seconds) for read operation performed by the Writer
+         batchBytes: limit the maximum size of a request in bytes before being sent to a partition
+         batchSize: limit on how many messages will be buffered before being sent to a partition
+</pre>
 ## Ingest collector API
 Following is the supported API format for the netflow collector:
 

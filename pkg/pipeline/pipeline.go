@@ -117,6 +117,8 @@ func getEncoder() (encode.Encoder, error) {
 		encoder, _ = encode.NewEncodeProm()
 	case "json":
 		encoder, _ = encode.NewEncodeJson()
+	case "kafka":
+		encoder, _ = encode.NewEncodeKafka()
 	case "none":
 		encoder, _ = encode.NewEncodeNone()
 	default:
