@@ -130,9 +130,11 @@ func (n *Network) Transform(inputEntry config.GenericMap) config.GenericMap {
 				log.Infof("Can't find kubernetes info for IP %v err %v", outputEntries[rule.Input], err)
 				continue
 			}
-			outputEntries[rule.Output+"_Type"] = kubeInfo.Type
-			outputEntries[rule.Output+"_Name"] = kubeInfo.Name
 			outputEntries[rule.Output+"_Namespace"] = kubeInfo.Namespace
+			outputEntries[rule.Output+"_Name"] = kubeInfo.Name
+			outputEntries[rule.Output+"_Type"] = kubeInfo.Type
+			outputEntries[rule.Output+"_OwnerName"] = kubeInfo.Owner.Name
+			outputEntries[rule.Output+"_OwnerType"] = kubeInfo.Owner.Type
 			for labelKey, labelValue := range kubeInfo.Labels {
 				outputEntries[rule.Output+"_Labels_"+labelKey] = labelValue
 			}
