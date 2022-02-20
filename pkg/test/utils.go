@@ -31,16 +31,16 @@ func GetIngestMockEntry(missingKey bool) config.GenericMap {
 		"8888IP":       "8.8.8.8",
 		"emptyIP":      "",
 		"level":        "error",
-		"srcPort":      "11777",
+		"srcPort":      11777,
 		"protocol":     "tcp",
-		"protocol_num": "6",
+		"protocol_num": 6,
 		"value":        "7",
 		"message":      "test message",
 	}
 
 	if !missingKey {
 		entry["dstIP"] = "20.0.0.2"
-		entry["dstPort"] = "22"
+		entry["dstPort"] = 22
 	}
 
 	return entry

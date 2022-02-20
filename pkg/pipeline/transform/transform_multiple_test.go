@@ -61,10 +61,10 @@ pipeline:
 func getMultipleExpectedOutput() config.GenericMap {
 	return config.GenericMap{
 		"SrcAddr2":  "10.0.0.1",
-		"SrcPort2":  "11777",
+		"SrcPort2":  11777,
 		"Protocol2": "tcp",
 		"DstAddr2":  "20.0.0.2",
-		"DstPort2":  "22",
+		"DstPort2":  22,
 	}
 }
 
