@@ -22,6 +22,7 @@ import (
 	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs2metrics/pkg/health"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
@@ -128,6 +129,7 @@ func initFlags() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", fmt.Sprintf("config file (default is $HOME/%s)", defaultLogFileName))
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "error", "Log level: debug, info, warning, error")
 	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine.Ingest.Type, "pipeline.ingest.type", "", "Ingest type: file, collector,file_loop (required)")
+	rootCmd.PersistentFlags().StringVar(&config.Opt.Health.Port, "health.port", "8080", "Health server port")
 	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine.Ingest.File.Filename, "pipeline.ingest.file.filename", "", "Ingest filename (file)")
 	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine.Ingest.Collector, "pipeline.ingest.collector", "", "Ingest collector API")
 	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine.Ingest.Kafka, "pipeline.ingest.kafka", "", "Ingest Kafka API")
@@ -160,23 +162,29 @@ func run() {
 		mainPipeline *pipeline.Pipeline
 	)
 
-	// Starting log message
+	// Initial log message
 	fmt.Printf("%s starting - version [%s]\n\n", filepath.Base(os.Args[0]), Version)
-	// Dump the configuration
+
+	// Dump configuration
 	dumpConfig()
 
+	// Setup (threads) exit manager
 	utils.SetupElegantExit()
 
-	// creating a new pipeline
+	// Create new flows pipeline
 	mainPipeline, err = pipeline.NewPipeline()
 	if err != nil {
 		log.Fatalf("failed to initialize pipeline %s", err)
 		os.Exit(1)
 	}
 
+	// Starts the flows pipeline
 	mainPipeline.Run()
 
-	// give all threads a chance to exit and then exit the process
+	// Start health report server
+	health.NewHealthServer(mainPipeline)
+
+	// Give all threads a chance to exit and then exit the process
 	time.Sleep(time.Second)
 	log.Debugf("exiting main run")
 	os.Exit(0)

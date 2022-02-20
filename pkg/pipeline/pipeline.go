@@ -18,6 +18,8 @@
 package pipeline
 
 import (
+	"fmt"
+	"github.com/heptiolabs/healthcheck"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/encode"
@@ -40,6 +42,7 @@ type Pipeline struct {
 	Writer       write.Writer
 	Extractor    extract.Extractor
 	Encoder      encode.Encoder
+	IsRunning    bool
 }
 
 func getIngester() (ingest.Ingester, error) {
@@ -150,7 +153,9 @@ func NewPipeline() (*Pipeline, error) {
 }
 
 func (p *Pipeline) Run() {
+	p.IsRunning = true
 	p.Ingester.Ingest(p.Process)
+	p.IsRunning = false
 }
 
 // Process is called by the Ingester function
@@ -169,4 +174,22 @@ func (p Pipeline) Process(entries []interface{}) {
 
 	extracted := p.Extractor.Extract(transformed)
 	_ = p.Encoder.Encode(extracted)
+}
+
+func (p *Pipeline) IsReady() healthcheck.Check {
+	return func() error {
+		if !p.IsRunning {
+			return fmt.Errorf("pipeline is not running")
+		}
+		return nil
+	}
+}
+
+func (p *Pipeline) IsAlive() healthcheck.Check {
+	return func() error {
+		if !p.IsRunning {
+			return fmt.Errorf("pipeline is not running")
+		}
+		return nil
+	}
 }

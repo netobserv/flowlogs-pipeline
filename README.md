@@ -33,6 +33,7 @@ Usage:
   
 Flags:  
       --config string                          config file (default is $HOME/.flowlogs2metrics)  
+      --health.port string                     Health server port (default "8080")  
   -h, --help                                   help for flowlogs2metrics  
       --log-level string                       Log level: debug, info, warning, error (default "error")  
       --pipeline.decode.aws string             aws fields  
