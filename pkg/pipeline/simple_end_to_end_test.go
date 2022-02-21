@@ -18,7 +18,6 @@
 package pipeline
 
 import (
-	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/decode"
@@ -67,18 +66,15 @@ const inputData = `{"BiFlowDirection":0,"Bytes":20800,"DstAS":0,"DstAddr":"10.13
 `
 
 func Test_SimpleEndToEnd(t *testing.T) {
-	fmt.Printf("entering Test_SimpleEndToEnd")
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	var mainPipeline *Pipeline
 	var err error
 	var b []byte
 	// perform initializations that would usually be done in main
-	fmt.Printf("before os.WriteFile\n")
 	err = os.WriteFile("/tmp/simple_end_to_end_test_data.txt", []byte(inputData), 0644)
 	require.NoError(t, err)
 	defer os.Remove("/tmp/simple_end_to_end_test_data.txt")
 
-	fmt.Printf("before test.InitConfig\n")
 	v := test.InitConfig(t, configTemplate)
 	config.Opt.PipeLine.Ingest.Type = "file"
 	config.Opt.PipeLine.Decode.Type = "json"
@@ -86,7 +82,6 @@ func Test_SimpleEndToEnd(t *testing.T) {
 	config.Opt.PipeLine.Encode.Type = "none"
 	config.Opt.PipeLine.Write.Type = "none"
 	config.Opt.PipeLine.Ingest.File.Filename = "/tmp/simple_end_to_end_test_data.txt"
-	fmt.Printf("filename = %s\n", config.Opt.PipeLine.Ingest.File.Filename)
 
 	val := v.Get("pipeline.transform\n")
 	b, err = json.Marshal(&val)
