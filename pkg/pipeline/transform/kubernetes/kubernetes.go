@@ -20,7 +20,9 @@ package kubernetes
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -37,60 +39,104 @@ const (
 	kubeConfigEnvVariable = "KUBECONFIG"
 	syncTime              = 10 * time.Minute
 	IndexIP               = "byIP"
-	typeNode              = "node"
-	typePod               = "pod"
-	typeService           = "service"
+	typeNode              = "Node"
+	typePod               = "Pod"
+	typeService           = "Service"
 )
 
 type KubeData struct {
-	informers map[string]cache.SharedIndexInformer
-	stopChan  chan struct{}
+	ipInformers        map[string]cache.SharedIndexInformer
+	replicaSetInformer cache.SharedIndexInformer
+	stopChan           chan struct{}
+}
+
+type Owner struct {
+	Type string
+	Name string
 }
 
 type Info struct {
-	Type      string
-	Name      string
-	Namespace string
-	Labels    map[string]string
+	Type            string
+	Name            string
+	Namespace       string
+	Labels          map[string]string
+	OwnerReferences []metav1.OwnerReference
+	Owner           Owner
 }
 
-func (k KubeData) GetInfo(ip string) (*Info, error) {
-	for objType, informer := range k.informers {
+func (k *KubeData) GetInfo(ip string) (*Info, error) {
+	for objType, informer := range k.ipInformers {
 		objs, err := informer.GetIndexer().ByIndex(IndexIP, ip)
 		if err == nil && len(objs) > 0 {
+			var info *Info
 			switch objType {
 			case typePod:
 				pod := objs[0].(*v1.Pod)
-				return &Info{
-					Type:      typePod,
-					Name:      pod.Name,
-					Namespace: pod.Namespace,
-					Labels:    pod.Labels,
-				}, nil
+				info = &Info{
+					Type:            typePod,
+					Name:            pod.Name,
+					Namespace:       pod.Namespace,
+					Labels:          pod.Labels,
+					OwnerReferences: pod.OwnerReferences,
+				}
 			case typeNode:
 				node := objs[0].(*v1.Node)
-				return &Info{
+				info = &Info{
 					Type:      typeNode,
 					Name:      node.Name,
 					Namespace: node.Namespace,
 					Labels:    node.Labels,
-				}, nil
+				}
 			case typeService:
 				service := objs[0].(*v1.Service)
-				return &Info{
+				info = &Info{
 					Type:      typeService,
 					Name:      service.Name,
 					Namespace: service.Namespace,
 					Labels:    service.Labels,
-				}, nil
+				}
 			}
+
+			info.Owner = k.getOwner(info)
+			return info, nil
 		}
 	}
 
 	return nil, fmt.Errorf("can't find ip")
 }
 
-func (k KubeData) NewNodeInformer(informerFactory informers.SharedInformerFactory) error {
+func (k *KubeData) getOwner(info *Info) Owner {
+	if info.OwnerReferences != nil && len(info.OwnerReferences) > 0 {
+		ownerReference := info.OwnerReferences[0]
+		if ownerReference.Kind == "ReplicaSet" {
+			item, ok, err := k.replicaSetInformer.GetIndexer().GetByKey(info.Namespace + "/" + ownerReference.Name)
+			if err != nil {
+				panic(err)
+			}
+			if ok {
+				replicaSet := item.(*appsv1.ReplicaSet)
+				if len(replicaSet.OwnerReferences) > 0 {
+					return Owner{
+						Name: replicaSet.OwnerReferences[0].Name,
+						Type: replicaSet.OwnerReferences[0].Kind,
+					}
+				}
+			}
+		} else {
+			return Owner{
+				Name: ownerReference.Name,
+				Type: ownerReference.Kind,
+			}
+		}
+	}
+
+	return Owner{
+		Name: info.Name,
+		Type: info.Type,
+	}
+}
+
+func (k *KubeData) NewNodeInformer(informerFactory informers.SharedInformerFactory) error {
 	nodes := informerFactory.Core().V1().Nodes().Informer()
 	err := nodes.AddIndexers(map[string]cache.IndexFunc{
 		IndexIP: func(obj interface{}) ([]string, error) {
@@ -106,11 +152,11 @@ func (k KubeData) NewNodeInformer(informerFactory informers.SharedInformerFactor
 		},
 	})
 
-	k.informers[typeNode] = nodes
+	k.ipInformers[typeNode] = nodes
 	return err
 }
 
-func (k KubeData) NewPodInformer(informerFactory informers.SharedInformerFactory) error {
+func (k *KubeData) NewPodInformer(informerFactory informers.SharedInformerFactory) error {
 	pods := informerFactory.Core().V1().Pods().Informer()
 	err := pods.AddIndexers(map[string]cache.IndexFunc{
 		IndexIP: func(obj interface{}) ([]string, error) {
@@ -126,11 +172,11 @@ func (k KubeData) NewPodInformer(informerFactory informers.SharedInformerFactory
 		},
 	})
 
-	k.informers[typePod] = pods
+	k.ipInformers[typePod] = pods
 	return err
 }
 
-func (k KubeData) NewServiceInformer(informerFactory informers.SharedInformerFactory) error {
+func (k *KubeData) NewServiceInformer(informerFactory informers.SharedInformerFactory) error {
 	services := informerFactory.Core().V1().Services().Informer()
 	err := services.AddIndexers(map[string]cache.IndexFunc{
 		IndexIP: func(obj interface{}) ([]string, error) {
@@ -143,13 +189,22 @@ func (k KubeData) NewServiceInformer(informerFactory informers.SharedInformerFac
 		},
 	})
 
-	k.informers[typeService] = services
+	k.ipInformers[typeService] = services
 	return err
 }
 
-func (k KubeData) InitFromConfig(kubeConfigPath string) error {
+func (k *KubeData) NewReplicaSetInformer(informerFactory informers.SharedInformerFactory) error {
+	k.replicaSetInformer = informerFactory.Apps().V1().ReplicaSets().Informer()
+	return nil
+}
+
+func (k *KubeData) InitFromConfig(kubeConfigPath string) error {
 	var config *rest.Config
 	var err error
+
+	// Initialization variables
+	k.stopChan = make(chan struct{})
+	k.ipInformers = map[string]cache.SharedIndexInformer{}
 
 	if kubeConfigPath != "" {
 		config, err = clientcmd.BuildConfigFromFlags("", kubeConfigPath)
@@ -189,9 +244,7 @@ func (k KubeData) InitFromConfig(kubeConfigPath string) error {
 	return nil
 }
 
-func (k KubeData) initInformers(client kubernetes.Interface) error {
-	//defer close(stopChan)
-
+func (k *KubeData) initInformers(client kubernetes.Interface) error {
 	informerFactory := informers.NewSharedInformerFactory(client, syncTime)
 	err := k.NewNodeInformer(informerFactory)
 	if err != nil {
@@ -205,18 +258,15 @@ func (k KubeData) initInformers(client kubernetes.Interface) error {
 	if err != nil {
 		return err
 	}
+	err = k.NewReplicaSetInformer(informerFactory)
+	if err != nil {
+		return err
+	}
 
-	log.Debugf("starting kubernetes informer, waiting for syncronization")
+	log.Debugf("starting kubernetes informers, waiting for syncronization")
 	informerFactory.Start(k.stopChan)
 	informerFactory.WaitForCacheSync(k.stopChan)
 	log.Debugf("kubernetes informers started")
 
 	return nil
-}
-
-func init() {
-	Data = KubeData{
-		informers: map[string]cache.SharedIndexInformer{},
-		stopChan:  make(chan struct{}),
-	}
 }
