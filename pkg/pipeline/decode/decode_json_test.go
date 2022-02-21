@@ -31,7 +31,7 @@ func initNewDecodeJson(t *testing.T) Decoder {
 
 func TestDecodeJson(t *testing.T) {
 	newDecode := initNewDecodeJson(t)
-	decodeJson := newDecode.(*decodeJson)
+	decodeJson := newDecode.(*DecodeJson)
 	inputString1 := "{\"varInt\": 12, \"varString\":\"testString\", \"varBool\":false}"
 	inputString2 := "{\"varInt\": 14, \"varString\":\"testString2\", \"varBool\":true}"
 	inputString3 := "{}"
@@ -55,7 +55,7 @@ func TestDecodeJson(t *testing.T) {
 
 func TestDecodeJsonTimestamps(t *testing.T) {
 	newDecode := initNewDecodeJson(t)
-	decodeJson := newDecode.(*decodeJson)
+	decodeJson := newDecode.(*DecodeJson)
 	inputString1 := "{\"unixTime\": 1645104030 }"
 	var in []interface{}
 	var out []config.GenericMap

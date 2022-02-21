@@ -27,15 +27,16 @@ import (
 	"time"
 )
 
-type ingestFile struct {
-	fileName string
-	exitChan chan bool
+type IngestFile struct {
+	fileName    string
+	exitChan    chan bool
+	PrevRecords []interface{}
 }
 
 const delaySeconds = 10
 
 // Ingest ingests entries from a file and resends the same data every delaySeconds seconds
-func (r *ingestFile) Ingest(process ProcessFunction) {
+func (r *IngestFile) Ingest(process ProcessFunction) {
 	lines := make([]interface{}, 0)
 	file, err := os.Open(r.fileName)
 	if err != nil {
@@ -54,6 +55,7 @@ func (r *ingestFile) Ingest(process ProcessFunction) {
 	log.Debugf("Ingesting %d log lines from %s", len(lines), r.fileName)
 	switch config.Opt.PipeLine.Ingest.Type {
 	case "file":
+		r.PrevRecords = lines
 		process(lines)
 	case "file_loop":
 		// loop forever
@@ -65,6 +67,7 @@ func (r *ingestFile) Ingest(process ProcessFunction) {
 				return
 			case <-ticker.C:
 				log.Debugf("ingestFile; for loop; before process")
+				r.PrevRecords = lines
 				process(lines)
 			}
 		}
@@ -82,7 +85,7 @@ func NewIngestFile() (Ingester, error) {
 
 	ch := make(chan bool, 1)
 	utils.RegisterExitChannel(ch)
-	return &ingestFile{
+	return &IngestFile{
 		fileName: config.Opt.PipeLine.Ingest.File.Filename,
 		exitChan: ch,
 	}, nil

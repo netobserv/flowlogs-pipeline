@@ -24,13 +24,13 @@ import (
 )
 
 func Test_Write(t *testing.T) {
-	wn := writeNone{}
+	wn := WriteNone{}
 	wn.Write([]config.GenericMap{{"key": "test"}})
 }
 
 func Test_NewWriteNone(t *testing.T) {
 	writer, err := NewWriteNone()
 	require.Nil(t, err)
-	require.Equal(t, writer, &writeNone{})
+	require.Equal(t, writer, &WriteNone{})
 
 }

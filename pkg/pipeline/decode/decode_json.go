@@ -23,12 +23,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type decodeJson struct {
+type DecodeJson struct {
+	PrevRecords []interface{}
 }
 
 // Decode decodes input strings to a list of flow entries
 // All entries should be saved as strings
-func (c *decodeJson) Decode(in []interface{}) []config.GenericMap {
+func (c *DecodeJson) Decode(in []interface{}) []config.GenericMap {
 	out := make([]config.GenericMap, 0)
 	for _, line := range in {
 		log.Debugf("decodeJson: line = %v", line)
@@ -48,11 +49,12 @@ func (c *decodeJson) Decode(in []interface{}) []config.GenericMap {
 		}
 		out = append(out, decodedLine2)
 	}
+	c.PrevRecords = in
 	return out
 }
 
 // NewDecodeJson create a new decode
 func NewDecodeJson() (Decoder, error) {
 	log.Debugf("entering NewDecodeJson")
-	return &decodeJson{}, nil
+	return &DecodeJson{}, nil
 }
