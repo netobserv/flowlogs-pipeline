@@ -43,7 +43,7 @@ type InformerInterface interface {
 }
 
 func (indexMock *IndexerMock) ByIndex(indexName, indexedValue string) ([]interface{}, error) {
-	pod := fakePod("podName", "podNamespace", "podHost")
+	pod := fakePod("podName", "podNamespace", "podHostIP")
 	podInterface := interface{}(pod)
 	return []interface{}{podInterface}, nil
 }
@@ -77,6 +77,7 @@ func TestKubeData_getInfo(t *testing.T) {
 		Type:      "Pod",
 		Name:      "podName",
 		Namespace: "podNamespace",
+		HostIP:    "podHostIP",
 		Owner:     Owner{Name: "podName", Type: "Pod"},
 	}
 	kubeData = KubeData{ipInformers: map[string]cache.SharedIndexInformer{}}
