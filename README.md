@@ -307,7 +307,7 @@ The fifth rule `add_kubernetes` generates new fields with kubernetes information
 matching the `input` value (`srcIP` in the example above) with kubernetes `nodes`, `pods` and `services` IPs.
 All the kubernetes fields will be named by appending `output` value
 (`srcK8S` in the example above) to the kubernetes metadata field names
-(e.g., `Namespace`, `Name`, `Type`, `OwnerName`, `OwnerType` )
+(e.g., `Namespace`, `Name`, `Type`, `HostIP`, `OwnerName`, `OwnerType` )
 
 In addition, if the `parameters` value is not empty, fields with kubernetes labels 
 will be generated, and named by appending `parameters` value to the label keys.   

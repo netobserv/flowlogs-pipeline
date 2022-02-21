@@ -140,6 +140,9 @@ func (n *Network) Transform(inputEntry config.GenericMap) config.GenericMap {
 					outputEntries[rule.Parameters+"_"+labelKey] = labelValue
 				}
 			}
+			if kubeInfo.HostIP != "" {
+				outputEntries[rule.Output+"_HostIP"] = kubeInfo.HostIP
+			}
 		default:
 			log.Panicf("unknown type %s for transform.Network rule: %v", rule.Type, rule)
 		}

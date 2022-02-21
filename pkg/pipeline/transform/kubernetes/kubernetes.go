@@ -62,6 +62,7 @@ type Info struct {
 	Labels          map[string]string
 	OwnerReferences []metav1.OwnerReference
 	Owner           Owner
+	HostIP          string
 }
 
 func (k *KubeData) GetInfo(ip string) (*Info, error) {
@@ -78,6 +79,7 @@ func (k *KubeData) GetInfo(ip string) (*Info, error) {
 					Namespace:       pod.Namespace,
 					Labels:          pod.Labels,
 					OwnerReferences: pod.OwnerReferences,
+					HostIP:          pod.Status.HostIP,
 				}
 			case typeNode:
 				node := objs[0].(*v1.Node)
