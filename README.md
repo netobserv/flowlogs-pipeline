@@ -304,10 +304,13 @@ All the geo-location fields will be named by appending `output` value
 (e.g., `CountryName`, `CountryLongName`, `RegionName`, `CityName` , `Longitude` and `Latitude`)
 
 The fifth rule `add_kubernetes` generates new fields with kubernetes information by
-matching the `input` value (`srcIP` in the example above) with k8s `nodes`, `pods` and `services` IPs.
+matching the `input` value (`srcIP` in the example above) with kubernetes `nodes`, `pods` and `services` IPs.
 All the kubernetes fields will be named by appending `output` value
 (`srcK8S` in the example above) to the kubernetes metadata field names
-(e.g., `Namespace`, `Name`, `Type`,  `OwnerName`, `OwnerType` )
+(e.g., `Namespace`, `Name`, `Type`, `OwnerName`, `OwnerType` )
+
+In addition, if the `parameters` value is not empty, fields with kubernetes labels 
+will be generated, and named by appending `parameters` value to the label keys.   
 
 > Note: kubernetes connection is done using the first available method: 
 > 1. configuration parameter `KubeConfigPath` (in the example above `/tmp/config`) or
