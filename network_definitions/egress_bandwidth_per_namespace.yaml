@@ -14,6 +14,7 @@ transform:
     - input: srcIP
       output: srcK8S
       type: add_kubernetes
+      parameters: srcK8S_labels
 extract:
   aggregates:
     - name: bandwidth_namespace

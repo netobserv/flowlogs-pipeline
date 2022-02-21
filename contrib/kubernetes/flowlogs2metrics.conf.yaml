@@ -251,7 +251,7 @@ pipeline:
       - input: srcIP
         output: srcK8S
         type: add_kubernetes
-        parameters: ""
+        parameters: srcK8S_labels
       - input: dstIP
         output: dstLocation
         type: add_location

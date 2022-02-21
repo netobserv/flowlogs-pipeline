@@ -135,8 +135,10 @@ func (n *Network) Transform(inputEntry config.GenericMap) config.GenericMap {
 			outputEntries[rule.Output+"_Type"] = kubeInfo.Type
 			outputEntries[rule.Output+"_OwnerName"] = kubeInfo.Owner.Name
 			outputEntries[rule.Output+"_OwnerType"] = kubeInfo.Owner.Type
-			for labelKey, labelValue := range kubeInfo.Labels {
-				outputEntries[rule.Output+"_Labels_"+labelKey] = labelValue
+			if rule.Parameters != "" {
+				for labelKey, labelValue := range kubeInfo.Labels {
+					outputEntries[rule.Parameters+"_"+labelKey] = labelValue
+				}
 			}
 		default:
 			log.Panicf("unknown type %s for transform.Network rule: %v", rule.Type, rule)
