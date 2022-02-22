@@ -33,7 +33,7 @@ encode:
   prom:
     metrics:
       - name: bandwidth_per_source_destination_subnet
-        type: gauge
+        type: counter
         valuekey: bandwidth_source_destination_subnet_value
         labels:
           - by

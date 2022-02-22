@@ -31,7 +31,7 @@ encode:
   prom:
     metrics:
       - name: connections_per_destination_subnet
-        type: gauge
+        type: counter
         valuekey: dest_connection_subnet_count_value
         labels:
           - by

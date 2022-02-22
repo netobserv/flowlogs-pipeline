@@ -7,105 +7,105 @@ pipeline:
     prom:
       metrics:
       - name: bandwidth_per_network_service
-        type: gauge
+        type: counter
         valuekey: bandwidth_network_service_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: bandwidth_per_source_destination_subnet
-        type: gauge
+        type: counter
         valuekey: bandwidth_source_destination_subnet_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: bandwidth_per_source_subnet
-        type: gauge
+        type: counter
         valuekey: bandwidth_source_subnet_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: connections_per_destination_subnet
-        type: gauge
+        type: counter
         valuekey: dest_connection_subnet_count_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: connections_per_source_subnet
-        type: gauge
+        type: counter
         valuekey: src_connection_count_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: connections_per_tcp_flags
-        type: gauge
+        type: counter
         valuekey: TCPFlags_count_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: connections_per_destination_as
-        type: gauge
+        type: counter
         valuekey: dst_as_connection_count_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: connections_per_source_as
-        type: gauge
+        type: counter
         valuekey: src_as_connection_count_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: count_per_source_destination_subnet
-        type: gauge
+        type: counter
         valuekey: count_source_destination_subnet_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: egress_per_destination_subnet
-        type: gauge
+        type: counter
         valuekey: bandwidth_destination_subnet_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: egress_per_namespace
-        type: gauge
+        type: counter
         valuekey: bandwidth_namespace_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: connections_per_destination_location
-        type: gauge
+        type: counter
         valuekey: dest_connection_location_count_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: mice_count
-        type: gauge
+        type: counter
         valuekey: mice_count_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: elephant_count
-        type: gauge
+        type: counter
         valuekey: elephant_count_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: service_count
-        type: gauge
+        type: counter
         valuekey: dest_service_count_value
         labels:
         - by

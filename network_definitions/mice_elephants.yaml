@@ -35,13 +35,13 @@ encode:
   prom:
     metrics:
       - name: mice_count
-        type: gauge
+        type: counter
         valuekey: mice_count_value
         labels:
           - by
           - aggregate
       - name: elephant_count
-        type: gauge
+        type: counter
         valuekey: elephant_count_value
         labels:
           - by

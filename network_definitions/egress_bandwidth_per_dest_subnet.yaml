@@ -28,7 +28,7 @@ encode:
   prom:
     metrics:
       - name: egress_per_destination_subnet
-        type: gauge
+        type: counter
         valuekey: bandwidth_destination_subnet_value
         labels:
           - by

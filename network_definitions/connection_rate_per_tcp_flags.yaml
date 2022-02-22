@@ -20,7 +20,7 @@ encode:
   prom:
     metrics:
       - name: connections_per_tcp_flags
-        type: gauge
+        type: counter
         valuekey: TCPFlags_count_value
         labels:
           - by
