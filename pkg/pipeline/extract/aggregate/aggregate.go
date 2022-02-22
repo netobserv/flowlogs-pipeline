@@ -125,6 +125,7 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 
 	if operation == OperationCount {
 		groupState.value = float64(groupState.count + 1)
+		groupState.RecentRawValues = append(groupState.RecentRawValues, 1)
 	} else {
 		if recordKey != "" {
 			value, ok := entry[recordKey]
