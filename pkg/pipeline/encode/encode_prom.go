@@ -135,11 +135,14 @@ func (e *encodeProm) EncodeMetric(metric config.GenericMap) []interface{} {
 			mInfo.promGauge.With(entryLabels).Set(valueFloat)
 			cEntry.PromMetric.promGauge = mInfo.promGauge
 		case api.PromEncodeOperationName("Counter"):
-			mInfo.promCounter.With(entryLabels).Add(valueFloat)
+			for _, v := range metric["recentRawValues"].([]float64) {
+				mInfo.promCounter.With(entryLabels).Add(v)
+			}
 			cEntry.PromMetric.promCounter = mInfo.promCounter
 		case api.PromEncodeOperationName("Histogram"):
-			// TODO: Need to perform proper function for histogram
-			//mInfo.promHist.With(entryLabels).Set(valueFloat)
+			for _, v := range metric["recentRawValues"].([]float64) {
+				mInfo.promHist.With(entryLabels).Observe(v)
+			}
 			cEntry.PromMetric.promHist = mInfo.promHist
 		}
 	}
