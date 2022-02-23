@@ -25,6 +25,11 @@ var (
 
 type Options struct {
 	PipeLine Pipeline
+	Health   Health
+}
+
+type Health struct {
+	Port string
 }
 
 type Pipeline struct {
