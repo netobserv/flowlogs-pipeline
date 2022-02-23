@@ -27,7 +27,7 @@ encode:
   prom:
     metrics:
       - name: connections_per_destination_location
-        type: gauge
+        type: counter
         valuekey: dest_connection_location_count_value
         labels:
           - by

@@ -32,7 +32,7 @@ encode:
   prom:
     metrics:
       - name: count_per_source_destination_subnet
-        type: gauge
+        type: counter
         valuekey: count_source_destination_subnet_value
         labels:
           - by

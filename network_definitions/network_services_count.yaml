@@ -28,7 +28,7 @@ encode:
   prom:
     metrics:
       - name: service_count
-        type: gauge
+        type: counter
         valuekey: dest_service_count_value
         labels:
           - by

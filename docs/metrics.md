@@ -19,7 +19,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate network usage breakdown per network service | 
 | **Labels** | bandwidth, graph, rate, network-service |
 | **Operation** | aggregate by `service` and `sum` field `bytes` |
-| **Exposed as** | `fl2m_bandwidth_per_network_service` of type `gauge` |
+| **Exposed as** | `fl2m_bandwidth_per_network_service` of type `counter` |
 | **Visualized as** | "Bandwidth per network service" on dashboard `details` |
 |||  
 
@@ -31,7 +31,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate network usage breakdown per source / destination subnet pair | 
 | **Labels** | bandwidth, graph, rate, subnet |
 | **Operation** | aggregate by `dstSubnet24, srcSubnet24` and `sum` field `bytes` |
-| **Exposed as** | `fl2m_bandwidth_per_source_destination_subnet` of type `gauge` |
+| **Exposed as** | `fl2m_bandwidth_per_source_destination_subnet` of type `counter` |
 | **Visualized as** | "Bandwidth per src and destination subnet" on dashboard `details` |
 |||  
 
@@ -43,7 +43,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate network usage breakdown per source subnet | 
 | **Labels** | bandwidth, graph, rate, subnet |
 | **Operation** | aggregate by `srcSubnet` and `sum` field `bytes` |
-| **Exposed as** | `fl2m_bandwidth_per_source_subnet` of type `gauge` |
+| **Exposed as** | `fl2m_bandwidth_per_source_subnet` of type `counter` |
 | **Visualized as** | "Bandwidth per source subnet" on dashboard `details` |
 |||  
 
@@ -55,7 +55,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate network connections per subnet | 
 | **Labels** | rate, subnet |
 | **Operation** | aggregate by `dstSubnet` and `sum` field `isNewFlow` |
-| **Exposed as** | `fl2m_connections_per_destination_subnet` of type `gauge` |
+| **Exposed as** | `fl2m_connections_per_destination_subnet` of type `counter` |
 | **Visualized as** | "Connections rate per destinationIP /16 subnets" on dashboard `details` |
 |||  
 
@@ -67,7 +67,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate network connections per subnet | 
 | **Labels** | rate, subnet |
 | **Operation** | aggregate by `srcSubnet` and `count`  |
-| **Exposed as** | `fl2m_connections_per_source_subnet` of type `gauge` |
+| **Exposed as** | `fl2m_connections_per_source_subnet` of type `counter` |
 | **Visualized as** | "Connections rate per sourceIP /16 subnets" on dashboard `details` |
 |||  
 
@@ -79,7 +79,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate difference in connections rate of different TCP Flags. Can be used, for example, to identify syn-attacks. | 
 | **Labels** | rate, TCPFlags |
 | **Operation** | aggregate by `TCPFlags` and `count`  |
-| **Exposed as** | `fl2m_connections_per_tcp_flags` of type `gauge` |
+| **Exposed as** | `fl2m_connections_per_tcp_flags` of type `counter` |
 | **Visualized as** | "Connections rate per TCPFlags" on dashboard `details` |
 |||  
 
@@ -91,7 +91,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate amount of connections targeted at different Autonomous Systems | 
 | **Labels** | rate, count, AS |
 | **Operation** | aggregate by `dstAS` and `count`  |
-| **Exposed as** | `fl2m_connections_per_destination_as` of type `gauge` |
+| **Exposed as** | `fl2m_connections_per_destination_as` of type `counter` |
 | **Visualized as** | "Connections rate per destination AS" on dashboard `details` |
 |||  
 
@@ -103,7 +103,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate amount of connections initiated by different Autonomous Systems | 
 | **Labels** | rate, count, AS |
 | **Operation** | aggregate by `srcAS` and `count`  |
-| **Exposed as** | `fl2m_connections_per_source_as` of type `gauge` |
+| **Exposed as** | `fl2m_connections_per_source_as` of type `counter` |
 | **Visualized as** | "Connections rate per source AS" on dashboard `details` |
 |||  
 
@@ -115,7 +115,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate network usage breakdown per source / destination subnet pair | 
 | **Labels** | count, graph, rate, subnet |
 | **Operation** | aggregate by `dstSubnet24, srcSubnet24` and `count`  |
-| **Exposed as** | `fl2m_count_per_source_destination_subnet` of type `gauge` |
+| **Exposed as** | `fl2m_count_per_source_destination_subnet` of type `counter` |
 | **Visualized as** | "Connections rate of src / destination subnet occurences" on dashboard `details` |
 |||  
 
@@ -127,7 +127,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate network usage breakdown per destination subnet | 
 | **Labels** | bandwidth, graph, rate, subnet |
 | **Operation** | aggregate by `dstSubnet` and `sum` field `bytes` |
-| **Exposed as** | `fl2m_egress_per_destination_subnet` of type `gauge` |
+| **Exposed as** | `fl2m_egress_per_destination_subnet` of type `counter` |
 | **Visualized as** | "Bandwidth per destination subnet" on dashboard `details` |
 | **Visualized as** | "Total bandwidth" on dashboard `totals` |
 |||  
@@ -140,7 +140,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate network usage breakdown per namespace | 
 | **Labels** | kubernetes, bandwidth, graph |
 | **Operation** | aggregate by `srcK8S_Namespace, srcK8S_Type` and `sum` field `bytes` |
-| **Exposed as** | `fl2m_egress_per_namespace` of type `gauge` |
+| **Exposed as** | `fl2m_egress_per_namespace` of type `counter` |
 | **Visualized as** | "Bandwidth per namespace" on dashboard `details` |
 |||  
 
@@ -152,7 +152,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate network connections geo-location | 
 | **Labels** | rate, connections-count, geo-location, destinationIP |
 | **Operation** | aggregate by `dstLocation_CountryName` and `count`  |
-| **Exposed as** | `fl2m_connections_per_destination_location` of type `gauge` |
+| **Exposed as** | `fl2m_connections_per_destination_location` of type `counter` |
 | **Visualized as** | "Connections rate per destinationIP geo-location" on dashboard `details` |
 |||  
 
@@ -165,8 +165,8 @@ and the transformation to generate the exported metric.
 | **Labels** | bandwidth, mice, elephant, rate |
 | **Operation** | aggregate by `mice_Evaluate` and `count`  |
 | **Operation** | aggregate by `elephant_Evaluate` and `count`  |
-| **Exposed as** | `fl2m_mice_count` of type `gauge` |
-| **Exposed as** | `fl2m_elephant_count` of type `gauge` |
+| **Exposed as** | `fl2m_mice_count` of type `counter` |
+| **Exposed as** | `fl2m_elephant_count` of type `counter` |
 | **Visualized as** | "Mice flows count" on dashboard `details` |
 | **Visualized as** | "Elephant flows count" on dashboard `details` |
 |||  
@@ -179,7 +179,7 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate network services | 
 | **Labels** | rate, network-services, destination-port, destination-protocol |
 | **Operation** | aggregate by `service` and `count`  |
-| **Exposed as** | `fl2m_service_count` of type `gauge` |
+| **Exposed as** | `fl2m_service_count` of type `counter` |
 | **Visualized as** | "Network services connections rate" on dashboard `details` |
 | **Visualized as** | "Number of network services" on dashboard `totals` |
 |||  

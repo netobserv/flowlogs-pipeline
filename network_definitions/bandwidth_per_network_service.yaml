@@ -28,7 +28,7 @@ encode:
   prom:
     metrics:
       - name: bandwidth_per_network_service
-        type: gauge
+        type: counter
         valuekey: bandwidth_network_service_value
         labels:
           - by

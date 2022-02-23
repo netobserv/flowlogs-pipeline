@@ -28,7 +28,7 @@ encode:
   prom:
     metrics:
       - name: egress_per_namespace
-        type: gauge
+        type: counter
         valuekey: bandwidth_namespace_value
         labels:
           - by

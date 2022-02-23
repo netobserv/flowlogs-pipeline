@@ -55,6 +55,7 @@ type Definition struct {
 
 type GroupState struct {
 	normalizedValues NormalizedValues
+	RecentRawValues  []float64
 	value            float64
 	count            int
 }
@@ -124,12 +125,14 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 
 	if operation == OperationCount {
 		groupState.value = float64(groupState.count + 1)
+		groupState.RecentRawValues = append(groupState.RecentRawValues, 1)
 	} else {
 		if recordKey != "" {
 			value, ok := entry[recordKey]
 			if ok {
-				valueString := fmt.Sprintf("%s", value)
+				valueString := fmt.Sprintf("%v", value)
 				valueFloat64, _ := strconv.ParseFloat(valueString, 64)
+				groupState.RecentRawValues = append(groupState.RecentRawValues, valueFloat64)
 				switch operation {
 				case OperationSum:
 					groupState.value += valueFloat64
@@ -179,10 +182,13 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 			"by":                                 strings.Join(aggregate.Definition.By, ","),
 			"aggregate":                          string(group.normalizedValues),
 			"value":                              fmt.Sprintf("%f", group.value),
+			"recentRawValues":                    group.RecentRawValues,
 			"count":                              fmt.Sprintf("%d", group.count),
 			aggregate.Definition.Name + "_value": fmt.Sprintf("%f", group.value),
 			strings.Join(aggregate.Definition.By, "_"): string(group.normalizedValues),
 		})
+		// Once reported, we reset the raw values accumulation
+		group.RecentRawValues = make([]float64, 0)
 	}
 
 	return metrics
