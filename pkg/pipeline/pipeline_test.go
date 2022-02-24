@@ -18,7 +18,9 @@
 package pipeline
 
 import (
-	"github.com/json-iterator/go"
+	"testing"
+
+	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/ingest"
@@ -26,7 +28,6 @@ import (
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/write"
 	"github.com/netobserv/flowlogs2metrics/pkg/test"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_transformToLoki(t *testing.T) {
@@ -76,24 +77,9 @@ pipeline:
 `
 
 func Test_SimplePipeline(t *testing.T) {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	var mainPipeline *Pipeline
-	var err error
-	var b []byte
-	v := test.InitConfig(t, configTemplate)
-	config.Opt.PipeLine.Ingest.Type = "file"
-	config.Opt.PipeLine.Decode.Type = "json"
-	config.Opt.PipeLine.Extract.Type = "none"
-	config.Opt.PipeLine.Encode.Type = "none"
-	config.Opt.PipeLine.Write.Type = "none"
-	config.Opt.PipeLine.Ingest.File.Filename = "../../hack/examples/ocp-ipfix-flowlogs.json"
+	loadGlobalConfig(t)
 
-	val := v.Get("pipeline.transform")
-	b, err = json.Marshal(&val)
-	require.NoError(t, err)
-	config.Opt.PipeLine.Transform = string(b)
-
-	mainPipeline, err = NewPipeline()
+	mainPipeline, err := NewPipeline()
 	require.NoError(t, err)
 
 	// The file ingester reads the entire file, pushes it down the pipeline, and then exits
@@ -117,4 +103,35 @@ func Test_SimplePipeline(t *testing.T) {
 		"fl2m_srcAddr": "10.130.2.13",
 		"fl2m_srcPort": float64(3100),
 	}, writer.PrevRecords[0])
+}
+
+func BenchmarkPipeline(b *testing.B) {
+	t := &testing.T{}
+	loadGlobalConfig(t)
+	if t.Failed() {
+		b.Fatalf("unexpected error loading config")
+	}
+	for n := 0; n < b.N; n++ {
+		p, err := NewPipeline()
+		if err != nil {
+			t.Fatalf("unexpected error %s", err)
+		}
+		p.Run()
+	}
+}
+
+func loadGlobalConfig(t *testing.T) {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	v := test.InitConfig(t, configTemplate)
+	config.Opt.PipeLine.Ingest.Type = "file"
+	config.Opt.PipeLine.Decode.Type = "json"
+	config.Opt.PipeLine.Extract.Type = "none"
+	config.Opt.PipeLine.Encode.Type = "none"
+	config.Opt.PipeLine.Write.Type = "none"
+	config.Opt.PipeLine.Ingest.File.Filename = "../../hack/examples/ocp-ipfix-flowlogs.json"
+
+	val := v.Get("pipeline.transform")
+	b, err := json.Marshal(&val)
+	require.NoError(t, err)
+	config.Opt.PipeLine.Transform = string(b)
 }
