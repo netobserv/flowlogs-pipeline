@@ -2,8 +2,8 @@ package health
 
 import (
 	"fmt"
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/url"

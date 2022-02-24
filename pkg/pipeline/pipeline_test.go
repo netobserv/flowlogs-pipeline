@@ -19,12 +19,12 @@ package pipeline
 
 import (
 	"github.com/json-iterator/go"
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/decode"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/ingest"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/transform"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/write"
-	"github.com/netobserv/flowlogs2metrics/pkg/test"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -55,17 +55,17 @@ pipeline:
     - type: generic
       generic:
         - input: Bytes
-          output: fl2m_bytes
+          output: flp_bytes
         - input: DstAddr
-          output: fl2m_dstAddr
+          output: flp_dstAddr
         - input: DstPort
-          output: fl2m_dstPort
+          output: flp_dstPort
         - input: Packets
-          output: fl2m_packets
+          output: flp_packets
         - input: SrcAddr
-          output: fl2m_srcAddr
+          output: flp_srcAddr
         - input: SrcPort
-          output: fl2m_srcPort
+          output: flp_srcPort
   extract:
     type: none
   encode:

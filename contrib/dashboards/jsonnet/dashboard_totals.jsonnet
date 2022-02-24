@@ -13,7 +13,7 @@ dashboard.new(
   schemaVersion=16,
   title="Flow-Logs to Metrics - Totals",
   time_from="now",
-  tags=['fl2m','grafana','dashboard','total'],
+  tags=['flp','grafana','dashboard','total'],
 )
 .addPanel(
   singlestat.new(
@@ -22,7 +22,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='sum(rate(fl2m_egress_per_destination_subnet[1m]))',
+      expr='sum(rate(flp_egress_per_destination_subnet[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -38,7 +38,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='count(fl2m_service_count)',
+      expr='count(flp_service_count)',
     )
   ), gridPos={
     x: 0,

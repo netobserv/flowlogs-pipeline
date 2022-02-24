@@ -48,7 +48,7 @@ func Test_checkHeader(t *testing.T) {
 	require.NoError(t, err)
 }
 
-const networkDefinitionConfiguration = `#fl2m_confgen
+const networkDefinitionConfiguration = `#flp_confgen
 description:
   test description
 details:

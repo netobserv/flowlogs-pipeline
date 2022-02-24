@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: flowlogs2metrics
+  name: flowlogs-pipeline
   labels:
-    app: flowlogs2metrics
+    app: flowlogs-pipeline
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: flowlogs2metrics
+      app: flowlogs-pipeline
   template:
     metadata:
       labels:
-        app: flowlogs2metrics
+        app: flowlogs-pipeline
     spec:
       containers:
-        - name: flowlogs2metrics
+        - name: flowlogs-pipeline
           image: %DOCKER_IMG%:%DOCKER_TAG%
           args:
-          - "--config=/etc/flowlogs2metrics/flowlogs2metrics.conf.yaml"
+          - "--config=/etc/flowlogs-pipeline/flowlogs-pipeline.conf.yaml"
           ports:
             - containerPort: 6343
             - containerPort: 2055
@@ -26,19 +26,19 @@ spec:
           imagePullPolicy: Always
           volumeMounts:
             - name: configuration
-              mountPath: "/etc/flowlogs2metrics/"
+              mountPath: "/etc/flowlogs-pipeline/"
       volumes:
         - name: configuration
           configMap:
-            name: flowlogs2metrics-configuration
-      serviceAccountName: flowlogs2metrics
+            name: flowlogs-pipeline-configuration
+      serviceAccountName: flowlogs-pipeline
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: flowlogs2metrics
+  name: flowlogs-pipeline
   labels:
-    app: flowlogs2metrics
+    app: flowlogs-pipeline
 spec:
   ports:
     - port: 6343
@@ -54,31 +54,31 @@ spec:
       protocol: UDP
       name: netflow-legacy
   selector:
-    app: flowlogs2metrics
+    app: flowlogs-pipeline
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: flowlogs2metrics-metrics
+  name: flowlogs-pipeline-metrics
   labels:
-    app: flowlogs2metrics
+    app: flowlogs-pipeline
 spec:
   ports:
     - port: 9102
       targetPort: 9102
       name: prometheous
   selector:
-    app: flowlogs2metrics
+    app: flowlogs-pipeline
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: flowlogs2metrics
+  name: flowlogs-pipeline
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: flowlogs2metrics
+  name: flowlogs-pipeline
 rules:
   - apiGroups: ["*"]
     resources: ["*"]
@@ -87,13 +87,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: flowlogs2metrics
+  name: flowlogs-pipeline
 subjects:
   - kind: ServiceAccount
-    name: flowlogs2metrics
+    name: flowlogs-pipeline
     namespace: default
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: flowlogs2metrics
+  name: flowlogs-pipeline
 ---

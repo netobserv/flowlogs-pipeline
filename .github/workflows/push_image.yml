@@ -7,7 +7,7 @@ env:
   REGISTRY_USER: netobserv+github_ci
   REGISTRY_PASSWORD: ${{ secrets.QUAY_SECRET }}
   REGISTRY: quay.io/netobserv
-  IMAGE: flowlogs2metrics
+  IMAGE: flowlogs-pipeline
   TAG: latest
 
 jobs:

@@ -34,7 +34,7 @@ pipeline:
     type: prom
     prom:
       port: 9102
-      prefix: fl2m_
+      prefix: flp_
       expirytime: 15
       metrics:
         - name: totalBytes

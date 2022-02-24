@@ -18,7 +18,7 @@
 package confgen
 
 import (
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
@@ -42,7 +42,7 @@ func expectedConfig() *Config {
 }
 
 const testConfig = `---
-## This is the main configuration file for flowlogs2metrics. It holds
+## This is the main configuration file for flowlogs-pipeline. It holds
 ## all parameters needed for the creation of the configuration
 ##
 description:

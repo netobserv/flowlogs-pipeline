@@ -1,4 +1,4 @@
-## This is the main configuration file for flowlogs2metrics. It holds
+## This is the main configuration file for flowlogs-pipeline. It holds
 ## all parameters needed for the creation of the configuration
 ##
 description:
@@ -30,25 +30,25 @@ transform:
         output: dstAS
 encode:
   prom:
-    prefix: fl2m_
+    prefix: flp_
     port: 9102
 write:
   type: loki
   loki:
     url: http://loki.default.svc.cluster.local:3100
     staticLabels:
-      job: flowlogs2metrics
+      job: flowlogs-pipeline
 visualization:
   grafana:
     dashboards:
       - name: "totals"
         title: "Flow-Logs to Metrics - Totals"
         time_from: "now"
-        tags: "['fl2m','grafana','dashboard','total']"
+        tags: "['flp','grafana','dashboard','total']"
         schemaVersion: "16"
       - name: "details"
         title: "Flow-Logs to Metrics - Details"
         time_from: "now-15m"
-        tags: "['fl2m','grafana','dashboard','details']"
+        tags: "['flp','grafana','dashboard','details']"
         schemaVersion: "16"
 

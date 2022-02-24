@@ -13,7 +13,7 @@ dashboard.new(
   schemaVersion=16,
   title="Flow-Logs to Metrics - Details",
   time_from="now-15m",
-  tags=['fl2m','grafana','dashboard','details'],
+  tags=['flp','grafana','dashboard','details'],
 )
 .addPanel(
   graphPanel.new(
@@ -22,7 +22,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_bandwidth_per_network_service[1m]))',
+      expr='topk(10,rate(flp_bandwidth_per_network_service[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -38,7 +38,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_bandwidth_per_source_destination_subnet[1m]))',
+      expr='topk(10,rate(flp_bandwidth_per_source_destination_subnet[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -54,7 +54,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_bandwidth_per_source_subnet[1m]))',
+      expr='topk(10,rate(flp_bandwidth_per_source_subnet[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -70,7 +70,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_connections_per_destination_subnet[1m]))',
+      expr='topk(10,rate(flp_connections_per_destination_subnet[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -86,7 +86,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_connections_per_source_subnet[1m]))',
+      expr='topk(10,rate(flp_connections_per_source_subnet[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -102,7 +102,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_connections_per_tcp_flags[1m]))',
+      expr='topk(10,rate(flp_connections_per_tcp_flags[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -118,7 +118,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_connections_per_destination_as[1m]))',
+      expr='topk(10,rate(flp_connections_per_destination_as[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -134,7 +134,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_connections_per_source_as[1m]))',
+      expr='topk(10,rate(flp_connections_per_source_as[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -150,7 +150,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_count_per_source_destination_subnet[1m]))',
+      expr='topk(10,rate(flp_count_per_source_destination_subnet[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -166,7 +166,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_egress_per_destination_subnet[1m]))',
+      expr='topk(10,rate(flp_egress_per_destination_subnet[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -182,7 +182,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_egress_per_namespace{aggregate=~".*pod.*"}[1m]))',
+      expr='topk(10,rate(flp_egress_per_namespace{aggregate=~".*pod.*"}[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -198,7 +198,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_connections_per_destination_location[1m]))',
+      expr='topk(10,rate(flp_connections_per_destination_location[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -214,7 +214,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='rate(fl2m_mice_count{}[1m])',
+      expr='rate(flp_mice_count{}[1m])',
     )
   ), gridPos={
     x: 0,
@@ -230,7 +230,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='rate(fl2m_elephant_count{}[1m])',
+      expr='rate(flp_elephant_count{}[1m])',
     )
   ), gridPos={
     x: 0,
@@ -246,7 +246,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(fl2m_service_count[1m]))',
+      expr='topk(10,rate(flp_service_count[1m]))',
     )
   ), gridPos={
     x: 0,

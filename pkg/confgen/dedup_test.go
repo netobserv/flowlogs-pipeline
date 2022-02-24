@@ -15,12 +15,11 @@
  *
  */
 
-
 package confgen
 
 import (
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/extract/aggregate"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 	"github.com/stretchr/testify/require"
 	"testing"
 )

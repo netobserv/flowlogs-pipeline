@@ -22,9 +22,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
-	pUtils "github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"net"
 	"time"
 

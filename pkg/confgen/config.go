@@ -18,7 +18,7 @@
 package confgen
 
 import (
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"

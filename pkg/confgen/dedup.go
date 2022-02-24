@@ -18,8 +18,8 @@
 package confgen
 
 import (
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/extract/aggregate"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 	log "github.com/sirupsen/logrus"
 	"reflect"
 )
@@ -30,6 +30,7 @@ func (cg *ConfGen) dedupe() {
 }
 
 type void struct{}
+
 var voidMember void
 
 func dedupeNetworkTransformRules(rules api.NetworkTransformRules) api.NetworkTransformRules {

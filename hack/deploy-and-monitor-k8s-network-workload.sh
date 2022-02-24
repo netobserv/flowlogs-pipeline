@@ -20,9 +20,9 @@ COMMON_POD_YAML=$(cat <<-END
 END
 )
 
-create-flowlogs2metrics-conf-file() {
-  echo "====> Creating flowlogs2metrics conf file (/tmp/flowlogs2metrics.conf.yaml)"
-  cat > /tmp/flowlogs2metrics.conf.yaml <<EOL
+create-flowlogs-pipeline-conf-file() {
+  echo "====> Creating flowlogs-pipeline conf file (/tmp/flowlogs-pipeline.conf.yaml)"
+  cat > /tmp/flowlogs-pipeline.conf.yaml <<EOL
 log-level: error
 pipeline:
   ingest:
@@ -217,11 +217,11 @@ EOF
   oc project default || true
 }
 
-deploy-flowlogs2metrics() {
-  create-flowlogs2metrics-conf-file
-  echo "====> Deploying flowlogs2metrics project"
+deploy-flowlogs-pipeline() {
+  create-flowlogs-pipeline-conf-file
+  echo "====> Deploying flowlogs-pipeline project"
   oc project default || true
-  export FL2M_CONF_FILE=/tmp/flowlogs2metrics.conf.yaml
+  export FLP_CONF_FILE=/tmp/flowlogs-pipeline.conf.yaml
   make ocp-deploy
 }
 
@@ -230,9 +230,9 @@ main() {
   deploy-ingress-workload
   deploy-egress-workload
   deploy-pod-to-pod-workload
-  deploy-flowlogs2metrics
+  deploy-flowlogs-pipeline
   echo ":::====> Done executing"
-  POD_NAME=$(oc get pod -n default -l app=flowlogs2metrics -o jsonpath="{.items[0].metadata.name}")
+  POD_NAME=$(oc get pod -n default -l app=flowlogs-pipeline -o jsonpath="{.items[0].metadata.name}")
   echo "Use: kubectl logs $POD_NAME  | grep ingress-workload"
   echo "Use: kubectl logs $POD_NAME  | grep egress-workload"
   echo "Use: kubectl logs $POD_NAME  | grep pod-to-pod-workload"

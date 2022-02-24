@@ -22,7 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/spf13/viper"
 	"testing"
 	"time"

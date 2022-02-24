@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/netobserv/flowlogs2metrics/pkg/confgen"
+	"github.com/netobserv/flowlogs-pipeline/pkg/confgen"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -34,7 +34,7 @@ import (
 var (
 	cfgFile            string
 	logLevel           string
-	envPrefix          = "FL2M_CONFGEN"
+	envPrefix          = "FLP_CONFGEN"
 	defaultLogFileName = ".confgen"
 )
 
@@ -60,7 +60,7 @@ func initConfig() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		// Search config in home directory with name ".fl2mconfgen" (without extension).
+		// Search config in home directory with name ".flpconfgen" (without extension).
 		v.AddConfigPath(home)
 		v.SetConfigName(defaultLogFileName)
 	}
@@ -126,7 +126,7 @@ func initFlags() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", fmt.Sprintf("config file (default is $HOME/%s)", defaultLogFileName))
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "error", "Log level: debug, info, warning, error")
 	rootCmd.PersistentFlags().StringVar(&confgen.Opt.SrcFolder, "srcFolder", "network_definitions", "source folder")
-	rootCmd.PersistentFlags().StringVar(&confgen.Opt.DestConfFile, "destConfFile", "/tmp/flowlogs2metrics.conf.yaml", "destination configuration file")
+	rootCmd.PersistentFlags().StringVar(&confgen.Opt.DestConfFile, "destConfFile", "/tmp/flowlogs-pipeline.conf.yaml", "destination configuration file")
 	rootCmd.PersistentFlags().StringVar(&confgen.Opt.DestDocFile, "destDocFile", "/tmp/metrics.md", "destination documentation file (.md)")
 	rootCmd.PersistentFlags().StringVar(&confgen.Opt.DestGrafanaJsonnetFolder, "destGrafanaJsonnetFolder", "/tmp/jsonnet", "destination grafana jsonnet folder")
 	rootCmd.PersistentFlags().StringSliceVar(&confgen.Opt.SkipWithLabels, "skipWithLabels", nil, "Skip definitions with Labels")

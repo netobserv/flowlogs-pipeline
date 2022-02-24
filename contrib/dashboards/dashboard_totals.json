@@ -72,7 +72,7 @@
          "tableColumn": "",
          "targets": [
             {
-               "expr": "sum(rate(fl2m_egress_per_destination_subnet[1m]))",
+               "expr": "sum(rate(flp_egress_per_destination_subnet[1m]))",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "",
@@ -153,7 +153,7 @@
          "tableColumn": "",
          "targets": [
             {
-               "expr": "count(fl2m_service_count)",
+               "expr": "count(flp_service_count)",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "",
@@ -179,7 +179,7 @@
    "schemaVersion": 16,
    "style": "dark",
    "tags": [
-      "fl2m",
+      "flp",
       "grafana",
       "dashboard",
       "total"

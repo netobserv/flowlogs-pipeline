@@ -18,7 +18,7 @@ spec:
         - name: netflowsimulator
           image: networkstatic/nflow-generator:latest
           args:
-            - "--target=$(FLOWLOGS2METRICS_SERVICE_HOST)"
-            - "--port=$(FLOWLOGS2METRICS_SERVICE_PORT_NETFLOW_LEGACY)"
+            - "--target=$(FLOWLOGS_PIPELINE_SERVICE_HOST)"
+            - "--port=$(FLOWLOGS_PIPELINE_SERVICE_PORT_NETFLOW_LEGACY)"
             - "--spike=http"
           imagePullPolicy: Always

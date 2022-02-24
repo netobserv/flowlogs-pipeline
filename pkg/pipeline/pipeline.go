@@ -20,13 +20,13 @@ package pipeline
 import (
 	"fmt"
 	"github.com/heptiolabs/healthcheck"
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/decode"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/encode"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/extract"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/ingest"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/transform"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/write"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
 	log "github.com/sirupsen/logrus"
 )
 

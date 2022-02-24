@@ -1,4 +1,4 @@
-#fl2m_confgen
+#flp_confgen
 description:
   This metric observes the network bandwidth per source and destination subnets
 details:
@@ -41,7 +41,7 @@ encode:
 visualization:
   type: grafana
   grafana:
-    - expr: 'topk(10,rate(fl2m_bandwidth_per_source_destination_subnet[1m]))'
+    - expr: 'topk(10,rate(flp_bandwidth_per_source_destination_subnet[1m]))'
       type: graphPanel
       dashboard: details
       title:

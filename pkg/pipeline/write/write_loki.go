@@ -20,13 +20,13 @@ package write
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
-	pUtils "github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"math"
 	"strings"
 	"time"
 
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 
 	logAdapter "github.com/go-kit/kit/log/logrus"
 	jsonIter "github.com/json-iterator/go"

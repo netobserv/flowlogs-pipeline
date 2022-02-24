@@ -19,8 +19,8 @@ package confgen
 
 import (
 	"fmt"
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/extract/aggregate"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -100,9 +100,9 @@ func (cg *ConfGen) generateDoc(fileName string) error {
 > Note: this file was automatically generated, to update execute "make generate-configuration"  
 > Note: the data was generated from network definitions under the %s folder  
   
-# flowlogs2metrics Metrics  
+# flowlogs-pipeline Metrics  
   
-Each table below provides documentation for an exported flowlogs2metrics metric. 
+Each table below provides documentation for an exported flowlogs-pipeline metric. 
 The documentation describes the metric, the collected information from network flow-logs
 and the transformation to generate the exported metric.
   

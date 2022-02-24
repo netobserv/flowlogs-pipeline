@@ -18,7 +18,7 @@
 package decode
 
 import (
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
