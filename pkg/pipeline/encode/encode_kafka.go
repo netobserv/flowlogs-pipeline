@@ -42,11 +42,11 @@ type encodeKafka struct {
 }
 
 // Encode writes entries to kafka topic
-func (r *encodeKafka) Encode(in []config.GenericMap) []interface{} {
+func (r *encodeKafka) Encode(in []config.GenericMap) []config.GenericMap {
 	log.Debugf("entering encodeKafka Encode, #items = %d", len(in))
 	var msgs []kafkago.Message
 	msgs = make([]kafkago.Message, 0)
-	out := make([]interface{}, 0)
+	out := make([]config.GenericMap, 0)
 	for _, entry := range in {
 		var entryByteArray []byte
 		entryByteArray, _ = json.Marshal(entry)
@@ -64,15 +64,9 @@ func (r *encodeKafka) Encode(in []config.GenericMap) []interface{} {
 }
 
 // NewEncodeKafka create a new writer to kafka
-func NewEncodeKafka() (Encoder, error) {
+func NewEncodeKafka(params config.Encode) (Encoder, error) {
 	log.Debugf("entering NewIngestKafka")
-	encodeKafkaString := config.Opt.PipeLine.Encode.Kafka
-	log.Debugf("encodeKafkaString = %s", encodeKafkaString)
-	var jsonEncodeKafka api.EncodeKafka
-	err := json.Unmarshal([]byte(encodeKafkaString), &jsonEncodeKafka)
-	if err != nil {
-		return nil, err
-	}
+	jsonEncodeKafka := params.Kafka
 
 	var balancer kafkago.Balancer
 	switch jsonEncodeKafka.Balancer {

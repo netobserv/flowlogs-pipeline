@@ -43,17 +43,17 @@ func Test_dedupeNetworkTransformRules(t *testing.T) {
 
 func Test_dedupeAggregateDefinitions(t *testing.T) {
 	slice := aggregate.Definitions{
-		aggregate.Definition{Name: "n1", By: aggregate.By{"a", "b"}, Operation: aggregate.Operation("o1")},
-		aggregate.Definition{Name: "n1", By: aggregate.By{"a"}, Operation: aggregate.Operation("o1")},
-		aggregate.Definition{Name: "n2", By: aggregate.By{"a", "b"}, Operation: aggregate.Operation("o2")},
-		aggregate.Definition{Name: "n3", By: aggregate.By{"a", "b"}, Operation: aggregate.Operation("o3")},
-		aggregate.Definition{Name: "n2", By: aggregate.By{"a", "b"}, Operation: aggregate.Operation("o2")},
+		api.AggregateDefinition{Name: "n1", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o1")},
+		api.AggregateDefinition{Name: "n1", By: api.AggregateBy{"a"}, Operation: api.AggregateOperation("o1")},
+		api.AggregateDefinition{Name: "n2", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o2")},
+		api.AggregateDefinition{Name: "n3", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o3")},
+		api.AggregateDefinition{Name: "n2", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o2")},
 	}
 	expected := aggregate.Definitions{
-		aggregate.Definition{Name: "n1", By: aggregate.By{"a", "b"}, Operation: aggregate.Operation("o1")},
-		aggregate.Definition{Name: "n1", By: aggregate.By{"a"}, Operation: aggregate.Operation("o1")},
-		aggregate.Definition{Name: "n2", By: aggregate.By{"a", "b"}, Operation: aggregate.Operation("o2")},
-		aggregate.Definition{Name: "n3", By: aggregate.By{"a", "b"}, Operation: aggregate.Operation("o3")},
+		api.AggregateDefinition{Name: "n1", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o1")},
+		api.AggregateDefinition{Name: "n1", By: api.AggregateBy{"a"}, Operation: api.AggregateOperation("o1")},
+		api.AggregateDefinition{Name: "n2", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o2")},
+		api.AggregateDefinition{Name: "n3", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o3")},
 	}
 	actual := dedupeAggregateDefinitions(slice)
 

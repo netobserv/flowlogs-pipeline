@@ -18,8 +18,6 @@
 package decode
 
 import (
-	"encoding/json"
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -72,23 +70,12 @@ func (c *decodeAws) Decode(in []interface{}) []config.GenericMap {
 }
 
 // NewDecodeAws create a new decode
-func NewDecodeAws() (Decoder, error) {
+func NewDecodeAws(params config.Decode) (Decoder, error) {
 	log.Debugf("entering NewDecodeAws")
-	var recordKeys []string
-	fieldsString := config.Opt.PipeLine.Decode.Aws
-	log.Debugf("fieldsString = %v", fieldsString)
-	if fieldsString != "" {
-		var awsFields api.DecodeAws
-		err := json.Unmarshal([]byte(fieldsString), &awsFields)
-		if err != nil {
-			log.Errorf("NewDecodeAws: error in unmarshalling fields: %v", err)
-			return nil, err
-		}
-		recordKeys = awsFields.Fields
-	} else {
+	recordKeys := params.Aws.Fields
+	if len(recordKeys) == 0 {
 		recordKeys = defaultKeys
 	}
-
 	log.Debugf("recordKeys = %v", recordKeys)
 	return &decodeAws{
 		keyTags: recordKeys,

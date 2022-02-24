@@ -18,7 +18,7 @@
 package pipeline
 
 import (
-	"github.com/json-iterator/go"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
@@ -36,8 +36,11 @@ func Test_transformToLoki(t *testing.T) {
 	require.NoError(t, err)
 	transformed = append(transformed, transform.Transform(input))
 
-	config.Opt.PipeLine.Write.Loki = "{}"
-	loki, err := write.NewWriteLoki()
+	params := config.Write{
+		Type: "loki",
+		Loki: api.WriteLoki{},
+	}
+	loki, err := write.NewWriteLoki(params)
 	loki.Write(transformed)
 	require.NoError(t, err)
 }
@@ -45,14 +48,23 @@ func Test_transformToLoki(t *testing.T) {
 const configTemplate = `---
 log-level: debug
 pipeline:
-  ingest:
-    type: file
-    file:
-      filename: ../../hack/examples/ocp-ipfix-flowlogs.json
-  decode:
-    type: json
-  transform:
-    - type: generic
+  - name: ingest1
+  - name: decode1
+    follows: ingest1
+  - name: transform1
+    follows: decode1
+parameters:
+  - name: ingest1
+    ingest:
+      type: file
+      file:
+        filename: ../../hack/examples/ocp-ipfix-flowlogs.json
+  - name: decode1
+    decode:
+      type: json
+  - name: transform1
+    transform:
+      type: generic
       generic:
         - input: Bytes
           output: flp_bytes
@@ -66,31 +78,12 @@ pipeline:
           output: flp_srcAddr
         - input: SrcPort
           output: flp_srcPort
-  extract:
-    type: none
-  encode:
-    type: none
-  write:
-    type: none
 `
 
 func Test_SimplePipeline(t *testing.T) {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	var mainPipeline *Pipeline
 	var err error
-	var b []byte
-	v := test.InitConfig(t, configTemplate)
-	config.Opt.PipeLine.Ingest.Type = "file"
-	config.Opt.PipeLine.Decode.Type = "json"
-	config.Opt.PipeLine.Extract.Type = "none"
-	config.Opt.PipeLine.Encode.Type = "none"
-	config.Opt.PipeLine.Write.Type = "none"
-	config.Opt.PipeLine.Ingest.File.Filename = "../../hack/examples/ocp-ipfix-flowlogs.json"
-
-	val := v.Get("pipeline.transform\n")
-	b, err = json.Marshal(&val)
-	require.NoError(t, err)
-	config.Opt.PipeLine.Transform = string(b)
+	test.InitConfig(t, configTemplate)
 
 	mainPipeline, err = NewPipeline()
 	require.NoError(t, err)
@@ -99,9 +92,7 @@ func Test_SimplePipeline(t *testing.T) {
 	// So we don't need to run it in a separate go-routine
 	mainPipeline.Run()
 	// What is there left to check? Check length of saved data of each stage in private structure.
-	ingester := mainPipeline.Ingester.(*ingest.IngestFile)
-	decoder := mainPipeline.Decoder.(*decode.DecodeJson)
-	writer := mainPipeline.Writer.(*write.WriteNone)
+	ingester := mainPipeline.pipelineStages[0].Ingester.(*ingest.IngestFile)
+	decoder := mainPipeline.pipelineStages[1].Decoder.(*decode.DecodeJson)
 	require.Equal(t, len(ingester.PrevRecords), len(decoder.PrevRecords))
-	require.Equal(t, len(ingester.PrevRecords), len(writer.PrevRecords))
 }

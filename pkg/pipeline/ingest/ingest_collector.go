@@ -22,7 +22,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"net"
@@ -161,14 +160,8 @@ func (r *ingestCollector) processLogLines(process ProcessFunction) {
 }
 
 // NewIngestCollector create a new ingester
-func NewIngestCollector() (Ingester, error) {
-	ingestCollectorString := config.Opt.PipeLine.Ingest.Collector
-	log.Debugf("ingestCollectorString = %s", ingestCollectorString)
-	var jsonIngestCollector api.IngestCollector
-	err := json.Unmarshal([]byte(ingestCollectorString), &jsonIngestCollector)
-	if err != nil {
-		return nil, err
-	}
+func NewIngestCollector(params config.Ingest) (Ingester, error) {
+	jsonIngestCollector := params.Collector
 
 	if jsonIngestCollector.HostName == "" {
 		return nil, fmt.Errorf("ingest hostname not specified")

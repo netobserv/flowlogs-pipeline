@@ -73,6 +73,7 @@ dashboards: $(JB) $(JSONNET) ## Build grafana dashboards
 docs: FORCE ## Update flowlogs-pipeline documentation
 	@./hack/update-docs.sh
 	@go run cmd/apitodoc/main.go > docs/api.md
+
 .PHONY: clean
 clean: ## Clean
 	rm -f "${FLP_BIN_FILE}"

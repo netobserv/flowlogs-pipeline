@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/stretchr/testify/require"
 	"strconv"
 	"testing"
@@ -28,9 +29,9 @@ import (
 
 func GetMockAggregate() Aggregate {
 	aggregate := Aggregate{
-		Definition: Definition{
+		Definition: api.AggregateDefinition{
 			Name:      "Avg by src and dst IP's",
-			By:        By{"dstIP", "srcIP"},
+			By:        api.AggregateBy{"dstIP", "srcIP"},
 			Operation: "avg",
 			RecordKey: "value",
 		},
@@ -73,8 +74,8 @@ func Test_getNormalizedValues(t *testing.T) {
 
 func Test_LabelsFromEntry(t *testing.T) {
 	aggregate := Aggregate{
-		Definition: Definition{
-			By:        By{"dstIP", "srcIP"},
+		Definition: api.AggregateDefinition{
+			By:        api.AggregateBy{"dstIP", "srcIP"},
 			Operation: "count",
 			RecordKey: "",
 		},

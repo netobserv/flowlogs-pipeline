@@ -17,25 +17,38 @@
 
 package config
 
+import (
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+)
+
 type GenericMap map[string]interface{}
 
 var (
-	Opt = Options{}
+	Opt        = Options{}
+	PipeLine   []Stage
+	Parameters []Param
 )
 
 type Options struct {
-	PipeLine Pipeline
-	Health   Health
+	PipeLine   string
+	Parameters string
+	Health     Health
 }
 
 type Health struct {
 	Port string
 }
 
-type Pipeline struct {
+type Stage struct {
+	Name    string
+	Follows string
+}
+
+type Param struct {
+	Name      string
 	Ingest    Ingest
 	Decode    Decode
-	Transform string
+	Transform Transform
 	Extract   Extract
 	Encode    Encode
 	Write     Write
@@ -44,8 +57,8 @@ type Pipeline struct {
 type Ingest struct {
 	Type      string
 	File      File
-	Collector string
-	Kafka     string
+	Collector api.IngestCollector
+	Kafka     api.IngestKafka
 }
 
 type File struct {
@@ -58,21 +71,27 @@ type Aws struct {
 
 type Decode struct {
 	Type string
-	Aws  string
+	Aws  api.DecodeAws
+}
+
+type Transform struct {
+	Type    string
+	Generic api.TransformGeneric
+	Network api.TransformNetwork
 }
 
 type Extract struct {
 	Type       string
-	Aggregates string
+	Aggregates []api.AggregateDefinition
 }
 
 type Encode struct {
 	Type  string
-	Prom  string
-	Kafka string
+	Prom  api.PromEncode
+	Kafka api.EncodeKafka
 }
 
 type Write struct {
 	Type string
-	Loki string
+	Loki api.WriteLoki
 }

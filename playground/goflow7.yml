@@ -1,0 +1,60 @@
+log-level: info
+pipeline:
+  - stage: ingest
+    name: ingest1
+  - stage: decode
+    name: decode1
+    follows: ingest1
+  - stage: transform
+    name: generic1
+    follows: decode1
+  - stage: write
+    name: write1
+    follows: generic1
+  - stage: transform
+    name: generic2
+    follows: decode1
+  - stage: write
+    name: write2
+    follows: generic2
+parameters:
+  - name: decode1
+    decode:
+      type: json
+  - name: generic1
+    transform:
+      type: generic
+      generic:
+        rules:
+          - input: Bytes
+            output: v1_bytes
+          - input: DstAddr
+            output: v1_dstAddr
+          - input: Packets
+            output: v1_packets
+          - input: SrcPort
+            output: v1_srcPort
+  - name: write1
+    write:
+      type: stdout
+  - name: generic2
+    transform:
+      type: generic
+      generic:
+        rules:
+          - input: Bytes
+            output: v2_bytes
+          - input: DstAddr
+            output: v2_dstAddr
+          - input: Packets
+            output: v2_packets
+          - input: SrcPort
+            output: v2_srcPort
+  - name: ingest1
+    ingest:
+      type: file_loop
+      file:
+        filename: playground/goflow2_input.txt
+  - name: write2
+    write:
+      type: stdout

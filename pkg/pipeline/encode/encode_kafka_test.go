@@ -19,7 +19,6 @@ package encode
 
 import (
 	"encoding/json"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	kafkago "github.com/segmentio/kafka-go"
@@ -32,11 +31,14 @@ import (
 const testKafkaConfig = `---
 log-level: debug
 pipeline:
-  encode:
-    type: kafka
-    kafka:
-      address: 1.2.3.4:9092
-      topic: topic1
+  - name: encode1
+parameters:
+  - name: encode1
+    encode:
+      type: kafka
+      kafka:
+        address: 1.2.3.4:9092
+        topic: topic1
 `
 
 type fakeKafkaWriter struct {
@@ -52,13 +54,9 @@ func (f *fakeKafkaWriter) WriteMessages(ctx context.Context, msg ...kafkago.Mess
 
 func initNewEncodeKafka(t *testing.T) Encoder {
 	v := test.InitConfig(t, testKafkaConfig)
-	val := v.Get("pipeline.encode.kafka")
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	b, err := json.Marshal(&val)
-	require.NoError(t, err)
+	require.NotNil(t, v)
 
-	config.Opt.PipeLine.Encode.Kafka = string(b)
-	newEncode, err := NewEncodeKafka()
+	newEncode, err := NewEncodeKafka(config.Parameters[0].Encode)
 	require.NoError(t, err)
 	return newEncode
 }

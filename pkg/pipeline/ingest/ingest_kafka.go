@@ -18,7 +18,6 @@
 package ingest
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -102,15 +101,9 @@ func (r *ingestKafka) processLogLines(process ProcessFunction) {
 }
 
 // NewIngestKafka create a new ingester
-func NewIngestKafka() (Ingester, error) {
+func NewIngestKafka(params config.Ingest) (Ingester, error) {
 	log.Debugf("entering NewIngestKafka")
-	ingestKafkaString := config.Opt.PipeLine.Ingest.Kafka
-	log.Debugf("ingestKafkaString = %s", ingestKafkaString)
-	var jsonIngestKafka api.IngestKafka
-	err := json.Unmarshal([]byte(ingestKafkaString), &jsonIngestKafka)
-	if err != nil {
-		return nil, err
-	}
+	jsonIngestKafka := params.Kafka
 
 	// connect to the kafka server
 	startOffsetString := jsonIngestKafka.StartOffset

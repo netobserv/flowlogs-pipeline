@@ -18,7 +18,6 @@
 package ingest
 
 import (
-	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	kafkago "github.com/segmentio/kafka-go"
@@ -32,60 +31,41 @@ import (
 const testConfig1 = `---
 log-level: debug
 pipeline:
-  ingest:
-    type: kafka
-    kafka:
-      brokers: ["1.1.1.1:9092"]
-      topic: topic1
-      groupid: group1
-      startoffset: FirstOffset
-      groupbalancers: ["range", "roundRobin"]
-      batchReadTimeout: 300
-  decode:
-    type: json
-  transform:
-    - type: none
-  extract:
-    type: none
-  encode:
-    type: none
-  write:
-    type: none
+  - name: ingest1
+parameters:
+  - name: ingest1
+    ingest:
+      type: kafka
+      kafka:
+        brokers: ["1.1.1.1:9092"]
+        topic: topic1
+        groupid: group1
+        startoffset: FirstOffset
+        groupbalancers: ["range", "roundRobin"]
+        batchReadTimeout: 300
 `
 
 const testConfig2 = `---
 log-level: debug
 pipeline:
-  ingest:
-    type: kafka
-    kafka:
-      brokers: ["1.1.1.2:9092"]
-      topic: topic2
-      groupid: group2
-      startoffset: LastOffset
-      groupbalancers: ["rackAffinity"]
-  decode:
-    type: none
-  transform:
-    - type: none
-  extract:
-    type: none
-  encode:
-    type: none
-  write:
-    type: none
+  - name: ingest1
+parameters:
+  - name: ingest1
+    ingest:
+      type: kafka
+      kafka:
+        brokers: ["1.1.1.2:9092"]
+        topic: topic2
+        groupid: group2
+        startoffset: LastOffset
+        groupbalancers: ["rackAffinity"]
 `
 
 func initNewIngestKafka(t *testing.T, configTemplate string) Ingester {
 	v := test.InitConfig(t, configTemplate)
-	val := v.Get("pipeline.ingest.kafka")
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	b, err := json.Marshal(&val)
-	require.Equal(t, err, nil)
+	require.NotNil(t, v)
 
-	config.Opt.PipeLine.Ingest.Kafka = string(b)
-	config.Opt.PipeLine.Ingest.Type = "kafka"
-	newIngest, err := NewIngestKafka()
+	newIngest, err := NewIngestKafka(config.Parameters[0].Ingest)
 	require.Equal(t, err, nil)
 	return newIngest
 }
