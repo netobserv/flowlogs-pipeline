@@ -36,7 +36,8 @@ import (
 )
 
 var (
-	Version            string
+	BuildVersion       string
+	BuildDate          string
 	cfgFile            string
 	logLevel           string
 	envPrefix          = "FLOWLOGS-PIPILNE"
@@ -163,7 +164,8 @@ func run() {
 	)
 
 	// Initial log message
-	fmt.Printf("%s starting - version [%s]\n\n", filepath.Base(os.Args[0]), Version)
+	fmt.Printf("Starting %s:\n=====\nBuild Version: %s\nBuild Date: %s\n\n",
+		filepath.Base(os.Args[0]), BuildVersion, BuildDate)
 
 	// Dump configuration
 	dumpConfig()
