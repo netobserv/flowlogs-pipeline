@@ -19,6 +19,7 @@ package decode
 
 import (
 	"encoding/json"
+
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	log "github.com/sirupsen/logrus"
 )

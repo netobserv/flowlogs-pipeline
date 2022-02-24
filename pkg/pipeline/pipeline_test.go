@@ -20,6 +20,8 @@ package pipeline
 import (
 	"testing"
 
+	"github.com/sirupsen/logrus"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/decode"
@@ -89,6 +91,7 @@ func Test_SimplePipeline(t *testing.T) {
 	ingester := mainPipeline.Ingester.(*ingest.IngestFile)
 	decoder := mainPipeline.Decoder.(*decode.DecodeJson)
 	writer := mainPipeline.Writer.(*write.WriteNone)
+	require.Equal(t, 5103, len(ingester.PrevRecords))
 	require.Equal(t, len(ingester.PrevRecords), len(decoder.PrevRecords))
 	require.Equal(t, len(ingester.PrevRecords), len(writer.PrevRecords))
 
@@ -106,8 +109,10 @@ func Test_SimplePipeline(t *testing.T) {
 }
 
 func BenchmarkPipeline(b *testing.B) {
+	logrus.StandardLogger().SetLevel(logrus.ErrorLevel)
 	t := &testing.T{}
 	loadGlobalConfig(t)
+	config.Opt.PipeLine.Ingest.Type = "file_chunks"
 	if t.Failed() {
 		b.Fatalf("unexpected error loading config")
 	}

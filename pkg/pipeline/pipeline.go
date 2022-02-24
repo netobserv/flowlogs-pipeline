@@ -19,6 +19,7 @@ package pipeline
 
 import (
 	"fmt"
+
 	"github.com/heptiolabs/healthcheck"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/decode"
@@ -52,6 +53,8 @@ func getIngester() (ingest.Ingester, error) {
 	switch config.Opt.PipeLine.Ingest.Type {
 	case "file", "file_loop":
 		ingester, err = ingest.NewIngestFile()
+	case "file_chunks":
+		ingester, err = ingest.NewFileChunks()
 	case "collector":
 		ingester, err = ingest.NewIngestCollector()
 	case "kafka":
