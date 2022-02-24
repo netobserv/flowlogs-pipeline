@@ -8,6 +8,7 @@ require (
 	github.com/heptiolabs/healthcheck v0.0.0-20211123025425-613501dd5deb
 	github.com/ip2location/ip2location-go/v9 v9.2.0
 	github.com/json-iterator/go v1.1.12
+	github.com/mariomac/go-pipes v0.1.0
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/netobserv/loki-client-go v0.0.0-20211018150932-cb17208397a9
 	github.com/netsampler/goflow2 v1.0.5-0.20220106210010-20e8e567090c

@@ -87,6 +87,7 @@ func Test_SimplePipeline(t *testing.T) {
 	// The file ingester reads the entire file, pushes it down the pipeline, and then exits
 	// So we don't need to run it in a separate go-routine
 	mainPipeline.Run()
+
 	// What is there left to check? Check length of saved data of each stage in private structure.
 	ingester := mainPipeline.Ingester.(*ingest.IngestFile)
 	decoder := mainPipeline.Decoder.(*decode.DecodeJson)

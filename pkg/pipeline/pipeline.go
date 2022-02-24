@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/heptiolabs/healthcheck"
+	"github.com/mariomac/go-pipes/pkg/node"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/encode"
@@ -44,6 +45,9 @@ type Pipeline struct {
 	Extractor    extract.Extractor
 	Encoder      encode.Encoder
 	IsRunning    bool
+
+	start    []*node.Init
+	terminal []*node.Terminal
 }
 
 func getIngester() (ingest.Ingester, error) {
@@ -152,31 +156,88 @@ func NewPipeline() (*Pipeline, error) {
 		Writer:       writer,
 	}
 
+	// TODO: all this apply* functions can be removed if we change the Ingester, Transformer, etc...
+	// interfaces and use them directly here
+	ingests := node.AsInit(p.applyIngest)
+	decodes := node.AsMiddle(p.applyDecode)
+	transforms := node.AsMiddle(p.applyTransforms)
+	writes := node.AsTerminal(p.applyWrite)
+	extracts := node.AsMiddle(p.applyExtract)
+	encodes := node.AsTerminal(p.applyEncode)
+
+	ingests.SendsTo(decodes)
+	decodes.SendsTo(transforms)
+	transforms.SendsTo(writes, extracts)
+	extracts.SendsTo(encodes)
+
+	p.start = []*node.Init{ingests}
+	p.terminal = []*node.Terminal{writes, encodes}
+
 	return p, nil
 }
 
 func (p *Pipeline) Run() {
 	p.IsRunning = true
-	p.Ingester.Ingest(p.Process)
+	p.process()
 	p.IsRunning = false
 }
 
-// Process is called by the Ingester function
-func (p Pipeline) Process(entries []interface{}) {
+// Process is builds the processing graph and waits until it finishes
+func (p Pipeline) process() {
 	log.Debugf("entering pipeline.Process")
-	log.Debugf("number of entries = %d", len(entries))
-	decoded := p.Decoder.Decode(entries)
-	transformed := make([]config.GenericMap, 0)
-	var flowEntry config.GenericMap
-	for _, entry := range decoded {
-		flowEntry = transform.ExecuteTransforms(p.Transformers, entry)
-		transformed = append(transformed, flowEntry)
+
+	// starting the graph
+	for _, s := range p.start {
+		s.Start()
 	}
 
-	_ = p.Writer.Write(transformed)
+	// blocking the execution until the graph terminal stages to end before
+	for _, t := range p.terminal {
+		<-t.Done()
+	}
+}
 
-	extracted := p.Extractor.Extract(transformed)
-	_ = p.Encoder.Encode(extracted)
+func (p *Pipeline) applyIngest(out chan<- []interface{}) {
+	p.Ingester.Ingest(func(entries []interface{}) {
+		log.Debugf("number of entries = %d", len(entries))
+		out <- entries
+	})
+}
+
+func (p *Pipeline) applyDecode(in <-chan []interface{}, out chan<- []config.GenericMap) {
+	for entries := range in {
+		out <- p.Decoder.Decode(entries)
+	}
+}
+
+func (p *Pipeline) applyTransforms(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
+	for entries := range in {
+		transformed := make([]config.GenericMap, 0, len(entries))
+		for _, entry := range entries {
+			// TODO: for consistent configurability, each transformer could be a node by itself
+			transformed = append(transformed,
+				transform.ExecuteTransforms(p.Transformers, entry))
+		}
+		out <- transformed
+	}
+}
+
+func (p *Pipeline) applyWrite(in <-chan []config.GenericMap) {
+	for entries := range in {
+		p.Writer.Write(entries)
+	}
+}
+
+func (p *Pipeline) applyExtract(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
+	for entries := range in {
+		out <- p.Extractor.Extract(entries)
+	}
+}
+
+func (p *Pipeline) applyEncode(in <-chan []config.GenericMap) {
+	for entries := range in {
+		p.Encoder.Encode(entries)
+	}
 }
 
 func (p *Pipeline) IsReady() healthcheck.Check {
