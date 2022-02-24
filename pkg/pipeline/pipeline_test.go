@@ -112,10 +112,12 @@ func BenchmarkPipeline(b *testing.B) {
 		b.Fatalf("unexpected error loading config")
 	}
 	for n := 0; n < b.N; n++ {
+		b.StopTimer()
 		p, err := NewPipeline()
 		if err != nil {
 			t.Fatalf("unexpected error %s", err)
 		}
+		b.StartTimer()
 		p.Run()
 	}
 }
