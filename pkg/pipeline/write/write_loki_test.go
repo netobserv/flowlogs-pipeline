@@ -18,12 +18,10 @@
 package write
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/spf13/viper"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"testing"
 	"time"
 
@@ -42,40 +40,31 @@ func (f *fakeEmitter) Handle(labels model.LabelSet, timestamp time.Time, record 
 	return a.Error(0)
 }
 
-func initFromString(t *testing.T, yamlConfig []byte) string {
-	v := viper.New()
-	v.SetConfigType("yaml")
-	r := bytes.NewReader(yamlConfig)
-	err := v.ReadConfig(r)
-	require.Equal(t, err, nil)
-	val := v.Get("pipeline.write.loki")
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	b, err := json.Marshal(&val)
-	require.Equal(t, err, nil)
-	return string(b)
-}
-
 func Test_buildLokiConfig(t *testing.T) {
-	var yamlConfig = []byte(`log-level: debug
+	var yamlConfig = `
+log-level: debug
 pipeline:
-  write:
-    type: loki
-    loki:
-      tenantID: theTenant
-      url: "https://foo:8888/"
-      batchWait: 1m
-      minBackOff: 5s
-      labels:
-        - foo
-        - bar
-      staticLabels:
-        baz: bae
-        tiki: taka
-`)
+  - name: write1
+parameters:
+  - name: write1
+    write:
+      type: loki
+      loki:
+        tenantID: theTenant
+        url: "https://foo:8888/"
+        batchWait: 1m
+        minBackOff: 5s
+        labels:
+          - foo
+          - bar
+        staticLabels:
+          baz: bae
+          tiki: taka
+`
+	v := test.InitConfig(t, yamlConfig)
+	require.NotNil(t, v)
 
-	config.Opt.PipeLine.Write.Loki = initFromString(t, yamlConfig)
-
-	loki, err := NewWriteLoki()
+	loki, err := NewWriteLoki(config.Parameters[0].Write)
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://foo:8888/loki/api/v1/push", loki.lokiConfig.URL.String())
@@ -88,23 +77,28 @@ pipeline:
 }
 
 func TestLoki_ProcessRecord(t *testing.T) {
-	var yamlConfig = []byte(`log-level: debug
+	var yamlConfig = `
+log-level: debug
 pipeline:
-  write:
-    type: loki
-    loki:
-      timestampLabel: ts
-      ignoreList:
-      - ignored
-      staticLabels:
-        static: label
-      labels:
-        - foo
-        - bar
-`)
+  - name: write1
+parameters:
+  - name: write1
+    write:
+      type: loki
+      loki:
+        timestampLabel: ts
+        ignoreList:
+        - ignored
+        staticLabels:
+          static: label
+        labels:
+          - foo
+          - bar
+`
+	v := test.InitConfig(t, yamlConfig)
+	require.NotNil(t, v)
 
-	config.Opt.PipeLine.Write.Loki = initFromString(t, yamlConfig)
-	loki, err := NewWriteLoki()
+	loki, err := NewWriteLoki(config.Parameters[0].Write)
 	require.NoError(t, err)
 
 	fe := fakeEmitter{}
@@ -146,13 +140,18 @@ func TestTimestampScale(t *testing.T) {
 		t.Run(fmt.Sprintf("unit %v", testCase.unit), func(t *testing.T) {
 			yamlConf := fmt.Sprintf(`log-level: debug
 pipeline:
-  write:
-    type: loki
-    loki:
-      timestampScale: %s
+  - name write1
+parameters:
+  - name write1
+    write:
+      type: loki
+      loki:
+        timestampScale: %s
 `, testCase.unit)
-			config.Opt.PipeLine.Write.Loki = initFromString(t, []byte(yamlConf))
-			loki, err := NewWriteLoki()
+			v := test.InitConfig(t, string(yamlConf))
+			require.NotNil(t, v)
+
+			loki, err := NewWriteLoki(config.Parameters[0].Write)
 			require.NoError(t, err)
 
 			fe := fakeEmitter{}
@@ -179,8 +178,10 @@ func TestTimestampExtraction_LocalTime(t *testing.T) {
 		{name: "zero ts value", tsLabel: "ts", input: map[string]interface{}{"ts": 0}},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			config.Opt.PipeLine.Write.Loki = initFromString(t, []byte(""))
-			loki, err := NewWriteLoki()
+			v := test.InitConfig(t, "")
+			require.NotNil(t, v)
+
+			loki, err := NewWriteLoki(config.Parameters[0].Write)
 			require.NoError(t, err)
 
 			loki.apiConfig.TimestampLabel = testCase.tsLabel
@@ -203,19 +204,25 @@ func TestTimestampExtraction_LocalTime(t *testing.T) {
 // Tests that labels are sanitized before being sent to loki.
 // Labels that are invalid even if sanitized are ignored
 func TestSanitizedLabels(t *testing.T) {
-	var yamlConfig = []byte(`log-level: debug
+	var yamlConfig = `
+log-level: debug
 pipeline:
-  write:
-    type: loki
-    loki:
-      labels:
-        - "fo.o"
-        - "ba-r"
-        - "ba/z"
-        - "ignored?"
-`)
-	config.Opt.PipeLine.Write.Loki = initFromString(t, yamlConfig)
-	loki, err := NewWriteLoki()
+  - name: write1
+parameters:
+  - name: write1
+    write:
+      type: loki
+      loki:
+        labels:
+          - "fo.o"
+          - "ba-r"
+          - "ba/z"
+          - "ignored?"
+`
+	v := test.InitConfig(t, yamlConfig)
+	require.NotNil(t, v)
+
+	loki, err := NewWriteLoki(config.Parameters[0].Write)
 	require.NoError(t, err)
 
 	fe := fakeEmitter{}

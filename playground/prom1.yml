@@ -1,13 +1,26 @@
 log-level: debug
 pipeline:
-  ingest:
-    type: file_loop
-    file:
-      filename: playground/goflow2_input.txt
-  decode:
-    type: json
-  transform:
-    - type: generic
+  - name: ingest1
+  - name: decode1
+    follows: ingest1
+  - name: transform1
+    follows: decode1
+  - name: encode1
+    follows: transform1
+  - name: write1
+    follows: encode1
+parameters:
+  - name: ingest1
+    ingest:
+      type: file_loop
+      file:
+        filename: playground/goflow2_input.txt
+  - name: decode1
+    decode:
+      type: json
+  - name: transform1
+    transform:
+      type: generic
       generic:
         rules:
           - input: Bytes
@@ -28,33 +41,34 @@ pipeline:
             output: srcPort
           - input: TimeReceived
             output: timestamp
-  extract:
-    type: none
-  encode:
-    type: prom
-    prom:
-      port: 9102
-      prefix: flp_
-      expirytime: 15
-      metrics:
-        - name: totalBytes
-          type: gauge
-          valuekey: bytes
-          labels:
-            - srcAddr
-            - dstAddr
-            - srcPort
-        - name: totalPackets
-          type: gauge
-          valuekey: packets
-          labels:
-            - srcAddr
-            - dstAddr
-            - dstPort
-        - name: subnetHistogram
-          type: histogram
-          valuekey: aggregate
-          labels:
-  write:
-    type: stdout
+  - name: encode1
+    encode:
+      type: prom
+      prom:
+        port: 9102
+        prefix: fl2m_
+        expirytime: 15
+        metrics:
+          - name: totalBytes
+            type: gauge
+            valuekey: bytes
+            labels:
+              - srcAddr
+              - dstAddr
+              - srcPort
+          - name: totalPackets
+            type: gauge
+            valuekey: packets
+            labels:
+              - srcAddr
+              - dstAddr
+              - dstPort
+          - name: subnetHistogram
+            type: histogram
+            valuekey: aggregate
+            labels:
+  - name: write1
+    write:
+      type: stdout
+>>>>>>> implemented multi-pipe and ported tests; Loki not working properly
 

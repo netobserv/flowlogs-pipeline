@@ -15,11 +15,9 @@
  *
  */
 
-package transform
+package pipeline
 
 import (
-	"github.com/json-iterator/go"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -28,8 +26,27 @@ import (
 const testConfigTransformMultiple = `---
 log-level: debug
 pipeline:
-  transform:
-    - type: generic
+  - name: ingest1
+  - name: decode1
+    follows: ingest1
+  - name: transform1
+    follows: decode1
+  - name: transform2
+    follows: transform1
+  - name: transform3
+    follows: transform2
+parameters:
+  - name: ingest1
+    ingest:
+      type: file
+      file:
+        filename: ../../hack/examples/ocp-ipfix-flowlogs.json
+  - name: decode1
+    decode:
+      type: json
+  - name: transform1
+    transform:
+      type: generic
       generic:
         rules:
         - input: srcIP
@@ -42,8 +59,12 @@ pipeline:
           output: SrcPort
         - input: protocol
           output: Protocol
-    - type: none
-    - type: generic
+  - name: transform2
+    transform:
+      type: none
+  - name: transform3
+    transform:
+      type: generic
       generic:
         rules:
         - input: SrcAddr
@@ -58,37 +79,17 @@ pipeline:
           output: Protocol2
 `
 
-func getMultipleExpectedOutput() config.GenericMap {
-	return config.GenericMap{
-		"SrcAddr2":  "10.0.0.1",
-		"SrcPort2":  11777,
-		"Protocol2": "tcp",
-		"DstAddr2":  "20.0.0.2",
-		"DstPort2":  22,
-	}
-}
+func TestTransformMultiple(t *testing.T) {
+	var mainPipeline *Pipeline
+	var err error
+	v := test.InitConfig(t, testConfigTransformMultiple)
+	require.NotNil(t, v)
 
-func InitMultipleTransforms(t *testing.T, configFile string) []Transformer {
-	v := test.InitConfig(t, configFile)
-	val := v.Get("pipeline.transform")
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	b, err := json.Marshal(&val)
-	require.Equal(t, err, nil)
+	mainPipeline, err = NewPipeline()
+	require.NoError(t, err)
 
-	// perform initializations usually done in main.go
-	config.Opt.PipeLine.Transform = string(b)
-
-	newTransforms, err := GetTransformers()
-	require.Equal(t, err, nil)
-	return newTransforms
-}
-
-func TestNewTransformMultiple(t *testing.T) {
-	newTransforms := InitMultipleTransforms(t, testConfigTransformMultiple)
-	require.Equal(t, len(newTransforms), 3)
-
-	input := test.GetIngestMockEntry(false)
-	output := ExecuteTransforms(newTransforms, input)
-	expectedOutput := getMultipleExpectedOutput()
-	require.Equal(t, output, expectedOutput)
+	// The file ingester reads the entire file, pushes it down the pipeline, and then exits
+	// So we don't need to run it in a separate go-routine
+	mainPipeline.Run()
+	// We should test the final outcome to see that it is reasonable
 }

@@ -51,9 +51,9 @@ func dedupeNetworkTransformRules(rules api.NetworkTransformRules) api.NetworkTra
 }
 
 // dedupeAggregateDefinitions is inefficient because we can't use a map to look for duplicates.
-// The reason is that aggregate.Definition is not hashable due to its By field which is a slice.
+// The reason is that aggregate.AggregateDefinition is not hashable due to its AggregateBy field which is a slice.
 func dedupeAggregateDefinitions(aggregateDefinitions aggregate.Definitions) aggregate.Definitions {
-	var dedpueSlice []aggregate.Definition
+	var dedpueSlice []api.AggregateDefinition
 	for i, aggregateDefinition := range aggregateDefinitions {
 		if containsAggregateDefinitions(dedpueSlice, aggregateDefinition) {
 			// duplicate aggregateDefinition
@@ -65,7 +65,7 @@ func dedupeAggregateDefinitions(aggregateDefinitions aggregate.Definitions) aggr
 	return dedpueSlice
 }
 
-func containsAggregateDefinitions(slice []aggregate.Definition, searchItem aggregate.Definition) bool {
+func containsAggregateDefinitions(slice []api.AggregateDefinition, searchItem api.AggregateDefinition) bool {
 	for _, item := range slice {
 		if reflect.DeepEqual(item, searchItem) {
 			return true

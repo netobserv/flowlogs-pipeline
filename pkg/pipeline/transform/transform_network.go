@@ -152,11 +152,12 @@ func (n *Network) Transform(inputEntry config.GenericMap) config.GenericMap {
 }
 
 // NewTransformNetwork create a new transform
-func NewTransformNetwork(jsonNetworkTransform api.TransformNetwork) (Transformer, error) {
+func NewTransformNetwork(params config.Transform) (Transformer, error) {
 	var needToInitLocationDB = false
 	var needToInitKubeData = false
 	var needToInitConnectionTracking = false
 
+	jsonNetworkTransform := params.Network
 	for _, rule := range jsonNetworkTransform.Rules {
 		switch rule.Type {
 		case api.TransformNetworkOperationName("AddLocation"):

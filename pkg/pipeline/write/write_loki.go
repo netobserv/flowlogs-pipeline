@@ -18,7 +18,6 @@
 package write
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
@@ -228,17 +227,12 @@ func (l *Loki) processRecords() {
 }
 
 // NewWriteLoki creates a Loki writer from configuration
-func NewWriteLoki() (*Loki, error) {
+func NewWriteLoki(params config.Write) (*Loki, error) {
 	log.Debugf("entering NewWriteLoki")
-
-	writeLokiString := config.Opt.PipeLine.Write.Loki
-	log.Debugf("writeLokiString = %s", writeLokiString)
-	var jsonWriteLoki = api.GetWriteLokiDefaults()
-	err := json.Unmarshal([]byte(writeLokiString), &jsonWriteLoki)
-	if err != nil {
-		return nil, err
-	}
-
+	jsonWriteLoki := params.Loki
+	// TODO: This needs to be reworked with the new api (not using a string)
+	// need to combine defaults with parameters that are provided in the config yaml file
+	var err error
 	if err = jsonWriteLoki.Validate(); err != nil {
 		return nil, fmt.Errorf("the provided config is not valid: %w", err)
 	}

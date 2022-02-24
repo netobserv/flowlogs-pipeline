@@ -18,50 +18,35 @@
 package aggregate
 
 import (
-	"bytes"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/spf13/viper"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func Test_NewAggregatesFromConfig(t *testing.T) {
-	var yamlConfig = []byte(`
+	var yamlConfig = `
 log-level: debug
 pipeline:
-  ingest:
-    type: collector
-  decode:
-    type: json
-  extract:
-    type: aggregates
-    aggregates:
-    - Name: "Avg by src and dst IP's"
-      By:
-      - "dstIP"
-      - "srcIP"
-      Operation: "avg"
-      RecordKey: "value"
-  encode:
-    type: prom
-  write:
-    type: stdout
-`)
-	v := viper.New()
-	v.SetConfigType("yaml")
-	r := bytes.NewReader(yamlConfig)
-	err := v.ReadConfig(r)
-	require.Equal(t, err, nil)
-	val := v.Get("pipeline.extract.aggregates")
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	b, err := json.Marshal(&val)
-	require.Equal(t, err, nil)
-	config.Opt.PipeLine.Extract.Aggregates = string(b)
+  - name: extract1
+parameters:
+  - name: extract1
+    extract:
+      type: aggregates
+      aggregates:
+        - Name: "Avg by src and dst IP's"
+          By:
+            - "dstIP"
+            - "srcIP"
+          Operation: "avg"
+          RecordKey: "value"
+`
+	v := test.InitConfig(t, yamlConfig)
+	require.NotNil(t, v)
 
 	expectedAggregate := GetMockAggregate()
-	aggregates, err := NewAggregatesFromConfig()
+	aggregates, err := NewAggregatesFromConfig(config.Parameters[0].Extract.Aggregates)
 
-	require.Equal(t, err, nil)
+	require.NoError(t, err)
 	require.Equal(t, aggregates[0].Definition, expectedAggregate.Definition)
 }

@@ -18,11 +18,9 @@
 package transform
 
 import (
-	"encoding/json"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
-	"os"
 )
 
 type Transformer interface {
@@ -57,38 +55,12 @@ const (
 	OperationNone    = "none"
 )
 
-func GetTransformers() ([]Transformer, error) {
-	log.Debugf("entering  GetTransformers")
-	var transformers []Transformer
-	transformDefinitions := Definitions{}
-	transformListString := config.Opt.PipeLine.Transform
-	log.Debugf("transformListString = %v", transformListString)
-	err := json.Unmarshal([]byte(transformListString), &transformDefinitions)
-	if err != nil {
-		log.Errorf("error in unmarshalling yaml: %v", err)
-		os.Exit(1)
+func ExecuteTransform(transformer Transformer, in []config.GenericMap) []config.GenericMap {
+	out := make([]config.GenericMap, 0)
+	var flowEntry config.GenericMap
+	for _, entry := range in {
+		flowEntry = transformer.Transform(entry)
+		out = append(out, flowEntry)
 	}
-	log.Debugf("transformDefinitions = %v", transformDefinitions)
-	for _, item := range transformDefinitions {
-		var transformer Transformer
-		log.Debugf("item.Type = %v", item.Type)
-		switch item.Type {
-		case OperationGeneric:
-			transformer, _ = NewTransformGeneric(item.Generic)
-		case OperationNetwork:
-			transformer, _ = NewTransformNetwork(item.Network)
-		case OperationNone:
-			transformer, _ = NewTransformNone()
-		}
-		transformers = append(transformers, transformer)
-	}
-	log.Debugf("transformers = %v", transformers)
-	return transformers, nil
-}
-
-func ExecuteTransforms(transformers []Transformer, flowEntry config.GenericMap) config.GenericMap {
-	for _, transformer := range transformers {
-		flowEntry = transformer.Transform(flowEntry)
-	}
-	return flowEntry
+	return out
 }
