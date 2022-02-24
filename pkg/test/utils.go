@@ -52,7 +52,7 @@ func InitConfig(t *testing.T, conf string) *viper.Viper {
 	v.SetConfigType("yaml")
 	r := bytes.NewReader(yamlConfig)
 	err := v.ReadConfig(r)
-	require.Equal(t, err, nil)
+	require.NoError(t, err)
 	return v
 }
 

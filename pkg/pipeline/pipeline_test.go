@@ -54,6 +54,7 @@ pipeline:
   transform:
     - type: generic
       generic:
+        rules:
         - input: Bytes
           output: fl2m_bytes
         - input: DstAddr
@@ -87,7 +88,7 @@ func Test_SimplePipeline(t *testing.T) {
 	config.Opt.PipeLine.Write.Type = "none"
 	config.Opt.PipeLine.Ingest.File.Filename = "../../hack/examples/ocp-ipfix-flowlogs.json"
 
-	val := v.Get("pipeline.transform\n")
+	val := v.Get("pipeline.transform")
 	b, err = json.Marshal(&val)
 	require.NoError(t, err)
 	config.Opt.PipeLine.Transform = string(b)
@@ -104,4 +105,16 @@ func Test_SimplePipeline(t *testing.T) {
 	writer := mainPipeline.Writer.(*write.WriteNone)
 	require.Equal(t, len(ingester.PrevRecords), len(decoder.PrevRecords))
 	require.Equal(t, len(ingester.PrevRecords), len(writer.PrevRecords))
+
+	// checking that the processing is done for at least the first line of the logs
+	require.Equal(t, ingester.PrevRecords[0], decoder.PrevRecords[0])
+	// values checked from the first line of the ../../hack/examples/ocp-ipfix-flowlogs.json file
+	require.Equal(t, config.GenericMap{
+		"fl2m_bytes":   float64(20800),
+		"fl2m_dstAddr": "10.130.2.2",
+		"fl2m_dstPort": float64(36936),
+		"fl2m_packets": float64(400),
+		"fl2m_srcAddr": "10.130.2.13",
+		"fl2m_srcPort": float64(3100),
+	}, writer.PrevRecords[0])
 }
