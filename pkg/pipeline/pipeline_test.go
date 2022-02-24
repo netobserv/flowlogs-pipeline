@@ -56,18 +56,18 @@ pipeline:
     - type: generic
       generic:
         rules:
-        - input: Bytes
-          output: fl2m_bytes
-        - input: DstAddr
-          output: fl2m_dstAddr
-        - input: DstPort
-          output: fl2m_dstPort
-        - input: Packets
-          output: fl2m_packets
-        - input: SrcAddr
-          output: fl2m_srcAddr
-        - input: SrcPort
-          output: fl2m_srcPort
+          - input: Bytes
+            output: fl2m_bytes
+          - input: DstAddr
+            output: fl2m_dstAddr
+          - input: DstPort
+            output: fl2m_dstPort
+          - input: Packets
+            output: fl2m_packets
+          - input: SrcAddr
+            output: fl2m_srcAddr
+          - input: SrcPort
+            output: fl2m_srcPort
   extract:
     type: none
   encode:
