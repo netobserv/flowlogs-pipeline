@@ -158,7 +158,7 @@ func NewPipeline() (*Pipeline, error) {
 
 	// TODO: all this apply* functions can be removed if we change the Ingester, Transformer, etc...
 	// interfaces and use them directly here
-	ingests := node.AsInit(p.applyIngest)
+	ingests := node.AsInit(p.Ingester.Ingest)
 	decodes := node.AsMiddle(p.applyDecode)
 	transforms := node.AsMiddle(p.applyTransforms)
 	writes := node.AsTerminal(p.applyWrite)
@@ -195,13 +195,6 @@ func (p Pipeline) process() {
 	for _, t := range p.terminal {
 		<-t.Done()
 	}
-}
-
-func (p *Pipeline) applyIngest(out chan<- []interface{}) {
-	p.Ingester.Ingest(func(entries []interface{}) {
-		log.Debugf("number of entries = %d", len(entries))
-		out <- entries
-	})
 }
 
 func (p *Pipeline) applyDecode(in <-chan []interface{}, out chan<- []config.GenericMap) {

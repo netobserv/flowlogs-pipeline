@@ -18,6 +18,9 @@
 package ingest
 
 import (
+	"testing"
+	"time"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/test"
@@ -25,8 +28,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
-	"testing"
-	"time"
 )
 
 const testConfig1 = `---
@@ -114,22 +115,14 @@ func Test_NewIngestKafka2(t *testing.T) {
 	require.Equal(t, defaultBatchReadTimeout, ingestKafka.kafkaParams.BatchReadTimeout)
 }
 
-var receivedEntries []interface{}
-var dummyChan chan bool
-
-func dummyProcessFunction(entries []interface{}) {
-	receivedEntries = entries
-	dummyChan <- true
-}
-
 func Test_IngestKafka(t *testing.T) {
-	dummyChan = make(chan bool)
 	newIngest := initNewIngestKafka(t, testConfig1)
 	ingestKafka := newIngest.(*ingestKafka)
+	ingestOutput := make(chan []interface{})
 
 	// run Ingest in a separate thread
 	go func() {
-		ingestKafka.Ingest(dummyProcessFunction)
+		ingestKafka.Ingest(ingestOutput)
 	}()
 	// wait a second for the ingest pipeline to come up
 	time.Sleep(time.Second)
@@ -145,7 +138,7 @@ func Test_IngestKafka(t *testing.T) {
 	inChan <- record3
 
 	// wait for the data to have been processed
-	<-dummyChan
+	receivedEntries := <-ingestOutput
 
 	require.Equal(t, 3, len(receivedEntries))
 	require.Equal(t, record1, receivedEntries[0])
@@ -186,7 +179,7 @@ func (f *fakeKafkaReader) Config() kafkago.ReaderConfig {
 }
 
 func Test_KafkaListener(t *testing.T) {
-	dummyChan = make(chan bool)
+	ingestOutput := make(chan []interface{})
 	newIngest := initNewIngestKafka(t, testConfig1)
 	ingestKafka := newIngest.(*ingestKafka)
 
@@ -196,11 +189,11 @@ func Test_KafkaListener(t *testing.T) {
 
 	// run Ingest in a separate thread
 	go func() {
-		ingestKafka.Ingest(dummyProcessFunction)
+		ingestKafka.Ingest(ingestOutput)
 	}()
 
 	// wait for the data to have been processed
-	<-dummyChan
+	receivedEntries := <-ingestOutput
 
 	require.Equal(t, 1, len(receivedEntries))
 	require.Equal(t, string(fakeRecord), receivedEntries[0])

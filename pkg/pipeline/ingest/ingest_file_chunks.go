@@ -37,7 +37,7 @@ type FileChunks struct {
 	TotalRecords int
 }
 
-func (r *FileChunks) Ingest(process ProcessFunction) {
+func (r *FileChunks) Ingest(out chan<- []interface{}) {
 	lines := make([]interface{}, 0, chunkLines)
 	file, err := os.Open(r.fileName)
 	if err != nil {
@@ -56,7 +56,7 @@ func (r *FileChunks) Ingest(process ProcessFunction) {
 		if nLines%chunkLines == 0 {
 			r.PrevRecords = lines
 			r.TotalRecords += len(lines)
-			process(lines)
+			out <- lines
 			// reset slice length without deallocating/reallocating memory
 			lines = lines[:0]
 		}
@@ -64,7 +64,7 @@ func (r *FileChunks) Ingest(process ProcessFunction) {
 	if len(lines) > 0 {
 		r.PrevRecords = lines
 		r.TotalRecords += len(lines)
-		process(lines)
+		out <- lines
 	}
 }
 

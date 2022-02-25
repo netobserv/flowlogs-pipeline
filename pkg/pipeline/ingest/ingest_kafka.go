@@ -20,13 +20,14 @@ package ingest
 import (
 	"encoding/json"
 	"errors"
+	"time"
+
 	"github.com/netobserv/flowlogs2metrics/pkg/api"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"time"
 )
 
 type kafkaReadMessage interface {
@@ -46,12 +47,12 @@ const channelSizeKafka = 1000
 const defaultBatchReadTimeout = int64(100)
 
 // Ingest ingests entries from kafka topic
-func (r *ingestKafka) Ingest(process ProcessFunction) {
+func (r *ingestKafka) Ingest(out chan<- []interface{}) {
 	// initialize background listener
 	r.kafkaListener()
 
 	// forever process log lines received by collector
-	r.processLogLines(process)
+	r.processLogLines(out)
 
 }
 
@@ -79,7 +80,7 @@ func (r *ingestKafka) kafkaListener() {
 }
 
 // read items from ingestKafka input channel, pool them, and send down the pipeline
-func (r *ingestKafka) processLogLines(process ProcessFunction) {
+func (r *ingestKafka) processLogLines(out chan<- []interface{}) {
 	var records []interface{}
 	duration := time.Duration(r.kafkaParams.BatchReadTimeout) * time.Millisecond
 	for {
@@ -92,7 +93,8 @@ func (r *ingestKafka) processLogLines(process ProcessFunction) {
 		case <-time.After(duration): // Maximum batch time for each batch
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
-				process(records)
+				log.Debugf("ingestKafka sending %d records", len(records))
+				out <- records
 				r.prevRecords = records
 				log.Debugf("prevRecords = %v", r.prevRecords)
 			}

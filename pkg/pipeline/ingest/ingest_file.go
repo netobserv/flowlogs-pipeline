@@ -20,11 +20,12 @@ package ingest
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"time"
 )
 
 type IngestFile struct {
@@ -36,7 +37,7 @@ type IngestFile struct {
 const delaySeconds = 10
 
 // Ingest ingests entries from a file and resends the same data every delaySeconds seconds
-func (r *IngestFile) Ingest(process ProcessFunction) {
+func (r *IngestFile) Ingest(out chan<- []interface{}) {
 	lines := make([]interface{}, 0)
 	file, err := os.Open(r.fileName)
 	if err != nil {
@@ -56,7 +57,8 @@ func (r *IngestFile) Ingest(process ProcessFunction) {
 	switch config.Opt.PipeLine.Ingest.Type {
 	case "file":
 		r.PrevRecords = lines
-		process(lines)
+		log.Debugf("ingestFile sending %d lines", len(lines))
+		out <- lines
 	case "file_loop":
 		// loop forever
 		ticker := time.NewTicker(time.Duration(delaySeconds) * time.Second)
@@ -68,7 +70,8 @@ func (r *IngestFile) Ingest(process ProcessFunction) {
 			case <-ticker.C:
 				log.Debugf("ingestFile; for loop; before process")
 				r.PrevRecords = lines
-				process(lines)
+				log.Debugf("ingestFile sending %d lines", len(lines))
+				out <- lines
 			}
 		}
 	}
