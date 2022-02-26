@@ -2,12 +2,12 @@
 
 This directory contains some sample config yml files and sample data to run some tests.
 
-The flowlogs2metrics application requires a config yml file and requires an input source.
+The flowlogs-pipeline application requires a config yml file and requires an input source.
 The input source is specified in the yml file.
 A simple test program is to run the following (from the base directory).
 
 ```
-flowlogs2metrics playground/aws1.yml
+flowlogs-pipeline playground/aws1.yml
 ```
 
 The aws? examples use a small file of prepared aws flow logs.

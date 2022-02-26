@@ -1,40 +1,40 @@
 
-[![pull request](https://github.com/netobserv/flowlogs2metrics/actions/workflows/pull_request.yml/badge.svg?branch=main)](https://github.com/netobserv/flowlogs2metrics/actions/workflows/pull_request.yml)
-[![Push image to quay.io](https://github.com/netobserv/flowlogs2metrics/actions/workflows/push_image.yml/badge.svg)](https://github.com/netobserv/flowlogs2metrics/actions/workflows/push_image.yml)
-[![codecov](https://codecov.io/gh/netobserv/flowlogs2metrics/branch/main/graph/badge.svg?token=KMZKG6PRS9)](https://codecov.io/gh/netobserv/flowlogs2metrics)
+[![pull request](https://github.com/netobserv/flowlogs-pipeline/actions/workflows/pull_request.yml/badge.svg)](https://github.com/netobserv/flowlogs-pipeline/actions/workflows/pull_request.yml)
+[![push image to quay.io](https://github.com/netobserv/flowlogs-pipeline/actions/workflows/push_image.yml/badge.svg)](https://github.com/netobserv/flowlogs-pipeline/actions/workflows/push_image.yml)
+[![codecov](https://codecov.io/gh/netobserv/flowlogs-pipeline/branch/main/graph/badge.svg?token=KMZKG6PRS9)](https://codecov.io/gh/netobserv/flowlogs-pipeline)
 
 # Overview
 
-**Flow-Logs to Metrics** (a.k.a. FL2M) is an **observability tool** that consumes raw **network flow-logs** and
+**Flow-Logs Pipeline** (a.k.a. FLP) is an **observability tool** that consumes raw **network flow-logs** and
 transforms them from their original format (NetFlow or IPFIX) into **prometheus numeric metrics** format.
-FL2M allows to define mathematical transformations to generate condense metrics that encapsulate network domain knowledge.
+FLP allows to define mathematical transformations to generate condense metrics that encapsulate network domain knowledge.
 
-In addition, FL2M decorates the metrics with **context**, allowing visualization layers and analytics frameworks to present **network insights** to SRE’s, cloud operators and network experts.
+In addition, FLP decorates the metrics with **context**, allowing visualization layers and analytics frameworks to present **network insights** to SRE’s, cloud operators and network experts.
 
-Along with Prometheus and its ecosystem tools such as Thanos, Cortex etc., FL2M provides efficient scalable multi-cloud solution for comprehensive network analytics that rely **solely based on metrics data-source**.
+Along with Prometheus and its ecosystem tools such as Thanos, Cortex etc., FLP provides efficient scalable multi-cloud solution for comprehensive network analytics that rely **solely based on metrics data-source**.
 
 Default metrics are documented here [docs/metrics.md](docs/metrics.md).
 <br>
 <br>
 
-> Note: prometheus eco-system tools such as Alert Manager can be used with FL2M to generate alerts and provide big-picture insights.
+> Note: prometheus eco-system tools such as Alert Manager can be used with FLP to generate alerts and provide big-picture insights.
 
 
 ![Data flow](docs/images/data_flow.drawio.png "Data flow")
 
 # Usage
 
-<!---AUTO-flowlogs2metrics_help--->
+<!---AUTO-flowlogs-pipeline_help--->
 ```bash
 Expose network flow-logs from metrics  
   
 Usage:  
-  flowlogs2metrics [flags]  
+  flowlogs-pipeline [flags]  
   
 Flags:  
-      --config string                          config file (default is $HOME/.flowlogs2metrics)  
+      --config string                          config file (default is $HOME/.flowlogs-pipeline)  
       --health.port string                     Health server port (default "8080")  
-  -h, --help                                   help for flowlogs2metrics  
+  -h, --help                                   help for flowlogs-pipeline  
       --log-level string                       Log level: debug, info, warning, error (default "error")  
       --pipeline.decode.aws string             aws fields  
       --pipeline.decode.type string            Decode type: aws, json, none  
@@ -51,52 +51,52 @@ Flags:
       --pipeline.write.loki string             Loki write API  
       --pipeline.write.type string             Write type: stdout, none
 ```
-<!---END-AUTO-flowlogs2metrics_help--->
+<!---END-AUTO-flowlogs-pipeline_help--->
 
 > Note: for API details refer to  [docs/api.md](docs/api.md).
 > 
 ## Configuration generation
 
-flowlogs2metrics network metrics configuration ( `--config` flag) can be generated automatically using 
+flowlogs-pipeline network metrics configuration ( `--config` flag) can be generated automatically using 
 the `confGenerator` utility. `confGenerator` aggregates information from multiple user provided network *metric 
-definitions* into flowlogs2metrics configuration. More details on `confGenerator` can be found 
+definitions* into flowlogs-pipeline configuration. More details on `confGenerator` can be found 
 in [docs/confGenrator.md](docs/confGenerator.md).
  
-To generate flowlogs2metrics configuration execute:  
+To generate flowlogs-pipeline configuration execute:  
 ```shell
 make generate-configuration
 make dashboards
 ```
 
 ## Deploy into OpenShift (OCP)
-To deploy FL2M on OCP perform the following steps:
+To deploy FLP on OCP perform the following steps:
 1. Deploy OCP and make sure `kubectl` works with the cluster
 ```shell
 kubectl get namespace openshift
 ```
-2. Deploy FL2M (into `default` namespace)
+2. Deploy FLP (into `default` namespace)
 ```shell
 kubectl config set-context --current --namespace=default
 make deploy
 ```
-3. Enable export OCP flowlogs into FL2M
+3. Enable export OCP flowlogs into FLP
 ```shell
-flowlogs2metrics_svc_ip=$(kubectl get svc flowlogs2metrics -o jsonpath='{.spec.clusterIP}')
-./hack/enable-ocp-flow-export.sh $flowlogs2metrics_svc_ip
+flowlogs-pipeline_svc_ip=$(kubectl get svc flowlogs-pipeline -o jsonpath='{.spec.clusterIP}')
+./hack/enable-ocp-flow-export.sh $flowlogs-pipeline_svc_ip
 ```
 4. Verify flowlogs are captured
 ```shell
-kubectl logs -l app=flowlogs2metrics -f
+kubectl logs -l app=flowlogs-pipeline -f
 ```
 
 ## Deploy with Kind and netflow-simulator (for development and exploration)
-These instructions apply for deploying FL2M development and exploration environment with [kind](https://kind.sigs.k8s.io/) and [netflow-simulator](https://hub.docker.com/r/networkstatic/nflow-generator),
+These instructions apply for deploying FLP development and exploration environment with [kind](https://kind.sigs.k8s.io/) and [netflow-simulator](https://hub.docker.com/r/networkstatic/nflow-generator),
 tested on Ubuntu 20.4 and Fedora 34.
 1. Make sure the following commands are installed and can be run from the current shell:
    - make
    - go (version 1.17)
    - docker
-1. To deploy the full simulated environment which includes a kind cluster with FL2M, Prometheus, Grafana, and
+1. To deploy the full simulated environment which includes a kind cluster with FLP, Prometheus, Grafana, and
    netflow-simulator, run (note that depending on your user permissions, you may have to run this command under sudo):
     ```shell
     make local-deploy
@@ -104,13 +104,13 @@ tested on Ubuntu 20.4 and Fedora 34.
    If the command is successful, the metrics will get generated and can be observed by running (note that depending
    on your user permissions, you may have to run this command under sudo):
     ```shell
-    kubectl logs -l app=flowlogs2metrics -f
+    kubectl logs -l app=flowlogs-pipeline -f
     ```
     The metrics you see upon deployment are default and can be modified through configuration described [later](#Configuration).
 
 # Technology
 
-FL2M is a framework. The main FL2M object is the **pipeline**. FL2M **pipeline** can be configured (see
+FLP is a framework. The main FLP object is the **pipeline**. FLP **pipeline** can be configured (see
 [Configuration section](#Configuration)) to extract the flow-log records from a source in a standard format such as NetFLow or IPFIX, apply custom processing, and output the result as metrics (e.g., in Prometheus format).
 
 # Architecture
@@ -129,13 +129,13 @@ It is expected that the **ingest** module will receive flows every so often, and
 
 # Configuration
 
-It is possible to configure flowlogs2metrics using command-line-parameters, configuration file, environment variables, or any combination of those options.
+It is possible to configure flowlogs-pipeline using command-line-parameters, configuration file, environment variables, or any combination of those options.
 
 For example:
 1. Using command line parameters:
-```./flowlogs2metrics --pipeline.ingest.type file --pipeline.ingest.file.filename hack/examples/ocp-ipfix-flowlogs.json```
+```./flowlogs-pipeline --pipeline.ingest.type file --pipeline.ingest.file.filename hack/examples/ocp-ipfix-flowlogs.json```
 2. Using configuration file:
-- create under $HOME/.flowlogs2metrics.yaml the file:
+- create under $HOME/.flowlogs-pipeline.yaml the file:
 ```yaml
 pipeline:
   ingest:
@@ -143,14 +143,14 @@ pipeline:
     file:
       filename: hack/examples/ocp-ipfix-flowlogs.json
 ```
-- execute `./flowlogs2metrics`
+- execute `./flowlogs-pipeline`
 3. using environment variables:
 - set environment variables
 ```bash
-export FLOWLOGS2METRICS_PIPELINE_INGEST_TYPE=file
-export FLOWLOGS2METRICS_PIPELINE_INGEST_FILE_FILENAME=hack/examples/ocp-ipfix-flowlogs.json
+export FLOWLOGS-PIPELINE_PIPELINE_INGEST_TYPE=file
+export FLOWLOGS-PIPELINE_PIPELINE_INGEST_FILE_FILENAME=hack/examples/ocp-ipfix-flowlogs.json
 ```
-- execute `./flowlogs2metrics`
+- execute `./flowlogs-pipeline`
 
 # Syntax of portions of the configuration file
 
@@ -159,7 +159,7 @@ export FLOWLOGS2METRICS_PIPELINE_INGEST_FILE_FILENAME=hack/examples/ocp-ipfix-fl
 Supported options and stage types are provided by running:
 
 ```
-flowlogs2metrics --help
+flowlogs-pipeline --help
 ```
 
 ### Transform
@@ -418,7 +418,7 @@ The loki writer persist flow-logs into [Loki](https://github.com/grafana/loki). 
 tenant ID and with a set static labels and dynamic labels from the record fields. 
 For example, sending flow-logs into tenant `theTenant` with labels 
 from `foo` and `bar` fields 
-and including static label with key `job` with value `flowlogs2metrics`. 
+and including static label with key `job` with value `flowlogs-pipeline`. 
 Additional parameters such as `url` and `batchWait` are defined in 
 Loki writer API [docs/api.md](docs/api.md)
 
@@ -431,27 +431,27 @@ pipeline:
       loki:
         url: http://loki.default.svc.cluster.local:3100
       staticLabels:
-        job: flowlogs2metrics
+        job: flowlogs-pipeline
       batchWait: 1m
       labels:
         - foo
         - bar
   ```
 
-> Note: to view loki flow-logs in `grafana`:: Use the `Explore` tab and choose the `loki` datasource. In the `Log Browser` enter `{job="flowlogs2metrics"}` and press `Run query` 
+> Note: to view loki flow-logs in `grafana`:: Use the `Explore` tab and choose the `loki` datasource. In the `Log Browser` enter `{job="flowlogs-pipeline"}` and press `Run query` 
 
 # Development
 
 ## Build
 
 - Clone this repository from github into a local machine (Linux/X86):
-  `git clone git@github.com:netobserv/flowlogs2metrics.git`
-- Change directory into flowlogs2metrics into:
-  `cd flowlogs2metrics`
+  `git clone git@github.com:netobserv/flowlogs-pipeline.git`
+- Change directory into flowlogs-pipeline into:
+  `cd flowlogs-pipeline`
 - Build the code:
   `make build`
 
-FL2M uses `Makefile` to build, tests and deploy. Following is the output of `make help` :
+FLP uses `Makefile` to build, tests and deploy. Following is the output of `make help` :
 
 <!---AUTO-makefile_help--->
 ```bash
@@ -464,9 +464,9 @@ General
   
 Develop  
   lint                  Lint the code  
-  build                 Build flowlogs2metrics executable and update the docs  
+  build                 Build flowlogs-pipeline executable and update the docs  
   dashboards            Build grafana dashboards  
-  docs                  Update flowlogs2metrics documentation  
+  docs                  Update flowlogs-pipeline documentation  
   clean                 Clean  
   test                  Test  
   benchmarks            Benchmark  

@@ -21,10 +21,10 @@ import (
 	"encoding/json"
 	"fmt"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
-	"github.com/netobserv/flowlogs2metrics/pkg/health"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/health"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -39,13 +39,13 @@ var (
 	Version            string
 	cfgFile            string
 	logLevel           string
-	envPrefix          = "FLOWLOGS2METRICS"
-	defaultLogFileName = ".flowlogs2metrics"
+	envPrefix          = "FLOWLOGS-PIPILNE"
+	defaultLogFileName = ".flowlogs-pipeline"
 )
 
 // rootCmd represents the root command
 var rootCmd = &cobra.Command{
-	Use:   "flowlogs2metrics",
+	Use:   "flowlogs-pipeline",
 	Short: "Expose network flow-logs from metrics",
 	Run: func(cmd *cobra.Command, args []string) {
 		run()
@@ -65,7 +65,7 @@ func initConfig() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		// Search config in home directory with name ".flowlogs2metrics" (without extension).
+		// Search config in home directory with name ".flowlogs-pipeline" (without extension).
 		v.AddConfigPath(home)
 		v.SetConfigName(defaultLogFileName)
 	}

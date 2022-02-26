@@ -13,14 +13,14 @@ export CGO_ENABLED=1
 
 SHELL := /bin/bash
 DOCKER_TAG ?= latest
-DOCKER_IMG ?= quay.io/netobserv/flowlogs2metrics
+DOCKER_IMG ?= quay.io/netobserv/flowlogs-pipeline
 OCI_RUNTIME ?= $(shell which podman  || which docker)
 MIN_GO_VERSION := 1.17.0
-FL2M_BIN_FILE=flowlogs2metrics
+FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
 NETFLOW_GENERATOR=nflow-generator
 CMD_DIR=./cmd/
-FL2M_CONF_FILE ?= contrib/kubernetes/flowlogs2metrics.conf.yaml
+FLP_CONF_FILE ?= contrib/kubernetes/flowlogs-pipeline.conf.yaml
 
 .DEFAULT_GOAL := help
 
@@ -59,10 +59,10 @@ lint: $(GOLANGCI_LINT) ## Lint the code
 .PHONY: build_code
 build_code: validate_go lint
 	@go mod vendor
-	VERSION=$$(date); go build -ldflags "-X 'main.Version=$$VERSION'" "${CMD_DIR}${FL2M_BIN_FILE}"
+	VERSION=$$(date); go build -ldflags "-X 'main.Version=$$VERSION'" "${CMD_DIR}${FLP_BIN_FILE}"
 
 .PHONY: build
-build: build_code docs ## Build flowlogs2metrics executable and update the docs
+build: build_code docs ## Build flowlogs-pipeline executable and update the docs
 
 # Note: To change dashboards, change `dashboards.jsonnet`. Do not change manually `dashboards.json`
 .PHONY: dashboards
@@ -70,12 +70,12 @@ dashboards: $(JB) $(JSONNET) ## Build grafana dashboards
 	./hack/generate-dashboards.sh
 
 .PHONY: docs
-docs: FORCE ## Update flowlogs2metrics documentation
+docs: FORCE ## Update flowlogs-pipeline documentation
 	@./hack/update-docs.sh
 	@go run cmd/apitodoc/main.go > docs/api.md
 .PHONY: clean
 clean: ## Clean
-	rm -f "${FL2M_BIN_FILE}"
+	rm -f "${FLP_BIN_FILE}"
 	go clean ./...
 
 # note: to review coverage execute: go tool cover -html=/tmp/coverage.out
@@ -83,18 +83,18 @@ clean: ## Clean
 test: validate_go ## Test
 	go test -p 1 -race -covermode=atomic -coverprofile=/tmp/coverage.out ./...
 
-# note: to review profile execute: go tool pprof -web /tmp/flowlogs2metrics-cpu-profile.out (make sure graphviz is installed)
+# note: to review profile execute: go tool pprof -web /tmp/flowlogs-pipeline-cpu-profile.out (make sure graphviz is installed)
 .PHONY: benchmarks
 benchmarks: $(BENCHSTAT) validate_go ## Benchmark
-	go test -bench=. ./cmd/flowlogs2metrics -o=/tmp/flowlogs2metrics.test \
-	-cpuprofile /tmp/flowlogs2metrics-cpu-profile.out \
+	go test -bench=. ./cmd/flowlogs-pipeline -o=/tmp/flowlogs-pipeline.test \
+	-cpuprofile /tmp/flowlogs-pipeline-cpu-profile.out \
 	-run=^# -count=10 -parallel=1 -cpu=1 -benchtime=100x \
-	 | tee /tmp/flowlogs2metrics-benchmark.txt
-	 $(BENCHSTAT) /tmp/flowlogs2metrics-benchmark.txt
+	 | tee /tmp/flowlogs-pipeline-benchmark.txt
+	 $(BENCHSTAT) /tmp/flowlogs-pipeline-benchmark.txt
 
 .PHONY: run
 run: build ## Run
-	./"${FL2M_BIN_FILE}"
+	./"${FLP_BIN_FILE}"
 
 ##@ Docker
 
@@ -114,14 +114,14 @@ push-image: build-image ## Push latest image
 .PHONY: deploy
 deploy: ## Deploy the image
 	sed 's|%DOCKER_IMG%|$(DOCKER_IMG)|g;s|%DOCKER_TAG%|$(DOCKER_TAG)|g' contrib/kubernetes/deployment.yaml > /tmp/deployment.yaml
-	kubectl create configmap flowlogs2metrics-configuration --from-file=flowlogs2metrics.conf.yaml=$(FL2M_CONF_FILE)
+	kubectl create configmap flowlogs-pipeline-configuration --from-file=flowlogs-pipeline.conf.yaml=$(FLP_CONF_FILE)
 	kubectl apply -f /tmp/deployment.yaml
-	kubectl rollout status "deploy/flowlogs2metrics" --timeout=600s
+	kubectl rollout status "deploy/flowlogs-pipeline" --timeout=600s
 
 .PHONY: undeploy
 undeploy: ## Undeploy the image
 	sed 's|%DOCKER_IMG%|$(DOCKER_IMG)|g;s|%DOCKER_TAG%|$(DOCKER_TAG)|g' contrib/kubernetes/deployment.yaml > /tmp/deployment.yaml
-	kubectl --ignore-not-found=true  delete configmap flowlogs2metrics-configuration || true
+	kubectl --ignore-not-found=true  delete configmap flowlogs-pipeline-configuration || true
 	kubectl --ignore-not-found=true delete -f /tmp/deployment.yaml || true
 
 .PHONY: deploy-loki
@@ -193,7 +193,7 @@ delete-kind-cluster: $(KIND) ## Delete cluster
 generate-configuration: $(KIND) ## Generate metrics configuration
 	go build "${CMD_DIR}${CG_BIN_FILE}"
 	./${CG_BIN_FILE} --log-level debug --srcFolder network_definitions \
-					--destConfFile $(FL2M_CONF_FILE) \
+					--destConfFile $(FLP_CONF_FILE) \
 					--destDocFile docs/metrics.md \
 					--destGrafanaJsonnetFolder contrib/dashboards/jsonnet/
 
@@ -202,8 +202,8 @@ generate-configuration: $(KIND) ## Generate metrics configuration
 .PHONY: local-deployments-deploy
 local-deployments-deploy: $(KIND) deploy-prometheus deploy-loki deploy-grafana deploy deploy-netflow-simulator
 	kubectl get pods
-	kubectl rollout status -w deployment/flowlogs2metrics
-	kubectl logs -l app=flowlogs2metrics
+	kubectl rollout status -w deployment/flowlogs-pipeline
+	kubectl logs -l app=flowlogs-pipeline
 
 .PHONY: local-deploy
 local-deploy: $(KIND) local-cleanup create-kind-cluster local-deployments-deploy ## Deploy locally on kind (with simulated flowlogs)
@@ -219,11 +219,11 @@ local-redeploy:  local-deployments-cleanup local-deployments-deploy ## Redeploy 
 
 .PHONY: ocp-deploy
 ocp-deploy: ocp-cleanup deploy-prometheus deploy-loki deploy-grafana deploy ## Deploy to OCP
-	flowlogs2metrics_svc_ip=$$(kubectl get svc flowlogs2metrics -o jsonpath='{.spec.clusterIP}'); \
-	./hack/enable-ocp-flow-export.sh $$flowlogs2metrics_svc_ip
+	flowlogs_pipeline_svc_ip=$$(kubectl get svc flowlogs-pipeline -o jsonpath='{.spec.clusterIP}'); \
+	./hack/enable-ocp-flow-export.sh $$flowlogs_pipeline_svc_ip
 	kubectl get pods
-	kubectl rollout status -w deployment/flowlogs2metrics
-	kubectl logs -l app=flowlogs2metrics
+	kubectl rollout status -w deployment/flowlogs-pipeline
+	kubectl logs -l app=flowlogs-pipeline
 	oc expose service prometheus || true
 	@prometheus_url=$$(oc get route prometheus -o jsonpath='{.spec.host}'); \
 	echo -e "\nAccess prometheus on OCP using: http://"$$prometheus_url"\n"
@@ -239,15 +239,15 @@ ocp-cleanup: undeploy undeploy-loki undeploy-prometheus undeploy-grafana ## Unde
 
 .PHONY: dev-local-deploy
 dev-local-deploy: ## Deploy locally with simulated netflows
-	-pkill --oldest --full "${FL2M_BIN_FILE}"
+	-pkill --oldest --full "${FLP_BIN_FILE}"
 	-pkill --oldest --full "${NETFLOW_GENERATOR}"
 	@go mod vendor
-	go build "${CMD_DIR}${FL2M_BIN_FILE}"
+	go build "${CMD_DIR}${FLP_BIN_FILE}"
 	go build "${CMD_DIR}${CG_BIN_FILE}"
 	./${CG_BIN_FILE} --log-level debug --srcFolder network_definitions \
 	--skipWithLabels "kubernetes" \
-	--destConfFile /tmp/flowlogs2metrics.conf.yaml --destGrafanaJsonnetFolder /tmp/
+	--destConfFile /tmp/flowlogs-pipeline.conf.yaml --destGrafanaJsonnetFolder /tmp/
 	test -f /tmp/${NETFLOW_GENERATOR} || curl -L --output /tmp/${NETFLOW_GENERATOR}  https://github.com/nerdalert/nflow-generator/blob/master/binaries/nflow-generator-x86_64-linux?raw=true
 	chmod +x /tmp/${NETFLOW_GENERATOR}
-	./"${FL2M_BIN_FILE}" --config /tmp/flowlogs2metrics.conf.yaml &
+	./"${FLP_BIN_FILE}" --config /tmp/flowlogs-pipeline.conf.yaml &
 	/tmp/${NETFLOW_GENERATOR} -t 127.0.0.1 -p 2056 > /dev/null 2>&1 &

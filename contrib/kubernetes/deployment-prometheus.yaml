@@ -82,6 +82,6 @@ data:
     rule_files:
       - /etc/prometheus/prometheus.rules
     scrape_configs:
-      - job_name: 'flowlogs2metrics'
+      - job_name: 'flowlogs-pipeline'
         static_configs:
-          - targets: ['flowlogs2metrics-metrics.default.svc.cluster.local:9102']
+          - targets: ['flowlogs-pipeline-metrics.default.svc.cluster.local:9102']

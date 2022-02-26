@@ -10,23 +10,23 @@ pipeline:
     - type: generic
       generic:
         - input: Bytes
-          output: fl2m_bytes
+          output: flp_bytes
         - input: DstAddr
-          output: fl2m_dstAddr
+          output: flp_dstAddr
         - input: DstHostIP
-          output: fl2m_dstHostIP
+          output: flp_dstHostIP
         - input: DstPort
-          output: fl2m_dstPort
+          output: flp_dstPort
         - input: Packets
-          output: fl2m_packets
+          output: flp_packets
         - input: SrcAddr
-          output: fl2m_srcAddr
+          output: flp_srcAddr
         - input: SrcHostIP
-          output: fl2m_srcHostIP
+          output: flp_srcHostIP
         - input: SrcPort
-          output: fl2m_srcPort
+          output: flp_srcPort
         - input: TimeReceived
-          output: fl2m_timestamp
+          output: flp_timestamp
   extract:
     type: none
   encode:

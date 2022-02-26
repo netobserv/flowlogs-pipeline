@@ -19,8 +19,8 @@ package health
 
 import (
 	"github.com/heptiolabs/healthcheck"
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
 	log "github.com/sirupsen/logrus"
 	"net"
 	"net/http"

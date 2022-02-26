@@ -18,8 +18,8 @@
 package transform
 
 import (
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 

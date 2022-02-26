@@ -1,4 +1,4 @@
-#fl2m_confgen
+#flp_confgen
 description:
   This metric counts the number of distinct source / destination subnet pairs
 details:
@@ -40,7 +40,7 @@ encode:
 visualization:
   type: grafana
   grafana:
-    - expr: 'topk(10,rate(fl2m_count_per_source_destination_subnet[1m]))'
+    - expr: 'topk(10,rate(flp_count_per_source_destination_subnet[1m]))'
       type: graphPanel
       dashboard: details
       title:

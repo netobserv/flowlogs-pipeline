@@ -1,4 +1,4 @@
-#fl2m_confgen
+#flp_confgen
 description:
   This metric counts mice and elephant flows
 details:
@@ -49,12 +49,12 @@ encode:
 visualization:
   type: grafana
   grafana:
-    - expr: 'rate(fl2m_mice_count{}[1m])'
+    - expr: 'rate(flp_mice_count{}[1m])'
       type: graphPanel
       dashboard: details
       title:
         Mice flows count
-    - expr: 'rate(fl2m_elephant_count{}[1m])'
+    - expr: 'rate(flp_elephant_count{}[1m])'
       type: graphPanel
       dashboard: details
       title:

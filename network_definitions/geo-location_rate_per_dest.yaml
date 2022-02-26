@@ -1,4 +1,4 @@
-#fl2m_confgen
+#flp_confgen
 description:
   This metric observes connections geo-location rate per destination IP
 details:
@@ -35,7 +35,7 @@ encode:
 visualization:
   type: grafana
   grafana:
-    - expr: 'topk(10,rate(fl2m_connections_per_destination_location[1m]))'
+    - expr: 'topk(10,rate(flp_connections_per_destination_location[1m]))'
       type: graphPanel
       dashboard: details
       title:

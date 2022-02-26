@@ -1,4 +1,4 @@
-# This file was generated automatically by flowlogs2metrics confgenerator
+# This file was generated automatically by flowlogs-pipeline confgenerator
 log-level: error
 pipeline:
   decode:
@@ -112,7 +112,7 @@ pipeline:
         - aggregate
         buckets: []
       port: 9102
-      prefix: fl2m_
+      prefix: flp_
     type: prom
   extract:
     aggregates:
@@ -269,6 +269,6 @@ pipeline:
     loki:
       url: http://loki.default.svc.cluster.local:3100
       staticLabels:
-        job: flowlogs2metrics
+        job: flowlogs-pipeline
     type: loki
 

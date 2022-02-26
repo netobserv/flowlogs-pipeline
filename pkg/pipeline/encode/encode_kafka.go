@@ -19,8 +19,8 @@ package encode
 
 import (
 	"encoding/json"
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"

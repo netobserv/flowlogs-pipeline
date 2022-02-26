@@ -3,7 +3,7 @@
 confGenerator is a utility to generate from `metric definitions` provided by users 
 as a set of files, folders and sub-folders the following:
 
-1. flowlogs2metrics configuration files
+1. flowlogs-pipeline configuration files
 1. Visualization configuration (Grafana)
 1. Metrics documentation 
 
@@ -21,7 +21,7 @@ Usage:
 
 Flags:
       --config string                     config file (default is $HOME/.confgen)
-      --destConfFile string               destination configuration file (default "flowlogs2metrics.conf.yaml")
+      --destConfFile string               destination configuration file (default "flowlogs-pipeline.conf.yaml")
       --destGrafanaJsonnetFolder string   destination grafana jsonnet folder
   -h, --help                              help for confgenerator
       --log-level string                  Log level: debug, info, warning, error (default "error")
@@ -30,17 +30,17 @@ Flags:
 
 ```
 
-> Note: The default location for network definitions in flowlogs2metrics is `/network_definitions` folder
+> Note: The default location for network definitions in flowlogs-pipeline is `/network_definitions` folder
 
 The files and folder structure required as input for `confGenerator` are:
 
 1. `config.yaml` - singleton file holding general information for configuration generation   
 1. `metric definition` files - each file represent one or more metrics including the documentation,
-flowlogs2metrics pipeline steps and visualization configuration
+flowlogs-pipeline pipeline steps and visualization configuration
 
 > Note: It is possible to place `metric definition` files in any sub-folder structure 
 
-> Note: It is possible to activate `ConfGenrator` with the default flowlogs2metrics configuration using the command `make generate-configuration`. 
+> Note: It is possible to activate `ConfGenrator` with the default flowlogs-pipeline configuration using the command `make generate-configuration`. 
 > This command compiles the code and generates default outputs.
 
 ## How to write a network definitions
@@ -61,7 +61,7 @@ For `Kind` deployment execute
 ```bash
 make local-redeploy
 ```
-> Note: Additional information on usage and deployment can be found in flowlogs2metrics README  
+> Note: Additional information on usage and deployment can be found in flowlogs-pipeline README  
 
 > Note: learning from examples and existing metric definitions is very-useful
 
@@ -71,7 +71,7 @@ In this section we explain how network definition are structured.  This is usefu
 new network definitions as well as debugging and working with existing network definition.
 
 ```shell
-#fl2m_confgen (1) 
+#flp_confgen (1) 
 description: (2)
   Network definition description  
 details: (3)
@@ -108,14 +108,14 @@ encode: (9)
 visualization: (10)
   type: grafana
   grafana: 
-    - expr: 'fl2m_metricName' (10.1)
+    - expr: 'flp_metricName' (10.1)
       type: graphPanel (10.2)
       dashboard: dashboardName (10.3)
       title:
         grafanaPanelTitle (10.4)
 ```
 
-(1) A fixed header `#fl2m_confgen` that must exist in every network definition file  
+(1) A fixed header `#flp_confgen` that must exist in every network definition file  
 (2) (3) (4) description, details and usage of the definition file - used for docs  
 (5) labels - used by visualization and docs    
 

@@ -1,6 +1,6 @@
-# Contributing to flowlogs2metrics
+# Contributing to flowlogs-pipeline
 
-:fire: A big welcome and thank you for considering contributing to flowlogs2metrics open source project! :fire:  
+:fire: A big welcome and thank you for considering contributing to flowlogs-pipeline open source project! :fire:  
 
 We want to make contributing to this project as easy and transparent as possible. 
 Please read the following notes to learn how the contribute process works.

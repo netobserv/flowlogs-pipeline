@@ -20,7 +20,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"io"
 	"reflect"
 	"strings"

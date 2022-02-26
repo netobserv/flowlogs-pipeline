@@ -19,8 +19,8 @@ package ingest
 
 import (
 	jsoniter "github.com/json-iterator/go"
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
-	"github.com/netobserv/flowlogs2metrics/pkg/test"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	kafkago "github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

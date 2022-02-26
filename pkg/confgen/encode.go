@@ -20,7 +20,7 @@ package confgen
 import (
 	"encoding/json"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
 

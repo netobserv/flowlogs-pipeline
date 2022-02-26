@@ -55,7 +55,7 @@
             "type": "loki",
             "uid": "P982945308D3682D1"
           },
-          "expr": "{job=\"flowlogs2metrics\"}",
+          "expr": "{job=\"flowlogs-pipeline\"}",
           "instant": false,
           "range": true,
           "refId": "A"
@@ -69,7 +69,7 @@
   "schemaVersion": 34,
   "style": "dark",
   "tags": [
-    "fl2m",
+    "flp",
     "loki",
     "dashboard"
   ],

@@ -74,7 +74,7 @@ func (cg *ConfGen) generateFlowlogs2MetricsConfig(fileName string) error {
 	if err != nil {
 		return err
 	}
-	header := "# This file was generated automatically by flowlogs2metrics confgenerator"
+	header := "# This file was generated automatically by flowlogs-pipeline confgenerator"
 	data := fmt.Sprintf("%s\n%s\n", header, configData)
 	err = ioutil.WriteFile(fileName, []byte(data), 0664)
 	if err != nil {

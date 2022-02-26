@@ -20,7 +20,7 @@ package aggregate
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"reflect"
 )

@@ -19,8 +19,8 @@ package confgen
 
 import (
 	"fmt"
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
-	"github.com/netobserv/flowlogs2metrics/pkg/pipeline/extract/aggregate"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -30,7 +30,7 @@ import (
 
 var (
 	definitionExt    = ".yaml"
-	definitionHeader = "#fl2m_confgen"
+	definitionHeader = "#flp_confgen"
 	configFileName   = "config.yaml"
 )
 

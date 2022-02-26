@@ -1,4 +1,4 @@
-#fl2m_confgen
+#flp_confgen
 description:
   This metric observes the network bandwidth per namespace
 details:
@@ -36,7 +36,7 @@ encode:
 visualization:
   type: grafana
   grafana:
-    - expr: 'topk(10,rate(fl2m_egress_per_namespace{aggregate=~".*pod.*"}[1m]))'
+    - expr: 'topk(10,rate(flp_egress_per_namespace{aggregate=~".*Pod.*"}[1m]))'
       type: graphPanel
       dashboard: details
       title:

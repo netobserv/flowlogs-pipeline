@@ -47,7 +47,7 @@ const (
 	DBFileLocation    = "/tmp/location_db.bin"
 	DBZIPFileLocation = "/tmp/location_db.bin" + ".zip"
 	// REF: Original location from ip2location DB is: "https://www.ip2location.com/download/?token=OpOljbgT6K2WJnFrFBBmBzRVNpHlcYqNN4CMeGavvh0pPOpyu16gKQyqvDMxTDF4&file=DB9LITEBIN"
-	DbUrl = "https://raw.githubusercontent.com/netobserv/flowlogs2metrics/main/contrib/location/location.db"
+	DbUrl = "https://raw.githubusercontent.com/netobserv/flowlogs-pipeline/main/contrib/location/location.db"
 )
 
 var locationDB *ip2location.DB
@@ -73,7 +73,6 @@ func init() {
 	_dbURL = DbUrl
 	locationDBMutex = &sync.Mutex{}
 }
-
 
 func InitLocationDB() error {
 	locationDBMutex.Lock()
