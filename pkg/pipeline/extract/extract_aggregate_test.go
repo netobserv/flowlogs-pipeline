@@ -34,6 +34,11 @@ aggregates:
   - service
   operation: sum
   recordkey: bytes
+- name: bandwidth_count
+  by:
+  - service
+  operation: count
+  recordkey: ""
 `
 	var err error
 	yamlData := make(map[string]interface{})
@@ -78,6 +83,30 @@ aggregates:
 			"recentRawValues": []float64{1.0, 2.0},
 			"count":           "2",
 		},
+		{
+			"name":                  "bandwidth_count",
+			"record_key":            "",
+			"by":                    "service",
+			"aggregate":             "http",
+			"service":               "http",
+			"operation":             aggregate.Operation(aggregate.OperationCount),
+			"value":                 "2.000000",
+			"bandwidth_count_value": "2.000000",
+			"recentRawValues":       []float64{1.0, 1.0},
+			"count":                 "2",
+		},
+		{
+			"name":                  "bandwidth_count",
+			"record_key":            "",
+			"by":                    "service",
+			"aggregate":             "tcp",
+			"service":               "tcp",
+			"operation":             aggregate.Operation(aggregate.OperationCount),
+			"value":                 "2.000000",
+			"bandwidth_count_value": "2.000000",
+			"recentRawValues":       []float64{1.0, 1.0},
+			"count":                 "2",
+		},
 	}
 	actualAggs1 := extractAggregate.Extract(input1)
 	require.Equal(t, expectedAggs1, actualAggs1)
@@ -111,6 +140,30 @@ aggregates:
 			"bandwidth_value": "12.000000",
 			"recentRawValues": []float64{4.0, 5.0},
 			"count":           "4",
+		},
+		{
+			"name":                  "bandwidth_count",
+			"record_key":            "",
+			"by":                    "service",
+			"aggregate":             "http",
+			"service":               "http",
+			"operation":             aggregate.Operation(aggregate.OperationCount),
+			"value":                 "3.000000",
+			"bandwidth_count_value": "3.000000",
+			"recentRawValues":       []float64{1.0},
+			"count":                 "3",
+		},
+		{
+			"name":                  "bandwidth_count",
+			"record_key":            "",
+			"by":                    "service",
+			"aggregate":             "tcp",
+			"service":               "tcp",
+			"operation":             aggregate.Operation(aggregate.OperationCount),
+			"value":                 "4.000000",
+			"bandwidth_count_value": "4.000000",
+			"recentRawValues":       []float64{1.0, 1.0},
+			"count":                 "4",
 		},
 	}
 	actualAggs2 := extractAggregate.Extract(input2)
