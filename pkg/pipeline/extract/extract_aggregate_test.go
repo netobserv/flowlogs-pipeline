@@ -109,7 +109,7 @@ aggregates:
 		},
 	}
 	actualAggs1 := extractAggregate.Extract(input1)
-	require.Equal(t, expectedAggs1, actualAggs1)
+	require.ElementsMatch(t, expectedAggs1, actualAggs1)
 
 	input2 := []config.GenericMap{
 		{"service": "http", "bytes": 30.0},
@@ -167,6 +167,6 @@ aggregates:
 		},
 	}
 	actualAggs2 := extractAggregate.Extract(input2)
-	require.Equal(t, expectedAggs2, actualAggs2)
+	require.ElementsMatch(t, expectedAggs2, actualAggs2)
 
 }
