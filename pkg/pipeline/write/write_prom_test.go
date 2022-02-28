@@ -15,24 +15,27 @@
  *
  */
 
-package encode
+package write
 
 import (
 	"container/list"
+	"github.com/netobserv/flowlogs2metrics/pkg/testutils"
+	"github.com/prometheus/client_golang/prometheus"
+	"testing"
+	"time"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/test"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 const testConfig = `---
 log-level: debug
 pipeline:
-  encode:
+  write:
     type: prom
     prom:
       port: 9103
@@ -59,28 +62,28 @@ pipeline:
           labels:
 `
 
-func initNewEncodeProm(t *testing.T) Encoder {
+func initNewPromWriter(t *testing.T) Writer {
 	v := test.InitConfig(t, testConfig)
-	val := v.Get("pipeline.encode.prom")
+	val := v.Get("pipeline.write.prom")
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	b, err := json.Marshal(&val)
 	require.Equal(t, err, nil)
 
 	config.Opt.PipeLine.Encode.Prom = string(b)
-	newEncode, err := NewEncodeProm()
+	newEncode, err := NewPrometheus()
 	require.Equal(t, err, nil)
 	return newEncode
 }
 
 func Test_NewEncodeProm(t *testing.T) {
-	newEncode := initNewEncodeProm(t)
-	encodeProm := newEncode.(*encodeProm)
-	require.Equal(t, ":9103", encodeProm.port)
-	require.Equal(t, "test_", encodeProm.prefix)
-	require.Equal(t, 3, len(encodeProm.metrics))
-	require.Equal(t, int64(1), encodeProm.expiryTime)
+	newWrite := initNewPromWriter(t)
+	promWriter := newWrite.(*Prometheus)
+	require.Equal(t, ":9103", promWriter.port)
+	require.Equal(t, "test_", promWriter.prefix)
+	require.Equal(t, 3, len(promWriter.metrics))
+	require.Equal(t, int64(1), promWriter.expiryTime)
 
-	metrics := encodeProm.metrics
+	metrics := promWriter.metrics
 	assert.Contains(t, metrics, "Bytes")
 	gInfo := metrics["Bytes"]
 	require.Equal(t, gInfo.input, "bytes")
@@ -94,7 +97,7 @@ func Test_NewEncodeProm(t *testing.T) {
 	require.Equal(t, cInfo.labelNames, expectedList)
 	entry := test.GetExtractMockEntry()
 	input := []config.GenericMap{entry}
-	output := encodeProm.Encode(input)
+	promWriter.Write(input)
 
 	entryLabels1 := make(map[string]string, 3)
 	entryLabels2 := make(map[string]string, 3)
@@ -118,30 +121,35 @@ func Test_NewEncodeProm(t *testing.T) {
 		},
 		value: float64(34),
 	}
-	require.Contains(t, output, gEntryInfo1)
-	require.Contains(t, output, gEntryInfo2)
+
+	testutils.Eventually(t, 5*time.Second, func(t require.TestingT) {
+		promWriter.mu.Lock()
+		defer promWriter.mu.Unlock()
+		require.Contains(t, promWriter.mCache, generateCacheKey(&gEntryInfo1.eInfo))
+		require.Contains(t, promWriter.mCache, generateCacheKey(&gEntryInfo2.eInfo))
+	})
 	gaugeA, err := gInfo.promGauge.GetMetricWith(entryLabels1)
 	require.Equal(t, nil, err)
 	bytesA := testutil.ToFloat64(gaugeA)
 	require.Equal(t, gEntryInfo1.value, bytesA)
 
 	// verify entries are in cache; one for the gauge and one for the counter
-	entriesMap := encodeProm.mCache
+	entriesMap := promWriter.mCache
 	require.Equal(t, 2, len(entriesMap))
 
 	eInfoBytes := generateCacheKey(&gEntryInfo1.eInfo)
-	encodeProm.mu.Lock()
-	_, found := encodeProm.mCache[string(eInfoBytes)]
-	encodeProm.mu.Unlock()
+	promWriter.mu.Lock()
+	_, found := promWriter.mCache[eInfoBytes]
+	promWriter.mu.Unlock()
 	require.Equal(t, true, found)
 
 	// wait a couple seconds so that the entry will expire
 	time.Sleep(2 * time.Second)
-	encodeProm.cleanupExpiredEntries()
-	entriesMap = encodeProm.mCache
-	encodeProm.mu.Lock()
+	promWriter.cleanupExpiredEntries()
+	entriesMap = promWriter.mCache
+	promWriter.mu.Lock()
 	require.Equal(t, 0, len(entriesMap))
-	encodeProm.mu.Unlock()
+	promWriter.mu.Unlock()
 }
 
 func Test_EncodeAggregate(t *testing.T) {
@@ -156,7 +164,7 @@ func Test_EncodeAggregate(t *testing.T) {
 		"count":                     "1",
 	}}
 
-	newEncode := &encodeProm{
+	promWriter := &Prometheus{
 		port:   ":0000",
 		prefix: "test_",
 		metrics: map[string]metricInfo{
@@ -166,10 +174,10 @@ func Test_EncodeAggregate(t *testing.T) {
 			},
 		},
 		mList:  list.New(),
-		mCache: make(metricCache),
+		mCache: map[string]*metricCacheEntry{},
 	}
 
-	output := newEncode.Encode(metrics)
+	promWriter.Write(metrics)
 
 	gEntryInfo1 := entryInfo{
 		eInfo: entrySignature{
@@ -182,6 +190,13 @@ func Test_EncodeAggregate(t *testing.T) {
 		value: float64(7),
 	}
 
-	expectedOutput := []interface{}{gEntryInfo1}
-	require.Equal(t, output, expectedOutput)
+	expectedLabels := prometheus.Labels{
+		"by":        "[dstIP srcIP]",
+		"aggregate": "20.0.0.2,10.0.0.1",
+	}
+	cacheKey := generateCacheKey(&gEntryInfo1.eInfo)
+	require.Contains(t, promWriter.mCache, cacheKey)
+	cachedEntry := promWriter.mCache[cacheKey]
+	assert.Equal(t, cacheKey, cachedEntry.key)
+	assert.Equal(t, expectedLabels, cachedEntry.labels)
 }

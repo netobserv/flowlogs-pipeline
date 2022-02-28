@@ -18,19 +18,16 @@
 package write
 
 import (
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_Write(t *testing.T) {
-	wn := WriteNone{}
+	wn, err := NewWriteNone()
+	require.NoError(t, err)
 	wn.Write([]config.GenericMap{{"key": "test"}})
-}
-
-func Test_NewWriteNone(t *testing.T) {
-	writer, err := NewWriteNone()
-	require.Nil(t, err)
-	require.Equal(t, writer, &WriteNone{})
-
+	assert.Equal(t, []config.GenericMap{{"key": "test"}}, wn.PrevRecords)
 }

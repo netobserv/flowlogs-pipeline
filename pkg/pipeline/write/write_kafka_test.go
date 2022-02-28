@@ -15,10 +15,12 @@
  *
  */
 
-package encode
+package write
 
 import (
 	"encoding/json"
+	"testing"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	"github.com/netobserv/flowlogs2metrics/pkg/test"
@@ -26,13 +28,12 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
-	"testing"
 )
 
 const testKafkaConfig = `---
 log-level: debug
 pipeline:
-  encode:
+  write:
     type: kafka
     kafka:
       address: 1.2.3.4:9092
@@ -41,6 +42,7 @@ pipeline:
 
 type fakeKafkaWriter struct {
 	mock.Mock
+	receivedData []interface{}
 }
 
 var receivedData []interface{}
@@ -50,33 +52,33 @@ func (f *fakeKafkaWriter) WriteMessages(ctx context.Context, msg ...kafkago.Mess
 	return nil
 }
 
-func initNewEncodeKafka(t *testing.T) Encoder {
+func initNewKafkaWriter(t *testing.T) Writer {
 	v := test.InitConfig(t, testKafkaConfig)
-	val := v.Get("pipeline.encode.kafka")
+	val := v.Get("pipeline.write.kafka")
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	b, err := json.Marshal(&val)
 	require.NoError(t, err)
 
 	config.Opt.PipeLine.Encode.Kafka = string(b)
-	newEncode, err := NewEncodeKafka()
+	kw, err := NewKafka()
 	require.NoError(t, err)
-	return newEncode
+	return kw
 }
 
 func Test_EncodeKafka(t *testing.T) {
-	newEncode := initNewEncodeKafka(t)
-	encodeKafka := newEncode.(*encodeKafka)
+	kw := initNewKafkaWriter(t)
+	encodeKafka := kw.(*Kafka)
 	require.Equal(t, "1.2.3.4:9092", encodeKafka.kafkaParams.Address)
 	require.Equal(t, "topic1", encodeKafka.kafkaParams.Topic)
 
-	fw := fakeKafkaWriter{}
+	fw := fakeKafkaWriter{receivedData: []interface{}{}}
 	encodeKafka.kafkaWriter = &fw
 
-	receivedData = make([]interface{}, 0)
 	entry1 := test.GetExtractMockEntry()
 	entry2 := test.GetIngestMockEntry(false)
 	in := []config.GenericMap{entry1, entry2}
-	newEncode.Encode(in)
+	kw.Write(in)
+
 	var expectedOutputString1 []byte
 	var expectedOutputString2 []byte
 	expectedOutputString1, _ = json.Marshal(entry1)
@@ -89,5 +91,5 @@ func Test_EncodeKafka(t *testing.T) {
 			Value: expectedOutputString2,
 		},
 	}
-	require.Equal(t, expectedOutput, receivedData[0])
+	require.Equal(t, expectedOutput, fw.receivedData[0])
 }

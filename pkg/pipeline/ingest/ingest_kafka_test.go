@@ -119,6 +119,7 @@ func Test_IngestKafka(t *testing.T) {
 	newIngest := initNewIngestKafka(t, testConfig1)
 	ingestKafka := newIngest.(*ingestKafka)
 	ingestOutput := make(chan []interface{})
+	defer close(ingestOutput)
 
 	// run Ingest in a separate thread
 	go func() {

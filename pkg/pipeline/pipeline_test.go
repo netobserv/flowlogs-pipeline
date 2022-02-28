@@ -19,6 +19,9 @@ package pipeline
 
 import (
 	"testing"
+	"time"
+
+	"github.com/mariomac/go-pipes/pkg/node"
 
 	"github.com/sirupsen/logrus"
 
@@ -33,16 +36,29 @@ import (
 )
 
 func Test_transformToLoki(t *testing.T) {
-	var transformed []config.GenericMap
-	input := config.GenericMap{"key": "value"}
-	transform, err := transform.NewTransformNone()
-	require.NoError(t, err)
-	transformed = append(transformed, transform.Transform(input))
-
 	config.Opt.PipeLine.Write.Loki = "{}"
-	loki, err := write.NewWriteLoki()
-	loki.Write(transformed)
+	input := []config.GenericMap{{"key": "value"}}
+	transNone, err := transform.NewTransformNone()
 	require.NoError(t, err)
+	loki, err := write.NewWriteLoki()
+	require.NoError(t, err)
+
+	start := node.AsInit(func(out chan<- []config.GenericMap) {
+		out <- input
+	})
+	nodeTrans := node.AsMiddle(transformLoop([]transform.Transformer{transNone}))
+	nodeLoki := node.AsTerminal(loki.Write)
+	start.SendsTo(nodeTrans)
+	nodeTrans.SendsTo(nodeLoki)
+
+	start.Start()
+
+	select {
+	case <-nodeLoki.Done():
+	// ok!
+	case <-time.After(2 * time.Second):
+		require.Fail(t, "timeout while waiting for pipeline to end")
+	}
 }
 
 const configTemplate = `---
@@ -81,17 +97,16 @@ pipeline:
 func Test_SimplePipeline(t *testing.T) {
 	loadGlobalConfig(t)
 
-	mainPipeline, err := NewPipeline()
-	require.NoError(t, err)
+	mainPipeline := NewPipeline()
 
 	// The file ingester reads the entire file, pushes it down the pipeline, and then exits
 	// So we don't need to run it in a separate go-routine
 	mainPipeline.Run()
 
 	// What is there left to check? Check length of saved data of each stage in private structure.
-	ingester := mainPipeline.Ingester.(*ingest.IngestFile)
-	decoder := mainPipeline.Decoder.(*decode.DecodeJson)
-	writer := mainPipeline.Writer.(*write.WriteNone)
+	ingester := mainPipeline.ingester.(*ingest.IngestFile)
+	decoder := mainPipeline.decoder.(*decode.DecodeJson)
+	writer := mainPipeline.writer.(*write.WriteNone)
 	require.Equal(t, 5103, len(ingester.PrevRecords))
 	require.Equal(t, len(ingester.PrevRecords), len(decoder.PrevRecords))
 	require.Equal(t, len(ingester.PrevRecords), len(writer.PrevRecords))
@@ -119,10 +134,7 @@ func BenchmarkPipeline(b *testing.B) {
 	}
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
-		p, err := NewPipeline()
-		if err != nil {
-			t.Fatalf("unexpected error %s", err)
-		}
+		p := NewPipeline()
 		b.StartTimer()
 		p.Run()
 	}

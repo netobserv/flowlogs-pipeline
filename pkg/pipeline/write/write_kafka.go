@@ -15,16 +15,17 @@
  *
  */
 
-package encode
+package write
 
 import (
 	"encoding/json"
+	"time"
+
 	"github.com/netobserv/flowlogs2metrics/pkg/api"
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"time"
 )
 
 const (
@@ -36,17 +37,16 @@ type kafkaWriteMessage interface {
 	WriteMessages(ctx context.Context, msgs ...kafkago.Message) error
 }
 
-type encodeKafka struct {
+type Kafka struct {
 	kafkaParams api.EncodeKafka
 	kafkaWriter kafkaWriteMessage
 }
 
 // Encode writes entries to kafka topic
-func (r *encodeKafka) Encode(in []config.GenericMap) []interface{} {
-	log.Debugf("entering encodeKafka Encode, #items = %d", len(in))
+func (r *Kafka) Write(in []config.GenericMap) {
+	log.Debugf("entering Kafka Encode, #items = %d", len(in))
 	var msgs []kafkago.Message
 	msgs = make([]kafkago.Message, 0)
-	out := make([]interface{}, 0)
 	for _, entry := range in {
 		var entryByteArray []byte
 		entryByteArray, _ = json.Marshal(entry)
@@ -54,17 +54,15 @@ func (r *encodeKafka) Encode(in []config.GenericMap) []interface{} {
 			Value: entryByteArray,
 		}
 		msgs = append(msgs, msg)
-		out = append(out, entry)
 	}
 	err := r.kafkaWriter.WriteMessages(context.Background(), msgs...)
 	if err != nil {
-		log.Errorf("encodeKafka error: %v", err)
+		log.Errorf("Kafka error: %v", err)
 	}
-	return out
 }
 
-// NewEncodeKafka create a new writer to kafka
-func NewEncodeKafka() (Encoder, error) {
+// NewKafka create a new writer to kafka
+func NewKafka() (Writer, error) {
 	log.Debugf("entering NewIngestKafka")
 	encodeKafkaString := config.Opt.PipeLine.Encode.Kafka
 	log.Debugf("encodeKafkaString = %s", encodeKafkaString)
@@ -111,7 +109,7 @@ func NewEncodeKafka() (Encoder, error) {
 		BatchBytes:   jsonEncodeKafka.BatchBytes,
 	}
 
-	return &encodeKafka{
+	return &Kafka{
 		kafkaParams: jsonEncodeKafka,
 		kafkaWriter: &kafkaWriter,
 	}, nil

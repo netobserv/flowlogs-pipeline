@@ -20,11 +20,12 @@ package write
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/netobserv/flowlogs2metrics/pkg/api"
-	pUtils "github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/netobserv/flowlogs2metrics/pkg/api"
+	pUtils "github.com/netobserv/flowlogs2metrics/pkg/pipeline/utils"
 
 	"github.com/netobserv/flowlogs2metrics/pkg/config"
 
@@ -203,13 +204,11 @@ func getFloat64(timestamp interface{}) (ft float64, ok bool) {
 }
 
 // Write writes a flow before being stored
-func (l *Loki) Write(entries []config.GenericMap) []config.GenericMap {
+func (l *Loki) Write(entries []config.GenericMap) {
 	log.Debugf("entering Loki Write")
 	for _, entry := range entries {
 		l.in <- entry
 	}
-
-	return entries
 }
 
 func (l *Loki) processRecords() {

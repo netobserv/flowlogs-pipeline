@@ -38,15 +38,18 @@ import (
 
 // Pipeline manager
 type Pipeline struct {
-	Ingester     ingest.Ingester
-	Decoder      decode.Decoder
-	Transformers []transform.Transformer
-	Writer       write.Writer
-	Extractor    extract.Extractor
-	Encoder      encode.Encoder
-	IsRunning    bool
+	// todo: remove the fields below, which currently are only accessed from testing
+	ingester ingest.Ingester
+	decoder  decode.Decoder
+	writer   write.Writer
 
-	start    []*node.Init
+	IsRunning bool
+
+	transformers []transform.Transformer
+	// list of nodes that need to be started in order to start the pipeline
+	start []*node.Init
+	// list of nodes whose finalization need to be checked before considering the whole
+	// pipeline as finalized
 	terminal []*node.Terminal
 }
 
@@ -99,6 +102,10 @@ func getWriter() (write.Writer, error) {
 		writer, _ = write.NewWriteNone()
 	case "loki":
 		writer, _ = write.NewWriteLoki()
+	case "prom":
+		writer, _ = write.NewPrometheus()
+	case "kafka":
+		writer, _ = write.NewKafka()
 	default:
 		panic("`write` not defined; if no writer needed, specify `none`")
 	}
@@ -123,12 +130,8 @@ func getEncoder() (encode.Encoder, error) {
 	var encoder encode.Encoder
 	var err error
 	switch config.Opt.PipeLine.Encode.Type {
-	case "prom":
-		encoder, _ = encode.NewEncodeProm()
 	case "json":
 		encoder, _ = encode.NewEncodeJson()
-	case "kafka":
-		encoder, _ = encode.NewEncodeKafka()
 	case "none":
 		encoder, _ = encode.NewEncodeNone()
 	default:
@@ -138,7 +141,7 @@ func getEncoder() (encode.Encoder, error) {
 }
 
 // NewPipeline defines the pipeline elements
-func NewPipeline() (*Pipeline, error) {
+func NewPipeline() *Pipeline {
 	log.Debugf("entering NewPipeline")
 	ingester, _ := getIngester()
 	decoder, _ := getDecoder()
@@ -146,34 +149,29 @@ func NewPipeline() (*Pipeline, error) {
 	writer, _ := getWriter()
 	extractor, _ := getExtractor()
 	encoder, _ := getEncoder()
+	// TODO: enable encoders and extracts when we enable the "flexible" pipeline
+	_, _ = extractor, encoder
 
-	p := &Pipeline{
-		Ingester:     ingester,
-		Decoder:      decoder,
-		Transformers: transformers,
-		Extractor:    extractor,
-		Encoder:      encoder,
-		Writer:       writer,
-	}
-
-	// TODO: all this apply* functions can be removed if we change the Ingester, Transformer, etc...
-	// interfaces and use them directly here
-	ingests := node.AsInit(p.Ingester.Ingest)
-	decodes := node.AsMiddle(p.applyDecode)
-	transforms := node.AsMiddle(p.applyTransforms)
-	writes := node.AsTerminal(p.applyWrite)
-	extracts := node.AsMiddle(p.applyExtract)
-	encodes := node.AsTerminal(p.applyEncode)
+	ingests := node.AsInit(ingester.Ingest)
+	decodes := node.AsMiddle(decodeLoop(decoder))
+	transforms := node.AsMiddle(transformLoop(transformers))
+	writes := node.AsTerminal(writeLoop(writer))
+	//encodes := node.AsMiddle(encoder.Encode)
+	//extracts := node.AsMiddle(extractor.Extract)
 
 	ingests.SendsTo(decodes)
 	decodes.SendsTo(transforms)
-	transforms.SendsTo(writes, extracts)
-	extracts.SendsTo(encodes)
+	transforms.SendsTo(writes /*, extracts*/)
+	//extracts.SendsTo(encodes.Encode)
 
-	p.start = []*node.Init{ingests}
-	p.terminal = []*node.Terminal{writes, encodes}
-
-	return p, nil
+	return &Pipeline{
+		transformers: transformers,
+		start:        []*node.Init{ingests},
+		terminal:     []*node.Terminal{writes},
+		ingester:     ingester,
+		decoder:      decoder,
+		writer:       writer,
+	}
 }
 
 func (p *Pipeline) Run() {
@@ -197,39 +195,19 @@ func (p Pipeline) process() {
 	}
 }
 
-func (p *Pipeline) applyDecode(in <-chan []interface{}, out chan<- []config.GenericMap) {
-	for entries := range in {
-		out <- p.Decoder.Decode(entries)
-	}
-}
-
-func (p *Pipeline) applyTransforms(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
-	for entries := range in {
-		transformed := make([]config.GenericMap, 0, len(entries))
-		for _, entry := range entries {
-			// TODO: for consistent configurability, each transformer could be a node by itself
-			transformed = append(transformed,
-				transform.ExecuteTransforms(p.Transformers, entry))
+func transformLoop(
+	transformers []transform.Transformer,
+) func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
+	return func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
+		for entries := range in {
+			transformed := make([]config.GenericMap, 0, len(entries))
+			for _, entry := range entries {
+				// TODO: for consistent configurability, each transformer could be a node by itself
+				transformed = append(transformed,
+					transform.ExecuteTransforms(transformers, entry))
+			}
+			out <- transformed
 		}
-		out <- transformed
-	}
-}
-
-func (p *Pipeline) applyWrite(in <-chan []config.GenericMap) {
-	for entries := range in {
-		p.Writer.Write(entries)
-	}
-}
-
-func (p *Pipeline) applyExtract(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
-	for entries := range in {
-		out <- p.Extractor.Extract(entries)
-	}
-}
-
-func (p *Pipeline) applyEncode(in <-chan []config.GenericMap) {
-	for entries := range in {
-		p.Encoder.Encode(entries)
 	}
 }
 
@@ -248,5 +226,21 @@ func (p *Pipeline) IsAlive() healthcheck.Check {
 			return fmt.Errorf("pipeline is not running")
 		}
 		return nil
+	}
+}
+
+func decodeLoop(d decode.Decoder) func(in <-chan []interface{}, out chan<- []config.GenericMap) {
+	return func(in <-chan []interface{}, out chan<- []config.GenericMap) {
+		for i := range in {
+			out <- d.Decode(i)
+		}
+	}
+}
+
+func writeLoop(w write.Writer) func(in <-chan []config.GenericMap) {
+	return func(in <-chan []config.GenericMap) {
+		for i := range in {
+			w.Write(i)
+		}
 	}
 }

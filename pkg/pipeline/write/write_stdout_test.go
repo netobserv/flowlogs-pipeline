@@ -18,19 +18,32 @@
 package write
 
 import (
-	"github.com/netobserv/flowlogs2metrics/pkg/config"
-	"github.com/stretchr/testify/require"
+	"bufio"
+	"os"
 	"testing"
+
+	"github.com/netobserv/flowlogs2metrics/pkg/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_WriteStdout(t *testing.T) {
-	ws := writeStdout{}
+	ws, err := NewWriteStdout()
+	require.NoError(t, err)
+
+	// Intercept standard output
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	defer w.Close()
+	defer r.Close()
+	os.Stdout = w
+
 	ws.Write([]config.GenericMap{{"key": "test"}})
-}
 
-func Test_NewWriteStdout(t *testing.T) {
-	writer, err := NewWriteStdout()
-	require.Nil(t, err)
-	require.Equal(t, writer, &writeStdout{})
+	// read last line from standard output
+	line, err := bufio.NewReader(r).ReadString('\n')
+	require.NoError(t, err)
+	os.Stdout = oldStdout
 
+	assert.Contains(t, line, "map[key:test]")
 }

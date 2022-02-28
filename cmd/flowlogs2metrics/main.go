@@ -157,11 +157,6 @@ func main() {
 }
 
 func run() {
-	var (
-		err          error
-		mainPipeline *pipeline.Pipeline
-	)
-
 	// Initial log message
 	fmt.Printf("%s starting - version [%s]\n\n", filepath.Base(os.Args[0]), Version)
 
@@ -172,11 +167,7 @@ func run() {
 	utils.SetupElegantExit()
 
 	// Create new flows pipeline
-	mainPipeline, err = pipeline.NewPipeline()
-	if err != nil {
-		log.Fatalf("failed to initialize pipeline %s", err)
-		os.Exit(1)
-	}
+	mainPipeline := pipeline.NewPipeline()
 
 	// Starts the flows pipeline
 	mainPipeline.Run()
