@@ -22,12 +22,12 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"net"
 	"time"
 
 	ms "github.com/mitchellh/mapstructure"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	goflowFormat "github.com/netsampler/goflow2/format"
 	goflowCommonFormat "github.com/netsampler/goflow2/format/common"
 	_ "github.com/netsampler/goflow2/format/protobuf"
@@ -90,7 +90,7 @@ func (w *TransportWrapper) Send(_, data []byte) error {
 }
 
 // Ingest ingests entries from a network collector using goflow2 library (https://github.com/netsampler/goflow2)
-func (r *ingestCollector) Ingest(process ProcessFunction) {
+func (r *ingestCollector) Ingest(out chan<- []interface{}) {
 	ctx := context.Background()
 	r.in = make(chan map[string]interface{}, channelSize)
 
@@ -98,7 +98,7 @@ func (r *ingestCollector) Ingest(process ProcessFunction) {
 	r.initCollectorListener(ctx)
 
 	// forever process log lines received by collector
-	r.processLogLines(process)
+	r.processLogLines(out)
 
 }
 
@@ -139,7 +139,7 @@ func (r *ingestCollector) initCollectorListener(ctx context.Context) {
 
 }
 
-func (r *ingestCollector) processLogLines(process ProcessFunction) {
+func (r *ingestCollector) processLogLines(out chan<- []interface{}) {
 	var records []interface{}
 	for {
 		select {
@@ -152,7 +152,8 @@ func (r *ingestCollector) processLogLines(process ProcessFunction) {
 		case <-time.After(time.Millisecond * batchMaxTimeInMilliSecs): // Maximum batch time for each batch
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
-				process(records)
+				log.Debugf("ingestCollector sending %d entries", len(records))
+				out <- records
 			}
 			records = []interface{}{}
 		}

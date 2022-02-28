@@ -18,9 +18,10 @@
 package pipeline
 
 import (
+	"testing"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 const testConfigTransformMultiple = `---
@@ -35,6 +36,8 @@ pipeline:
     follows: transform1
   - name: transform3
     follows: transform2
+  - name: writer1
+    follows: transform3
 parameters:
   - name: ingest1
     ingest:
@@ -77,6 +80,9 @@ parameters:
           output: SrcPort2
         - input: Protocol
           output: Protocol2
+  - name: writer1
+    write:
+      type: none
 `
 
 func TestTransformMultiple(t *testing.T) {

@@ -21,25 +21,25 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-type IngestFile struct {
-	params      config.Ingest
-	exitChan    chan bool
-	PrevRecords []interface{}
+const chunkLines = 100
+
+// FileChunks ingest entries from a file and resends them in chunks of fixed number of lines.
+// It might be used to test processing speed in pipelines.
+type FileChunks struct {
+	fileName     string
+	PrevRecords  []interface{}
+	TotalRecords int
 }
 
-const delaySeconds = 10
-
-// Ingest ingests entries from a file and resends the same data every delaySeconds seconds
-func (r *IngestFile) Ingest(out chan<- []interface{}) {
-	lines := make([]interface{}, 0)
-	file, err := os.Open(r.params.File.Filename)
+func (r *FileChunks) Ingest(out chan<- []interface{}) {
+	lines := make([]interface{}, 0, chunkLines)
+	file, err := os.Open(r.fileName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,48 +48,38 @@ func (r *IngestFile) Ingest(out chan<- []interface{}) {
 	}()
 
 	scanner := bufio.NewScanner(file)
+	nLines := 0
 	for scanner.Scan() {
 		text := scanner.Text()
-		log.Debugf("%s", text)
 		lines = append(lines, text)
-	}
-	log.Debugf("Ingesting %d log lines from %s", len(lines), r.params.File.Filename)
-	switch r.params.Type {
-	case "file":
-		r.PrevRecords = lines
-		log.Debugf("ingestFile sending %d lines", len(lines))
-		out <- lines
-	case "file_loop":
-		// loop forever
-		ticker := time.NewTicker(time.Duration(delaySeconds) * time.Second)
-		for {
-			select {
-			case <-r.exitChan:
-				log.Debugf("exiting ingestFile because of signal")
-				return
-			case <-ticker.C:
-				log.Debugf("ingestFile; for loop; before process")
-				r.PrevRecords = lines
-				log.Debugf("ingestFile sending %d lines", len(lines))
-				out <- lines
-			}
+		nLines++
+		if nLines%chunkLines == 0 {
+			r.PrevRecords = lines
+			r.TotalRecords += len(lines)
+			out <- lines
+			// reset slice length without deallocating/reallocating memory
+			lines = lines[:0]
 		}
+	}
+	if len(lines) > 0 {
+		r.PrevRecords = lines
+		r.TotalRecords += len(lines)
+		out <- lines
 	}
 }
 
-// NewIngestFile create a new ingester
-func NewIngestFile(params config.Param) (Ingester, error) {
+// NewFileChunks create a new ingester that sends entries in chunks of fixed number of lines.
+func NewFileChunks(params config.Param) (Ingester, error) {
 	log.Debugf("entering NewIngestFile")
 	if params.Ingest.File.Filename == "" {
 		return nil, fmt.Errorf("ingest filename not specified")
 	}
 
-	log.Debugf("input file name = %s", params.Ingest.File.Filename)
+	log.Infof("input file name = %s", params.Ingest.File.Filename)
 
 	ch := make(chan bool, 1)
 	utils.RegisterExitChannel(ch)
-	return &IngestFile{
-		params:   params.Ingest,
-		exitChan: ch,
+	return &FileChunks{
+		fileName: params.Ingest.File.Filename,
 	}, nil
 }
