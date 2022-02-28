@@ -74,7 +74,7 @@ func InitNewTransformGeneric(t *testing.T, configFile string) Transformer {
 	v := test.InitConfig(t, configFile)
 	require.NotNil(t, v)
 
-	config := config.Parameters[0].Transform
+	config := config.Parameters[0]
 	newTransform, err := NewTransformGeneric(config)
 	require.NoError(t, err)
 	return newTransform

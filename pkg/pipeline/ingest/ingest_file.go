@@ -75,18 +75,18 @@ func (r *IngestFile) Ingest(process ProcessFunction) {
 }
 
 // NewIngestFile create a new ingester
-func NewIngestFile(params config.Ingest) (Ingester, error) {
+func NewIngestFile(params config.Param) (Ingester, error) {
 	log.Debugf("entering NewIngestFile")
-	if params.File.Filename == "" {
+	if params.Ingest.File.Filename == "" {
 		return nil, fmt.Errorf("ingest filename not specified")
 	}
 
-	log.Debugf("input file name = %s", params.File.Filename)
+	log.Debugf("input file name = %s", params.Ingest.File.Filename)
 
 	ch := make(chan bool, 1)
 	utils.RegisterExitChannel(ch)
 	return &IngestFile{
-		params:   params,
+		params:   params.Ingest,
 		exitChan: ch,
 	}, nil
 }

@@ -83,6 +83,12 @@ func InitConfig(t *testing.T, conf string) *viper.Viper {
 		return nil
 	}
 
+	err = config.ParseConfigFile()
+	if err != nil {
+		fmt.Printf("error in parsing config file: %v \n", err)
+		return nil
+	}
+
 	return v
 }
 

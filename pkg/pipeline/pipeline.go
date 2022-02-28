@@ -69,11 +69,11 @@ func getIngester(stage config.Stage, params config.Param) (ingest.Ingester, erro
 	var err error
 	switch params.Ingest.Type {
 	case "file", "file_loop":
-		ingester, err = ingest.NewIngestFile(params.Ingest)
+		ingester, err = ingest.NewIngestFile(params)
 	case "collector":
-		ingester, err = ingest.NewIngestCollector(params.Ingest)
+		ingester, err = ingest.NewIngestCollector(params)
 	case "kafka":
-		ingester, err = ingest.NewIngestKafka(params.Ingest)
+		ingester, err = ingest.NewIngestKafka(params)
 	default:
 		panic(fmt.Sprintf("`ingest` type %s not defined; if no encoder needed, specify `none`", params.Ingest.Type))
 	}
@@ -87,7 +87,7 @@ func getDecoder(stage config.Stage, params config.Param) (decode.Decoder, error)
 	case "json":
 		decoder, err = decode.NewDecodeJson()
 	case "aws":
-		decoder, err = decode.NewDecodeAws(params.Decode)
+		decoder, err = decode.NewDecodeAws(params)
 	case "none":
 		decoder, err = decode.NewDecodeNone()
 	default:
@@ -105,7 +105,7 @@ func getWriter(stage config.Stage, params config.Param) (write.Writer, error) {
 	case "none":
 		writer, _ = write.NewWriteNone()
 	case "loki":
-		writer, _ = write.NewWriteLoki(params.Write)
+		writer, _ = write.NewWriteLoki(params)
 	default:
 		panic(fmt.Sprintf("`write` type %s not defined; if no encoder needed, specify `none`", params.Write.Type))
 	}
@@ -117,9 +117,9 @@ func getTransformer(stage config.Stage, params config.Param) (transform.Transfor
 	var err error
 	switch params.Transform.Type {
 	case transform.OperationGeneric:
-		transformer, err = transform.NewTransformGeneric(params.Transform)
+		transformer, err = transform.NewTransformGeneric(params)
 	case transform.OperationNetwork:
-		transformer, err = transform.NewTransformNetwork(params.Transform)
+		transformer, err = transform.NewTransformNetwork(params)
 	case transform.OperationNone:
 		transformer, err = transform.NewTransformNone()
 	default:
@@ -135,7 +135,7 @@ func getExtractor(stage config.Stage, params config.Param) (extract.Extractor, e
 	case "none":
 		extractor, _ = extract.NewExtractNone()
 	case "aggregates":
-		extractor, err = extract.NewExtractAggregate(params.Extract)
+		extractor, err = extract.NewExtractAggregate(params)
 	default:
 		panic(fmt.Sprintf("`extract` type %s not defined; if no encoder needed, specify `none`", params.Extract.Type))
 	}
@@ -147,9 +147,9 @@ func getEncoder(stage config.Stage, params config.Param) (encode.Encoder, error)
 	var err error
 	switch params.Encode.Type {
 	case "prom":
-		encoder, err = encode.NewEncodeProm(params.Encode)
+		encoder, err = encode.NewEncodeProm(params)
 	case "kafka":
-		encoder, err = encode.NewEncodeKafka(params.Encode)
+		encoder, err = encode.NewEncodeKafka(params)
 	case "none":
 		encoder, _ = encode.NewEncodeNone()
 	default:

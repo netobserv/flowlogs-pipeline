@@ -64,7 +64,7 @@ parameters:
 	v := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
 
-	loki, err := NewWriteLoki(config.Parameters[0].Write)
+	loki, err := NewWriteLoki(config.Parameters[0])
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://foo:8888/loki/api/v1/push", loki.lokiConfig.URL.String())
@@ -98,7 +98,7 @@ parameters:
 	v := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
 
-	loki, err := NewWriteLoki(config.Parameters[0].Write)
+	loki, err := NewWriteLoki(config.Parameters[0])
 	require.NoError(t, err)
 
 	fe := fakeEmitter{}
@@ -140,9 +140,9 @@ func TestTimestampScale(t *testing.T) {
 		t.Run(fmt.Sprintf("unit %v", testCase.unit), func(t *testing.T) {
 			yamlConf := fmt.Sprintf(`log-level: debug
 pipeline:
-  - name write1
+  - name: write1
 parameters:
-  - name write1
+  - name: write1
     write:
       type: loki
       loki:
@@ -151,7 +151,7 @@ parameters:
 			v := test.InitConfig(t, string(yamlConf))
 			require.NotNil(t, v)
 
-			loki, err := NewWriteLoki(config.Parameters[0].Write)
+			loki, err := NewWriteLoki(config.Parameters[0])
 			require.NoError(t, err)
 
 			fe := fakeEmitter{}
@@ -164,6 +164,17 @@ parameters:
 		})
 	}
 }
+
+var yamlConfigNoParams = `
+log-level: debug
+pipeline:
+  - name: write1
+parameters:
+  - name: write1
+    write:
+      type: loki
+      loki:
+`
 
 // Tests those cases where the timestamp can't be extracted and reports the current time
 func TestTimestampExtraction_LocalTime(t *testing.T) {
@@ -178,10 +189,10 @@ func TestTimestampExtraction_LocalTime(t *testing.T) {
 		{name: "zero ts value", tsLabel: "ts", input: map[string]interface{}{"ts": 0}},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			v := test.InitConfig(t, "")
+			v := test.InitConfig(t, yamlConfigNoParams)
 			require.NotNil(t, v)
 
-			loki, err := NewWriteLoki(config.Parameters[0].Write)
+			loki, err := NewWriteLoki(config.Parameters[0])
 			require.NoError(t, err)
 
 			loki.apiConfig.TimestampLabel = testCase.tsLabel
@@ -222,7 +233,7 @@ parameters:
 	v := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
 
-	loki, err := NewWriteLoki(config.Parameters[0].Write)
+	loki, err := NewWriteLoki(config.Parameters[0])
 	require.NoError(t, err)
 
 	fe := fakeEmitter{}

@@ -18,7 +18,9 @@
 package config
 
 import (
+	"encoding/json"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/sirupsen/logrus"
 )
 
 type GenericMap map[string]interface{}
@@ -94,4 +96,23 @@ type Encode struct {
 type Write struct {
 	Type string
 	Loki api.WriteLoki
+}
+
+// from the Pipeline and Parameters json create the internal unmarshalled representation
+func ParseConfigFile() error {
+	logrus.Debugf("config.Opt.PipeLine = %v ", Opt.PipeLine)
+	err := json.Unmarshal([]byte(Opt.PipeLine), &PipeLine)
+	if err != nil {
+		logrus.Errorf("error when reading config file: %v", err)
+		return err
+	}
+	logrus.Debugf("stages = %v ", PipeLine)
+
+	err = json.Unmarshal([]byte(Opt.Parameters), &Parameters)
+	if err != nil {
+		logrus.Errorf("error when reading config file: %v", err)
+		return err
+	}
+	logrus.Debugf("params = %v ", Parameters)
+	return nil
 }

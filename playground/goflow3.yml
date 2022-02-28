@@ -1,36 +1,45 @@
 log-level: debug
 pipeline:
-  ingest:
-    type: file
-    file:
-      filename: playground/goflow2_input.txt
-  decode:
-    type: json
-  transform:
-    - type: generic
+  - name: ingest1
+  - name: decode1
+    follows: ingest1
+  - name: generic1
+    follows: decode1
+  - name: write1
+    follows: generic1
+parameters:
+  - name: ingest1
+    ingest:
+      type: file
+      file:
+        filename: playground/goflow2_input.txt
+  - name: decode1
+    decode:
+      type: json
+  - name: generic1
+    transform:
+      type: generic
       generic:
-        - input: Bytes
-          output: flp_bytes
-        - input: DstAddr
-          output: flp_dstAddr
-        - input: DstHostIP
-          output: flp_dstHostIP
-        - input: DstPort
-          output: flp_dstPort
-        - input: Packets
-          output: flp_packets
-        - input: SrcAddr
-          output: flp_srcAddr
-        - input: SrcHostIP
-          output: flp_srcHostIP
-        - input: SrcPort
-          output: flp_srcPort
-        - input: TimeReceived
-          output: flp_timestamp
-  extract:
-    type: none
-  encode:
-    type: none
-  write:
-    type: stdout
+        rules:
+          - input: Bytes
+            output: flp_bytes
+          - input: DstAddr
+            output: flp_dstAddr
+          - input: DstHostIP
+            output: flp_dstHostIP
+          - input: DstPort
+            output: flp_dstPort
+          - input: Packets
+            output: flp_packets
+          - input: SrcAddr
+            output: flp_srcAddr
+          - input: SrcHostIP
+            output: flp_srcHostIP
+          - input: SrcPort
+            output: flp_srcPort
+          - input: TimeReceived
+            output: flp_timestamp
+  - name: write1
+    write:
+      type: stdout
 

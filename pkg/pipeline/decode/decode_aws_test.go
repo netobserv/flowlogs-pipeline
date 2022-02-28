@@ -99,7 +99,7 @@ func initNewDecodeAws(t *testing.T, testConfig string) Decoder {
 	v := test.InitConfig(t, testConfig)
 	require.NotNil(t, v)
 
-	newDecode, err := NewDecodeAws(config.Parameters[0].Decode)
+	newDecode, err := NewDecodeAws(config.Parameters[0])
 	require.Equal(t, nil, err)
 	return newDecode
 }
