@@ -124,6 +124,7 @@ aggregates:
 			inputBatch: []config.GenericMap{
 				{"service": "http", "bytes": 30},
 				{"service": "tcp", "bytes": 4},
+				{"service": "tcp", "bytes": 5},
 			},
 			expectedAggs: []config.GenericMap{
 				createAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 3, 3, []float64{1.0}),
