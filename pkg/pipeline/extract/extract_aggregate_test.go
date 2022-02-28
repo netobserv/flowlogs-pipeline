@@ -101,10 +101,10 @@ aggregates:
 		{
 			name: "batch1",
 			inputBatch: []config.GenericMap{
-				{"service": "http", "bytes": 10.0},
-				{"service": "http", "bytes": 20.0},
-				{"service": "tcp", "bytes": 1.0},
-				{"service": "tcp", "bytes": 2.0},
+				{"service": "http", "bytes": 10},
+				{"service": "http", "bytes": 20},
+				{"service": "tcp", "bytes": 1},
+				{"service": "tcp", "bytes": 2},
 			},
 			expectedAggs: []config.GenericMap{
 				createAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 2, 2, []float64{1.0, 1.0}),
@@ -122,9 +122,8 @@ aggregates:
 		{
 			name: "batch2",
 			inputBatch: []config.GenericMap{
-				{"service": "http", "bytes": 30.0},
-				{"service": "tcp", "bytes": 4.0},
-				{"service": "tcp", "bytes": 5.0},
+				{"service": "http", "bytes": 30},
+				{"service": "tcp", "bytes": 4},
 			},
 			expectedAggs: []config.GenericMap{
 				createAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 3, 3, []float64{1.0}),
