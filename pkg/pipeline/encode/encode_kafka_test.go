@@ -56,7 +56,7 @@ func initNewEncodeKafka(t *testing.T) Encoder {
 	v := test.InitConfig(t, testKafkaConfig)
 	require.NotNil(t, v)
 
-	newEncode, err := NewEncodeKafka(config.Parameters[0].Encode)
+	newEncode, err := NewEncodeKafka(config.Parameters[0])
 	require.NoError(t, err)
 	return newEncode
 }

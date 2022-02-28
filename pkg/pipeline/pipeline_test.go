@@ -18,7 +18,6 @@
 package pipeline
 
 import (
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
@@ -29,6 +28,17 @@ import (
 	"testing"
 )
 
+var yamlConfigNoParams = `
+log-level: debug
+pipeline:
+  - name: write1
+parameters:
+  - name: write1
+    write:
+      type: loki
+      loki:
+`
+
 func Test_transformToLoki(t *testing.T) {
 	var transformed []config.GenericMap
 	input := config.GenericMap{"key": "value"}
@@ -36,13 +46,12 @@ func Test_transformToLoki(t *testing.T) {
 	require.NoError(t, err)
 	transformed = append(transformed, transform.Transform(input))
 
-	params := config.Write{
-		Type: "loki",
-		Loki: api.WriteLoki{},
-	}
-	loki, err := write.NewWriteLoki(params)
-	loki.Write(transformed)
+	v := test.InitConfig(t, yamlConfigNoParams)
+	require.NotNil(t, v)
+	
+	loki, err := write.NewWriteLoki(config.Parameters[0])
 	require.NoError(t, err)
+	loki.Write(transformed)
 }
 
 const configTemplate = `---

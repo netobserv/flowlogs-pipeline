@@ -141,23 +141,6 @@ func main() {
 	}
 }
 
-func parseConfigFile() {
-	log.Debugf("config.Opt.PipeLine = %v ", config.Opt.PipeLine)
-	err := json.Unmarshal([]byte(config.Opt.PipeLine), &config.PipeLine)
-	if err != nil {
-		log.Errorf("error when reading config file: %v", err)
-		os.Exit(1)
-	}
-	log.Debugf("stages = %v ", config.PipeLine)
-
-	err = json.Unmarshal([]byte(config.Opt.Parameters), &config.Parameters)
-	if err != nil {
-		log.Errorf("error when reading config file: %v", err)
-		os.Exit(1)
-	}
-	log.Debugf("params = %v ", config.Parameters)
-}
-
 func run() {
 	var (
 		err          error
@@ -170,7 +153,11 @@ func run() {
 	// Dump configuration
 	dumpConfig()
 
-	parseConfigFile()
+	err = config.ParseConfigFile()
+	if err != nil {
+		log.Errorf("error in parsing config file: %v", err)
+		os.Exit(1)
+	}
 
 	// Setup (threads) exit manager
 	utils.SetupElegantExit()

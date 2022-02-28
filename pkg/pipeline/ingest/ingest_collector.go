@@ -160,8 +160,8 @@ func (r *ingestCollector) processLogLines(process ProcessFunction) {
 }
 
 // NewIngestCollector create a new ingester
-func NewIngestCollector(params config.Ingest) (Ingester, error) {
-	jsonIngestCollector := params.Collector
+func NewIngestCollector(params config.Param) (Ingester, error) {
+	jsonIngestCollector := params.Ingest.Collector
 
 	if jsonIngestCollector.HostName == "" {
 		return nil, fmt.Errorf("ingest hostname not specified")

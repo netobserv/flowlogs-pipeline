@@ -65,7 +65,7 @@ func initNewEncodeProm(t *testing.T) Encoder {
 	v := test.InitConfig(t, testConfig)
 	require.NotNil(t, v)
 
-	newEncode, err := NewEncodeProm(config.Parameters[0].Encode)
+	newEncode, err := NewEncodeProm(config.Parameters[0])
 	require.Equal(t, err, nil)
 	return newEncode
 }
