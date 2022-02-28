@@ -18,6 +18,7 @@
 package extract
 
 import (
+	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
@@ -26,6 +27,22 @@ import (
 	"testing"
 )
 
+func createAgg(name, recordKey, by, agg, op string, value float64, count int, rrv []float64) config.GenericMap {
+	valueString := fmt.Sprintf("%f", value)
+	return config.GenericMap{
+		"name":                        name,
+		"record_key":                  recordKey,
+		"by":                          by,
+		"aggregate":                   agg,
+		by:                            agg,
+		"operation":                   aggregate.Operation(op),
+		"value":                       valueString,
+		fmt.Sprintf("%v_value", name): valueString,
+		"recentRawValues":             rrv,
+		"count":                       fmt.Sprintf("%v", count),
+	}
+}
+
 // This tests extract_aggregate as a whole. It can be thought of as an integration test between extract_aggregate.go and
 // aggregate.go and aggregates.go. The test sends flows in 2 batches and verifies the extractor's output after each
 // batch. The output of the 2nd batch depends on the 1st batch.
@@ -33,16 +50,16 @@ func Test_Extract(t *testing.T) {
 	// Setup
 	yamlConfig := `
 aggregates:
-- name: bandwidth
-  by:
-  - service
-  operation: sum
-  recordkey: bytes
 - name: bandwidth_count
   by:
   - service
   operation: count
   recordkey: ""
+- name: bandwidth_sum
+  by:
+  - service
+  operation: sum
+  recordkey: bytes
 `
 	var err error
 	yamlData := make(map[string]interface{})
@@ -71,54 +88,10 @@ aggregates:
 				{"service": "tcp", "bytes": 2.0},
 			},
 			expectedAggs: []config.GenericMap{
-				{
-					"name":            "bandwidth",
-					"record_key":      "bytes",
-					"by":              "service",
-					"aggregate":       "http",
-					"service":         "http",
-					"operation":       aggregate.Operation(aggregate.OperationSum),
-					"value":           "30.000000",
-					"bandwidth_value": "30.000000",
-					"recentRawValues": []float64{10.0, 20.0},
-					"count":           "2",
-				},
-				{
-					"name":            "bandwidth",
-					"record_key":      "bytes",
-					"by":              "service",
-					"aggregate":       "tcp",
-					"service":         "tcp",
-					"operation":       aggregate.Operation(aggregate.OperationSum),
-					"value":           "3.000000",
-					"bandwidth_value": "3.000000",
-					"recentRawValues": []float64{1.0, 2.0},
-					"count":           "2",
-				},
-				{
-					"name":                  "bandwidth_count",
-					"record_key":            "",
-					"by":                    "service",
-					"aggregate":             "http",
-					"service":               "http",
-					"operation":             aggregate.Operation(aggregate.OperationCount),
-					"value":                 "2.000000",
-					"bandwidth_count_value": "2.000000",
-					"recentRawValues":       []float64{1.0, 1.0},
-					"count":                 "2",
-				},
-				{
-					"name":                  "bandwidth_count",
-					"record_key":            "",
-					"by":                    "service",
-					"aggregate":             "tcp",
-					"service":               "tcp",
-					"operation":             aggregate.Operation(aggregate.OperationCount),
-					"value":                 "2.000000",
-					"bandwidth_count_value": "2.000000",
-					"recentRawValues":       []float64{1.0, 1.0},
-					"count":                 "2",
-				},
+				createAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 30, 2, []float64{10.0, 20.0}),
+				createAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 3, 2, []float64{1.0, 2.0}),
+				createAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 2, 2, []float64{1.0, 1.0}),
+				createAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 2, 2, []float64{1.0, 1.0}),
 			},
 		},
 		{
@@ -129,54 +102,10 @@ aggregates:
 				{"service": "tcp", "bytes": 5.0},
 			},
 			expectedAggs: []config.GenericMap{
-				{
-					"name":            "bandwidth",
-					"record_key":      "bytes",
-					"by":              "service",
-					"aggregate":       "http",
-					"service":         "http",
-					"operation":       aggregate.Operation(aggregate.OperationSum),
-					"value":           "60.000000",
-					"bandwidth_value": "60.000000",
-					"recentRawValues": []float64{30.0},
-					"count":           "3",
-				},
-				{
-					"name":            "bandwidth",
-					"record_key":      "bytes",
-					"by":              "service",
-					"aggregate":       "tcp",
-					"service":         "tcp",
-					"operation":       aggregate.Operation(aggregate.OperationSum),
-					"value":           "12.000000",
-					"bandwidth_value": "12.000000",
-					"recentRawValues": []float64{4.0, 5.0},
-					"count":           "4",
-				},
-				{
-					"name":                  "bandwidth_count",
-					"record_key":            "",
-					"by":                    "service",
-					"aggregate":             "http",
-					"service":               "http",
-					"operation":             aggregate.Operation(aggregate.OperationCount),
-					"value":                 "3.000000",
-					"bandwidth_count_value": "3.000000",
-					"recentRawValues":       []float64{1.0},
-					"count":                 "3",
-				},
-				{
-					"name":                  "bandwidth_count",
-					"record_key":            "",
-					"by":                    "service",
-					"aggregate":             "tcp",
-					"service":               "tcp",
-					"operation":             aggregate.Operation(aggregate.OperationCount),
-					"value":                 "4.000000",
-					"bandwidth_count_value": "4.000000",
-					"recentRawValues":       []float64{1.0, 1.0},
-					"count":                 "4",
-				},
+				createAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 60, 3, []float64{30.0}),
+				createAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 12, 4, []float64{4.0, 5.0}),
+				createAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 3, 3, []float64{1.0}),
+				createAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 4, 4, []float64{1.0, 1.0}),
 			},
 		},
 	}
