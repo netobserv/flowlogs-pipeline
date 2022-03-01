@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -30,6 +31,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+const timeout = 5 * time.Second
 
 type fakeEmitter struct {
 	mock.Mock
@@ -248,4 +251,33 @@ parameters:
 		"fo_o": "isFoo",
 		"ba_z": "isBaz",
 	}, mock.Anything, mock.Anything)
+}
+
+func TestHTTPInvocations(t *testing.T) {
+	lokiFlows := make(chan map[string]interface{}, 256)
+	fakeLoki := httptest.NewServer(test.FakeLokiHandler(lokiFlows))
+
+	var yamlConfig = fmt.Sprintf(`
+log-level: debug
+pipeline:
+  - name: write1
+parameters:
+  - name: write1
+    write:
+      type: loki
+      loki:
+        url: %s
+`, fakeLoki.URL)
+	test.InitConfig(t, yamlConfig)
+	loki, err := NewWriteLoki(config.Parameters[0])
+	require.NoError(t, err)
+
+	require.NoError(t, loki.ProcessRecord(map[string]interface{}{"foo": "bar", "baz": "bae"}))
+
+	select {
+	case flow := <-lokiFlows:
+		assert.Equal(t, map[string]interface{}{"foo": "bar", "baz": "bae"}, flow)
+	case <-time.After(timeout):
+		require.Fail(t, "timeout while waiting for LokiWriter to forward data")
+	}
 }

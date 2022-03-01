@@ -18,8 +18,10 @@
 package pipeline
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netobserv"
 
 	"github.com/heptiolabs/healthcheck"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -84,7 +86,7 @@ func getIngester(params config.Param) (ingest.Ingester, error) {
 	case "file_chunks":
 		ingester, err = ingest.NewFileChunks(params)
 	case "collector":
-		ingester, err = ingest.NewIngestCollector(params)
+		ingester, err = ingest.NewIngestCollector(params.Ingest.Collector)
 	case "kafka":
 		ingester, err = ingest.NewIngestKafka(params)
 	default:
@@ -135,6 +137,8 @@ func getTransformer(params config.Param) (transform.Transformer, error) {
 		transformer, err = transform.NewTransformNetwork(params)
 	case transform.OperationNone:
 		transformer, err = transform.NewTransformNone()
+	case transform.OperationK8sEnrich:
+		transformer, err = netobserv.StartEnricher(context.TODO(), params.Transform.KubeEnrich)
 	default:
 		panic(fmt.Sprintf("`transform` type %s not defined; if no encoder needed, specify `none`", params.Transform.Type))
 	}
@@ -213,7 +217,11 @@ func NewPipeline() (*Pipeline, error) {
 	configParams := config.Parameters
 	log.Debugf("configParams = %v ", configParams)
 
-	return newBuilder(configParams, stages).build()
+	build := newBuilder(configParams, stages)
+	if err := build.readStages(); err != nil {
+		return nil, err
+	}
+	return build.build()
 }
 
 func newBuilder(params []config.Param, stages []config.Stage) *builder {
@@ -268,11 +276,8 @@ func (b *builder) readStages() error {
 }
 
 // reads the configured Go stages and connects between them
+// readStages must be invoked before this
 func (b *builder) build() (*Pipeline, error) {
-	if err := b.readStages(); err != nil {
-		return nil, err
-	}
-
 	for _, connection := range b.configStages {
 		if connection.Name == "" || connection.Follows == "" {
 			// ignore entries that do not represent a connection
@@ -283,7 +288,7 @@ func (b *builder) build() (*Pipeline, error) {
 		if !ok {
 			return nil, fmt.Errorf("unknown pipeline stage: %s", connection.Name)
 		}
-		dstNode, err := b.getStageNode(dstEntry)
+		dstNode, err := b.getStageNode(dstEntry, connection.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -297,14 +302,14 @@ func (b *builder) build() (*Pipeline, error) {
 		if !ok {
 			return nil, fmt.Errorf("unknown pipeline stage: %s", connection.Follows)
 		}
-		srcNode, err := b.getStageNode(srcEntry)
+		srcNode, err := b.getStageNode(srcEntry, connection.Follows)
 		if err != nil {
 			return nil, err
 		}
 		src, ok := srcNode.(node.Sender)
 		if !ok {
 			return nil, fmt.Errorf("stage %q of type %q can't send data",
-				connection.Name, dstEntry.stageType)
+				connection.Follows, srcEntry.stageType)
 		}
 		log.Debugf("connecting stages: %s --> %s", connection.Follows, connection.Name)
 
@@ -337,8 +342,8 @@ func (b *builder) build() (*Pipeline, error) {
 	}, nil
 }
 
-func (b *builder) getStageNode(pe *pipelineEntry) (interface{}, error) {
-	if stg, ok := b.createdStages[pe.configStage.Name]; ok {
+func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, error) {
+	if stg, ok := b.createdStages[stageID]; ok {
 		return stg, nil
 	}
 	var stage interface{}
@@ -384,16 +389,17 @@ func (b *builder) getStageNode(pe *pipelineEntry) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("invalid stage type: %s", pe.stageType)
 	}
-	b.createdStages[pe.configStage.Name] = stage
+	b.createdStages[stageID] = stage
 	return stage, nil
 }
 
 func (p *Pipeline) Run() {
-	p.IsRunning = true
 	// starting the graph
 	for _, s := range p.startNodes {
 		s.Start()
 	}
+
+	p.IsRunning = true
 
 	// blocking the execution until the graph terminal stages end
 	for _, t := range p.terminalNodes {
