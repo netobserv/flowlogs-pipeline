@@ -148,7 +148,7 @@ parameters:
       loki:
         timestampScale: %s
 `, testCase.unit)
-			v := test.InitConfig(t, string(yamlConf))
+			v := test.InitConfig(t, yamlConf)
 			require.NotNil(t, v)
 
 			loki, err := NewWriteLoki(config.Parameters[0])

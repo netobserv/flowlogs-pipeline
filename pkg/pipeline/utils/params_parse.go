@@ -23,27 +23,27 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// for specified params structure, return its corresponding (json) string from config.parameters
+// ParamString returns its corresponding (json) string from config.parameters for specified params structure
 func ParamString(params config.Param, stage string, stageType string) string {
 	log.Debugf("entering paramString")
 	log.Debugf("params = %v, stage = %s, stageType = %s", params, stage, stageType)
 
-	var configString []map[string]interface{}
+	var configMap []map[string]interface{}
 	var err error
-	err = json.Unmarshal([]byte(config.Opt.Parameters), &configString)
+	err = json.Unmarshal([]byte(config.Opt.Parameters), &configMap)
 	if err != nil {
 		return ""
 	}
-	log.Debugf("configString = %v", configString)
+	log.Debugf("configMap = %v", configMap)
 
 	var returnBytes []byte
 	for index := range config.Parameters {
 		paramsEntry := &config.Parameters[index]
 		if params.Name == paramsEntry.Name {
 			log.Debugf("paramsEntry = %v", paramsEntry)
-			log.Debugf("data[index][stage] = %v", configString[index][stage])
+			log.Debugf("data[index][stage] = %v", configMap[index][stage])
 			// convert back to string
-			subField := configString[index][stage].(map[string]interface{})
+			subField := configMap[index][stage].(map[string]interface{})
 			log.Debugf("subField = %v", subField)
 			returnBytes, err = json.Marshal(subField[stageType])
 			if err != nil {

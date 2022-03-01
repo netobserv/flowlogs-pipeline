@@ -127,8 +127,9 @@ func initFlags() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", fmt.Sprintf("config file (default is $HOME/%s)", defaultLogFileName))
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "error", "Log level: debug, info, warning, error")
-	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine, "pipeline", "", "")
-	rootCmd.PersistentFlags().StringVar(&config.Opt.Parameters, "parameters", "", "")
+	rootCmd.PersistentFlags().StringVar(&config.Opt.Health.Port, "health.port", "8080", "Health server port")
+	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine, "pipeline", "", "json of config file pipeline field")
+	rootCmd.PersistentFlags().StringVar(&config.Opt.Parameters, "parameters", "", "json of config file parameters field")
 }
 
 func main() {
@@ -153,7 +154,7 @@ func run() {
 	// Dump configuration
 	dumpConfig()
 
-	err = config.ParseConfigFile()
+	err = config.ParseConfig()
 	if err != nil {
 		log.Errorf("error in parsing config file: %v", err)
 		os.Exit(1)

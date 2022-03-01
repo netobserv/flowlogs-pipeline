@@ -98,8 +98,8 @@ type Write struct {
 	Loki api.WriteLoki
 }
 
-// from the Pipeline and Parameters json create the internal unmarshalled representation
-func ParseConfigFile() error {
+// ParseConfig creates the internal unmarshalled representation from the Pipeline and Parameters json
+func ParseConfig() error {
 	logrus.Debugf("config.Opt.PipeLine = %v ", Opt.PipeLine)
 	err := json.Unmarshal([]byte(Opt.PipeLine), &PipeLine)
 	if err != nil {
