@@ -22,7 +22,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"net"
@@ -91,20 +90,20 @@ func (w *TransportWrapper) Send(_, data []byte) error {
 }
 
 // Ingest ingests entries from a network collector using goflow2 library (https://github.com/netsampler/goflow2)
-func (r *ingestCollector) Ingest(process ProcessFunction) {
+func (ingestC *ingestCollector) Ingest(process ProcessFunction) {
 	ctx := context.Background()
-	r.in = make(chan map[string]interface{}, channelSize)
+	ingestC.in = make(chan map[string]interface{}, channelSize)
 
 	// initialize background listeners (a.k.a.netflow+legacy collector)
-	r.initCollectorListener(ctx)
+	ingestC.initCollectorListener(ctx)
 
 	// forever process log lines received by collector
-	r.processLogLines(process)
+	ingestC.processLogLines(process)
 
 }
 
-func (r *ingestCollector) initCollectorListener(ctx context.Context) {
-	transporter := NewWrapper(r.in)
+func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
+	transporter := NewWrapper(ingestC.in)
 	go func() {
 		formatter, err := goflowFormat.FindFormat(ctx, "pb")
 		if err != nil {
@@ -116,8 +115,8 @@ func (r *ingestCollector) initCollectorListener(ctx context.Context) {
 			Logger:    log.StandardLogger(),
 		}
 
-		log.Infof("listening for netflow on host %s, port = %d", r.hostname, r.port)
-		err = sNF.FlowRoutine(1, r.hostname, r.port, false)
+		log.Infof("listening for netflow on host %s, port = %d", ingestC.hostname, ingestC.port)
+		err = sNF.FlowRoutine(1, ingestC.hostname, ingestC.port, false)
 		log.Fatal(err)
 
 	}()
@@ -133,21 +132,21 @@ func (r *ingestCollector) initCollectorListener(ctx context.Context) {
 			Logger:    log.StandardLogger(),
 		}
 
-		log.Infof("listening for legacy netflow on host %s, port = %d", r.hostname, r.port+1)
-		err = sLegacyNF.FlowRoutine(1, r.hostname, r.port+1, false)
+		log.Infof("listening for legacy netflow on host %s, port = %d", ingestC.hostname, ingestC.port+1)
+		err = sLegacyNF.FlowRoutine(1, ingestC.hostname, ingestC.port+1, false)
 		log.Fatal(err)
 	}()
 
 }
 
-func (r *ingestCollector) processLogLines(process ProcessFunction) {
+func (ingestC *ingestCollector) processLogLines(process ProcessFunction) {
 	var records []interface{}
 	for {
 		select {
-		case <-r.exitChan:
+		case <-ingestC.exitChan:
 			log.Debugf("exiting ingestCollector because of signal")
 			return
-		case record := <-r.in:
+		case record := <-ingestC.in:
 			recordAsBytes, _ := json.Marshal(record)
 			records = append(records, string(recordAsBytes))
 		case <-time.After(time.Millisecond * batchMaxTimeInMilliSecs): // Maximum batch time for each batch
@@ -161,14 +160,8 @@ func (r *ingestCollector) processLogLines(process ProcessFunction) {
 }
 
 // NewIngestCollector create a new ingester
-func NewIngestCollector() (Ingester, error) {
-	ingestCollectorString := config.Opt.PipeLine.Ingest.Collector
-	log.Debugf("ingestCollectorString = %s", ingestCollectorString)
-	var jsonIngestCollector api.IngestCollector
-	err := json.Unmarshal([]byte(ingestCollectorString), &jsonIngestCollector)
-	if err != nil {
-		return nil, err
-	}
+func NewIngestCollector(params config.StageParam) (Ingester, error) {
+	jsonIngestCollector := params.Ingest.Collector
 
 	if jsonIngestCollector.HostName == "" {
 		return nil, fmt.Errorf("ingest hostname not specified")

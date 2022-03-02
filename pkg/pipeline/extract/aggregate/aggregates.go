@@ -18,15 +18,15 @@
 package aggregate
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	log "github.com/sirupsen/logrus"
 	"reflect"
 )
 
 type Aggregates []Aggregate
-type Definitions []Definition
+type Definitions []api.AggregateDefinition
 
 func (aggregates Aggregates) Evaluate(entries []config.GenericMap) error {
 	for _, aggregate := range aggregates {
@@ -50,7 +50,7 @@ func (aggregates Aggregates) GetMetrics() []config.GenericMap {
 	return metrics
 }
 
-func (aggregates Aggregates) AddAggregate(aggregateDefinition Definition) Aggregates {
+func (aggregates Aggregates) AddAggregate(aggregateDefinition api.AggregateDefinition) Aggregates {
 	aggregate := Aggregate{
 		Definition: aggregateDefinition,
 		Groups:     map[NormalizedValues]*GroupState{},
@@ -60,28 +60,17 @@ func (aggregates Aggregates) AddAggregate(aggregateDefinition Definition) Aggreg
 	return appendedAggregates
 }
 
-func (aggregates Aggregates) RemoveAggregate(by By) (Aggregates, error) {
+func (aggregates Aggregates) RemoveAggregate(by api.AggregateBy) (Aggregates, error) {
 	for i, other := range aggregates {
 		if reflect.DeepEqual(other.Definition.By, by) {
 			return append(aggregates[:i], aggregates[i+1:]...), nil
 		}
 	}
-	return aggregates, fmt.Errorf("can't find By = %v", by)
+	return aggregates, fmt.Errorf("can't find AggregateBy = %v", by)
 }
 
-func NewAggregatesFromConfig() (Aggregates, error) {
-	var definitions Definitions
+func NewAggregatesFromConfig(definitions []api.AggregateDefinition) (Aggregates, error) {
 	aggregates := Aggregates{}
-
-	definitionsAsString := config.Opt.PipeLine.Extract.Aggregates
-	log.Debugf("aggregatesString = %s", definitionsAsString)
-
-	err := json.Unmarshal([]byte(definitionsAsString), &definitions)
-	if err != nil {
-		log.Errorf("error in unmarshalling yaml: %v", err)
-		return nil, nil
-
-	}
 
 	for _, aggregateDefinition := range definitions {
 		aggregates = aggregates.AddAggregate(aggregateDefinition)

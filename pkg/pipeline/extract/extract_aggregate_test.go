@@ -19,11 +19,11 @@ package extract
 
 import (
 	"fmt"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
 	"testing"
 )
 
@@ -35,7 +35,7 @@ func createAgg(name, recordKey, by, agg, op string, value float64, count int, rr
 		"by":                          by,
 		"aggregate":                   agg,
 		by:                            agg,
-		"operation":                   aggregate.Operation(op),
+		"operation":                   api.AggregateOperation(op),
 		"value":                       valueString,
 		fmt.Sprintf("%v_value", name): valueString,
 		"recentRawValues":             rrv,
@@ -49,47 +49,49 @@ func createAgg(name, recordKey, by, agg, op string, value float64, count int, rr
 func Test_Extract(t *testing.T) {
 	// Setup
 	yamlConfig := `
-aggregates:
-- name: bandwidth_count
-  by:
-  - service
-  operation: count
-  recordkey: ""
+pipeline:
+  - name: extract1
+parameters:
+  - name: extract1
+    extract:
+      type: aggregates
+      aggregates:
+        - name: bandwidth_count
+          by:
+          - service
+          operation: count
+          recordkey: ""
 
-- name: bandwidth_sum
-  by:
-  - service
-  operation: sum
-  recordkey: bytes
+        - name: bandwidth_sum
+          by:
+          - service
+          operation: sum
+          recordkey: bytes
 
-- name: bandwidth_max
-  by:
-  - service
-  operation: max
-  recordkey: bytes
+        - name: bandwidth_max
+          by:
+          - service
+          operation: max
+          recordkey: bytes
 
-- name: bandwidth_min
-  by:
-  - service
-  operation: min
-  recordkey: bytes
+        - name: bandwidth_min
+          by:
+          - service
+          operation: min
+          recordkey: bytes
 
-- name: bandwidth_avg
-  by:
-  - service
-  operation: avg
-  recordkey: bytes
+        - name: bandwidth_avg
+          by:
+          - service
+          operation: avg
+          recordkey: bytes
 `
 	var err error
-	yamlData := make(map[string]interface{})
-	err = yaml.Unmarshal([]byte(yamlConfig), &yamlData)
-	require.NoError(t, err)
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	jsonBytes, err := json.Marshal(yamlData["aggregates"])
-	require.NoError(t, err)
-	config.Opt.PipeLine.Extract.Aggregates = string(jsonBytes)
 
-	extractAggregate, err := NewExtractAggregate()
+	v := test.InitConfig(t, yamlConfig)
+	require.NotNil(t, v)
+
+	extractAggregate, err := NewExtractAggregate(config.Parameters[0])
 	require.NoError(t, err)
 
 	// Test cases

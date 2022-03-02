@@ -24,7 +24,7 @@ import (
 )
 
 type Generic struct {
-	api.TransformGeneric
+	Rules []api.GenericTransformRule
 }
 
 // Transform transforms a flow to a new set of keys
@@ -40,12 +40,10 @@ func (g *Generic) Transform(f config.GenericMap) config.GenericMap {
 }
 
 // NewTransformGeneric create a new transform
-func NewTransformGeneric(generic api.TransformGeneric) (Transformer, error) {
+func NewTransformGeneric(params config.StageParam) (Transformer, error) {
 	log.Debugf("entering NewTransformGeneric")
-	log.Debugf("rules = %v", generic.Rules)
-	return &Generic{
-		api.TransformGeneric{
-			Rules: generic.Rules,
-		},
-	}, nil
+	transformGeneric := &Generic{
+		Rules: params.Transform.Generic.Rules,
+	}
+	return transformGeneric, nil
 }

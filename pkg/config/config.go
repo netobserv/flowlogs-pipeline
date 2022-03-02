@@ -17,25 +17,40 @@
 
 package config
 
+import (
+	"encoding/json"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/sirupsen/logrus"
+)
+
 type GenericMap map[string]interface{}
 
 var (
-	Opt = Options{}
+	Opt        = Options{}
+	PipeLine   []Stage
+	Parameters []StageParam
 )
 
 type Options struct {
-	PipeLine Pipeline
-	Health   Health
+	PipeLine   string
+	Parameters string
+	Health     Health
 }
 
 type Health struct {
 	Port string
 }
 
-type Pipeline struct {
+type Stage struct {
+	Name    string
+	Follows string
+}
+
+type StageParam struct {
+	Name      string
 	Ingest    Ingest
 	Decode    Decode
-	Transform string
+	Transform Transform
 	Extract   Extract
 	Encode    Encode
 	Write     Write
@@ -44,8 +59,8 @@ type Pipeline struct {
 type Ingest struct {
 	Type      string
 	File      File
-	Collector string
-	Kafka     string
+	Collector api.IngestCollector
+	Kafka     api.IngestKafka
 }
 
 type File struct {
@@ -58,21 +73,46 @@ type Aws struct {
 
 type Decode struct {
 	Type string
-	Aws  string
+	Aws  api.DecodeAws
+}
+
+type Transform struct {
+	Type    string
+	Generic api.TransformGeneric
+	Network api.TransformNetwork
 }
 
 type Extract struct {
 	Type       string
-	Aggregates string
+	Aggregates []api.AggregateDefinition
 }
 
 type Encode struct {
 	Type  string
-	Prom  string
-	Kafka string
+	Prom  api.PromEncode
+	Kafka api.EncodeKafka
 }
 
 type Write struct {
 	Type string
-	Loki string
+	Loki api.WriteLoki
+}
+
+// ParseConfig creates the internal unmarshalled representation from the Pipeline and Parameters json
+func ParseConfig() error {
+	logrus.Debugf("config.Opt.PipeLine = %v ", Opt.PipeLine)
+	err := json.Unmarshal([]byte(Opt.PipeLine), &PipeLine)
+	if err != nil {
+		logrus.Errorf("error when reading config file: %v", err)
+		return err
+	}
+	logrus.Debugf("stages = %v ", PipeLine)
+
+	err = json.Unmarshal([]byte(Opt.Parameters), &Parameters)
+	if err != nil {
+		logrus.Errorf("error when reading config file: %v", err)
+		return err
+	}
+	logrus.Debugf("params = %v ", Parameters)
+	return nil
 }

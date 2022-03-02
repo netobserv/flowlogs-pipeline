@@ -26,16 +26,12 @@ type encodeNone struct {
 }
 
 type Encoder interface {
-	Encode(in []config.GenericMap) []interface{}
+	Encode(in []config.GenericMap) []config.GenericMap
 }
 
 // Encode encodes a flow before being stored
-func (t *encodeNone) Encode(in []config.GenericMap) []interface{} {
-	out := make([]interface{}, len(in))
-	for i, v := range in {
-		out[i] = v
-	}
-	return out
+func (t *encodeNone) Encode(in []config.GenericMap) []config.GenericMap {
+	return in
 }
 
 // NewEncodeNone create a new encode

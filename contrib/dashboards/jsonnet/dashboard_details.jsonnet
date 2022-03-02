@@ -182,7 +182,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(flp_egress_per_namespace{aggregate=~".*pod.*"}[1m]))',
+      expr='topk(10,rate(flp_egress_per_namespace{aggregate=~".*Pod.*"}[1m]))',
     )
   ), gridPos={
     x: 0,

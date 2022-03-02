@@ -19,9 +19,12 @@ package test
 
 import (
 	"bytes"
+	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	"reflect"
 	"testing"
 )
 
@@ -47,12 +50,53 @@ func GetIngestMockEntry(missingKey bool) config.GenericMap {
 }
 
 func InitConfig(t *testing.T, conf string) *viper.Viper {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	yamlConfig := []byte(conf)
 	v := viper.New()
 	v.SetConfigType("yaml")
 	r := bytes.NewReader(yamlConfig)
 	err := v.ReadConfig(r)
-	require.Equal(t, err, nil)
+	require.NoError(t, err)
+
+	// set up global config info
+	// first clear out the config structures in case they were set by a previous instantiation
+	p1 := reflect.ValueOf(&config.PipeLine).Elem()
+	p1.Set(reflect.Zero(p1.Type()))
+	p2 := reflect.ValueOf(&config.Parameters).Elem()
+	p2.Set(reflect.Zero(p2.Type()))
+
+	var b []byte
+	pipelineStr := v.Get("pipeline")
+	b, err = json.Marshal(&pipelineStr)
+	if err != nil {
+		fmt.Printf("error marshaling: %v\n", err)
+		return nil
+	}
+	config.Opt.PipeLine = string(b)
+	parametersStr := v.Get("parameters")
+	b, err = json.Marshal(&parametersStr)
+	if err != nil {
+		fmt.Printf("error marshaling: %v\n", err)
+		return nil
+	}
+	config.Opt.Parameters = string(b)
+	err = json.Unmarshal([]byte(config.Opt.PipeLine), &config.PipeLine)
+	if err != nil {
+		fmt.Printf("error unmarshaling: %v\n", err)
+		return nil
+	}
+	err = json.Unmarshal([]byte(config.Opt.Parameters), &config.Parameters)
+	if err != nil {
+		fmt.Printf("error unmarshaling: %v\n", err)
+		return nil
+	}
+
+	err = config.ParseConfig()
+	if err != nil {
+		fmt.Printf("error in parsing config file: %v \n", err)
+		return nil
+	}
+
 	return v
 }
 

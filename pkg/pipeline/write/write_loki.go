@@ -228,10 +228,10 @@ func (l *Loki) processRecords() {
 }
 
 // NewWriteLoki creates a Loki writer from configuration
-func NewWriteLoki() (*Loki, error) {
+func NewWriteLoki(params config.StageParam) (*Loki, error) {
 	log.Debugf("entering NewWriteLoki")
 
-	writeLokiString := config.Opt.PipeLine.Write.Loki
+	writeLokiString := pUtils.ParamString(params, "write", "loki")
 	log.Debugf("writeLokiString = %s", writeLokiString)
 	var jsonWriteLoki = api.GetWriteLokiDefaults()
 	err := json.Unmarshal([]byte(writeLokiString), &jsonWriteLoki)
@@ -239,6 +239,7 @@ func NewWriteLoki() (*Loki, error) {
 		return nil, err
 	}
 
+	// need to combine defaults with parameters that are provided in the config yaml file
 	if err = jsonWriteLoki.Validate(); err != nil {
 		return nil, fmt.Errorf("the provided config is not valid: %w", err)
 	}

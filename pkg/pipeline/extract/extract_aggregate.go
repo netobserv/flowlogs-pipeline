@@ -40,9 +40,9 @@ func (ea *extractAggregate) Extract(entries []config.GenericMap) []config.Generi
 }
 
 // NewExtractAggregate creates a new extractor
-func NewExtractAggregate() (Extractor, error) {
+func NewExtractAggregate(params config.StageParam) (Extractor, error) {
 	log.Debugf("entering NewExtractAggregate")
-	aggregates, err := aggregate.NewAggregatesFromConfig()
+	aggregates, err := aggregate.NewAggregatesFromConfig(params.Extract.Aggregates)
 	if err != nil {
 		log.Errorf("error in NewAggregatesFromConfig: %v", err)
 		return nil, err

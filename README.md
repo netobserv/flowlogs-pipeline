@@ -32,24 +32,12 @@ Usage:
   flowlogs-pipeline [flags]  
   
 Flags:  
-      --config string                          config file (default is $HOME/.flowlogs-pipeline)  
-      --health.port string                     Health server port (default "8080")  
-  -h, --help                                   help for flowlogs-pipeline  
-      --log-level string                       Log level: debug, info, warning, error (default "error")  
-      --pipeline.decode.aws string             aws fields  
-      --pipeline.decode.type string            Decode type: aws, json, none  
-      --pipeline.encode.kafka string           Kafka encode API  
-      --pipeline.encode.prom string            Prometheus encode API  
-      --pipeline.encode.type string            Encode type: prom, json, kafka, none  
-      --pipeline.extract.aggregates string     Aggregates (see docs)  
-      --pipeline.extract.type string           Extract type: aggregates, none  
-      --pipeline.ingest.collector string       Ingest collector API  
-      --pipeline.ingest.file.filename string   Ingest filename (file)  
-      --pipeline.ingest.kafka string           Ingest Kafka API  
-      --pipeline.ingest.type string            Ingest type: file, collector,file_loop (required)  
-      --pipeline.transform string              Transforms (list) API (default "[{"type": "none"}]")  
-      --pipeline.write.loki string             Loki write API  
-      --pipeline.write.type string             Write type: stdout, none
+      --config string        config file (default is $HOME/.flowlogs-pipeline)  
+      --health.port string   Health server port (default "8080")  
+  -h, --help                 help for flowlogs-pipeline  
+      --log-level string     Log level: debug, info, warning, error (default "error")  
+      --parameters string    json of config file parameters field  
+      --pipeline string      json of config file pipeline field
 ```
 <!---END-AUTO-flowlogs-pipeline_help--->
 

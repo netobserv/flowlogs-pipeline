@@ -19,7 +19,6 @@ package decode
 
 import (
 	"bufio"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
@@ -29,46 +28,55 @@ import (
 
 const testConfig1 = `
 pipeline:
-  decode:
-    type: aws
+  - name: decode1
+parameters:
+  - name: decode1
+    decode:
+      type: aws
 `
 const testConfig2 = `
 pipeline:
-  decode:
-    type: aws
-    aws:
-      fields:
-        - version
-        - vpc-id
-        - subnet-id
-        - instance-id
-        - interface-id
-        - account-id
-        - type
-        - srcaddr
-        - dstaddr
-        - srcport
-        - dstport
-        - pkt-srcaddr
-        - pkt-dstaddr
-        - protocol
-        - bytes
-        - packets
-        - start
-        - end
-        - action
-        - tcp-flags
-        - log-status
+  - name: decode1
+parameters:
+  - name: decode1
+    decode:
+      type: aws
+      aws:
+        fields:
+          - version
+          - vpc-id
+          - subnet-id
+          - instance-id
+          - interface-id
+          - account-id
+          - type
+          - srcaddr
+          - dstaddr
+          - srcport
+          - dstport
+          - pkt-srcaddr
+          - pkt-dstaddr
+          - protocol
+          - bytes
+          - packets
+          - start
+          - end
+          - action
+          - tcp-flags
+          - log-status
 `
 
 const testConfigErr = `
 pipeline:
-  decode:
-    type: aws
-    aws:
-      fields:
-        version
-        vpc-id
+  - name: decode1
+parameters:
+  - name: decode1
+    decode:
+      type: aws
+      aws:
+        fields:
+          version
+          vpc-id
 `
 
 // aws version 2 standard format
@@ -89,21 +97,9 @@ const input2 = `3 vpc-abcdefab012345678 subnet-aaaaaaaa012345678 i-0123456789012
 
 func initNewDecodeAws(t *testing.T, testConfig string) Decoder {
 	v := test.InitConfig(t, testConfig)
-	val := v.Get("pipeline.decode.type")
-	require.Equal(t, "aws", val)
+	require.NotNil(t, v)
 
-	tmp := v.Get("pipeline.decode.aws")
-	if tmp != nil {
-		var json = jsoniter.ConfigCompatibleWithStandardLibrary
-		b, err := json.Marshal(&tmp)
-		require.Equal(t, err, nil)
-		// perform initializations usually done in main.go
-		config.Opt.PipeLine.Decode.Aws = string(b)
-	} else {
-		config.Opt.PipeLine.Decode.Aws = ""
-	}
-
-	newDecode, err := NewDecodeAws()
+	newDecode, err := NewDecodeAws(config.Parameters[0])
 	require.Equal(t, nil, err)
 	return newDecode
 }
@@ -196,16 +192,5 @@ func TestDecodeAwsCustom(t *testing.T) {
 
 func TestConfigErr(t *testing.T) {
 	v := test.InitConfig(t, testConfigErr)
-	val := v.Get("pipeline.decode.type")
-	require.Equal(t, "aws", val)
-
-	tmp := v.Get("pipeline.decode.aws")
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	b, err := json.Marshal(&tmp)
-	require.Equal(t, err, nil)
-	// perform initializations usually done in main.go
-	config.Opt.PipeLine.Decode.Aws = string(b)
-
-	newDecode, _ := NewDecodeAws()
-	require.Equal(t, nil, newDecode)
+	require.Nil(t, v)
 }

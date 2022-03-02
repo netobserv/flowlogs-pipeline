@@ -19,7 +19,6 @@ package encode
 
 import (
 	"container/list"
-	"encoding/json"
 	"fmt"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -81,11 +80,11 @@ type encodeProm struct {
 }
 
 // Encode encodes a metric before being stored
-func (e *encodeProm) Encode(metrics []config.GenericMap) []interface{} {
+func (e *encodeProm) Encode(metrics []config.GenericMap) []config.GenericMap {
 	log.Debugf("entering encodeProm Encode")
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	out := make([]interface{}, 0)
+	out := make([]config.GenericMap, 0)
 	for _, metric := range metrics {
 		// TODO: We may need different handling for histograms
 		metricOut := e.EncodeMetric(metric)
@@ -97,10 +96,10 @@ func (e *encodeProm) Encode(metrics []config.GenericMap) []interface{} {
 	return out
 }
 
-func (e *encodeProm) EncodeMetric(metric config.GenericMap) []interface{} {
+func (e *encodeProm) EncodeMetric(metric config.GenericMap) []config.GenericMap {
 	log.Debugf("entering EncodeMetric metric = %v", metric)
 	// TODO: We may need different handling for histograms
-	out := make([]interface{}, 0)
+	out := make([]config.GenericMap, 0)
 	for metricName, mInfo := range e.metrics {
 		metricValue, ok := metric[mInfo.input]
 		if !ok {
@@ -125,7 +124,12 @@ func (e *encodeProm) EncodeMetric(metric config.GenericMap) []interface{} {
 			},
 			value: valueFloat,
 		}
-		out = append(out, entry)
+		entryMap := map[string]interface{}{
+			"Name":   e.prefix + metricName,
+			"Labels": entryLabels,
+			"value":  valueFloat,
+		}
+		out = append(out, entryMap)
 
 		cEntry := e.saveEntryInCache(entry, entryLabels)
 		cEntry.PromMetric.metricType = mInfo.PromMetric.metricType
@@ -249,15 +253,8 @@ func startPrometheusInterface(w *encodeProm) {
 	}
 }
 
-func NewEncodeProm() (Encoder, error) {
-	encodePromString := config.Opt.PipeLine.Encode.Prom
-	log.Debugf("promEncodeString = %s", encodePromString)
-	var jsonEncodeProm api.PromEncode
-	err := json.Unmarshal([]byte(encodePromString), &jsonEncodeProm)
-	if err != nil {
-		return nil, err
-	}
-
+func NewEncodeProm(params config.StageParam) (Encoder, error) {
+	jsonEncodeProm := params.Encode.Prom
 	portNum := jsonEncodeProm.Port
 	promPrefix := jsonEncodeProm.Prefix
 	expiryTime := int64(jsonEncodeProm.ExpiryTime)

@@ -18,7 +18,6 @@
 package transform
 
 import (
-	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
@@ -166,26 +165,25 @@ func Test_NewTransformNetwork(t *testing.T) {
 	var yamlConfig = []byte(`
 log-level: debug
 pipeline:
-  transform:
-    - type: network
+  - name: transform1
+  - name: write1
+    follows: transform1
+parameters:
+  - name: transform1
+    transform:
+      type: network
       network:
         rules:
         - input: srcIP
           output: subnetSrcIP
           type: add_subnet
           parameters: /24
-  write:
-    type: stdout
+  - name: write1
+    write:
+      type: stdout
 `)
-	v := test.InitConfig(t, string(yamlConfig))
-	val := v.Get("pipeline.transform")
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	b, err := json.Marshal(&val)
-	require.Equal(t, err, nil)
-	config.Opt.PipeLine.Transform = string(b)
-
-	newNetworkTransform := InitNewTransform(t, string(yamlConfig)).(*Network)
-	require.Equal(t, err, nil)
+	newNetworkTransform := InitNewTransformNetwork(t, string(yamlConfig)).(*Network)
+	require.NotNil(t, newNetworkTransform)
 
 	entry := test.GetIngestMockEntry(false)
 	output := newNetworkTransform.Transform(entry)
@@ -194,22 +192,37 @@ pipeline:
 	require.Equal(t, "10.0.0.0/24", output["subnetSrcIP"])
 }
 
+func InitNewTransformNetwork(t *testing.T, configFile string) Transformer {
+	v := test.InitConfig(t, configFile)
+	require.NotNil(t, v)
+	config := config.Parameters[0]
+	newTransform, err := NewTransformNetwork(config)
+	require.NoError(t, err)
+	return newTransform
+}
+
 func Test_ConnTrackingTransformNetwork(t *testing.T) {
 	var yamlConfig = []byte(`
 log-level: debug
 pipeline:
-  transform:
-    - type: network
+  - name: transform1
+  - name: write1
+    follows: transform1
+parameters:
+  - name: transform1
+    transform:
+      type: network
       network:
         rules:
         - input: "{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.protocol}}"
           output: isNewFlow
           type: conn_tracking
           parameters: "777"
-  write:
-    type: stdout
+  - name: write1
+    write:
+      type: stdout
 `)
-	newNetworkTransform := InitNewTransform(t, string(yamlConfig)).(*Network)
+	newNetworkTransform := InitNewTransformNetwork(t, string(yamlConfig)).(*Network)
 	require.NotNil(t, newNetworkTransform)
 
 	// first time flow is new
@@ -227,8 +240,13 @@ func Test_TransformNetworkDependentRulesAddRegExIf(t *testing.T) {
 	var yamlConfig = []byte(`
 log-level: debug
 pipeline:
-  transform:
-    - type: network
+  - name: transform1
+  - name: write1
+    follows: transform1
+parameters:
+  - name: transform1
+    transform:
+      type: network
       network:
         rules:
         - input: srcIP
@@ -243,18 +261,12 @@ pipeline:
           output: match-11.0.*
           type: add_regex_if
           parameters: 11.0.*
-  write:
-    type: stdout
+  - name: write1
+    write:
+      type: stdout
 `)
-	v := test.InitConfig(t, string(yamlConfig))
-	val := v.Get("pipeline.transform")
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	b, err := json.Marshal(&val)
-	require.Equal(t, err, nil)
-	config.Opt.PipeLine.Transform = string(b)
-
-	newNetworkTransform := InitNewTransform(t, string(yamlConfig)).(*Network)
-	require.Equal(t, err, nil)
+	newNetworkTransform := InitNewTransformNetwork(t, string(yamlConfig)).(*Network)
+	require.NotNil(t, newNetworkTransform)
 
 	entry := test.GetIngestMockEntry(false)
 	output := newNetworkTransform.Transform(entry)

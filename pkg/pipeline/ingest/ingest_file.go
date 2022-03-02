@@ -28,7 +28,7 @@ import (
 )
 
 type IngestFile struct {
-	fileName    string
+	params      config.Ingest
 	exitChan    chan bool
 	PrevRecords []interface{}
 }
@@ -36,9 +36,9 @@ type IngestFile struct {
 const delaySeconds = 10
 
 // Ingest ingests entries from a file and resends the same data every delaySeconds seconds
-func (r *IngestFile) Ingest(process ProcessFunction) {
+func (ingestF *IngestFile) Ingest(process ProcessFunction) {
 	lines := make([]interface{}, 0)
-	file, err := os.Open(r.fileName)
+	file, err := os.Open(ingestF.params.File.Filename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,22 +52,22 @@ func (r *IngestFile) Ingest(process ProcessFunction) {
 		log.Debugf("%s", text)
 		lines = append(lines, text)
 	}
-	log.Debugf("Ingesting %d log lines from %s", len(lines), r.fileName)
-	switch config.Opt.PipeLine.Ingest.Type {
+	log.Debugf("Ingesting %d log lines from %s", len(lines), ingestF.params.File.Filename)
+	switch ingestF.params.Type {
 	case "file":
-		r.PrevRecords = lines
+		ingestF.PrevRecords = lines
 		process(lines)
 	case "file_loop":
 		// loop forever
 		ticker := time.NewTicker(time.Duration(delaySeconds) * time.Second)
 		for {
 			select {
-			case <-r.exitChan:
+			case <-ingestF.exitChan:
 				log.Debugf("exiting ingestFile because of signal")
 				return
 			case <-ticker.C:
 				log.Debugf("ingestFile; for loop; before process")
-				r.PrevRecords = lines
+				ingestF.PrevRecords = lines
 				process(lines)
 			}
 		}
@@ -75,18 +75,18 @@ func (r *IngestFile) Ingest(process ProcessFunction) {
 }
 
 // NewIngestFile create a new ingester
-func NewIngestFile() (Ingester, error) {
+func NewIngestFile(params config.StageParam) (Ingester, error) {
 	log.Debugf("entering NewIngestFile")
-	if config.Opt.PipeLine.Ingest.File.Filename == "" {
+	if params.Ingest.File.Filename == "" {
 		return nil, fmt.Errorf("ingest filename not specified")
 	}
 
-	log.Infof("input file name = %s", config.Opt.PipeLine.Ingest.File.Filename)
+	log.Debugf("input file name = %s", params.Ingest.File.Filename)
 
 	ch := make(chan bool, 1)
 	utils.RegisterExitChannel(ch)
 	return &IngestFile{
-		fileName: config.Opt.PipeLine.Ingest.File.Filename,
+		params:   params.Ingest,
 		exitChan: ch,
 	}, nil
 }

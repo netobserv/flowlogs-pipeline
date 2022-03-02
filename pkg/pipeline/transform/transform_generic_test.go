@@ -18,7 +18,6 @@
 package transform
 
 import (
-	"github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
@@ -28,8 +27,11 @@ import (
 const testConfigTransformGeneric = `---
 log-level: debug
 pipeline:
-  transform:
-    - type: generic
+  - name: transform1
+parameters:
+  - name: transform1
+    transform:
+      type: generic
       generic:
         rules:
         - input: srcIP
@@ -58,9 +60,9 @@ func getGenericExpectedOutput() config.GenericMap {
 }
 
 func TestNewTransformGeneric(t *testing.T) {
-	newTransform := InitNewTransform(t, testConfigTransformGeneric)
+	newTransform := InitNewTransformGeneric(t, testConfigTransformGeneric)
 	transformGeneric := newTransform.(*Generic)
-	require.Equal(t, len(transformGeneric.Rules), 6)
+	require.Len(t, transformGeneric.Rules, 6)
 
 	input := test.GetIngestMockEntry(false)
 	output := transformGeneric.Transform(input)
@@ -68,17 +70,12 @@ func TestNewTransformGeneric(t *testing.T) {
 	require.Equal(t, output, expectedOutput)
 }
 
-func InitNewTransform(t *testing.T, configFile string) Transformer {
+func InitNewTransformGeneric(t *testing.T, configFile string) Transformer {
 	v := test.InitConfig(t, configFile)
-	val := v.Get("pipeline.transform")
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	b, err := json.Marshal(&val)
-	require.Equal(t, err, nil)
+	require.NotNil(t, v)
 
-	// perform initializations usually done in main.go
-	config.Opt.PipeLine.Transform = string(b)
-
-	newTransforms, err := GetTransformers()
-	require.Equal(t, err, nil)
-	return newTransforms[0]
+	config := config.Parameters[0]
+	newTransform, err := NewTransformGeneric(config)
+	require.NoError(t, err)
+	return newTransform
 }

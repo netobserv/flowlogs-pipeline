@@ -19,7 +19,6 @@ package encode
 
 import (
 	"container/list"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -32,42 +31,41 @@ import (
 const testConfig = `---
 log-level: debug
 pipeline:
-  encode:
-    type: prom
-    prom:
-      port: 9103
-      prefix: test_
-      expirytime: 1
-      metrics:
-        - name: Bytes
-          type: gauge
-          valuekey: bytes
-          labels:
-            - srcAddr
-            - dstAddr
-            - srcPort
-        - name: Packets
-          type: counter
-          valuekey: packets
-          labels:
-            - srcAddr
-            - dstAddr
-            - dstPort
-        - name: subnetHistogram
-          type: histogram
-          valuekey: aggregate
-          labels:
+  - name: encode1
+parameters:
+  - name: encode1
+    encode:
+      type: prom
+      prom:
+        port: 9103
+        prefix: test_
+        expirytime: 1
+        metrics:
+          - name: Bytes
+            type: gauge
+            valuekey: bytes
+            labels:
+              - srcAddr
+              - dstAddr
+              - srcPort
+          - name: Packets
+            type: counter
+            valuekey: packets
+            labels:
+              - srcAddr
+              - dstAddr
+              - dstPort
+          - name: subnetHistogram
+            type: histogram
+            valuekey: aggregate
+            labels:
 `
 
 func initNewEncodeProm(t *testing.T) Encoder {
 	v := test.InitConfig(t, testConfig)
-	val := v.Get("pipeline.encode.prom")
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	b, err := json.Marshal(&val)
-	require.Equal(t, err, nil)
+	require.NotNil(t, v)
 
-	config.Opt.PipeLine.Encode.Prom = string(b)
-	newEncode, err := NewEncodeProm()
+	newEncode, err := NewEncodeProm(config.Parameters[0])
 	require.Equal(t, err, nil)
 	return newEncode
 }
@@ -104,32 +102,33 @@ func Test_NewEncodeProm(t *testing.T) {
 	entryLabels2["srcAddr"] = "10.1.2.3"
 	entryLabels2["dstAddr"] = "10.1.2.4"
 	entryLabels2["dstPort"] = "39504"
-	gEntryInfo1 := entryInfo{
-		value: float64(1234),
-		eInfo: entrySignature{
-			Name:   "test_Bytes",
-			Labels: entryLabels1,
-		},
+	gEntryInfo1 := config.GenericMap{
+		"Name":   "test_Bytes",
+		"Labels": entryLabels1,
+		"value":  float64(1234),
 	}
-	gEntryInfo2 := entryInfo{
-		eInfo: entrySignature{
-			Name:   "test_Packets",
-			Labels: entryLabels2,
-		},
-		value: float64(34),
+	gEntryInfo2 := config.GenericMap{
+		"Name":   "test_Packets",
+		"Labels": entryLabels2,
+		"value":  float64(34),
 	}
 	require.Contains(t, output, gEntryInfo1)
 	require.Contains(t, output, gEntryInfo2)
 	gaugeA, err := gInfo.promGauge.GetMetricWith(entryLabels1)
 	require.Equal(t, nil, err)
 	bytesA := testutil.ToFloat64(gaugeA)
-	require.Equal(t, gEntryInfo1.value, bytesA)
+	require.Equal(t, gEntryInfo1["value"], bytesA)
 
 	// verify entries are in cache; one for the gauge and one for the counter
 	entriesMap := encodeProm.mCache
 	require.Equal(t, 2, len(entriesMap))
 
-	eInfoBytes := generateCacheKey(&gEntryInfo1.eInfo)
+	eInfo := entrySignature{
+		Name:   "test_Bytes",
+		Labels: entryLabels1,
+	}
+
+	eInfoBytes := generateCacheKey(&eInfo)
 	encodeProm.mu.Lock()
 	_, found := encodeProm.mCache[string(eInfoBytes)]
 	encodeProm.mu.Unlock()
@@ -171,17 +170,15 @@ func Test_EncodeAggregate(t *testing.T) {
 
 	output := newEncode.Encode(metrics)
 
-	gEntryInfo1 := entryInfo{
-		eInfo: entrySignature{
-			Name: "test_gauge",
-			Labels: map[string]string{
-				"by":        "[dstIP srcIP]",
-				"aggregate": "20.0.0.2,10.0.0.1",
-			},
+	gEntryInfo1 := config.GenericMap{
+		"Name": "test_gauge",
+		"Labels": map[string]string{
+			"by":        "[dstIP srcIP]",
+			"aggregate": "20.0.0.2,10.0.0.1",
 		},
-		value: float64(7),
+		"value": float64(7),
 	}
 
-	expectedOutput := []interface{}{gEntryInfo1}
-	require.Equal(t, output, expectedOutput)
+	expectedOutput := []config.GenericMap{gEntryInfo1}
+	require.Equal(t, expectedOutput, output)
 }

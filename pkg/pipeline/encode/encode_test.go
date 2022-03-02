@@ -43,7 +43,7 @@ func TestEncodeNone(t *testing.T) {
 		"varbool":   false,
 	}
 	map3 := config.GenericMap{}
-	var out []interface{}
+	var out []config.GenericMap
 	var in []config.GenericMap
 	out = encodeNone.Encode(in)
 	require.Equal(t, 0, len(out))

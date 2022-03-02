@@ -20,6 +20,7 @@ package aggregate
 import (
 	"fmt"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	log "github.com/sirupsen/logrus"
 	"math"
 	"sort"
@@ -35,22 +36,12 @@ const (
 	OperationCount = "count"
 )
 
-type By []string
-type Operation string
-
 type Labels map[string]string
 type NormalizedValues string
 
 type Aggregate struct {
-	Definition Definition
+	Definition api.AggregateDefinition
 	Groups     map[NormalizedValues]*GroupState
-}
-
-type Definition struct {
-	Name      string
-	By        By
-	Operation Operation
-	RecordKey string
 }
 
 type GroupState struct {
