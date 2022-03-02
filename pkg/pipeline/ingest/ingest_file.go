@@ -20,20 +20,25 @@ package ingest
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"time"
 )
 
 type IngestFile struct {
-	params      config.Ingest
-	exitChan    chan bool
-	PrevRecords []interface{}
+	params       config.Ingest
+	exitChan     chan bool
+	PrevRecords  []interface{}
+	TotalRecords int
 }
 
-const delaySeconds = 10
+const (
+	delaySeconds = 10
+	chunkLines   = 100
+)
 
 // Ingest ingests entries from a file and resends the same data every delaySeconds seconds
 func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
@@ -52,10 +57,12 @@ func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 		log.Debugf("%s", text)
 		lines = append(lines, text)
 	}
+
 	log.Debugf("Ingesting %d log lines from %s", len(lines), ingestF.params.File.Filename)
 	switch ingestF.params.Type {
 	case "file":
 		ingestF.PrevRecords = lines
+		ingestF.TotalRecords = len(lines)
 		log.Debugf("ingestFile sending %d lines", len(lines))
 		out <- lines
 	case "file_loop":
@@ -69,8 +76,21 @@ func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 			case <-ticker.C:
 				log.Debugf("ingestFile; for loop; before process")
 				ingestF.PrevRecords = lines
+				ingestF.TotalRecords += len(lines)
 				log.Debugf("ingestFile sending %d lines", len(lines))
 				out <- lines
+			}
+		}
+	case "file_chunks":
+		// sends the lines in chunks. Useful for testing parallelization
+		ingestF.TotalRecords = len(lines)
+		for len(lines) > 0 {
+			if len(lines) > chunkLines {
+				out <- lines[:chunkLines]
+				lines = lines[chunkLines:]
+			} else {
+				out <- lines
+				lines = nil
 			}
 		}
 	}
