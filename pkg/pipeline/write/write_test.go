@@ -18,9 +18,10 @@
 package write
 
 import (
+	"testing"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_Write(t *testing.T) {

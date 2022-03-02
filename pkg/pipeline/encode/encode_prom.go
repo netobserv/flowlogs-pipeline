@@ -20,17 +20,18 @@ package encode
 import (
 	"container/list"
 	"fmt"
+	"net/http"
+	"os"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"os"
-	"strconv"
-	"sync"
-	"time"
 )
 
 const defaultExpiryTime = 120

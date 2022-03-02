@@ -20,10 +20,11 @@ package write
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"testing"
 	"time"
+
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"

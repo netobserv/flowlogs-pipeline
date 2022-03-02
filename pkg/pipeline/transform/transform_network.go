@@ -20,6 +20,11 @@ package transform
 import (
 	"bytes"
 	"fmt"
+	"net"
+	"regexp"
+	"strconv"
+	"text/template"
+
 	"github.com/Knetic/govaluate"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -28,10 +33,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	log "github.com/sirupsen/logrus"
 	"honnef.co/go/netdb"
-	"net"
-	"regexp"
-	"strconv"
-	"text/template"
 )
 
 type Network struct {

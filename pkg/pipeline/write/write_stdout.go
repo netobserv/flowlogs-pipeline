@@ -19,9 +19,10 @@ package write
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 type writeStdout struct {

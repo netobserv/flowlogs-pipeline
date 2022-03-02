@@ -18,10 +18,11 @@
 package aggregate
 
 import (
+	"testing"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_NewAggregatesFromConfig(t *testing.T) {

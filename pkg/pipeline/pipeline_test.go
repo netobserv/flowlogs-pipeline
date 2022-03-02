@@ -18,6 +18,8 @@
 package pipeline
 
 import (
+	"testing"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
@@ -25,7 +27,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 var yamlConfigNoParams = `
@@ -48,7 +49,7 @@ func Test_transformToLoki(t *testing.T) {
 
 	v := test.InitConfig(t, yamlConfigNoParams)
 	require.NotNil(t, v)
-	
+
 	loki, err := write.NewWriteLoki(config.Parameters[0])
 	require.NoError(t, err)
 	loki.Write(transformed)

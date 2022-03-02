@@ -19,6 +19,7 @@ package utils
 
 import (
 	"encoding/json"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
