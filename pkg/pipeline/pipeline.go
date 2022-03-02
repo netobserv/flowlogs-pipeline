@@ -311,7 +311,8 @@ func (p Pipeline) processStage(stage *PipelineEntry, entries []config.GenericMap
 	}
 	for nextStage := range stage.nextStages {
 		// make a separate copy of the input data for each following stage
-		entriesCopy := entries
+		entriesCopy := make([]config.GenericMap, len(out))
+		copy(entriesCopy, out)
 		p.processStage(stage.nextStages[nextStage], entriesCopy)
 	}
 }
@@ -336,7 +337,8 @@ func (p Pipeline) Process(entries []interface{}) {
 	log.Debugf(" pipeline.Process, before for loop")
 	for nextStage := range secondStage.nextStages {
 		// make a separate copy of the input data for each following stage
-		entriesCopy := out
+		entriesCopy := make([]config.GenericMap, len(out))
+		copy(entriesCopy, out)
 		p.processStage(secondStage.nextStages[nextStage], entriesCopy)
 	}
 }
