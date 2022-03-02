@@ -6,14 +6,17 @@ WORKDIR /app
 COPY go.mod .
 COPY go.sum .
 
-# Download modules
-RUN go mod download
-
 COPY cmd/ cmd/
 COPY pkg/ pkg/
+COPY .bingo/ .bingo/
+COPY .git/ .git/
+COPY Makefile Makefile
 
-# Build
-RUN VERSION=$(date); CGO_ENABLED=0 GOOS=linux GO111MODULE=on GOARCH=amd64 go build -ldflags "-X 'main.Version=$VERSION'" ./cmd/flowlogs-pipeline
+# Download modules
+RUN go mod download
+RUN go mod vendor
+
+RUN make build_code
 
 # final stage
 FROM ubuntu

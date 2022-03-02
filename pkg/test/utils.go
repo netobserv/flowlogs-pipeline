@@ -67,10 +67,18 @@ func InitConfig(t *testing.T, conf string) *viper.Viper {
 
 	var b []byte
 	pipelineStr := v.Get("pipeline")
-	b, _ = json.Marshal(&pipelineStr)
+	b, err = json.Marshal(&pipelineStr)
+	if err != nil {
+		fmt.Printf("error marshaling: %v\n", err)
+		return nil
+	}
 	config.Opt.PipeLine = string(b)
 	parametersStr := v.Get("parameters")
-	b, _ = json.Marshal(&parametersStr)
+	b, err = json.Marshal(&parametersStr)
+	if err != nil {
+		fmt.Printf("error marshaling: %v\n", err)
+		return nil
+	}
 	config.Opt.Parameters = string(b)
 	err = json.Unmarshal([]byte(config.Opt.PipeLine), &config.PipeLine)
 	if err != nil {
@@ -83,7 +91,7 @@ func InitConfig(t *testing.T, conf string) *viper.Viper {
 		return nil
 	}
 
-	err = config.ParseConfigFile()
+	err = config.ParseConfig()
 	if err != nil {
 		fmt.Printf("error in parsing config file: %v \n", err)
 		return nil

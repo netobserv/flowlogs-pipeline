@@ -24,12 +24,13 @@ const TagEnum = "enum"
 // Note: items beginning with doc: "## title" are top level items that get divided into sections inside api.md.
 
 type API struct {
-	PromEncode       PromEncode       `yaml:"prom" doc:"## Prometheus encode API\nFollowing is the supported API format for prometheus encode:\n"`
-	KafkaEncode      EncodeKafka      `yaml:"kafka" doc:"## Kafka encode API\nFollowing is the supported API format for kafka encode:\n"`
-	IngestCollector  IngestCollector  `yaml:"collector" doc:"## Ingest collector API\nFollowing is the supported API format for the netflow collector:\n"`
-	IngestKafka      IngestKafka      `yaml:"kafka" doc:"## Ingest Kafka API\nFollowing is the supported API format for the kafka ingest:\n"`
-	DecodeAws        DecodeAws        `yaml:"aws" doc:"## Aws ingest API\nFollowing is the supported API format for Aws flow entries:\n"`
-	TransformGeneric TransformGeneric `yaml:"generic" doc:"## Transform Generic API\nFollowing is the supported API format for generic transformations:\n"`
-	TransformNetwork TransformNetwork `yaml:"network" doc:"## Transform Network API\nFollowing is the supported API format for network transformations:\n"`
-	WriteLoki        WriteLoki        `yaml:"loki" doc:"## Write Loki API\nFollowing is the supported API format for writing to loki:\n"`
+	PromEncode       PromEncode          `yaml:"prom" doc:"## Prometheus encode API\nFollowing is the supported API format for prometheus encode:\n"`
+	KafkaEncode      EncodeKafka         `yaml:"kafka" doc:"## Kafka encode API\nFollowing is the supported API format for kafka encode:\n"`
+	IngestCollector  IngestCollector     `yaml:"collector" doc:"## Ingest collector API\nFollowing is the supported API format for the netflow collector:\n"`
+	IngestKafka      IngestKafka         `yaml:"kafka" doc:"## Ingest Kafka API\nFollowing is the supported API format for the kafka ingest:\n"`
+	DecodeAws        DecodeAws           `yaml:"aws" doc:"## Aws ingest API\nFollowing is the supported API format for Aws flow entries:\n"`
+	TransformGeneric TransformGeneric    `yaml:"generic" doc:"## Transform Generic API\nFollowing is the supported API format for generic transformations:\n"`
+	TransformNetwork TransformNetwork    `yaml:"network" doc:"## Transform Network API\nFollowing is the supported API format for network transformations:\n"`
+	WriteLoki        WriteLoki           `yaml:"loki" doc:"## Write Loki API\nFollowing is the supported API format for writing to loki:\n"`
+	ExtractAggregate AggregateDefinition `yaml:"aggregates" doc:"## Aggregate metrics API\nFollowing is the supported API format for specifying metrics aggregations:\n"`
 }

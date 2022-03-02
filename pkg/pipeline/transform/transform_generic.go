@@ -40,7 +40,7 @@ func (g *Generic) Transform(f config.GenericMap) config.GenericMap {
 }
 
 // NewTransformGeneric create a new transform
-func NewTransformGeneric(params config.Param) (Transformer, error) {
+func NewTransformGeneric(params config.StageParam) (Transformer, error) {
 	log.Debugf("entering NewTransformGeneric")
 	transformGeneric := &Generic{
 		Rules: params.Transform.Generic.Rules,

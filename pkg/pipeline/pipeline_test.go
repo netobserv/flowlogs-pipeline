@@ -51,7 +51,6 @@ func Test_transformToLoki(t *testing.T) {
 
 	v := test.InitConfig(t, yamlConfigNoParams)
 	require.NotNil(t, v)
-
 	loki, err := write.NewWriteLoki(config.Parameters[0])
 	require.NoError(t, err)
 	loki.Write(transformed)

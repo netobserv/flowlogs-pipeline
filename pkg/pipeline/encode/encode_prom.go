@@ -253,7 +253,7 @@ func startPrometheusInterface(w *encodeProm) {
 	}
 }
 
-func NewEncodeProm(params config.Param) (Encoder, error) {
+func NewEncodeProm(params config.StageParam) (Encoder, error) {
 	jsonEncodeProm := params.Encode.Prom
 	portNum := jsonEncodeProm.Port
 	promPrefix := jsonEncodeProm.Prefix

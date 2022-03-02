@@ -110,3 +110,13 @@ Following is the supported API format for writing to loki:
          timestampLabel: label to use for time indexing
          timestampScale: timestamp units scale (e.g. for UNIX = 1s)
 </pre>
+## Aggregate metrics API
+Following is the supported API format for specifying metrics aggregations:
+
+<pre>
+ aggregates:
+         Name: description of aggregation result
+         By: list of fields on which to aggregate
+         Operation: sum, min, max, or avg
+         RecordKey: internal field on which to perform the operation
+</pre>

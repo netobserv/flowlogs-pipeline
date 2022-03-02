@@ -152,7 +152,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) config.GenericMap {
 }
 
 // NewTransformNetwork create a new transform
-func NewTransformNetwork(params config.Param) (Transformer, error) {
+func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	var needToInitLocationDB = false
 	var needToInitKubeData = false
 	var needToInitConnectionTracking = false

@@ -57,7 +57,7 @@ type Pipeline struct {
 type builder struct {
 	pipelineStages   []*pipelineEntry
 	configStages     []config.Stage
-	configParams     []config.Param
+	configParams     []config.StageParam
 	pipelineEntryMap map[string]*pipelineEntry
 	createdStages    map[string]interface{}
 	startNodes       []*node.Init
@@ -75,7 +75,7 @@ type pipelineEntry struct {
 	Writer      write.Writer
 }
 
-func getIngester(params config.Param) (ingest.Ingester, error) {
+func getIngester(params config.StageParam) (ingest.Ingester, error) {
 	var ingester ingest.Ingester
 	var err error
 	switch params.Ingest.Type {
@@ -93,7 +93,7 @@ func getIngester(params config.Param) (ingest.Ingester, error) {
 	return ingester, err
 }
 
-func getDecoder(params config.Param) (decode.Decoder, error) {
+func getDecoder(params config.StageParam) (decode.Decoder, error) {
 	var decoder decode.Decoder
 	var err error
 	switch params.Decode.Type {
@@ -109,23 +109,23 @@ func getDecoder(params config.Param) (decode.Decoder, error) {
 	return decoder, err
 }
 
-func getWriter(params config.Param) (write.Writer, error) {
+func getWriter(params config.StageParam) (write.Writer, error) {
 	var writer write.Writer
 	var err error
 	switch params.Write.Type {
 	case "stdout":
-		writer, _ = write.NewWriteStdout()
+		writer, err = write.NewWriteStdout()
 	case "none":
-		writer, _ = write.NewWriteNone()
+		writer, err = write.NewWriteNone()
 	case "loki":
-		writer, _ = write.NewWriteLoki(params)
+		writer, err = write.NewWriteLoki(params)
 	default:
 		panic(fmt.Sprintf("`write` type %s not defined; if no encoder needed, specify `none`", params.Write.Type))
 	}
 	return writer, err
 }
 
-func getTransformer(params config.Param) (transform.Transformer, error) {
+func getTransformer(params config.StageParam) (transform.Transformer, error) {
 	var transformer transform.Transformer
 	var err error
 	switch params.Transform.Type {
@@ -141,7 +141,7 @@ func getTransformer(params config.Param) (transform.Transformer, error) {
 	return transformer, err
 }
 
-func getExtractor(params config.Param) (extract.Extractor, error) {
+func getExtractor(params config.StageParam) (extract.Extractor, error) {
 	var extractor extract.Extractor
 	var err error
 	switch params.Extract.Type {
@@ -155,7 +155,7 @@ func getExtractor(params config.Param) (extract.Extractor, error) {
 	return extractor, err
 }
 
-func getEncoder(params config.Param) (encode.Encoder, error) {
+func getEncoder(params config.StageParam) (encode.Encoder, error) {
 	var encoder encode.Encoder
 	var err error
 	switch params.Encode.Type {
@@ -171,12 +171,10 @@ func getEncoder(params config.Param) (encode.Encoder, error) {
 	return encoder, err
 }
 
-// find matching config.param structure and identify the stage type
-func findStageParameters(stage config.Stage, configParams []config.Param) (*config.Param, string) {
-	var param config.Param
+// findStageParameters finds the matching config.param structure and identifies the stage type
+func findStageParameters(stage config.Stage, configParams []config.StageParam) (*config.StageParam, string) {
 	log.Debugf("findStageParameters: stage = %v", stage)
-	for index := range configParams {
-		param = configParams[index]
+	for _, param := range configParams {
 		log.Debugf("findStageParameters: param = %v", param)
 		if stage.Name == param.Name {
 			var stageType string
@@ -216,7 +214,7 @@ func NewPipeline() (*Pipeline, error) {
 	return newBuilder(configParams, stages).build()
 }
 
-func newBuilder(params []config.Param, stages []config.Stage) *builder {
+func newBuilder(params []config.StageParam, stages []config.Stage) *builder {
 	return &builder{
 		pipelineEntryMap: map[string]*pipelineEntry{},
 		createdStages:    map[string]interface{}{},
@@ -389,11 +387,11 @@ func (b *builder) getStageNode(pe *pipelineEntry) (interface{}, error) {
 }
 
 func (p *Pipeline) Run() {
-	p.IsRunning = true
 	// starting the graph
 	for _, s := range p.startNodes {
 		s.Start()
 	}
+	p.IsRunning = true
 
 	// blocking the execution until the graph terminal stages end
 	for _, t := range p.terminalNodes {

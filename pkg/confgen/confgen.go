@@ -87,9 +87,9 @@ func (cg *ConfGen) Run() error {
 
 	cg.dedupe()
 
-	err = cg.generateFlowlogs2MetricsConfig(Opt.DestConfFile)
+	err = cg.generateFlowlogs2PipelineConfig(Opt.DestConfFile)
 	if err != nil {
-		log.Debugf("cg.generateFlowlogs2MetricsConfig err: %v ", err)
+		log.Debugf("cg.generateFlowlogs2PipelineConfig err: %v ", err)
 		return err
 	}
 

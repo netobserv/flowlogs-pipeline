@@ -18,15 +18,14 @@
 package ingest
 
 import (
-	"testing"
-	"time"
-
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	kafkago "github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
+	"testing"
+	"time"
 )
 
 const testConfig1 = `---
@@ -67,7 +66,7 @@ func initNewIngestKafka(t *testing.T, configTemplate string) Ingester {
 	require.NotNil(t, v)
 
 	newIngest, err := NewIngestKafka(config.Parameters[0])
-	require.Equal(t, err, nil)
+	require.NoError(t, err)
 	return newIngest
 }
 

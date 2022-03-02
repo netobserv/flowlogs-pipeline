@@ -22,6 +22,18 @@ NETFLOW_GENERATOR=nflow-generator
 CMD_DIR=./cmd/
 FLP_CONF_FILE ?= contrib/kubernetes/flowlogs-pipeline.conf.yaml
 
+BUILD_DATE := $(shell date +%Y-%m-%d\ %H:%M)
+TAG_COMMIT := $(shell git rev-list --abbrev-commit --tags --max-count=1)
+TAG := $(shell git describe --abbrev=0 --tags ${TAG_COMMIT} 2>/dev/null || true)
+COMMIT := $(shell git rev-parse --short HEAD)
+BUILD_VERSION := $(TAG:v%=%)
+ifneq ($(COMMIT), $(TAG_COMMIT))
+	BUILD_VERSION := $(BUILD_VERSION)-$(COMMIT)
+endif
+ifneq ($(shell git status --porcelain),)
+	BUILD_VERSION := $(BUILD_VERSION)-dirty
+endif
+
 .DEFAULT_GOAL := help
 
 FORCE: ;
@@ -59,7 +71,7 @@ lint: $(GOLANGCI_LINT) ## Lint the code
 .PHONY: build_code
 build_code: validate_go lint
 	@go mod vendor
-	VERSION=$$(date); go build -ldflags "-X 'main.Version=$$VERSION'" "${CMD_DIR}${FLP_BIN_FILE}"
+	go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${FLP_BIN_FILE}"
 
 .PHONY: build
 build: build_code docs ## Build flowlogs-pipeline executable and update the docs
@@ -82,7 +94,7 @@ clean: ## Clean
 # note: to review coverage execute: go tool cover -html=/tmp/coverage.out
 .PHONY: test
 test: validate_go ## Test
-	go test -p 1 -race -covermode=atomic -coverprofile=/tmp/coverage.out ./...
+	go test -p 1 -race -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out ./...
 
 # note: to review profile execute: go tool pprof -web /tmp/flowlogs-pipeline-cpu-profile.out (make sure graphviz is installed)
 .PHONY: benchmarks

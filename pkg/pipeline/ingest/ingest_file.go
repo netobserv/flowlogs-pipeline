@@ -20,12 +20,11 @@ package ingest
 import (
 	"bufio"
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
+	"os"
+	"time"
 )
 
 type IngestFile struct {
@@ -37,9 +36,9 @@ type IngestFile struct {
 const delaySeconds = 10
 
 // Ingest ingests entries from a file and resends the same data every delaySeconds seconds
-func (r *IngestFile) Ingest(out chan<- []interface{}) {
+func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 	lines := make([]interface{}, 0)
-	file, err := os.Open(r.params.File.Filename)
+	file, err := os.Open(ingestF.params.File.Filename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,10 +52,10 @@ func (r *IngestFile) Ingest(out chan<- []interface{}) {
 		log.Debugf("%s", text)
 		lines = append(lines, text)
 	}
-	log.Debugf("Ingesting %d log lines from %s", len(lines), r.params.File.Filename)
-	switch r.params.Type {
+	log.Debugf("Ingesting %d log lines from %s", len(lines), ingestF.params.File.Filename)
+	switch ingestF.params.Type {
 	case "file":
-		r.PrevRecords = lines
+		ingestF.PrevRecords = lines
 		log.Debugf("ingestFile sending %d lines", len(lines))
 		out <- lines
 	case "file_loop":
@@ -64,12 +63,12 @@ func (r *IngestFile) Ingest(out chan<- []interface{}) {
 		ticker := time.NewTicker(time.Duration(delaySeconds) * time.Second)
 		for {
 			select {
-			case <-r.exitChan:
+			case <-ingestF.exitChan:
 				log.Debugf("exiting ingestFile because of signal")
 				return
 			case <-ticker.C:
 				log.Debugf("ingestFile; for loop; before process")
-				r.PrevRecords = lines
+				ingestF.PrevRecords = lines
 				log.Debugf("ingestFile sending %d lines", len(lines))
 				out <- lines
 			}
@@ -78,7 +77,7 @@ func (r *IngestFile) Ingest(out chan<- []interface{}) {
 }
 
 // NewIngestFile create a new ingester
-func NewIngestFile(params config.Param) (Ingester, error) {
+func NewIngestFile(params config.StageParam) (Ingester, error) {
 	log.Debugf("entering NewIngestFile")
 	if params.Ingest.File.Filename == "" {
 		return nil, fmt.Errorf("ingest filename not specified")

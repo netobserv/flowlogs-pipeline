@@ -69,7 +69,7 @@ func (r *FileChunks) Ingest(out chan<- []interface{}) {
 }
 
 // NewFileChunks create a new ingester that sends entries in chunks of fixed number of lines.
-func NewFileChunks(params config.Param) (Ingester, error) {
+func NewFileChunks(params config.StageParam) (Ingester, error) {
 	log.Debugf("entering NewIngestFile")
 	if params.Ingest.File.Filename == "" {
 		return nil, fmt.Errorf("ingest filename not specified")
