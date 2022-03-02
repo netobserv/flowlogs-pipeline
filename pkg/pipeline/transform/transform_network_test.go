@@ -182,9 +182,7 @@ parameters:
     write:
       type: stdout
 `)
-	v := test.InitConfig(t, string(yamlConfig))
-	require.NotEqual(t, nil, v)
-
+	test.InitConfig(t, string(yamlConfig))
 	newNetworkTransform := InitNewTransformNetwork(t, string(yamlConfig)).(*Network)
 	require.NotEqual(t, nil, newNetworkTransform)
 
@@ -196,9 +194,7 @@ parameters:
 }
 
 func InitNewTransformNetwork(t *testing.T, configFile string) Transformer {
-	v := test.InitConfig(t, configFile)
-	require.NotNil(t, v)
-
+	test.InitConfig(t, configFile)
 	config := config.Parameters[0]
 	newTransform, err := NewTransformNetwork(config)
 	require.NoError(t, err)
@@ -269,9 +265,7 @@ parameters:
     write:
       type: stdout
 `)
-	v := test.InitConfig(t, string(yamlConfig))
-	require.NotNil(t, v)
-
+	test.InitConfig(t, string(yamlConfig))
 	newNetworkTransform := InitNewTransformNetwork(t, string(yamlConfig)).(*Network)
 	require.NotNil(t, newNetworkTransform)
 
