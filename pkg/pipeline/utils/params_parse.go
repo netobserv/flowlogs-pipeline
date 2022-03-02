@@ -24,7 +24,7 @@ import (
 )
 
 // ParamString returns its corresponding (json) string from config.parameters for specified params structure
-func ParamString(params config.Param, stage string, stageType string) string {
+func ParamString(params config.StageParam, stage string, stageType string) string {
 	log.Debugf("entering paramString")
 	log.Debugf("params = %v, stage = %s, stageType = %s", params, stage, stageType)
 

@@ -64,7 +64,7 @@ func (r *encodeKafka) Encode(in []config.GenericMap) []config.GenericMap {
 }
 
 // NewEncodeKafka create a new writer to kafka
-func NewEncodeKafka(params config.Param) (Encoder, error) {
+func NewEncodeKafka(params config.StageParam) (Encoder, error) {
 	log.Debugf("entering NewIngestKafka")
 	jsonEncodeKafka := params.Encode.Kafka
 

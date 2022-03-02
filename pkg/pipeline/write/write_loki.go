@@ -228,7 +228,7 @@ func (l *Loki) processRecords() {
 }
 
 // NewWriteLoki creates a Loki writer from configuration
-func NewWriteLoki(params config.Param) (*Loki, error) {
+func NewWriteLoki(params config.StageParam) (*Loki, error) {
 	log.Debugf("entering NewWriteLoki")
 
 	writeLokiString := pUtils.ParamString(params, "write", "loki")

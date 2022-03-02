@@ -66,7 +66,7 @@ func initNewIngestKafka(t *testing.T, configTemplate string) Ingester {
 	require.NotNil(t, v)
 
 	newIngest, err := NewIngestKafka(config.Parameters[0])
-	require.Equal(t, err, nil)
+	require.NoError(t, err)
 	return newIngest
 }
 

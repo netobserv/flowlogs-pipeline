@@ -46,7 +46,7 @@ type Pipeline struct {
 	IsRunning      bool
 	pipelineStages []*PipelineEntry
 	configStages   []config.Stage
-	configParams   []config.Param
+	configParams   []config.StageParam
 }
 
 type PipelineEntry struct {
@@ -64,7 +64,7 @@ type PipelineEntry struct {
 var pipelineEntryMap map[string]*PipelineEntry
 var firstStage *PipelineEntry
 
-func getIngester(stage config.Stage, params config.Param) (ingest.Ingester, error) {
+func getIngester(stage config.Stage, params config.StageParam) (ingest.Ingester, error) {
 	var ingester ingest.Ingester
 	var err error
 	switch params.Ingest.Type {
@@ -80,7 +80,7 @@ func getIngester(stage config.Stage, params config.Param) (ingest.Ingester, erro
 	return ingester, err
 }
 
-func getDecoder(stage config.Stage, params config.Param) (decode.Decoder, error) {
+func getDecoder(stage config.Stage, params config.StageParam) (decode.Decoder, error) {
 	var decoder decode.Decoder
 	var err error
 	switch params.Decode.Type {
@@ -96,23 +96,23 @@ func getDecoder(stage config.Stage, params config.Param) (decode.Decoder, error)
 	return decoder, err
 }
 
-func getWriter(stage config.Stage, params config.Param) (write.Writer, error) {
+func getWriter(stage config.Stage, params config.StageParam) (write.Writer, error) {
 	var writer write.Writer
 	var err error
 	switch params.Write.Type {
 	case "stdout":
-		writer, _ = write.NewWriteStdout()
+		writer, err = write.NewWriteStdout()
 	case "none":
-		writer, _ = write.NewWriteNone()
+		writer, err = write.NewWriteNone()
 	case "loki":
-		writer, _ = write.NewWriteLoki(params)
+		writer, err = write.NewWriteLoki(params)
 	default:
 		panic(fmt.Sprintf("`write` type %s not defined; if no encoder needed, specify `none`", params.Write.Type))
 	}
 	return writer, err
 }
 
-func getTransformer(stage config.Stage, params config.Param) (transform.Transformer, error) {
+func getTransformer(stage config.Stage, params config.StageParam) (transform.Transformer, error) {
 	var transformer transform.Transformer
 	var err error
 	switch params.Transform.Type {
@@ -128,7 +128,7 @@ func getTransformer(stage config.Stage, params config.Param) (transform.Transfor
 	return transformer, err
 }
 
-func getExtractor(stage config.Stage, params config.Param) (extract.Extractor, error) {
+func getExtractor(stage config.Stage, params config.StageParam) (extract.Extractor, error) {
 	var extractor extract.Extractor
 	var err error
 	switch params.Extract.Type {
@@ -142,7 +142,7 @@ func getExtractor(stage config.Stage, params config.Param) (extract.Extractor, e
 	return extractor, err
 }
 
-func getEncoder(stage config.Stage, params config.Param) (encode.Encoder, error) {
+func getEncoder(stage config.Stage, params config.StageParam) (encode.Encoder, error) {
 	var encoder encode.Encoder
 	var err error
 	switch params.Encode.Type {
@@ -158,12 +158,10 @@ func getEncoder(stage config.Stage, params config.Param) (encode.Encoder, error)
 	return encoder, err
 }
 
-// find matching config.param structure and identify the stage type
-func findStageParameters(stage config.Stage, configParams []config.Param) (*config.Param, string) {
-	var param config.Param
+// findStageParameters finds the matching config.param structure and identifies the stage type
+func findStageParameters(stage config.Stage, configParams []config.StageParam) (*config.StageParam, string) {
 	log.Debugf("findStageParameters: stage = %v", stage)
-	for index := range configParams {
-		param = configParams[index]
+	for _, param := range configParams {
 		log.Debugf("findStageParameters: param = %v", param)
 		if stage.Name == param.Name {
 			var stageType string
@@ -206,8 +204,7 @@ func NewPipeline() (*Pipeline, error) {
 		configParams:   configParams,
 	}
 
-	for i := range stages {
-		stage := stages[i]
+	for _, stage := range stages {
 		log.Debugf("stage = %v", stage)
 		params, stageType := findStageParameters(stage, configParams)
 		if params == nil {

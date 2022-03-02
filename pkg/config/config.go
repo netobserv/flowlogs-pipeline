@@ -28,7 +28,7 @@ type GenericMap map[string]interface{}
 var (
 	Opt        = Options{}
 	PipeLine   []Stage
-	Parameters []Param
+	Parameters []StageParam
 )
 
 type Options struct {
@@ -46,7 +46,7 @@ type Stage struct {
 	Follows string
 }
 
-type Param struct {
+type StageParam struct {
 	Name      string
 	Ingest    Ingest
 	Decode    Decode
