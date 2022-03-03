@@ -83,12 +83,7 @@ type Transform struct {
 	Type       string
 	Generic    api.TransformGeneric
 	Network    api.TransformNetwork
-	KubeEnrich KubeEnrich `json:"k8s_enrich"`
-}
-
-type KubeEnrich struct {
-	KubeConfigPath string            `json:"kubeConfigPath"`
-	IPFields       map[string]string `json:"ipFields"`
+	KubeEnrich api.KubeEnrich `json:"k8s_enrich"`
 }
 
 type Extract struct {

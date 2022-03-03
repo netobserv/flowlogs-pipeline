@@ -3,14 +3,14 @@ package netobserv
 import (
 	"testing"
 
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/stretchr/testify/assert"
 )
 
 func setupSimpleEnricher() (*Enricher, *InformersMock) {
 	informers := new(InformersMock)
 	r := Enricher{
-		Config: config.KubeEnrich{
+		Config: api.KubeEnrich{
 			IPFields: map[string]string{
 				"SrcAddr": "Src",
 				"DstAddr": "Dst",

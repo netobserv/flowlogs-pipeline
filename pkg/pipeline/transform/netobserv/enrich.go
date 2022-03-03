@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	kube "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/sirupsen/logrus"
@@ -22,11 +23,11 @@ var ownerNameFunc = func(owners interface{}, idx int) string {
 }
 
 type Enricher struct {
-	Config    config.KubeEnrich
+	Config    api.KubeEnrich
 	Informers InformersInterface
 }
 
-func StartEnricher(ctx context.Context, cfg config.KubeEnrich) (*Enricher, error) {
+func StartEnricher(ctx context.Context, cfg api.KubeEnrich) (*Enricher, error) {
 	kubeConfig, err := kube.LoadConfig(cfg.KubeConfigPath)
 	if err != nil {
 		return nil, err

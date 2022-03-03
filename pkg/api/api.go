@@ -33,4 +33,5 @@ type API struct {
 	TransformNetwork TransformNetwork    `yaml:"network" doc:"## Transform Network API\nFollowing is the supported API format for network transformations:\n"`
 	WriteLoki        WriteLoki           `yaml:"loki" doc:"## Write Loki API\nFollowing is the supported API format for writing to loki:\n"`
 	ExtractAggregate AggregateDefinition `yaml:"aggregates" doc:"## Aggregate metrics API\nFollowing is the supported API format for specifying metrics aggregations:\n"`
+	KubeEnrich       KubeEnrich          `yaml:"k8s_enrich" doc:"## Kubernetes metadata enrichment rules\nFollowing is the supported API format for specifying some network flow enrichment rules from Kubernetes metadata:\n"`
 }

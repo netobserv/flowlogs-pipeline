@@ -42,6 +42,7 @@ Following is the supported API format for the netflow collector:
  collector:
          hostName: the hostname to listen on
          port: the port number to listen on
+         batchMaxLen: the number of accumulated flows before being forwarded for processing
 </pre>
 ## Ingest Kafka API
 Following is the supported API format for the kafka ingest:
@@ -119,4 +120,12 @@ Following is the supported API format for specifying metrics aggregations:
          By: list of fields on which to aggregate
          Operation: sum, min, max, or avg
          RecordKey: internal field on which to perform the operation
+</pre>
+## Kubernetes metadata enrichment rules
+Following is the supported API format for specifying some network flow enrichment rules from Kubernetes metadata:
+
+<pre>
+ k8s_enrich:
+         kubeConfigPath: path to kubeconfig file (optional)
+         ipFields: names of flow fields that contain an IP address with the prefix to prepend to the original field name (can be empty)
 </pre>

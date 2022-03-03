@@ -78,7 +78,7 @@ func NetobsTestPipeline(t *testing.T) *testPipeline {
 	stopInformers := make(chan struct{})
 	require.NoError(t, informers.Start(stopInformers))
 	enricher := &netobserv.Enricher{
-		Config: config.KubeEnrich{
+		Config: api.KubeEnrich{
 			IPFields: map[string]string{"SrcAddr": ""},
 		},
 		Informers: informers,
