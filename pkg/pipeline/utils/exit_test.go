@@ -2,9 +2,10 @@ package utils
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"syscall"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func Test_SetupElegantExit(t *testing.T) {

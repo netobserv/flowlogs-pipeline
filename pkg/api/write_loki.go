@@ -20,6 +20,7 @@ package api
 import (
 	"errors"
 	"fmt"
+
 	promConfig "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 )

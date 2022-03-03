@@ -18,11 +18,12 @@
 package confgen
 
 import (
-	"github.com/stretchr/testify/require"
 	"os"
 	"path"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func getConfGen() *ConfGen {

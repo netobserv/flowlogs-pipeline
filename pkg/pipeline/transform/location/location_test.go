@@ -21,14 +21,15 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
-	"github.com/ip2location/ip2location-go/v9"
-	"github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/ip2location/ip2location-go/v9"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_InitLocationDB(t *testing.T) {

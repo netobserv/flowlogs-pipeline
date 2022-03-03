@@ -19,9 +19,10 @@ package confgen
 
 import (
 	"bytes"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"text/template"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const TypeGrafana = "grafana"

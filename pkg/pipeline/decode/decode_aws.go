@@ -18,9 +18,10 @@
 package decode
 
 import (
+	"strings"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 var defaultKeys = []string{

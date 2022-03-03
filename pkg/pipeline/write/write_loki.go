@@ -20,11 +20,12 @@ package write
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 

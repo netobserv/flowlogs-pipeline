@@ -19,6 +19,10 @@ package kubernetes
 
 import (
 	"fmt"
+	"net"
+	"os"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -28,9 +32,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	"net"
-	"os"
-	"time"
 )
 
 var Data KubeData

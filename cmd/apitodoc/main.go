@@ -20,10 +20,11 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"io"
 	"reflect"
 	"strings"
+
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 )
 
 func iterate(output io.Writer, data interface{}, indent int) {
