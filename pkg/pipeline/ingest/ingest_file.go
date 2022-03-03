@@ -29,15 +29,19 @@ import (
 )
 
 type IngestFile struct {
-	params      config.Ingest
-	exitChan    chan bool
-	PrevRecords []interface{}
+	params       config.Ingest
+	exitChan     chan bool
+	PrevRecords  []interface{}
+	TotalRecords int
 }
 
-const delaySeconds = 10
+const (
+	delaySeconds = 10
+	chunkLines   = 100
+)
 
 // Ingest ingests entries from a file and resends the same data every delaySeconds seconds
-func (ingestF *IngestFile) Ingest(process ProcessFunction) {
+func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 	lines := make([]interface{}, 0)
 	file, err := os.Open(ingestF.params.File.Filename)
 	if err != nil {
@@ -53,11 +57,14 @@ func (ingestF *IngestFile) Ingest(process ProcessFunction) {
 		log.Debugf("%s", text)
 		lines = append(lines, text)
 	}
+
 	log.Debugf("Ingesting %d log lines from %s", len(lines), ingestF.params.File.Filename)
 	switch ingestF.params.Type {
 	case "file":
 		ingestF.PrevRecords = lines
-		process(lines)
+		ingestF.TotalRecords = len(lines)
+		log.Debugf("ingestFile sending %d lines", len(lines))
+		out <- lines
 	case "file_loop":
 		// loop forever
 		ticker := time.NewTicker(time.Duration(delaySeconds) * time.Second)
@@ -67,9 +74,22 @@ func (ingestF *IngestFile) Ingest(process ProcessFunction) {
 				log.Debugf("exiting ingestFile because of signal")
 				return
 			case <-ticker.C:
-				log.Debugf("ingestFile; for loop; before process")
 				ingestF.PrevRecords = lines
-				process(lines)
+				ingestF.TotalRecords += len(lines)
+				log.Debugf("ingestFile sending %d lines", len(lines))
+				out <- lines
+			}
+		}
+	case "file_chunks":
+		// sends the lines in chunks. Useful for testing parallelization
+		ingestF.TotalRecords = len(lines)
+		for len(lines) > 0 {
+			if len(lines) > chunkLines {
+				out <- lines[:chunkLines]
+				lines = lines[chunkLines:]
+			} else {
+				out <- lines
+				lines = nil
 			}
 		}
 	}

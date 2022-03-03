@@ -46,13 +46,12 @@ const channelSizeKafka = 1000
 const defaultBatchReadTimeout = int64(100)
 
 // Ingest ingests entries from kafka topic
-func (ingestK *ingestKafka) Ingest(process ProcessFunction) {
+func (ingestK *ingestKafka) Ingest(out chan<- []interface{}) {
 	// initialize background listener
 	ingestK.kafkaListener()
 
 	// forever process log lines received by collector
-	ingestK.processLogLines(process)
-
+	ingestK.processLogLines(out)
 }
 
 // background thread to read kafka messages; place received items into ingestKafka input channel
@@ -79,7 +78,7 @@ func (ingestK *ingestKafka) kafkaListener() {
 }
 
 // read items from ingestKafka input channel, pool them, and send down the pipeline
-func (ingestK *ingestKafka) processLogLines(process ProcessFunction) {
+func (ingestK *ingestKafka) processLogLines(out chan<- []interface{}) {
 	var records []interface{}
 	duration := time.Duration(ingestK.kafkaParams.BatchReadTimeout) * time.Millisecond
 	for {
@@ -92,7 +91,8 @@ func (ingestK *ingestKafka) processLogLines(process ProcessFunction) {
 		case <-time.After(duration): // Maximum batch time for each batch
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
-				process(records)
+				log.Debugf("ingestKafka sending %d records", len(records))
+				out <- records
 				ingestK.prevRecords = records
 				log.Debugf("prevRecords = %v", ingestK.prevRecords)
 			}

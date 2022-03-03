@@ -66,6 +66,8 @@ type Ingest struct {
 
 type File struct {
 	Filename string
+	Loop     bool
+	Chunks   int
 }
 
 type Aws struct {

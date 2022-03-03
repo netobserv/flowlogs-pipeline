@@ -17,10 +17,8 @@
 
 package ingest
 
-type ProcessFunction func(entries []interface{})
-
 type Ingester interface {
-	Ingest(ProcessFunction)
+	Ingest(out chan<- []interface{})
 }
 type IngesterNone struct {
 }
