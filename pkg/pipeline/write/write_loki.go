@@ -20,11 +20,12 @@ package write
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 
@@ -228,7 +229,7 @@ func (l *Loki) processRecords() {
 }
 
 // NewWriteLoki creates a Loki writer from configuration
-func NewWriteLoki(params config.Param) (*Loki, error) {
+func NewWriteLoki(params config.StageParam) (*Loki, error) {
 	log.Debugf("entering NewWriteLoki")
 
 	writeLokiString := pUtils.ParamString(params, "write", "loki")

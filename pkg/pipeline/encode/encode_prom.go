@@ -20,17 +20,18 @@ package encode
 import (
 	"container/list"
 	"fmt"
+	"net/http"
+	"os"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"os"
-	"strconv"
-	"sync"
-	"time"
 )
 
 const defaultExpiryTime = 120
@@ -253,7 +254,7 @@ func startPrometheusInterface(w *encodeProm) {
 	}
 }
 
-func NewEncodeProm(params config.Param) (Encoder, error) {
+func NewEncodeProm(params config.StageParam) (Encoder, error) {
 	jsonEncodeProm := params.Encode.Prom
 	portNum := jsonEncodeProm.Port
 	promPrefix := jsonEncodeProm.Prefix

@@ -32,11 +32,12 @@ Usage:
   flowlogs-pipeline [flags]  
   
 Flags:  
-      --config string       config file (default is $HOME/.flowlogs-pipeline)  
-  -h, --help                help for flowlogs-pipeline  
-      --log-level string    Log level: debug, info, warning, error (default "error")  
-      --parameters string     
-      --pipeline string
+      --config string        config file (default is $HOME/.flowlogs-pipeline)  
+      --health.port string   Health server port (default "8080")  
+  -h, --help                 help for flowlogs-pipeline  
+      --log-level string     Log level: debug, info, warning, error (default "error")  
+      --parameters string    json of config file parameters field  
+      --pipeline string      json of config file pipeline field
 ```
 <!---END-AUTO-flowlogs-pipeline_help--->
 

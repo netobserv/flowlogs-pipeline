@@ -97,5 +97,5 @@ func TestTransformMultiple(t *testing.T) {
 	// The file ingester reads the entire file, pushes it down the pipeline, and then exits
 	// So we don't need to run it in a separate go-routine
 	mainPipeline.Run()
-	// We should test the final outcome to see that it is reasonable
+	// TODO: We should test the final outcome to see that it is reasonable
 }

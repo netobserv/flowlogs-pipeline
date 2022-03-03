@@ -19,13 +19,14 @@ package aggregate
 
 import (
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	log "github.com/sirupsen/logrus"
 	"math"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

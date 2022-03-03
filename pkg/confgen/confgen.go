@@ -19,13 +19,14 @@ package confgen
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 )
 
 var (
@@ -87,9 +88,9 @@ func (cg *ConfGen) Run() error {
 
 	cg.dedupe()
 
-	err = cg.generateFlowlogs2MetricsConfig(Opt.DestConfFile)
+	err = cg.generateFlowlogs2PipelineConfig(Opt.DestConfFile)
 	if err != nil {
-		log.Debugf("cg.generateFlowlogs2MetricsConfig err: %v ", err)
+		log.Debugf("cg.generateFlowlogs2PipelineConfig err: %v ", err)
 		return err
 	}
 

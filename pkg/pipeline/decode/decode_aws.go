@@ -18,9 +18,10 @@
 package decode
 
 import (
+	"strings"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 var defaultKeys = []string{
@@ -70,7 +71,7 @@ func (c *decodeAws) Decode(in []interface{}) []config.GenericMap {
 }
 
 // NewDecodeAws create a new decode
-func NewDecodeAws(params config.Param) (Decoder, error) {
+func NewDecodeAws(params config.StageParam) (Decoder, error) {
 	log.Debugf("entering NewDecodeAws")
 	recordKeys := params.Decode.Aws.Fields
 	if len(recordKeys) == 0 {

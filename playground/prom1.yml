@@ -70,5 +70,4 @@ parameters:
   - name: write1
     write:
       type: stdout
->>>>>>> implemented multi-pipe and ported tests; Loki not working properly
 

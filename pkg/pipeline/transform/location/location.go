@@ -22,8 +22,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/ip2location/ip2location-go/v9"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -31,6 +29,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/ip2location/ip2location-go/v9"
+	log "github.com/sirupsen/logrus"
 )
 
 type Info struct {

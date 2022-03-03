@@ -19,11 +19,12 @@ package decode
 
 import (
 	"bufio"
+	"strings"
+	"testing"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
-	"strings"
-	"testing"
 )
 
 const testConfig1 = `

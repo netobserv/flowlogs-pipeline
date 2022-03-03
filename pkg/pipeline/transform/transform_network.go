@@ -20,6 +20,11 @@ package transform
 import (
 	"bytes"
 	"fmt"
+	"net"
+	"regexp"
+	"strconv"
+	"text/template"
+
 	"github.com/Knetic/govaluate"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -28,10 +33,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	log "github.com/sirupsen/logrus"
 	"honnef.co/go/netdb"
-	"net"
-	"regexp"
-	"strconv"
-	"text/template"
 )
 
 type Network struct {
@@ -152,7 +153,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) config.GenericMap {
 }
 
 // NewTransformNetwork create a new transform
-func NewTransformNetwork(params config.Param) (Transformer, error) {
+func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	var needToInitLocationDB = false
 	var needToInitKubeData = false
 	var needToInitConnectionTracking = false

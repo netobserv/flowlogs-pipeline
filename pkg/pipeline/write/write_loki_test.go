@@ -20,12 +20,12 @@ package write
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -151,7 +151,7 @@ parameters:
       loki:
         timestampScale: %s
 `, testCase.unit)
-			v := test.InitConfig(t, string(yamlConf))
+			v := test.InitConfig(t, yamlConf)
 			require.NotNil(t, v)
 
 			loki, err := NewWriteLoki(config.Parameters[0])

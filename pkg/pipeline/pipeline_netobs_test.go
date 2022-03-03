@@ -2,13 +2,13 @@ package pipeline
 
 import (
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netobserv"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
@@ -44,7 +44,6 @@ func (p *testPipeline) Close() {
 // NetobsTestPipeline reproduces a basic network observability pipeline and returns it.
 // It is not created from the global YAML text configuration because
 // we need a programmatic way to instantiate a pipeline and inject there the informers
-// and the fake Loki listener backend
 func NetobsTestPipeline(t *testing.T) *testPipeline {
 	// STAGE 1: IPFIX ingester
 	// Find a free port for the IPFIX collector
@@ -89,7 +88,7 @@ func NetobsTestPipeline(t *testing.T) *testPipeline {
 	lokiFlows := make(chan map[string]interface{}, 256)
 	fakeLoki := httptest.NewServer(test.FakeLokiHandler(lokiFlows))
 	log.Debugf("fake loki URL: %s", fakeLoki.URL)
-	lokiConfig := config.Param{
+	lokiConfig := config.StageParam{
 		Name: "loki",
 		Write: config.Write{Loki: api.WriteLoki{
 			URL:       fakeLoki.URL,
@@ -107,7 +106,7 @@ func NetobsTestPipeline(t *testing.T) *testPipeline {
 	config.Opt.Parameters = fmt.Sprintf(
 		`[{"name":"write1","write":{"type":"loki","loki":{"url":"%s","batchSize":1,`+
 			`"staticLabels":{"testApp":"network-observability-test"}}}}]`, fakeLoki.URL)
-	config.Parameters = []config.Param{lokiConfig}
+	config.Parameters = []config.StageParam{lokiConfig}
 	lokiExporter, err := write.NewWriteLoki(lokiConfig)
 	require.NoError(t, err)
 
@@ -143,7 +142,6 @@ func NetobsTestPipeline(t *testing.T) *testPipeline {
 }
 
 func TestNetobservEndToEnd(t *testing.T) {
-	//log.StandardLogger().SetLevel(log.DebugLevel)
 	// GIVEN a network observability pipeline
 	pipe := NetobsTestPipeline(t)
 	defer pipe.Close()

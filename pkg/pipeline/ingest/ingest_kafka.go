@@ -46,17 +46,16 @@ const channelSizeKafka = 1000
 const defaultBatchReadTimeout = int64(100)
 
 // Ingest ingests entries from kafka topic
-func (r *ingestKafka) Ingest(out chan<- []interface{}) {
+func (ingestK *ingestKafka) Ingest(out chan<- []interface{}) {
 	// initialize background listener
-	r.kafkaListener()
+	ingestK.kafkaListener()
 
 	// forever process log lines received by collector
-	r.processLogLines(out)
-
+	ingestK.processLogLines(out)
 }
 
 // background thread to read kafka messages; place received items into ingestKafka input channel
-func (r *ingestKafka) kafkaListener() {
+func (ingestK *ingestKafka) kafkaListener() {
 	log.Debugf("entering  kafkaListener")
 
 	go func() {
@@ -65,13 +64,13 @@ func (r *ingestKafka) kafkaListener() {
 		for {
 			// block until a message arrives
 			log.Debugf("before ReadMessage")
-			kafkaMessage, err = r.kafkaReader.ReadMessage(context.Background())
+			kafkaMessage, err = ingestK.kafkaReader.ReadMessage(context.Background())
 			if err != nil {
 				log.Errorln(err)
 			}
 			log.Debugf("string(kafkaMessage) = %s\n", string(kafkaMessage.Value))
 			if len(kafkaMessage.Value) > 0 {
-				r.in <- string(kafkaMessage.Value)
+				ingestK.in <- string(kafkaMessage.Value)
 			}
 		}
 	}()
@@ -79,23 +78,23 @@ func (r *ingestKafka) kafkaListener() {
 }
 
 // read items from ingestKafka input channel, pool them, and send down the pipeline
-func (r *ingestKafka) processLogLines(out chan<- []interface{}) {
+func (ingestK *ingestKafka) processLogLines(out chan<- []interface{}) {
 	var records []interface{}
-	duration := time.Duration(r.kafkaParams.BatchReadTimeout) * time.Millisecond
+	duration := time.Duration(ingestK.kafkaParams.BatchReadTimeout) * time.Millisecond
 	for {
 		select {
-		case <-r.exitChan:
+		case <-ingestK.exitChan:
 			log.Debugf("exiting ingestKafka because of signal")
 			return
-		case record := <-r.in:
+		case record := <-ingestK.in:
 			records = append(records, record)
 		case <-time.After(duration): // Maximum batch time for each batch
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
 				log.Debugf("ingestKafka sending %d records", len(records))
 				out <- records
-				r.prevRecords = records
-				log.Debugf("prevRecords = %v", r.prevRecords)
+				ingestK.prevRecords = records
+				log.Debugf("prevRecords = %v", ingestK.prevRecords)
 			}
 			records = []interface{}{}
 		}
@@ -103,7 +102,7 @@ func (r *ingestKafka) processLogLines(out chan<- []interface{}) {
 }
 
 // NewIngestKafka create a new ingester
-func NewIngestKafka(params config.Param) (Ingester, error) {
+func NewIngestKafka(params config.StageParam) (Ingester, error) {
 	log.Debugf("entering NewIngestKafka")
 	jsonIngestKafka := params.Ingest.Kafka
 

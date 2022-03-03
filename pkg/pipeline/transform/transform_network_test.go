@@ -18,12 +18,13 @@
 package transform
 
 import (
+	"testing"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func getMockNetworkTransformRules() api.NetworkTransformRules {
@@ -182,11 +183,8 @@ parameters:
     write:
       type: stdout
 `)
-	v := test.InitConfig(t, string(yamlConfig))
-	require.NotEqual(t, nil, v)
-
 	newNetworkTransform := InitNewTransformNetwork(t, string(yamlConfig)).(*Network)
-	require.NotEqual(t, nil, newNetworkTransform)
+	require.NotNil(t, newNetworkTransform)
 
 	entry := test.GetIngestMockEntry(false)
 	output := newNetworkTransform.Transform(entry)
@@ -198,7 +196,6 @@ parameters:
 func InitNewTransformNetwork(t *testing.T, configFile string) Transformer {
 	v := test.InitConfig(t, configFile)
 	require.NotNil(t, v)
-
 	config := config.Parameters[0]
 	newTransform, err := NewTransformNetwork(config)
 	require.NoError(t, err)
@@ -269,9 +266,6 @@ parameters:
     write:
       type: stdout
 `)
-	v := test.InitConfig(t, string(yamlConfig))
-	require.NotNil(t, v)
-
 	newNetworkTransform := InitNewTransformNetwork(t, string(yamlConfig)).(*Network)
 	require.NotNil(t, newNetworkTransform)
 

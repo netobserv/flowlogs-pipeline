@@ -19,53 +19,87 @@ package confgen
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
+
+	"gopkg.in/yaml.v2"
 )
 
-func (cg *ConfGen) generateFlowlogs2MetricsConfig(fileName string) error {
+func (cg *ConfGen) generateFlowlogs2PipelineConfig(fileName string) error {
 	config := map[string]interface{}{
 		"log-level": "error",
-		"pipeline": map[string]interface{}{
-			"ingest": map[string]interface{}{
-				"type": "collector",
-				"collector": map[string]interface{}{
-					"port":     cg.config.Ingest.Collector.Port,
-					"hostname": cg.config.Ingest.Collector.HostName,
+		"pipeline": []map[string]string{
+			{"name": "ingest1"},
+			{"name": "decode1",
+				"follows": "ingest1",
+			},
+			{"name": "transform1",
+				"follows": "decode1",
+			},
+			{"name": "transform2",
+				"follows": "transform1",
+			},
+			{"name": "extract1",
+				"follows": "transform2",
+			},
+			{"name": "encode1",
+				"follows": "extract1",
+			},
+			{"name": "write1",
+				"follows": "transform2",
+			},
+		},
+		"parameters": []map[string]interface{}{
+			{"name": "ingest1",
+				"ingest": map[string]interface{}{
+					"type": "collector",
+					"collector": map[string]interface{}{
+						"port":     cg.config.Ingest.Collector.Port,
+						"hostname": cg.config.Ingest.Collector.HostName,
+					},
 				},
 			},
-			"decode": map[string]interface{}{
-				"type": "json",
+			{"name": "decode1",
+				"decode": map[string]interface{}{
+					"type": "json",
+				},
 			},
-			"transform": []interface{}{
-				map[string]interface{}{
+			{"name": "transform1",
+				"transform": map[string]interface{}{
 					"type": "generic",
 					"generic": map[string]interface{}{
 						"rules": cg.config.Transform.Generic.Rules,
 					},
 				},
-				map[string]interface{}{
+			},
+			{"name": "transform2",
+				"transform": map[string]interface{}{
 					"type": "network",
 					"network": map[string]interface{}{
 						"rules": cg.transformRules,
 					},
 				},
 			},
-			"extract": map[string]interface{}{
-				"type":       "aggregates",
-				"aggregates": cg.aggregateDefinitions,
-			},
-			"encode": map[string]interface{}{
-				"type": "prom",
-				"prom": map[string]interface{}{
-					"port":    cg.config.Encode.Prom.Port,
-					"prefix":  cg.config.Encode.Prom.Prefix,
-					"metrics": cg.promMetrics,
+			{"name": "extract1",
+				"extract": map[string]interface{}{
+					"type":       "aggregates",
+					"aggregates": cg.aggregateDefinitions,
 				},
 			},
-			"write": map[string]interface{}{
-				"type": cg.config.Write.Type,
-				"loki": cg.config.Write.Loki,
+			{"name": "encode1",
+				"encode": map[string]interface{}{
+					"type": "prom",
+					"prom": map[string]interface{}{
+						"port":    cg.config.Encode.Prom.Port,
+						"prefix":  cg.config.Encode.Prom.Prefix,
+						"metrics": cg.promMetrics,
+					},
+				},
+			},
+			{"name": "write1",
+				"write": map[string]interface{}{
+					"type": cg.config.Write.Type,
+					"loki": cg.config.Write.Loki,
+				},
 			},
 		},
 	}

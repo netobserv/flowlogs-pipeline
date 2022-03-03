@@ -29,17 +29,21 @@ import (
 )
 
 type IngestFile struct {
-	params      config.Ingest
-	exitChan    chan bool
-	PrevRecords []interface{}
+	params       config.Ingest
+	exitChan     chan bool
+	PrevRecords  []interface{}
+	TotalRecords int
 }
 
-const delaySeconds = 10
+const (
+	delaySeconds = 10
+	chunkLines   = 100
+)
 
 // Ingest ingests entries from a file and resends the same data every delaySeconds seconds
-func (r *IngestFile) Ingest(out chan<- []interface{}) {
+func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 	lines := make([]interface{}, 0)
-	file, err := os.Open(r.params.File.Filename)
+	file, err := os.Open(ingestF.params.File.Filename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,10 +57,12 @@ func (r *IngestFile) Ingest(out chan<- []interface{}) {
 		log.Debugf("%s", text)
 		lines = append(lines, text)
 	}
-	log.Debugf("Ingesting %d log lines from %s", len(lines), r.params.File.Filename)
-	switch r.params.Type {
+
+	log.Debugf("Ingesting %d log lines from %s", len(lines), ingestF.params.File.Filename)
+	switch ingestF.params.Type {
 	case "file":
-		r.PrevRecords = lines
+		ingestF.PrevRecords = lines
+		ingestF.TotalRecords = len(lines)
 		log.Debugf("ingestFile sending %d lines", len(lines))
 		out <- lines
 	case "file_loop":
@@ -64,21 +70,33 @@ func (r *IngestFile) Ingest(out chan<- []interface{}) {
 		ticker := time.NewTicker(time.Duration(delaySeconds) * time.Second)
 		for {
 			select {
-			case <-r.exitChan:
+			case <-ingestF.exitChan:
 				log.Debugf("exiting ingestFile because of signal")
 				return
 			case <-ticker.C:
-				log.Debugf("ingestFile; for loop; before process")
-				r.PrevRecords = lines
+				ingestF.PrevRecords = lines
+				ingestF.TotalRecords += len(lines)
 				log.Debugf("ingestFile sending %d lines", len(lines))
 				out <- lines
+			}
+		}
+	case "file_chunks":
+		// sends the lines in chunks. Useful for testing parallelization
+		ingestF.TotalRecords = len(lines)
+		for len(lines) > 0 {
+			if len(lines) > chunkLines {
+				out <- lines[:chunkLines]
+				lines = lines[chunkLines:]
+			} else {
+				out <- lines
+				lines = nil
 			}
 		}
 	}
 }
 
 // NewIngestFile create a new ingester
-func NewIngestFile(params config.Param) (Ingester, error) {
+func NewIngestFile(params config.StageParam) (Ingester, error) {
 	log.Debugf("entering NewIngestFile")
 	if params.Ingest.File.Filename == "" {
 		return nil, fmt.Errorf("ingest filename not specified")

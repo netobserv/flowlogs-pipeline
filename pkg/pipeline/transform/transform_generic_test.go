@@ -18,10 +18,11 @@
 package transform
 
 import (
+	"testing"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 const testConfigTransformGeneric = `---
@@ -62,7 +63,7 @@ func getGenericExpectedOutput() config.GenericMap {
 func TestNewTransformGeneric(t *testing.T) {
 	newTransform := InitNewTransformGeneric(t, testConfigTransformGeneric)
 	transformGeneric := newTransform.(*Generic)
-	require.Equal(t, len(transformGeneric.Rules), 6)
+	require.Len(t, transformGeneric.Rules, 6)
 
 	input := test.GetIngestMockEntry(false)
 	output := transformGeneric.Transform(input)

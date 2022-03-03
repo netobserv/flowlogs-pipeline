@@ -19,11 +19,12 @@ package confgen
 
 import (
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 )
 
 func (cg *ConfGen) generateVisualizeText(vgs []VisualizationGrafana) string {
@@ -57,7 +58,7 @@ func (cg *ConfGen) generateOperationText(definitions aggregate.Definitions) stri
 		if recordKey != "" {
 			recordKey = fmt.Sprintf("field `%s`", recordKey)
 		}
-		section = section + fmt.Sprintf("| **AggregateOperation** | aggregate by `%s` and `%s` %s |\n", by, operation, recordKey)
+		section = section + fmt.Sprintf("| **Operation** | aggregate by `%s` and `%s` %s |\n", by, operation, recordKey)
 	}
 
 	return section

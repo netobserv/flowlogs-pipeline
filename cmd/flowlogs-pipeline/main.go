@@ -20,6 +20,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/health"
@@ -29,14 +34,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 var (
-	Version            string
+	BuildVersion       string
+	BuildDate          string
 	cfgFile            string
 	logLevel           string
 	envPrefix          = "FLOWLOGS-PIPILNE"
@@ -127,8 +129,9 @@ func initFlags() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", fmt.Sprintf("config file (default is $HOME/%s)", defaultLogFileName))
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "error", "Log level: debug, info, warning, error")
-	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine, "pipeline", "", "")
-	rootCmd.PersistentFlags().StringVar(&config.Opt.Parameters, "parameters", "", "")
+	rootCmd.PersistentFlags().StringVar(&config.Opt.Health.Port, "health.port", "8080", "Health server port")
+	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine, "pipeline", "", "json of config file pipeline field")
+	rootCmd.PersistentFlags().StringVar(&config.Opt.Parameters, "parameters", "", "json of config file parameters field")
 }
 
 func main() {
@@ -148,12 +151,13 @@ func run() {
 	)
 
 	// Initial log message
-	fmt.Printf("%s starting - version [%s]\n\n", filepath.Base(os.Args[0]), Version)
+	fmt.Printf("Starting %s:\n=====\nBuild Version: %s\nBuild Date: %s\n\n",
+		filepath.Base(os.Args[0]), BuildVersion, BuildDate)
 
 	// Dump configuration
 	dumpConfig()
 
-	err = config.ParseConfigFile()
+	err = config.ParseConfig()
 	if err != nil {
 		log.Errorf("error in parsing config file: %v", err)
 		os.Exit(1)
@@ -169,11 +173,11 @@ func run() {
 		os.Exit(1)
 	}
 
-	// Starts the flows pipeline
-	mainPipeline.Run()
-
 	// Start health report server
 	health.NewHealthServer(mainPipeline)
+
+	// Starts the flows pipeline
+	mainPipeline.Run()
 
 	// Give all threads a chance to exit and then exit the process
 	time.Sleep(time.Second)

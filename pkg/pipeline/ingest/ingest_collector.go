@@ -25,9 +25,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-
 	ms "github.com/mitchellh/mapstructure"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	goflowFormat "github.com/netsampler/goflow2/format"
 	goflowCommonFormat "github.com/netsampler/goflow2/format/common"
@@ -96,20 +95,19 @@ func (w *TransportWrapper) Send(_, data []byte) error {
 }
 
 // Ingest ingests entries from a network collector using goflow2 library (https://github.com/netsampler/goflow2)
-func (r *ingestCollector) Ingest(out chan<- []interface{}) {
+func (ingestC *ingestCollector) Ingest(out chan<- []interface{}) {
 	ctx := context.Background()
-	r.in = make(chan map[string]interface{}, channelSize)
+	ingestC.in = make(chan map[string]interface{}, channelSize)
 
 	// initialize background listeners (a.k.a.netflow+legacy collector)
-	r.initCollectorListener(ctx)
+	ingestC.initCollectorListener(ctx)
 
 	// forever process log lines received by collector
-	r.processLogLines(out)
-
+	ingestC.processLogLines(out)
 }
 
-func (r *ingestCollector) initCollectorListener(ctx context.Context) {
-	transporter := NewWrapper(r.in)
+func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
+	transporter := NewWrapper(ingestC.in)
 	formatter, err := goflowFormat.FindFormat(ctx, "pb")
 	if err != nil {
 		log.Fatal(err)
@@ -121,8 +119,8 @@ func (r *ingestCollector) initCollectorListener(ctx context.Context) {
 			Logger:    log.StandardLogger(),
 		}
 
-		log.Infof("listening for netflow on host %s, port = %d", r.hostname, r.port)
-		err = sNF.FlowRoutine(1, r.hostname, r.port, false)
+		log.Infof("listening for netflow on host %s, port = %d", ingestC.hostname, ingestC.port)
+		err = sNF.FlowRoutine(1, ingestC.hostname, ingestC.port, false)
 		log.Fatal(err)
 
 	}()
@@ -134,29 +132,29 @@ func (r *ingestCollector) initCollectorListener(ctx context.Context) {
 			Logger:    log.StandardLogger(),
 		}
 
-		log.Infof("listening for legacy netflow on host %s, port = %d", r.hostname, r.port+1)
-		err = sLegacyNF.FlowRoutine(1, r.hostname, r.port+1, false)
+		log.Infof("listening for legacy netflow on host %s, port = %d", ingestC.hostname, ingestC.port+1)
+		err = sLegacyNF.FlowRoutine(1, ingestC.hostname, ingestC.port+1, false)
 		log.Fatal(err)
 	}()
 
 }
 
-func (r *ingestCollector) processLogLines(out chan<- []interface{}) {
+func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 	var records []interface{}
 	// Maximum batch time for each batch
-	flushRecords := time.NewTicker(r.batchFlushTime)
+	flushRecords := time.NewTicker(ingestC.batchFlushTime)
 	defer flushRecords.Stop()
 	for {
 		select {
-		case <-r.exitChan:
+		case <-ingestC.exitChan:
 			log.Debugf("exiting ingestCollector because of signal")
 			return
-		case record := <-r.in:
+		case record := <-ingestC.in:
 			// TODO: for efficiency, consider forwarding directly as map,
 			// as this is reverted back from string to map in later pipeline stages
 			recordAsBytes, _ := json.Marshal(record)
 			records = append(records, string(recordAsBytes))
-			if len(records) >= r.batchMaxLength {
+			if len(records) >= ingestC.batchMaxLength {
 				log.Debugf("ingestCollector sending %d entries", len(records))
 				out <- records
 				records = []interface{}{}

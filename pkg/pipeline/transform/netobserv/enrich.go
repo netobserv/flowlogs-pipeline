@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"strings"
 
-	kube "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-
+	kube "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 var elog = logrus.WithField("module", "reader/Enricher")

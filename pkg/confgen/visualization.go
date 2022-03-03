@@ -19,6 +19,7 @@ package confgen
 
 import (
 	"encoding/json"
+
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 )

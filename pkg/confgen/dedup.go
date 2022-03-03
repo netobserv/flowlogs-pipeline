@@ -18,10 +18,11 @@
 package confgen
 
 import (
+	"reflect"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 	log "github.com/sirupsen/logrus"
-	"reflect"
 )
 
 func (cg *ConfGen) dedupe() {
