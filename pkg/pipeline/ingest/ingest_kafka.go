@@ -47,6 +47,8 @@ const defaultBatchReadTimeout = int64(100)
 
 // Ingest ingests entries from kafka topic
 func (ingestK *ingestKafka) Ingest(out chan<- []interface{}) {
+	log.Debugf("entering  ingestKafka.Ingest")
+
 	// initialize background listener
 	ingestK.kafkaListener()
 
