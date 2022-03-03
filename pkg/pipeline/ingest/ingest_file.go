@@ -74,7 +74,6 @@ func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 				log.Debugf("exiting ingestFile because of signal")
 				return
 			case <-ticker.C:
-				log.Debugf("ingestFile; for loop; before process")
 				ingestF.PrevRecords = lines
 				ingestF.TotalRecords += len(lines)
 				log.Debugf("ingestFile sending %d lines", len(lines))
