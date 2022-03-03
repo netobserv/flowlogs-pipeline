@@ -18,10 +18,11 @@
 package confgen
 
 import (
+	"io/ioutil"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 )
 
 type Options struct {

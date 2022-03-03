@@ -18,9 +18,10 @@
 package decode
 
 import (
+	"testing"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func initNewDecodeJson(t *testing.T) Decoder {

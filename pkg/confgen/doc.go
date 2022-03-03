@@ -19,11 +19,12 @@ package confgen
 
 import (
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 )
 
 func (cg *ConfGen) generateVisualizeText(vgs []VisualizationGrafana) string {

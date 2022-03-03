@@ -18,9 +18,10 @@
 package connection_tracking
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func Test_InitConnectionTracking(t *testing.T) {

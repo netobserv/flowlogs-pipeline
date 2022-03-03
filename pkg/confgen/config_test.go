@@ -18,10 +18,11 @@
 package confgen
 
 import (
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/stretchr/testify/require"
 )
 
 func expectedConfig() *Config {

@@ -66,7 +66,7 @@ validate_go:
 .PHONY: validate_go lint
 lint: $(GOLANGCI_LINT) ## Lint the code
 	@go mod vendor
-	@$(GOLANGCI_LINT) run --timeout 5m
+	@$(GOLANGCI_LINT) run --enable goimports --timeout 5m
 
 .PHONY: build_code
 build_code: validate_go lint

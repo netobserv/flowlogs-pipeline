@@ -18,9 +18,10 @@
 package pipeline
 
 import (
+	"testing"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 const testConfigTransformMultiple = `---

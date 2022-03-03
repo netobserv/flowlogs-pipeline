@@ -18,9 +18,10 @@
 package encode
 
 import (
+	"testing"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func initNewEncodeNone(t *testing.T) Encoder {

@@ -18,13 +18,14 @@
 package health
 
 import (
+	"net"
+	"net/http"
+	"time"
+
 	"github.com/heptiolabs/healthcheck"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
 	log "github.com/sirupsen/logrus"
-	"net"
-	"net/http"
-	"time"
 )
 
 const defaultServerHost = "0.0.0.0"

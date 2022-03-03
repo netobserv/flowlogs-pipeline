@@ -19,6 +19,8 @@ package pipeline
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/heptiolabs/healthcheck"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
@@ -28,7 +30,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
 	log "github.com/sirupsen/logrus"
-	"os"
 )
 
 // interface definitions of pipeline components

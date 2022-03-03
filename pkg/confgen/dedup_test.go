@@ -18,10 +18,11 @@
 package confgen
 
 import (
+	"testing"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_dedupeNetworkTransformRules(t *testing.T) {

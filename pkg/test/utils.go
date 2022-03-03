@@ -20,12 +20,13 @@ package test
 import (
 	"bytes"
 	"fmt"
+	"reflect"
+	"testing"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-	"reflect"
-	"testing"
 )
 
 func GetIngestMockEntry(missingKey bool) config.GenericMap {

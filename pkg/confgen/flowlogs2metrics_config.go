@@ -19,8 +19,9 @@ package confgen
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
+
+	"gopkg.in/yaml.v2"
 )
 
 func (cg *ConfGen) generateFlowlogs2PipelineConfig(fileName string) error {

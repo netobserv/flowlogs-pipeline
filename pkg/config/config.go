@@ -19,6 +19,7 @@ package config
 
 import (
 	"encoding/json"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/sirupsen/logrus"
 )

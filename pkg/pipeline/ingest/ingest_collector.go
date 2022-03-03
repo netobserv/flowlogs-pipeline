@@ -22,10 +22,11 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"net"
 	"time"
+
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 
 	ms "github.com/mitchellh/mapstructure"
 	goflowFormat "github.com/netsampler/goflow2/format"

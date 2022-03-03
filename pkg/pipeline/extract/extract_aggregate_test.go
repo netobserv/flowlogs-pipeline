@@ -19,12 +19,13 @@ package extract
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func createAgg(name, recordKey, by, agg, op string, value float64, count int, rrv []float64) config.GenericMap {
