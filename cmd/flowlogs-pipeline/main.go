@@ -20,6 +20,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/health"
@@ -29,10 +34,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 var (
@@ -172,11 +173,11 @@ func run() {
 		os.Exit(1)
 	}
 
-	// Starts the flows pipeline
-	mainPipeline.Run()
-
 	// Start health report server
 	health.NewHealthServer(mainPipeline)
+
+	// Starts the flows pipeline
+	mainPipeline.Run()
 
 	// Give all threads a chance to exit and then exit the process
 	time.Sleep(time.Second)
