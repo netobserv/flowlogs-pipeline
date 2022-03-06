@@ -38,7 +38,7 @@ func GetIngestMockEntry(missingKey bool) config.GenericMap {
 		"srcPort":      11777,
 		"protocol":     "tcp",
 		"protocol_num": 6,
-		"value":        "7",
+		"value":        7.0,
 		"message":      "test message",
 	}
 
