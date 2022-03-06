@@ -103,7 +103,7 @@ FLP is a framework. The main FLP object is the **pipeline**. FLP **pipeline** ca
 
 # Architecture
 
-The pipeline is constructed of a sequence of stages. Each stage is classified into one of the following classes:
+The pipeline is constructed of a sequence of stages. Each stage is classified into one of the following types:
 - **ingest** - obtain flows from some source, one entry per line
 - **decode** - parse input lines into a known format, e.g., dictionary (map) of AWS or goflow data
 - **transform** - convert entries into a standard format; can include multiple transform stages
@@ -111,12 +111,16 @@ The pipeline is constructed of a sequence of stages. Each stage is classified in
 - **extract** - derive a set of metrics from the imported flows
 - **encode** - make the data available in appropriate format (e.g. prometheus)
 
-The first stage in a pipeline must be an **ingest** stage, followed by a **decode** stage.
+The first stage in a pipeline must be an **ingest** stage.
+The **ingest** stage is typically followed by a **decode** stage, unless the **ingest** stage also performs the decoding.
 Each stage (other than an **ingest** stage) specifies the stage it follows.
-Multiple stages may follow from a particular stage, thus allowing the same data to be fed into multiple parallel pipelines.
-Multiple **transform** stages may be performed and the results may be output to different targets.
+Multiple stages may follow from a particular stage, thus allowing the same data to be consumed by multiple parallel pipelines.
+For example, multiple **transform** stages may be performed and the results may be output to different targets.
 
-A full configuration file with the data fed into two different transforms might look like the following.
+A configuration file consists of two sections.
+The first section describes the high-level flow of information between the stages, giving each stage a name and building the graph of consumption and production of information between stages.
+The second section provides the definition of specific configuration parameters for each one of the named stages.
+A full configuration file with the data consumed by  two different transforms might look like the following.
 
 ```yaml
 pipeline:
@@ -132,6 +136,11 @@ pipeline:
   - name: write2
     follows: generic2
 parameters:
+  - name: ingest1
+    ingest:
+      type: file_loop
+      file:
+        filename: playground/goflow2_input.txt
   - name: decode1
     decode:
       type: json
@@ -164,11 +173,6 @@ parameters:
             output: v2_packets
           - input: SrcPort
             output: v2_srcPort
-  - name: ingest1
-    ingest:
-      type: file_loop
-      file:
-        filename: playground/goflow2_input.txt
   - name: write2
     write:
       type: stdout
@@ -181,9 +185,7 @@ It is possible to configure flowlogs-pipeline using command-line-parameters, con
 
 
 For example:
-1. Using command line parameters:
-```./flowlogs-pipeline --log-level info ```
-2. Using configuration file:
+1. Using configuration file:
 - create under $HOME/.flowlogs-pipeline.yaml the file:
 ```yaml
 log-level: info
@@ -202,12 +204,22 @@ parameters
       type: json
 ```
 - execute `./flowlogs-pipeline`
+
+OR place the configuration information in any other file `<configFile>` and execute
+`./flowlogs-pipeline --config <configFile>`
+
+2. Using command line parameters:
+   ```./flowlogs-pipeline --log-level info --config <configFile>```
+Options included in the command line override the options specified in the config file.
+
 3. using environment variables:
 - set environment variables
 ```bash
 export FLOWLOGS-PIPELINE_LOG_LEVEL=info
 ```
 - execute `./flowlogs-pipeline`
+
+Options specified in environment variables override the options specified in the config file.
 
 Supported options are provided by running:
 
