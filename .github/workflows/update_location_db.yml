@@ -1,0 +1,34 @@
+name: update location db
+
+on:
+  schedule:
+    - cron:  '00 00 * * *'
+
+env:
+  DB_TOKEN_SECRET: ${{ secrets.LOCATION_DB_TOKEN_SECRET }}
+
+jobs:
+  execute:
+    name: update location db
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: update
+        run: |
+          wget --spider "https://www.ip2location.com/download/?token=$DB_TOKEN_SECRET&file=DB9LITEBIN" -O contrib/location/location.db
+      - name: commit
+        run: |
+          ls -la contrib/location/location.db
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git commit -am "update location DB"
+      - name: push
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.UPDATE_LOCATION_GITHUB_TOKEN }}
+          branch: main
+
