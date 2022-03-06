@@ -1,0 +1,20 @@
+name: testme
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY_PASSWORD: ${{ secrets.QUAY_SECRET }}
+
+jobs:
+  testme:
+    name: testme
+    runs-on: ubuntu-20.04
+    steps:
+      - name: echo
+        run: |
+          echo "this is the testme file"
+          echo "secrets.QUAY_SECRET = $REGISTRY_PASSWORD"
