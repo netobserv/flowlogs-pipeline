@@ -277,3 +277,39 @@ parameters:
 	require.Equal(t, "10.0.0.0/24", output["match-10.0.*"])
 	require.NotEqual(t, "10.0.0.0/24", output["match-11.0.*"])
 }
+
+func Test_Transform_AddIfScientificNotation(t *testing.T) {
+	newNetworkTransform := Network{
+		api.TransformNetwork{
+			Rules: api.NetworkTransformRules{
+				api.NetworkTransformRule{
+					Input:      "value",
+					Output:     "bigger_than_10",
+					Type:       "add_if",
+					Parameters: ">10",
+				},
+				api.NetworkTransformRule{
+					Input:      "value",
+					Output:     "smaller_than_10",
+					Type:       "add_if",
+					Parameters: "<10",
+				},
+			},
+		},
+	}
+
+	var entry config.GenericMap
+	entry = config.GenericMap{
+		"value": 1.2345e67,
+	}
+	output := newNetworkTransform.Transform(entry)
+	require.Equal(t, true, output["bigger_than_10_Evaluate"])
+	require.Equal(t, 1.2345e67, output["bigger_than_10"])
+
+	entry = config.GenericMap{
+		"value": 1.2345e-67,
+	}
+	output = newNetworkTransform.Transform(entry)
+	require.Equal(t, true, output["smaller_than_10_Evaluate"])
+	require.Equal(t, 1.2345e-67, output["smaller_than_10"])
+}
