@@ -116,6 +116,12 @@ run: build ## Run
 build-image:
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build -t $(DOCKER_IMG):$(DOCKER_TAG) -f contrib/docker/Dockerfile .
 
+.PHONY: build-main-and-sha
+build-main-and-sha: build-image
+	echo "FROM $(DOCKER_IMG):$(DOCKER_TAG)" > tmp.Dockerfile && \
+		$(OCI_RUNTIME) build --label quay.expires-after=2w -t $(DOCKER_IMG):$(COMMIT) -f tmp.Dockerfile . && \
+		rm tmp.Dockerfile
+
 .PHONY: push-image
 push-image: build-image ## Push latest image
 	@echo 'publish image $(DOCKER_TAG) to $(DOCKER_IMG)'

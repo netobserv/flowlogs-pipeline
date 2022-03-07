@@ -8,7 +8,7 @@ env:
   REGISTRY_PASSWORD: ${{ secrets.QUAY_SECRET }}
   REGISTRY: quay.io/netobserv
   IMAGE: flowlogs-pipeline
-  TAG: latest
+  TAG: main
 
 jobs:
   push-image:
@@ -26,20 +26,23 @@ jobs:
           go-version: ${{ matrix.go }}
       - name: checkout
         uses: actions/checkout@v2
-      - name: build image
-        run: make build-image
+      - name: build images
+        run: DOCKER_TAG=${{ env.TAG }} make build-main-and-sha
       - name: podman login to quay.io
         uses: redhat-actions/podman-login@v1
         with:
           username: ${{ env.REGISTRY_USER }}
           password: ${{ env.REGISTRY_PASSWORD }}
           registry: quay.io
+      - name: get short sha
+        id: shortsha
+        run: echo "::set-output name=short_sha::$(git rev-parse --short HEAD)"
       - name: push to quay.io
         id: push-to-quay
         uses: redhat-actions/push-to-registry@v2
         with:
           image: ${{ env.IMAGE }}
-          tags: ${{ env.TAG }}
+          tags: ${{ env.TAG }} ${{ steps.shortsha.outputs.short_sha }}
           registry: ${{ env.REGISTRY }}
       - name: print image url
         run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
