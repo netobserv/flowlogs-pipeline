@@ -28,15 +28,19 @@ type Generic struct {
 }
 
 // Transform transforms a flow to a new set of keys
-func (g *Generic) Transform(f config.GenericMap) config.GenericMap {
-	log.Debugf("f = %v", f)
-	gm := make(config.GenericMap)
-	for _, transformRule := range g.Rules {
-		log.Debugf("transformRule = %v", transformRule)
-		gm[transformRule.Output] = f[transformRule.Input]
+func (g *Generic) Transform(input []config.GenericMap) []config.GenericMap {
+	log.Debugf("f = %v", g)
+	output := make([]config.GenericMap, 0)
+	for _, entry := range input {
+		outputEntry := make(config.GenericMap)
+		for _, transformRule := range g.Rules {
+			log.Debugf("transformRule = %v", transformRule)
+			outputEntry[transformRule.Output] = entry[transformRule.Input]
+		}
+		log.Debugf("Transform.GenericMap = %v", outputEntry)
+		output = append(output, outputEntry)
 	}
-	log.Debugf("Transform.GenericMap = %v", gm)
-	return gm
+	return output
 }
 
 // NewTransformGeneric create a new transform

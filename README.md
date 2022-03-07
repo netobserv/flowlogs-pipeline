@@ -317,6 +317,31 @@ Before the first transform suppose we have the keys `DstAddr` and `SrcAddr`.
 After the first transform, we have the keys `dstAddr` and `srcAddr`.
 After the second transform, we have the keys `dstAddr`, `dstIP`, `srcAddr`, and `srcIP`.
 
+### Transform Filter
+
+The filter transform module allows setting rules to remove complete entries from
+the output, or just remove specific keys and values from entries.
+
+For example, suppose we have a flow log with the following syntax:
+```
+{"Bytes":20800,"DstAddr":"10.130.2.2","DstPort":36936,"Packets":400,"Proto":6,"SequenceNum":1919,"SrcAddr":"10.130.2.13","SrcHostIP":"10.0.197.206","SrcPort":3100,"TCPFlags":0,"TimeFlowStart":0,"TimeReceived":1637501832}
+```
+
+The bellow configuration will remove (filter) the entry from the output
+
+```yaml
+pipeline:
+  transform:
+    - type: filter
+      filter:
+        rules:
+        - input: SrcPort
+          type: remove_entry_if_exists 
+```
+Using `remove_entry_if_doesnt_exist` in the rule reverses the logic and will not remove the above example entry
+Using `remove_field` in the rule `type` instead, cause in outputting the entry after
+removal of only the `SrcPort` key and value 
+
 ### Transform Network
 
 `transform network` provides specific functionality that is useful for transformation of network flow-logs:

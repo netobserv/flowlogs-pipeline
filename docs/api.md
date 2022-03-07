@@ -72,6 +72,18 @@ Following is the supported API format for generic transformations:
                  input: entry input field
                  output: entry output field
 </pre>
+## Transform Filter API
+Following is the supported API format for filter transformations:
+
+<pre>
+ filter:
+         rules: list of filter rules, each includes:
+                 input: entry input field
+                 type: (enum) one of the following:
+                     remove_field: removes the field from the entry
+                     remove_entry_if_exists: removes the entry if the field exists
+                     remove_entry_if_doesnt_exist: removes the entry if the field doesnt exist
+</pre>
 ## Transform Network API
 Following is the supported API format for network transformations:
 

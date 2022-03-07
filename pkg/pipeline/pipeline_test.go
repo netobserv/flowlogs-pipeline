@@ -44,10 +44,10 @@ parameters:
 
 func Test_transformToLoki(t *testing.T) {
 	var transformed []config.GenericMap
-	input := config.GenericMap{"key": "value"}
+	input := []config.GenericMap{{"key": "value"}}
 	transform, err := transform.NewTransformNone()
 	require.NoError(t, err)
-	transformed = append(transformed, transform.Transform(input))
+	transformed = append(transformed, transform.Transform(input)...)
 
 	v := test.InitConfig(t, yamlConfigNoParams)
 	require.NotNil(t, v)
