@@ -74,8 +74,10 @@ func (n *Network) Transform(inputEntry config.GenericMap) config.GenericMap {
 				outputEntries[rule.Output+"_Matched"] = true
 			}
 		case api.TransformNetworkOperationName("AddIf"):
-			expression, err := govaluate.NewEvaluableExpression(fmt.Sprintf("%s%s", outputEntries[rule.Input], rule.Parameters))
+			expressionString := fmt.Sprintf("%v%s", outputEntries[rule.Input], rule.Parameters)
+			expression, err := govaluate.NewEvaluableExpression(expressionString)
 			if err != nil {
+				log.Errorf("Can't evaluate AddIf rule: %+v expression: %v. err %v", rule, expressionString, err)
 				continue
 			}
 			result, evaluateErr := expression.Evaluate(nil)
