@@ -181,7 +181,7 @@ It is expected that the **ingest** module will receive flows every so often, and
 
 # Configuration
 
-It is possible to configure flowlogs-pipeline using command-line-parameters, configuration file, environment variables, or any combination of those options.
+It is possible to configure flowlogs-pipeline using command-line-parameters, configuration file, or any combination of those options.
 
 
 For example:
@@ -212,14 +212,6 @@ OR place the configuration information in any other file `<configFile>` and exec
    ```./flowlogs-pipeline --log-level info --config <configFile>```
 Options included in the command line override the options specified in the config file.
 
-3. using environment variables:
-- set environment variables
-```bash
-export FLOWLOGS-PIPELINE_LOG_LEVEL=info
-```
-- execute `./flowlogs-pipeline`
-
-Options specified in environment variables override the options specified in the config file.
 
 Supported options are provided by running:
 
