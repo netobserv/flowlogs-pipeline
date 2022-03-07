@@ -50,10 +50,9 @@ type Definition struct {
 type Definitions []Definition
 
 const (
-	OperationGeneric   = "generic"
-	OperationNetwork   = "network"
-	OperationK8sEnrich = "k8sEnrich"
-	OperationNone      = "none"
+	OperationGeneric = "generic"
+	OperationNetwork = "network"
+	OperationNone    = "none"
 )
 
 func ExecuteTransform(transformer Transformer, in []config.GenericMap) []config.GenericMap {

@@ -1,7 +1,6 @@
 package pipeline
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netobserv"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
 	"github.com/netobserv/gopipes/pkg/node"
 	log "github.com/sirupsen/logrus"
@@ -215,7 +213,7 @@ func getIngester(params config.StageParam) (ingest.Ingester, error) {
 	case "file", "file_loop", "file_chunks":
 		ingester, err = ingest.NewIngestFile(params)
 	case "collector":
-		ingester, err = ingest.NewIngestCollector(params.Ingest.Collector)
+		ingester, err = ingest.NewIngestCollector(params)
 	case "kafka":
 		ingester, err = ingest.NewIngestKafka(params)
 	default:
@@ -266,8 +264,6 @@ func getTransformer(params config.StageParam) (transform.Transformer, error) {
 		transformer, err = transform.NewTransformNetwork(params)
 	case transform.OperationNone:
 		transformer, err = transform.NewTransformNone()
-	case transform.OperationK8sEnrich:
-		transformer, err = netobserv.StartEnricher(context.TODO(), params.Transform.KubeEnrich)
 	default:
 		panic(fmt.Sprintf("`transform` type %s not defined; if no encoder needed, specify `none`", params.Transform.Type))
 	}

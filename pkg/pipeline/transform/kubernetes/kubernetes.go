@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -235,7 +236,7 @@ func LoadConfig(kubeConfigPath string) (*rest.Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("can't get user home dir: %w", err)
 		}
-		kubeConfigPath = homeDir + "/.kube/config"
+		kubeConfigPath = path.Join(homeDir, ".kube", "config")
 	}
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 	if err == nil {

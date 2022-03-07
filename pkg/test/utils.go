@@ -19,18 +19,12 @@ package test
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"reflect"
 	"testing"
 
-	"github.com/golang/snappy"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/loki-client-go/pkg/logproto"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
@@ -118,52 +112,4 @@ func GetExtractMockEntry() config.GenericMap {
 		"recentRawValues": []float64{1.1, 2.2},
 	}
 	return entry
-}
-
-// FakeLokiHandler is a fake loki HTTP service that decodes the snappy/protobuf messages
-// and forwards them for later assertions
-func FakeLokiHandler(flowsData chan<- map[string]interface{}) http.HandlerFunc {
-	hlog := log.WithField("component", "LokiHandler")
-	return func(rw http.ResponseWriter, req *http.Request) {
-		hlog.WithFields(log.Fields{
-			"method": req.Method,
-			"url":    req.URL,
-			"header": req.Header,
-		}).Info("new request")
-		if req.Method != http.MethodPost && req.Method != http.MethodPut {
-			rw.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		body, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			hlog.WithError(err).Error("can't read request body")
-			rw.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		decodedBody, err := snappy.Decode([]byte{}, body)
-		if err != nil {
-			hlog.WithError(err).Error("can't decode snappy body")
-			rw.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		pr := logproto.PushRequest{}
-		if err := pr.Unmarshal(decodedBody); err != nil {
-			hlog.WithError(err).Error("can't decode protobuf body")
-			rw.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		for _, stream := range pr.Streams {
-			for _, entry := range stream.Entries {
-				flowData := map[string]interface{}{}
-				if err := json.Unmarshal([]byte(entry.Line), &flowData); err != nil {
-					hlog.WithError(err).Error("expecting JSON line")
-					rw.WriteHeader(http.StatusBadRequest)
-					return
-				}
-				// TODO: decorate the flow map with extra metadata from the stream entry
-				flowsData <- flowData
-			}
-		}
-		rw.WriteHeader(http.StatusOK)
-	}
 }

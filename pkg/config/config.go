@@ -80,10 +80,9 @@ type Decode struct {
 }
 
 type Transform struct {
-	Type       string
-	Generic    api.TransformGeneric
-	Network    api.TransformNetwork
-	KubeEnrich api.KubeEnrich `json:"k8s_enrich"`
+	Type    string
+	Generic api.TransformGeneric
+	Network api.TransformNetwork
 }
 
 type Extract struct {
