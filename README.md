@@ -11,7 +11,7 @@ FLP allows to define mathematical transformations to generate condense metrics t
 
 In addition, FLP decorates the metrics with **context**, allowing visualization layers and analytics frameworks to present **network insights** to SRE’s, cloud operators and network experts.
 
-Along with Prometheus and its ecosystem tools such as Thanos, Cortex etc., FLP provides efficient scalable multi-cloud solution for comprehensive network analytics that rely **solely based on metrics data-source**.
+Along with Prometheus and its ecosystem tools such as Thanos, Cortex etc., FLP provides an efficient scalable multi-cloud solution for comprehensive network analytics that rely **solely on metrics data-source**.
 
 Default metrics are documented here [docs/metrics.md](docs/metrics.md).
 <br>
@@ -103,7 +103,7 @@ FLP is a framework. The main FLP object is the **pipeline**. FLP **pipeline** ca
 
 # Architecture
 
-The pipeline is constructed of a sequence of stages:
+The pipeline is constructed of a sequence of stages. Each stage is classified into one of the following types:
 - **ingest** - obtain flows from some source, one entry per line
 - **decode** - parse input lines into a known format, e.g., dictionary (map) of AWS or goflow data
 - **transform** - convert entries into a standard format; can include multiple transform stages
@@ -111,49 +111,132 @@ The pipeline is constructed of a sequence of stages:
 - **extract** - derive a set of metrics from the imported flows
 - **encode** - make the data available in appropriate format (e.g. prometheus)
 
-The **encode** and **write** stages may be combined in some cases (as in prometheus), in which case **write** is set to **none**
+The first stage in a pipeline must be an **ingest** stage.
+The **ingest** stage is typically followed by a **decode** stage, unless the **ingest** stage also performs the decoding.
+Each stage (other than an **ingest** stage) specifies the stage it follows.
+Multiple stages may follow from a particular stage, thus allowing the same data to be consumed by multiple parallel pipelines.
+For example, multiple **transform** stages may be performed and the results may be output to different targets.
 
+A configuration file consists of two sections.
+The first section describes the high-level flow of information between the stages, giving each stage a name and building the graph of consumption and production of information between stages.
+The second section provides the definition of specific configuration parameters for each one of the named stages.
+A full configuration file with the data consumed by  two different transforms might look like the following.
+
+```yaml
+pipeline:
+  - name: ingest1
+  - name: decode1
+    follows: ingest1
+  - name: generic1
+    follows: decode1
+  - name: write1
+    follows: generic1
+  - name: generic2
+    follows: decode1
+  - name: write2
+    follows: generic2
+parameters:
+  - name: ingest1
+    ingest:
+      type: file_loop
+      file:
+        filename: hack/examples/ocp-ipfix-flowlogs.json
+  - name: decode1
+    decode:
+      type: json
+  - name: generic1
+    transform:
+      type: generic
+      generic:
+        rules:
+          - input: Bytes
+            output: v1_bytes
+          - input: DstAddr
+            output: v1_dstAddr
+          - input: Packets
+            output: v1_packets
+          - input: SrcPort
+            output: v1_srcPort
+  - name: write1
+    write:
+      type: stdout
+  - name: generic2
+    transform:
+      type: generic
+      generic:
+        rules:
+          - input: Bytes
+            output: v2_bytes
+          - input: DstAddr
+            output: v2_dstAddr
+          - input: Packets
+            output: v2_packets
+          - input: SrcPort
+            output: v2_srcPort
+  - name: write2
+    write:
+      type: stdout
+```
 It is expected that the **ingest** module will receive flows every so often, and this ingestion event will then trigger the rest of the pipeline. So, it is the responsibility of the **ingest** module to provide the timing of when (and how often) the pipeline will run.
 
 # Configuration
 
-It is possible to configure flowlogs-pipeline using command-line-parameters, configuration file, environment variables, or any combination of those options.
+It is possible to configure flowlogs-pipeline using command-line-parameters, configuration file, or any combination of those options.
+
 
 For example:
-1. Using command line parameters:
-```./flowlogs-pipeline --pipeline.ingest.type file --pipeline.ingest.file.filename hack/examples/ocp-ipfix-flowlogs.json```
-2. Using configuration file:
-- create under $HOME/.flowlogs-pipeline.yaml the file:
+1. Using configuration file:
+
 ```yaml
+log-level: info
 pipeline:
-  ingest:
-    type: file
-    file:
-      filename: hack/examples/ocp-ipfix-flowlogs.json
+  - name: ingest_file
+  - name: decode_json
+    follows: ingest_file
+  - name: write_stdout
+    follows: write_stdout
+parameters
+  - name ingest_file
+    ingest:
+      type: file
+      file:
+        filename: hack/examples/ocp-ipfix-flowlogs.json
+  - name: decode_json
+    decode:
+      type: json
+  - name: write_stdout
+    write:
+      type: stdout
 ```
-- execute `./flowlogs-pipeline`
-3. using environment variables:
-- set environment variables
-```bash
-export FLOWLOGS-PIPELINE_PIPELINE_INGEST_TYPE=file
-export FLOWLOGS-PIPELINE_PIPELINE_INGEST_FILE_FILENAME=hack/examples/ocp-ipfix-flowlogs.json
-```
-- execute `./flowlogs-pipeline`
+- execute
 
-# Syntax of portions of the configuration file
 
-## Supported stage types
+`./flowlogs-pipeline --config <configFile>`
 
-Supported options and stage types are provided by running:
+2. Using command line parameters:
+ 
+`./flowlogs-pipeline --pipeline "[{\"name\":\"ingest1\"},{\"follows\":\"ingest1\",\"name\":\"decode1\"},{\"follows\":\"decode1\",\"name\":\"write1\"}]" --parameters "[{\"ingest\":{\"file\":{\"filename\":\"hack/examples/ocp-ipfix-flowlogs.json\"},\"type\":\"file\"},\"name\":\"ingest1\"},{\"decode\":{\"type\":\"json\"},\"name\":\"decode1\"},{\"name\":\"write1\",\"write\":{\"type\":\"stdout\"}}]"`
+
+Options included in the command line override the options specified in the config file.
+
+`flowlogs-pipeline --log-level debug --pipeline "[{\"name\":\"ingest1\"},{\"follows\":\"ingest1\",\"name\":\"decode1\"},{\"follows\":\"decode1\",\"name\":\"write1\"}]" --config <configFile>`
+
+3. TODO: environment variables
+
+Supported options are provided by running:
 
 ```
 flowlogs-pipeline --help
 ```
 
+# Syntax of portions of the configuration file
+
+## Supported stage types
+
 ### Transform
 Different types of inputs come with different sets of keys.
 The transform stage allows changing the names of the keys and deriving new keys from old ones.
-Multiple transforms may be specified, and they are applied in the **order of specification**.
+Multiple transforms may be specified, and they are applied in the **order of specification** (using the **follows** keyword).
 The output from one transform becomes the input to the next transform.
 
 ### Transform Generic
@@ -172,25 +255,26 @@ Suppose further that we are only interested in fields with source/destination ad
 The yaml specification for these parameters would look like this:
 
 ```yaml
-pipeline:
-  transform:
-    - type: generic
+parameters:
+  - name: transform1
+    transform:
+      type: generic
       generic:
         rules:
-        - input: Bytes
-          output: bytes
-        - input: DstAddr
-          output: dstAddr
-        - input: DstPort
-          output: dstPort
-        - input: Packets
-          output: packets
-        - input: SrcAddr
-          output: srcAddr
-        - input: SrcPort
-          output: srcPort
-        - input: TimeReceived
-          output: timestamp
+          - input: Bytes
+            output: bytes
+          - input: DstAddr
+            output: dstAddr
+          - input: DstPort
+            output: dstPort
+          - input: Packets
+            output: packets
+          - input: SrcAddr
+            output: srcAddr
+          - input: SrcPort
+            output: srcPort
+          - input: TimeReceived
+            output: timestamp
 ```
 
 Each field specified by `input` is translated into a field specified by the corresponding `output`.
@@ -201,25 +285,33 @@ If the `input` and `output` fields are identical, then that field is simply pass
 For example:
 ```yaml
 pipeline:
-  transform:
-    - type: generic
+  - name: transform1
+    follows: <something>
+  - name: transform2
+    follows: transform1
+parameters:
+  - name: transform1
+    transform
+      type: generic
       generic:
         rules:
-        - input: DstAddr
-          output: dstAddr
-        - input: SrcAddr
-          output: srcAddr
-    - type: generic
+          - input: DstAddr
+            output: dstAddr
+          - input: SrcAddr
+            output: srcAddr
+  - name: transform2
+    transform
+      type: generic
       generic:
         rules:
-        - input: dstAddr
-          output: dstIP
-        - input: dstAddr
-          output: dstAddr
-        - input: srcAddr
-          output: srcIP
-        - input: srcAddr
-          output: srcAddr
+          - input: dstAddr
+            output: dstIP
+          - input: dstAddr
+            output: dstAddr
+          - input: srcAddr
+            output: srcIP
+          - input: srcAddr
+            output: srcAddr
 ```
 Before the first transform suppose we have the keys `DstAddr` and `SrcAddr`.
 After the first transform, we have the keys `dstAddr` and `srcAddr`.
@@ -239,38 +331,39 @@ After the second transform, we have the keys `dstAddr`, `dstIP`, `srcAddr`, and 
 Example configuration:
 
 ```yaml
-pipeline:
-  transform:
-    - type: network
+parameters:
+  - name: transform1
+    transform:
+      type: network
       network:
         KubeConfigPath: /tmp/config
         rules:
-        - input: srcIP
-          output: srcSubnet
-          type: add_subnet
-          parameters: /24
-        - input: value
-          output: value_smaller_than10
-          type: add_if
-          parameters: <10
-        - input: dstPort
-          output: service
-          type: add_service
-          parameters: protocol
-        - input: dstIP
-          output: dstLocation
-          type: add_location
-        - input: srcIP
-          output: srcK8S
-          type: add_kubernetes
-        - input: srcSubnet
-          output: match-10.0
-          type: add_regex_if
-          parameters: 10.0.*
-        - input: "{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.protocol}}"
-          output: isNewFlow
-          type: conn_tracking
-          parameters: "1"
+          - input: srcIP
+            output: srcSubnet
+            type: add_subnet
+            parameters: /24
+          - input: value
+            output: value_smaller_than10
+            type: add_if
+            parameters: <10
+          - input: dstPort
+            output: service
+            type: add_service
+            parameters: protocol
+          - input: dstIP
+            output: dstLocation
+            type: add_location
+          - input: srcIP
+            output: srcK8S
+            type: add_kubernetes
+          - input: srcSubnet
+            output: match-10.0
+            type: add_regex_if
+            parameters: 10.0.*
+          - input: "{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.protocol}}"
+            output: isNewFlow
+            type: conn_tracking
+            parameters: "1"
 ```
 
 The first rule `add_subnet` generates a new field named `srcSubnet` with the 
@@ -317,6 +410,7 @@ that match hash of template fields from the `input` variable.
 
 
 > Note: above example describes all available transform network `Type` options
+
 > Note: above transform is essential for the `aggregation` phase  
 
 ### Aggregates
@@ -344,22 +438,20 @@ average for `srcIP`x`dstIP` tuples will look like this::
 
 ```yaml
 pipeline:
-  extract:
-    type: aggregates
-    aggregates:
-    - Name: "Average key=value for (srcIP, dstIP) pairs"
-      By:
-      - "dstIP"
-      - "srcIP"
-      Operation: "avg"
-      RecordKey: "value"
+  - name: aggregate1
+    follows: <something>
+parameters:
+  - name: aggregate1
+    extract:
+      type: aggregates
+      aggregates:
+        - Name: "Average key=value for (srcIP, dstIP) pairs"
+          By:
+            - "dstIP"
+            - "srcIP"
+          Operation: "avg"
+          RecordKey: "value"
 ```
-
-### Json Encoder
-
-The json encoder takes each entry in the internal representation of the data and converts it to a json byte array.
-These byte arrays may then be output by a `write` stage.
-
 
 ### Prometheus encoder
 
@@ -367,43 +459,44 @@ The prometheus encoder specifies which metrics to export to prometheus and which
 For example, we may want to report the number of bytes and packets for the reported flows.
 For each reported metric, we may specify a different set of labels.
 Each metric may be renamed from its internal name.
-The internal metric name is specified as `input` and the exported name is specified as `name`.
+The internal metric name is specified as `valuekey` and the exported name is specified as `name`.
 A prefix for all exported metrics may be specified, and this prefix is prepended to the `name` of each specified metric.
 
 ```yaml
-pipeline:
-  encode:
-    type: prom
-    prom:
-      port: 9103
-      prefix: test_
-      metrics:
-        - name: Bytes
-          type: gauge
-          valuekey: bytes
-          labels:
-            - srcAddr
-            - dstAddr
-            - srcPort
-        - name: Packets
-          type: counter
-          valuekey: packets
-          labels:
-            - srcAddr
-            - dstAddr
-            - dstPort
+parameters:
+  - name: prom1
+    encode:
+      type: prom
+      prom:
+        port: 9103
+        prefix: test_
+        metrics:
+          - name: Bytes
+            type: gauge
+            valuekey: bytes
+            labels:
+              - srcAddr
+              - dstAddr
+              - srcPort
+          - name: Packets
+            type: counter
+            valuekey: packets
+            labels:
+              - srcAddr
+              - dstAddr
+              - dstPort
 ```
 
 In this example, for the `bytes` metric we report with the labels which specify srcAddr, dstAddr and srcPort.
 Each different combination of label-values is a distinct gauge reported to prometheus.
 The name of the prometheus gauge is set to `test_Bytes` by concatenating the prefix with the metric name.
 The `packets` metric is very similar. It makes use of the `counter` prometheus type which adds reported values
-to prometheus counter.
+to a prometheus counter.
 
 ### Loki writer
 
-The loki writer persist flow-logs into [Loki](https://github.com/grafana/loki). The flow-logs are sent with defined 
-tenant ID and with a set static labels and dynamic labels from the record fields. 
+The loki writer persists flow-logs into [Loki](https://github.com/grafana/loki). The flow-logs are sent with defined 
+tenant ID and with a set of static labels and dynamic labels from the record fields. 
 For example, sending flow-logs into tenant `theTenant` with labels 
 from `foo` and `bar` fields 
 and including static label with key `job` with value `flowlogs-pipeline`. 
@@ -411,22 +504,23 @@ Additional parameters such as `url` and `batchWait` are defined in
 Loki writer API [docs/api.md](docs/api.md)
 
 ```bash
-pipeline:
-  write:
-    type: loki
-    loki:
-      tenantID: theTenant
+parameters:
+  - name: write_loki
+    write:
+      type: loki
       loki:
-        url: http://loki.default.svc.cluster.local:3100
-      staticLabels:
-        job: flowlogs-pipeline
-      batchWait: 1m
-      labels:
-        - foo
-        - bar
+        tenantID: theTenant
+        loki:
+          url: http://loki.default.svc.cluster.local:3100
+        staticLabels:
+          job: flowlogs-pipeline
+        batchWait: 1m
+        labels:
+          - foo
+          - bar
   ```
 
-> Note: to view loki flow-logs in `grafana`:: Use the `Explore` tab and choose the `loki` datasource. In the `Log Browser` enter `{job="flowlogs-pipeline"}` and press `Run query` 
+> Note: to view loki flow-logs in `grafana`: Use the `Explore` tab and choose the `loki` datasource. In the `Log Browser` enter `{job="flowlogs-pipeline"}` and press `Run query` 
 
 # Development
 
