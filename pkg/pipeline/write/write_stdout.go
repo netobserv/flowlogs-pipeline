@@ -29,14 +29,12 @@ type writeStdout struct {
 }
 
 // Write writes a flow before being stored
-func (t *writeStdout) Write(in []config.GenericMap) []config.GenericMap {
+func (t *writeStdout) Write(in []config.GenericMap) {
 	log.Debugf("entering writeStdout Write")
 	log.Debugf("writeStdout: number of entries = %d", len(in))
 	for _, v := range in {
 		fmt.Printf("%s: %v\n", time.Now().Format(time.StampMilli), v)
 	}
-
-	return in
 }
 
 // NewWriteStdout create a new write
