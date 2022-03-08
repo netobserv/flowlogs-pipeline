@@ -136,7 +136,7 @@ func (b *builder) build() (*Pipeline, error) {
 			return nil, fmt.Errorf("stage %q of type %q can't send data",
 				connection.Follows, srcEntry.stageType)
 		}
-		log.Debugf("connecting stages: %s --> %s", connection.Follows, connection.Name)
+		log.Infof("connecting stages: %s --> %s", connection.Follows, connection.Name)
 
 		sendingNodes[connection.Follows] = struct{}{}
 		receivingNodes[connection.Name] = struct{}{}
