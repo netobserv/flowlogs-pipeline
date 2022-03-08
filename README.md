@@ -327,7 +327,7 @@ For example, suppose we have a flow log with the following syntax:
 {"Bytes":20800,"DstAddr":"10.130.2.2","DstPort":36936,"Packets":400,"Proto":6,"SequenceNum":1919,"SrcAddr":"10.130.2.13","SrcHostIP":"10.0.197.206","SrcPort":3100,"TCPFlags":0,"TimeFlowStart":0,"TimeReceived":1637501832}
 ```
 
-The bellow configuration will remove (filter) the entry from the output
+The below configuration will remove (filter) the entry from the output
 
 ```yaml
 pipeline:
@@ -339,7 +339,7 @@ pipeline:
           type: remove_entry_if_exists 
 ```
 Using `remove_entry_if_doesnt_exist` in the rule reverses the logic and will not remove the above example entry
-Using `remove_field` in the rule `type` instead, cause in outputting the entry after
+Using `remove_field` in the rule `type` instead, results in outputting the entry after
 removal of only the `SrcPort` key and value 
 
 ### Transform Network
