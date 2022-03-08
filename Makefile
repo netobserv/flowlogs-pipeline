@@ -116,11 +116,15 @@ run: build ## Run
 build-image:
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build -t $(DOCKER_IMG):$(DOCKER_TAG) -f contrib/docker/Dockerfile .
 
-.PHONY: build-main-and-sha
-build-main-and-sha: build-image
-	echo "FROM $(DOCKER_IMG):$(DOCKER_TAG)" > tmp.Dockerfile && \
-		$(OCI_RUNTIME) build --label quay.expires-after=2w -t $(DOCKER_IMG):$(COMMIT) -f tmp.Dockerfile . && \
-		rm tmp.Dockerfile
+.PHONY: build-ci-images
+build-ci-images:
+ifeq ($(DOCKER_TAG), main)
+# Also tag "latest" only for branch "main"
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build -t $(DOCKER_IMG):$(DOCKER_TAG) -t $(DOCKER_IMG):latest -f contrib/docker/Dockerfile .
+else
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build -t $(DOCKER_IMG):$(DOCKER_TAG) -f contrib/docker/Dockerfile .
+endif
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build --build-arg BASE_IMAGE=$(DOCKER_IMG):$(DOCKER_TAG) -t $(DOCKER_IMG):$(COMMIT) -f contrib/docker/shortlived.Dockerfile .
 
 .PHONY: push-image
 push-image: build-image ## Push latest image

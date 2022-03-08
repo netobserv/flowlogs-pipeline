@@ -27,7 +27,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
       - name: build images
-        run: DOCKER_TAG=${{ env.TAG }} make build-main-and-sha
+        run: DOCKER_TAG=${{ env.TAG }} make build-ci-images
       - name: podman login to quay.io
         uses: redhat-actions/podman-login@v1
         with:
@@ -42,7 +42,7 @@ jobs:
         uses: redhat-actions/push-to-registry@v2
         with:
           image: ${{ env.IMAGE }}
-          tags: ${{ env.TAG }} ${{ steps.shortsha.outputs.short_sha }}
+          tags: ${{ env.TAG }} ${{ steps.shortsha.outputs.short_sha }} latest
           registry: ${{ env.REGISTRY }}
       - name: print image url
         run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
