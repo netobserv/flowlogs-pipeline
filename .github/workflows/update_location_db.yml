@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
       - name: update
         run: |
-          wget --spider "https://www.ip2location.com/download/?token=$DB_TOKEN_SECRET&file=DB9LITEBIN" -O contrib/location/location.db
+          wget -S "https://www.ip2location.com/download/?token=$DB_TOKEN_SECRET&file=DB9LITEBIN" -O contrib/location/location.db
       - name: commit
         run: |
           ls -la contrib/location/location.db
