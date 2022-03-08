@@ -38,6 +38,8 @@ pipeline:
     follows: decode_json
   - name: kafka_encode
     follows: transform_generic
+  - name: write_none
+    follows: kafka_encode
 parameters:
   - name: kafka_ingest
     ingest:
@@ -72,6 +74,9 @@ parameters:
       kafka:
         address: "localhost:9092"
         topic: topic_out
+  - name: write_none
+    write:
+      type: none
 `
 
 func Test_KafkaPipeline(t *testing.T) {
