@@ -28,28 +28,31 @@ func (cg *ConfGen) generateFlowlogs2PipelineConfig(fileName string) error {
 	config := map[string]interface{}{
 		"log-level": "error",
 		"pipeline": []map[string]string{
-			{"name": "ingest1"},
-			{"name": "decode1",
-				"follows": "ingest1",
+			{"name": "ingest_collector"},
+			{"name": "decode_json",
+				"follows": "ingest_collector",
 			},
-			{"name": "transform1",
-				"follows": "decode1",
+			{"name": "transform_generic",
+				"follows": "decode_json",
 			},
-			{"name": "transform2",
-				"follows": "transform1",
+			{"name": "transform_network",
+				"follows": "transform_generic",
 			},
-			{"name": "extract1",
-				"follows": "transform2",
+			{"name": "extract_aggregate",
+				"follows": "transform_network",
 			},
-			{"name": "encode1",
-				"follows": "extract1",
+			{"name": "encode_prom",
+				"follows": "extract_aggregate",
 			},
-			{"name": "write1",
-				"follows": "transform2",
+			{"name": "write_none",
+				"follows": "encode_prom",
+			},
+			{"name": "write_loki",
+				"follows": "transform_network",
 			},
 		},
 		"parameters": []map[string]interface{}{
-			{"name": "ingest1",
+			{"name": "ingest_collector",
 				"ingest": map[string]interface{}{
 					"type": "collector",
 					"collector": map[string]interface{}{
@@ -58,12 +61,12 @@ func (cg *ConfGen) generateFlowlogs2PipelineConfig(fileName string) error {
 					},
 				},
 			},
-			{"name": "decode1",
+			{"name": "decode_json",
 				"decode": map[string]interface{}{
 					"type": "json",
 				},
 			},
-			{"name": "transform1",
+			{"name": "transform_generic",
 				"transform": map[string]interface{}{
 					"type": "generic",
 					"generic": map[string]interface{}{
@@ -71,7 +74,7 @@ func (cg *ConfGen) generateFlowlogs2PipelineConfig(fileName string) error {
 					},
 				},
 			},
-			{"name": "transform2",
+			{"name": "transform_network",
 				"transform": map[string]interface{}{
 					"type": "network",
 					"network": map[string]interface{}{
@@ -79,13 +82,13 @@ func (cg *ConfGen) generateFlowlogs2PipelineConfig(fileName string) error {
 					},
 				},
 			},
-			{"name": "extract1",
+			{"name": "extract_aggregate",
 				"extract": map[string]interface{}{
 					"type":       "aggregates",
 					"aggregates": cg.aggregateDefinitions,
 				},
 			},
-			{"name": "encode1",
+			{"name": "encode_prom",
 				"encode": map[string]interface{}{
 					"type": "prom",
 					"prom": map[string]interface{}{
@@ -95,7 +98,12 @@ func (cg *ConfGen) generateFlowlogs2PipelineConfig(fileName string) error {
 					},
 				},
 			},
-			{"name": "write1",
+			{"name": "write_none",
+				"write": map[string]interface{}{
+					"type": "none",
+				},
+			},
+			{"name": "write_loki",
 				"write": map[string]interface{}{
 					"type": cg.config.Write.Type,
 					"loki": cg.config.Write.Loki,

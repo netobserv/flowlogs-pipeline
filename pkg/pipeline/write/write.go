@@ -23,17 +23,16 @@ import (
 )
 
 type Writer interface {
-	Write(in []config.GenericMap) []config.GenericMap
+	Write(in []config.GenericMap)
 }
 type WriteNone struct {
 	PrevRecords []config.GenericMap
 }
 
 // Write writes entries
-func (t *WriteNone) Write(in []config.GenericMap) []config.GenericMap {
+func (t *WriteNone) Write(in []config.GenericMap) {
 	log.Debugf("entering Write none, in = %v", in)
 	t.PrevRecords = in
-	return in
 }
 
 // NewWriteNone create a new write
