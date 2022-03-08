@@ -140,7 +140,7 @@ parameters:
     ingest:
       type: file_loop
       file:
-        filename: playground/goflow2_input.txt
+        filename: hack/examples/ocp-ipfix-flowlogs.json
   - name: decode1
     decode:
       type: json
@@ -193,6 +193,8 @@ pipeline:
   - name: ingest_file
   - name: decode_json
     follows: ingest_file
+  - name: write_stdout
+    follows: write_stdout
 parameters
   - name ingest_file
     ingest:
@@ -202,16 +204,25 @@ parameters
   - name: decode_json
     decode:
       type: json
+  - name: write_stdout
+    write:
+      type: stdout
 ```
 - execute `./flowlogs-pipeline`
 
 OR place the configuration information in any other file `<configFile>` and execute
+
 `./flowlogs-pipeline --config <configFile>`
 
 2. Using command line parameters:
-   ```./flowlogs-pipeline --log-level info --config <configFile>```
+ 
+`./flowlogs-pipeline --pipeline "[{\"name\":\"ingest1\"},{\"follows\":\"ingest1\",\"name\":\"decode1\"},{\"follows\":\"decode1\",\"name\":\"write1\"}]" --parameters "[{\"ingest\":{\"file\":{\"filename\":\"hack/examples/ocp-ipfix-flowlogs.json\"},\"type\":\"file\"},\"name\":\"ingest1\"},{\"decode\":{\"type\":\"json\"},\"name\":\"decode1\"},{\"name\":\"write1\",\"write\":{\"type\":\"stdout\"}}]"`
+
 Options included in the command line override the options specified in the config file.
 
+`flowlogs-pipeline --log-level debug --pipeline "[{\"name\":\"ingest1\"},{\"follows\":\"ingest1\",\"name\":\"decode1\"},{\"follows\":\"decode1\",\"name\":\"write1\"}]" --config <configFile>`
+
+3. TODO: environment variables
 
 Supported options are provided by running:
 
