@@ -15,6 +15,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Error wraps any error caused by a wrong formation of the pipeline
+type Error struct {
+	StageName string
+	wrapped   error
+}
+
+func (e *Error) Error() string {
+	return fmt.Sprintf("pipeline stage %q: %s", e.StageName, e.wrapped.Error())
+}
+
+func (e *Error) Unwrap() error {
+	return e.wrapped
+}
+
 // builder stores the information that is only required during the build of the pipeline
 type builder struct {
 	pipelineStages   []*pipelineEntry
@@ -27,7 +41,7 @@ type builder struct {
 }
 
 type pipelineEntry struct {
-	configStage config.Stage
+	stageName   string
 	stageType   string
 	Ingester    ingest.Ingester
 	Decoder     decode.Decoder
@@ -48,39 +62,33 @@ func newBuilder(params []config.StageParam, stages []config.Stage) *builder {
 
 // read the configuration stages definition and instantiate the corresponding native Go objects
 func (b *builder) readStages() error {
-	for _, stage := range b.configStages {
-		log.Debugf("stage = %v", stage)
-		params, stageType := findStageParameters(stage, b.configParams)
-		if params == nil {
-			err := fmt.Errorf("parameters not defined for stage %s", stage.Name)
-			log.Errorf("%v", err)
-			return err
-		}
+	for _, param := range b.configParams {
+		log.Debugf("stage = %v", param.Name)
 		pEntry := pipelineEntry{
-			configStage: stage,
-			stageType:   stageType,
+			stageName: param.Name,
+			stageType: findStageType(&param),
 		}
 		var err error
 		switch pEntry.stageType {
 		case StageIngest:
-			pEntry.Ingester, err = getIngester(*params)
+			pEntry.Ingester, err = getIngester(param)
 		case StageDecode:
-			pEntry.Decoder, err = getDecoder(*params)
+			pEntry.Decoder, err = getDecoder(param)
 		case StageTransform:
-			pEntry.Transformer, err = getTransformer(*params)
+			pEntry.Transformer, err = getTransformer(param)
 		case StageExtract:
-			pEntry.Extractor, err = getExtractor(*params)
+			pEntry.Extractor, err = getExtractor(param)
 		case StageEncode:
-			pEntry.Encoder, err = getEncoder(*params)
+			pEntry.Encoder, err = getEncoder(param)
 		case StageWrite:
-			pEntry.Writer, err = getWriter(*params)
+			pEntry.Writer, err = getWriter(param)
 		default:
 			err = fmt.Errorf("invalid stage type: %v", pEntry.stageType)
 		}
 		if err != nil {
 			return err
 		}
-		b.pipelineEntryMap[stage.Name] = &pEntry
+		b.pipelineEntryMap[param.Name] = &pEntry
 		b.pipelineStages = append(b.pipelineStages, &pEntry)
 		log.Debugf("pipeline = %v", b.pipelineStages)
 	}
@@ -91,6 +99,10 @@ func (b *builder) readStages() error {
 // reads the configured Go stages and connects between them
 // readStages must be invoked before this
 func (b *builder) build() (*Pipeline, error) {
+	// accounts start and middle nodes that are connected to another node
+	sendingNodes := map[string]struct{}{}
+	// accounts middle or terminal nodes that receive data from another node
+	receivingNodes := map[string]struct{}{}
 	for _, connection := range b.configStages {
 		if connection.Name == "" || connection.Follows == "" {
 			// ignore entries that do not represent a connection
@@ -126,13 +138,18 @@ func (b *builder) build() (*Pipeline, error) {
 		}
 		log.Debugf("connecting stages: %s --> %s", connection.Follows, connection.Name)
 
+		sendingNodes[connection.Follows] = struct{}{}
+		receivingNodes[connection.Name] = struct{}{}
 		// connects source and destination node, and catches any panic from the Go-Pipes library.
-		var catchErr error
+		var catchErr *Error
 		func() {
 			defer func() {
 				if msg := recover(); msg != nil {
-					catchErr = fmt.Errorf("%q and %q stages haven't compatible input/outputs: %v",
-						connection.Follows, connection.Name, msg)
+					catchErr = &Error{
+						StageName: connection.Name,
+						wrapped: fmt.Errorf("%q and %q stages haven't compatible input/outputs: %v",
+							connection.Follows, connection.Name, msg),
+					}
 				}
 			}()
 			src.SendsTo(dst)
@@ -142,6 +159,9 @@ func (b *builder) build() (*Pipeline, error) {
 		}
 	}
 
+	if err := b.verifyConnections(sendingNodes, receivingNodes); err != nil {
+		return nil, err
+	}
 	if len(b.startNodes) == 0 {
 		return nil, errors.New("no ingesters have been defined")
 	}
@@ -153,6 +173,40 @@ func (b *builder) build() (*Pipeline, error) {
 		terminalNodes:  b.terminalNodes,
 		pipelineStages: b.pipelineStages,
 	}, nil
+}
+
+// verifies that all the start and middle nodes send data to another node
+// verifies that all the middle and terminal nodes receive data from another node
+func (b *builder) verifyConnections(sendingNodes, receivingNodes map[string]struct{}) error {
+	for _, stg := range b.pipelineStages {
+		if isReceptor(stg) {
+			if _, ok := receivingNodes[stg.stageName]; !ok {
+				return &Error{
+					StageName: stg.stageName,
+					wrapped: fmt.Errorf("pipeline stage from type %q"+
+						" should receive data from at least another stage", stg.stageType),
+				}
+			}
+		}
+		if isSender(stg) {
+			if _, ok := sendingNodes[stg.stageName]; !ok {
+				return &Error{
+					StageName: stg.stageName,
+					wrapped: fmt.Errorf("pipeline stage from type %q"+
+						" should send data to at least another stage", stg.stageType),
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func isReceptor(p *pipelineEntry) bool {
+	return p.stageType != StageIngest
+}
+
+func isSender(p *pipelineEntry) bool {
+	return p.stageType != StageWrite
 }
 
 func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, error) {
@@ -200,7 +254,10 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 			}
 		})
 	default:
-		return nil, fmt.Errorf("invalid stage type: %s", pe.stageType)
+		return nil, &Error{
+			StageName: stageID,
+			wrapped:   fmt.Errorf("invalid stage type: %s", pe.stageType),
+		}
 	}
 	b.createdStages[stageID] = stage
 	return stage, nil
@@ -217,7 +274,7 @@ func getIngester(params config.StageParam) (ingest.Ingester, error) {
 	case "kafka":
 		ingester, err = ingest.NewIngestKafka(params)
 	default:
-		panic(fmt.Sprintf("`ingest` type %s not defined; if no encoder needed, specify `none`", params.Ingest.Type))
+		panic(fmt.Sprintf("`ingest` type %s not defined", params.Ingest.Type))
 	}
 	return ingester, err
 }
@@ -233,7 +290,7 @@ func getDecoder(params config.StageParam) (decode.Decoder, error) {
 	case "none":
 		decoder, err = decode.NewDecodeNone()
 	default:
-		panic(fmt.Sprintf("`decode` type %s not defined; if no encoder needed, specify `none`", params.Decode.Type))
+		panic(fmt.Sprintf("`decode` type %s not defined; if no decoder needed, specify `none`", params.Decode.Type))
 	}
 	return decoder, err
 }
@@ -249,7 +306,7 @@ func getWriter(params config.StageParam) (write.Writer, error) {
 	case "loki":
 		writer, err = write.NewWriteLoki(params)
 	default:
-		panic(fmt.Sprintf("`write` type %s not defined; if no encoder needed, specify `none`", params.Write.Type))
+		panic(fmt.Sprintf("`write` type %s not defined; if no writer needed, specify `none`", params.Write.Type))
 	}
 	return writer, err
 }
@@ -265,7 +322,7 @@ func getTransformer(params config.StageParam) (transform.Transformer, error) {
 	case transform.OperationNone:
 		transformer, err = transform.NewTransformNone()
 	default:
-		panic(fmt.Sprintf("`transform` type %s not defined; if no encoder needed, specify `none`", params.Transform.Type))
+		panic(fmt.Sprintf("`transform` type %s not defined; if no transformer needed, specify `none`", params.Transform.Type))
 	}
 	return transformer, err
 }
@@ -279,7 +336,7 @@ func getExtractor(params config.StageParam) (extract.Extractor, error) {
 	case "aggregates":
 		extractor, err = extract.NewExtractAggregate(params)
 	default:
-		panic(fmt.Sprintf("`extract` type %s not defined; if no encoder needed, specify `none`", params.Extract.Type))
+		panic(fmt.Sprintf("`extract` type %s not defined; if no extractor needed, specify `none`", params.Extract.Type))
 	}
 	return extractor, err
 }
@@ -301,32 +358,25 @@ func getEncoder(params config.StageParam) (encode.Encoder, error) {
 }
 
 // findStageParameters finds the matching config.param structure and identifies the stage type
-func findStageParameters(stage config.Stage, configParams []config.StageParam) (*config.StageParam, string) {
-	log.Debugf("findStageParameters: stage = %v", stage)
-	for _, param := range configParams {
-		log.Debugf("findStageParameters: param = %v", param)
-		if stage.Name == param.Name {
-			var stageType string
-			if param.Ingest.Type != "" {
-				stageType = StageIngest
-			}
-			if param.Decode.Type != "" {
-				stageType = StageDecode
-			}
-			if param.Transform.Type != "" {
-				stageType = StageTransform
-			}
-			if param.Extract.Type != "" {
-				stageType = StageExtract
-			}
-			if param.Encode.Type != "" {
-				stageType = StageEncode
-			}
-			if param.Write.Type != "" {
-				stageType = StageWrite
-			}
-			return &param, stageType
-		}
+func findStageType(param *config.StageParam) string {
+	log.Debugf("findStageType: stage = %v", param.Name)
+	if param.Ingest.Type != "" {
+		return StageIngest
 	}
-	return nil, ""
+	if param.Decode.Type != "" {
+		return StageDecode
+	}
+	if param.Transform.Type != "" {
+		return StageTransform
+	}
+	if param.Extract.Type != "" {
+		return StageExtract
+	}
+	if param.Encode.Type != "" {
+		return StageEncode
+	}
+	if param.Write.Type != "" {
+		return StageWrite
+	}
+	return "unknown"
 }
