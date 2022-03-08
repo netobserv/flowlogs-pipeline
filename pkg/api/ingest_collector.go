@@ -18,6 +18,7 @@
 package api
 
 type IngestCollector struct {
-	HostName string `yaml:"hostName" doc:"the hostname to listen on"`
-	Port     int    `yaml:"port" doc:"the port number to listen on"`
+	HostName    string `yaml:"hostName" doc:"the hostname to listen on"`
+	Port        int    `yaml:"port" doc:"the port number to listen on"`
+	BatchMaxLen int    `yaml:"batchMaxLen" doc:"the number of accumulated flows before being forwarded for processing"`
 }

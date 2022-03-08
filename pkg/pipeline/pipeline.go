@@ -55,7 +55,11 @@ func NewPipeline() (*Pipeline, error) {
 	configParams := config.Parameters
 	log.Debugf("configParams = %v ", configParams)
 
-	return newBuilder(configParams, stages).build()
+	build := newBuilder(configParams, stages)
+	if err := build.readStages(); err != nil {
+		return nil, err
+	}
+	return build.build()
 }
 
 func (p *Pipeline) Run() {

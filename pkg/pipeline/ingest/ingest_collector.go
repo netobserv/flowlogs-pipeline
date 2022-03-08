@@ -25,10 +25,9 @@ import (
 	"net"
 	"time"
 
+	ms "github.com/mitchellh/mapstructure"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
-
-	ms "github.com/mitchellh/mapstructure"
 	goflowFormat "github.com/netsampler/goflow2/format"
 	goflowCommonFormat "github.com/netsampler/goflow2/format/common"
 	_ "github.com/netsampler/goflow2/format/protobuf"
@@ -38,14 +37,19 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const channelSize = 1000
-const batchMaxTimeInMilliSecs = 1000
+const (
+	channelSize           = 1000
+	defaultBatchFlushTime = time.Second
+	defaultBatchMaxLength = 500
+)
 
 type ingestCollector struct {
-	hostname string
-	port     int
-	in       chan map[string]interface{}
-	exitChan chan bool
+	hostname       string
+	port           int
+	in             chan map[string]interface{}
+	batchFlushTime time.Duration
+	batchMaxLength int
+	exitChan       chan bool
 }
 
 // TransportWrapper is an implementation of the goflow2 transport interface
@@ -104,11 +108,11 @@ func (ingestC *ingestCollector) Ingest(out chan<- []interface{}) {
 
 func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
 	transporter := NewWrapper(ingestC.in)
+	formatter, err := goflowFormat.FindFormat(ctx, "pb")
+	if err != nil {
+		log.Fatal(err)
+	}
 	go func() {
-		formatter, err := goflowFormat.FindFormat(ctx, "pb")
-		if err != nil {
-			log.Fatal(err)
-		}
 		sNF := &utils.StateNetFlow{
 			Format:    formatter,
 			Transport: transporter,
@@ -122,10 +126,6 @@ func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
 	}()
 
 	go func() {
-		formatter, err := goflowFormat.FindFormat(ctx, "pb")
-		if err != nil {
-			log.Fatal(err)
-		}
 		sLegacyNF := &utils.StateNFLegacy{
 			Format:    formatter,
 			Transport: transporter,
@@ -141,21 +141,31 @@ func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
 
 func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 	var records []interface{}
+	// Maximum batch time for each batch
+	flushRecords := time.NewTicker(ingestC.batchFlushTime)
+	defer flushRecords.Stop()
 	for {
 		select {
 		case <-ingestC.exitChan:
 			log.Debugf("exiting ingestCollector because of signal")
 			return
 		case record := <-ingestC.in:
+			// TODO: for efficiency, consider forwarding directly as map,
+			// as this is reverted back from string to map in later pipeline stages
 			recordAsBytes, _ := json.Marshal(record)
 			records = append(records, string(recordAsBytes))
-		case <-time.After(time.Millisecond * batchMaxTimeInMilliSecs): // Maximum batch time for each batch
+			if len(records) >= ingestC.batchMaxLength {
+				log.Debugf("ingestCollector sending %d entries", len(records))
+				out <- records
+				records = []interface{}{}
+			}
+		case <-flushRecords.C:
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
 				log.Debugf("ingestCollector sending %d entries", len(records))
 				out <- records
+				records = []interface{}{}
 			}
-			records = []interface{}{}
 		}
 	}
 }
@@ -177,9 +187,16 @@ func NewIngestCollector(params config.StageParam) (Ingester, error) {
 	ch := make(chan bool, 1)
 	pUtils.RegisterExitChannel(ch)
 
+	bml := defaultBatchMaxLength
+	if jsonIngestCollector.BatchMaxLen != 0 {
+		bml = jsonIngestCollector.BatchMaxLen
+	}
+
 	return &ingestCollector{
-		hostname: jsonIngestCollector.HostName,
-		port:     jsonIngestCollector.Port,
-		exitChan: ch,
+		hostname:       jsonIngestCollector.HostName,
+		port:           jsonIngestCollector.Port,
+		exitChan:       ch,
+		batchFlushTime: defaultBatchFlushTime,
+		batchMaxLength: bml,
 	}, nil
 }

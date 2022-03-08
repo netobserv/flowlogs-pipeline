@@ -42,6 +42,7 @@ Following is the supported API format for the netflow collector:
  collector:
          hostName: the hostname to listen on
          port: the port number to listen on
+         batchMaxLen: the number of accumulated flows before being forwarded for processing
 </pre>
 ## Ingest Kafka API
 Following is the supported API format for the kafka ingest:
