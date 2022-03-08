@@ -24,14 +24,14 @@ import (
 )
 
 type Transformer interface {
-	Transform(in config.GenericMap) config.GenericMap
+	Transform(in []config.GenericMap) []config.GenericMap
 }
 
 type transformNone struct {
 }
 
 // Transform transforms a flow before being stored
-func (t *transformNone) Transform(f config.GenericMap) config.GenericMap {
+func (t *transformNone) Transform(f []config.GenericMap) []config.GenericMap {
 	return f
 }
 
@@ -52,15 +52,6 @@ type Definitions []Definition
 const (
 	OperationGeneric = "generic"
 	OperationNetwork = "network"
+	OperationFilter  = "filter"
 	OperationNone    = "none"
 )
-
-func ExecuteTransform(transformer Transformer, in []config.GenericMap) []config.GenericMap {
-	out := make([]config.GenericMap, 0)
-	var flowEntry config.GenericMap
-	for _, entry := range in {
-		flowEntry = transformer.Transform(entry)
-		out = append(out, flowEntry)
-	}
-	return out
-}

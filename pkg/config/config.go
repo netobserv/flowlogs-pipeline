@@ -82,6 +82,7 @@ type Decode struct {
 type Transform struct {
 	Type    string
 	Generic api.TransformGeneric
+	Filter  api.TransformFilter
 	Network api.TransformNetwork
 }
 

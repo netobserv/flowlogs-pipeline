@@ -244,7 +244,7 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 	case StageTransform:
 		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
 			for i := range in {
-				out <- transform.ExecuteTransform(pe.Transformer, i)
+				out <- pe.Transformer.Transform(i)
 			}
 		})
 	case StageExtract:
@@ -317,6 +317,8 @@ func getTransformer(params config.StageParam) (transform.Transformer, error) {
 	switch params.Transform.Type {
 	case transform.OperationGeneric:
 		transformer, err = transform.NewTransformGeneric(params)
+	case transform.OperationFilter:
+		transformer, err = transform.NewTransformFilter(params)
 	case transform.OperationNetwork:
 		transformer, err = transform.NewTransformNetwork(params)
 	case transform.OperationNone:

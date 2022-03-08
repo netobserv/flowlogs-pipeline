@@ -30,6 +30,7 @@ type API struct {
 	IngestKafka      IngestKafka         `yaml:"kafka" doc:"## Ingest Kafka API\nFollowing is the supported API format for the kafka ingest:\n"`
 	DecodeAws        DecodeAws           `yaml:"aws" doc:"## Aws ingest API\nFollowing is the supported API format for Aws flow entries:\n"`
 	TransformGeneric TransformGeneric    `yaml:"generic" doc:"## Transform Generic API\nFollowing is the supported API format for generic transformations:\n"`
+	TransformFilter  TransformFilter     `yaml:"filter" doc:"## Transform Filter API\nFollowing is the supported API format for filter transformations:\n"`
 	TransformNetwork TransformNetwork    `yaml:"network" doc:"## Transform Network API\nFollowing is the supported API format for network transformations:\n"`
 	WriteLoki        WriteLoki           `yaml:"loki" doc:"## Write Loki API\nFollowing is the supported API format for writing to loki:\n"`
 	ExtractAggregate AggregateDefinition `yaml:"aggregates" doc:"## Aggregate metrics API\nFollowing is the supported API format for specifying metrics aggregations:\n"`

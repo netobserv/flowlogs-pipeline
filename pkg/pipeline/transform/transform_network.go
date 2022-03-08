@@ -39,7 +39,16 @@ type Network struct {
 	api.TransformNetwork
 }
 
-func (n *Network) Transform(inputEntry config.GenericMap) config.GenericMap {
+func (n *Network) Transform(inputEntries []config.GenericMap) []config.GenericMap {
+	outputEntries := make([]config.GenericMap, 0)
+	for _, entry := range inputEntries {
+		outputEntry := n.TransformEntry(entry)
+		outputEntries = append(outputEntries, outputEntry)
+	}
+	return outputEntries
+}
+
+func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap {
 	outputEntries := inputEntry
 
 	for _, rule := range n.Rules {

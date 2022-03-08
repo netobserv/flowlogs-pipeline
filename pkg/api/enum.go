@@ -25,6 +25,7 @@ import (
 type enums struct {
 	PromEncodeOperationEnum       PromEncodeOperationEnum
 	TransformNetworkOperationEnum TransformNetworkOperationEnum
+	TransformFilterOperationEnum  TransformFilterOperationEnum
 	KafkaEncodeBalancerEnum       KafkaEncodeBalancerEnum
 }
 

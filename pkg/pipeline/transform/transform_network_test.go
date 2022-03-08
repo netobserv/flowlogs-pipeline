@@ -134,9 +134,9 @@ func Test_Transform(t *testing.T) {
 	err := location.InitLocationDB()
 	require.NoError(t, err)
 
-	output := networkTransform.Transform(entry)
+	output := networkTransform.Transform([]config.GenericMap{entry})
 
-	require.Equal(t, expectedOutput, output)
+	require.Equal(t, expectedOutput, output[0])
 }
 
 func Test_TransformAddSubnetParseCIDRFailure(t *testing.T) {
@@ -157,9 +157,9 @@ func Test_TransformAddSubnetParseCIDRFailure(t *testing.T) {
 	err := location.InitLocationDB()
 	require.NoError(t, err)
 
-	output := networkTransform.Transform(entry)
+	output := networkTransform.Transform([]config.GenericMap{entry})
 
-	require.Equal(t, expectedOutput, output)
+	require.Equal(t, expectedOutput, output[0])
 }
 
 func Test_NewTransformNetwork(t *testing.T) {
@@ -187,10 +187,10 @@ parameters:
 	require.NotNil(t, newNetworkTransform)
 
 	entry := test.GetIngestMockEntry(false)
-	output := newNetworkTransform.Transform(entry)
+	output := newNetworkTransform.Transform([]config.GenericMap{entry})
 
-	require.Equal(t, "10.0.0.1", output["srcIP"])
-	require.Equal(t, "10.0.0.0/24", output["subnetSrcIP"])
+	require.Equal(t, "10.0.0.1", output[0]["srcIP"])
+	require.Equal(t, "10.0.0.0/24", output[0]["subnetSrcIP"])
 }
 
 func InitNewTransformNetwork(t *testing.T, configFile string) Transformer {
@@ -228,13 +228,13 @@ parameters:
 
 	// first time flow is new
 	entry := test.GetIngestMockEntry(false)
-	output := newNetworkTransform.Transform(entry)
-	require.Equal(t, "777", output["isNewFlow"])
+	output := newNetworkTransform.Transform([]config.GenericMap{entry})
+	require.Equal(t, "777", output[0]["isNewFlow"])
 
 	// second time, same flow is not new
 	entry = test.GetIngestMockEntry(false)
-	output = newNetworkTransform.Transform(entry)
-	require.Equal(t, nil, output["isNewFlow"])
+	output = newNetworkTransform.Transform([]config.GenericMap{entry})
+	require.Equal(t, nil, output[0]["isNewFlow"])
 }
 
 func Test_TransformNetworkDependentRulesAddRegExIf(t *testing.T) {
@@ -270,12 +270,12 @@ parameters:
 	require.NotNil(t, newNetworkTransform)
 
 	entry := test.GetIngestMockEntry(false)
-	output := newNetworkTransform.Transform(entry)
+	output := newNetworkTransform.Transform([]config.GenericMap{entry})
 
-	require.Equal(t, "10.0.0.1", output["srcIP"])
-	require.Equal(t, "10.0.0.0/24", output["subnetSrcIP"])
-	require.Equal(t, "10.0.0.0/24", output["match-10.0.*"])
-	require.NotEqual(t, "10.0.0.0/24", output["match-11.0.*"])
+	require.Equal(t, "10.0.0.1", output[0]["srcIP"])
+	require.Equal(t, "10.0.0.0/24", output[0]["subnetSrcIP"])
+	require.Equal(t, "10.0.0.0/24", output[0]["match-10.0.*"])
+	require.NotEqual(t, "10.0.0.0/24", output[0]["match-11.0.*"])
 }
 
 func Test_Transform_AddIfScientificNotation(t *testing.T) {
@@ -302,14 +302,14 @@ func Test_Transform_AddIfScientificNotation(t *testing.T) {
 	entry = config.GenericMap{
 		"value": 1.2345e67,
 	}
-	output := newNetworkTransform.Transform(entry)
-	require.Equal(t, true, output["bigger_than_10_Evaluate"])
-	require.Equal(t, 1.2345e67, output["bigger_than_10"])
+	output := newNetworkTransform.Transform([]config.GenericMap{entry})
+	require.Equal(t, true, output[0]["bigger_than_10_Evaluate"])
+	require.Equal(t, 1.2345e67, output[0]["bigger_than_10"])
 
 	entry = config.GenericMap{
 		"value": 1.2345e-67,
 	}
-	output = newNetworkTransform.Transform(entry)
-	require.Equal(t, true, output["smaller_than_10_Evaluate"])
-	require.Equal(t, 1.2345e-67, output["smaller_than_10"])
+	output = newNetworkTransform.Transform([]config.GenericMap{entry})
+	require.Equal(t, true, output[0]["smaller_than_10_Evaluate"])
+	require.Equal(t, 1.2345e-67, output[0]["smaller_than_10"])
 }
