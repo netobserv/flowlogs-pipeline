@@ -302,14 +302,14 @@ func Test_Transform_AddIfScientificNotation(t *testing.T) {
 	entry = config.GenericMap{
 		"value": 1.2345e67,
 	}
-	output := newNetworkTransform.Transform(entry)
-	require.Equal(t, true, output["bigger_than_10_Evaluate"])
-	require.Equal(t, 1.2345e67, output["bigger_than_10"])
+	output := newNetworkTransform.Transform([]config.GenericMap{entry})
+	require.Equal(t, true, output[0]["bigger_than_10_Evaluate"])
+	require.Equal(t, 1.2345e67, output[0]["bigger_than_10"])
 
 	entry = config.GenericMap{
 		"value": 1.2345e-67,
 	}
-	output = newNetworkTransform.Transform(entry)
-	require.Equal(t, true, output["smaller_than_10_Evaluate"])
-	require.Equal(t, 1.2345e-67, output["smaller_than_10"])
+	output = newNetworkTransform.Transform([]config.GenericMap{entry})
+	require.Equal(t, true, output[0]["smaller_than_10_Evaluate"])
+	require.Equal(t, 1.2345e-67, output[0]["smaller_than_10"])
 }

@@ -55,6 +55,20 @@ parameters:
           type: remove_entry_if_exists
 `
 
+const testConfigTransformFilterRemoveEntryIfDoesntExists = `---
+log-level: debug
+pipeline:
+  - name: filter1
+parameters:
+  - name: filter1
+    transform:
+      type: filter
+      filter:
+        rules:
+        - input: doesntSrcPort
+          type: remove_entry_if_doesnt_exist
+`
+
 func getFilterExpectedOutput() config.GenericMap {
 	return config.GenericMap{
 		"srcIP":        "10.0.0.1",
@@ -90,6 +104,15 @@ func TestNewTransformFilterRemoveEntryIfExists(t *testing.T) {
 	require.Equal(t, output, []config.GenericMap{})
 }
 
+func TestNewTransformFilterRemoveEntryIfDoesntExists(t *testing.T) {
+	newTransform := InitNewTransformFilter(t, testConfigTransformFilterRemoveEntryIfDoesntExists)
+	transformFilter := newTransform.(*Filter)
+	require.Len(t, transformFilter.Rules, 1)
+
+	input := test.GetIngestMockEntry(false)
+	output := transformFilter.Transform([]config.GenericMap{input})
+	require.Equal(t, output, []config.GenericMap{})
+}
 func InitNewTransformFilter(t *testing.T, configFile string) Transformer {
 	v := test.InitConfig(t, configFile)
 	require.NotNil(t, v)
