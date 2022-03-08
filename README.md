@@ -186,7 +186,7 @@ It is possible to configure flowlogs-pipeline using command-line-parameters, con
 
 For example:
 1. Using configuration file:
-- create under $HOME/.flowlogs-pipeline.yaml the file:
+
 ```yaml
 log-level: info
 pipeline:
@@ -208,9 +208,8 @@ parameters
     write:
       type: stdout
 ```
-- execute `./flowlogs-pipeline`
+- execute
 
-OR place the configuration information in any other file `<configFile>` and execute
 
 `./flowlogs-pipeline --config <configFile>`
 
