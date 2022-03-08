@@ -18,12 +18,12 @@
 package pipeline
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	kafkago "github.com/segmentio/kafka-go"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 )
@@ -130,7 +130,7 @@ func Test_KafkaPipeline(t *testing.T) {
 	// send data on topic_in to be processed by pipeline
 	err = kafkaProducer.WriteMessages(context.Background(), msgs...)
 	if err != nil {
-		log.Warnf("error conecting to kafka; cannot perform kafka end-to-end test \n")
+		fmt.Printf("error conecting to kafka; cannot perform kafka end-to-end test; err = %v \n", err)
 		return
 	}
 
