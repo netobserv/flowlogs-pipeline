@@ -203,7 +203,7 @@ undeploy-netflow-simulator: ## Undeploy netflow simulator
 
 .PHONY: create-kind-cluster
 create-kind-cluster: $(KIND) ## Create cluster
-	$(KIND) create cluster
+	$(KIND) create cluster --config contrib/kubernetes/kind/kind.config.yaml
 	kubectl cluster-info --context kind-kind
 
 .PHONY: delete-kind-cluster
