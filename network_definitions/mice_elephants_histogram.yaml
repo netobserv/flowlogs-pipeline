@@ -1,0 +1,50 @@
+#flp_confgen
+description:
+  This metric counts mice and elephant flows
+details:
+  Bytes histogram of connections
+usage:
+  Evaluate network behaviour
+labels:
+  - bandwidth
+  - mice
+  - elephant
+  - rate
+transform:
+  rules:
+extract:
+  aggregates:
+    - name: mice_elephant_histogram
+      by:
+        - mice_elephant_Evaluate
+      operation: sum # TODO: change to nop
+      RecordKey: bytes
+encode:
+  type: prom
+  prom:
+    metrics:
+      - name: mice_elephant_histogram
+        type: histogram
+        valuekey: mice_elephant_histogram_value
+        labels:
+          - by
+          - aggregate
+        bucekts:
+          - 500
+          - 1000
+          - 4000
+          - 1000000
+          - 4000000
+#visualization:
+#  type: grafana
+#  grafana:
+#    - expr: 'rate(flp_mice_count{}[1m])'
+#      type: graphPanel
+#      dashboard: details
+#      title:
+#        Mice flows count
+#    - expr: 'rate(flp_elephant_count{}[1m])'
+#      type: graphPanel
+#      dashboard: details
+#      title:
+#        Elephant flows count

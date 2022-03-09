@@ -172,6 +172,17 @@ and the transformation to generate the exported metric.
 |||  
 
 
+### mice elephants histogram
+| **Description** | This metric counts mice and elephant flows | 
+|:---|:---|
+| **Details** | Bytes histogram of connections | 
+| **Usage** | Evaluate network behaviour | 
+| **Labels** | bandwidth, mice, elephant, rate |
+| **Operation** | aggregate by `bytes_Evaluate` and `histogram`  |
+| **Exposed as** | `flp_mice_elephant_histogram` of type `histogram` |
+|||  
+
+
 ### network services count
 | **Description** | This metric observes network services rate (total) | 
 |:---|:---|
