@@ -6,11 +6,11 @@ parameters:
       hostname: 0.0.0.0
       port: 2055
     type: collector
-  name: ingest1
+  name: ingest_collector
 - decode:
     type: json
-  name: decode1
-- name: transform1
+  name: decode_json
+- name: transform_generic
   transform:
     generic:
       rules:
@@ -33,7 +33,7 @@ parameters:
       - input: DstAS
         output: dstAS
     type: generic
-- name: transform2
+- name: transform_network
   transform:
     network:
       rules:
@@ -159,7 +159,7 @@ parameters:
       Operation: count
       RecordKey: ""
     type: aggregates
-  name: extract1
+  name: extract_aggregate
 - encode:
     prom:
       metrics:
@@ -271,8 +271,11 @@ parameters:
       port: 9102
       prefix: flp_
     type: prom
-  name: encode1
-- name: write1
+  name: encode_prom
+- name: write_none
+  write:
+    type: none
+- name: write_loki
   write:
     loki:
       url: http://loki.default.svc.cluster.local:3100
@@ -280,17 +283,19 @@ parameters:
         job: flowlogs-pipeline
     type: loki
 pipeline:
-- name: ingest1
-- follows: ingest1
-  name: decode1
-- follows: decode1
-  name: transform1
-- follows: transform1
-  name: transform2
-- follows: transform2
-  name: extract1
-- follows: extract1
-  name: encode1
-- follows: transform2
-  name: write1
+- name: ingest_collector
+- follows: ingest_collector
+  name: decode_json
+- follows: decode_json
+  name: transform_generic
+- follows: transform_generic
+  name: transform_network
+- follows: transform_network
+  name: extract_aggregate
+- follows: extract_aggregate
+  name: encode_prom
+- follows: encode_prom
+  name: write_none
+- follows: transform_network
+  name: write_loki
 
