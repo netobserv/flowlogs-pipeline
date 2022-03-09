@@ -5,13 +5,22 @@
 
 # Overview
 
-**Flow-Logs Pipeline** (a.k.a. FLP) is an **observability tool** that consumes raw **network flow-logs** and
-transforms them from their original format (NetFlow or IPFIX) into **prometheus numeric metrics** format.
-FLP allows to define mathematical transformations to generate condense metrics that encapsulate network domain knowledge.
+**Flow-Logs Pipeline** (a.k.a. FLP) is an **observability tool** that consumes raw **network flow-logs** in
+their original format 
+([NetFlow v5,v9](https://en.wikipedia.org/wiki/NetFlow) or [IPFIX](https://en.wikipedia.org/wiki/IP_Flow_Information_Export)) 
+and uses a pipe-line to transform the logs into 
+time series metrics in **[prometheus](https://prometheus.io/)** format and in parallel
+transform and persist the logs also into **[loki](https://grafana.com/oss/loki/)**.
 
-In addition, FLP decorates the metrics with **context**, allowing visualization layers and analytics frameworks to present **network insights** to SRE’s, cloud operators and network experts.
+FLP decorates the metrics and the transformed logs with **context**, 
+allowing visualization layers and analytics frameworks to present **network insights** to SRE’s, cloud operators and network experts.
 
-Along with Prometheus and its ecosystem tools such as Thanos, Cortex etc., FLP provides an efficient scalable multi-cloud solution for comprehensive network analytics that rely **solely on metrics data-source**.
+FLP pipe-line module is built on top of [gopipes](https://github.com/netobserv/gopipes) providing customizability and parallelism
+
+It also allows defining mathematical transformations to generate condense metrics that encapsulate network domain knowledge.
+
+In addition, along with Prometheus and its ecosystem tools such as Thanos, Cortex etc., 
+FLP provides an efficient scalable multi-cloud solution for comprehensive network analytics that can rely **solely on metrics data-source**.
 
 Default metrics are documented here [docs/metrics.md](docs/metrics.md).
 <br>
@@ -56,26 +65,19 @@ make generate-configuration
 make dashboards
 ```
 
-## Deploy into OpenShift (OCP)
+## Deploy into OpenShift (OCP) with prometheus, loki and grafana
 To deploy FLP on OCP perform the following steps:
-1. Deploy OCP and make sure `kubectl` works with the cluster
+1. Verify that `kubectl` works with the OCP cluster
 ```shell
 kubectl get namespace openshift
 ```
-2. Deploy FLP (into `default` namespace)
+1. Deploy FLP with all dependent components (into `default` namespace)
 ```shell
 kubectl config set-context --current --namespace=default
-make deploy
+make ocp-deploy
 ```
-3. Enable export OCP flowlogs into FLP
-```shell
-flowlogs-pipeline_svc_ip=$(kubectl get svc flowlogs-pipeline -o jsonpath='{.spec.clusterIP}')
-./hack/enable-ocp-flow-export.sh $flowlogs-pipeline_svc_ip
-```
-4. Verify flowlogs are captured
-```shell
-kubectl logs -l app=flowlogs-pipeline -f
-```
+
+1. Use a web-browser to access grafana dashboards ( end-point address exposed by the script) and observe metrics and logs  
 
 ## Deploy with Kind and netflow-simulator (for development and exploration)
 These instructions apply for deploying FLP development and exploration environment with [kind](https://kind.sigs.k8s.io/) and [netflow-simulator](https://hub.docker.com/r/networkstatic/nflow-generator),
