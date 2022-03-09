@@ -103,13 +103,12 @@ func InitConfig(t *testing.T, conf string) *viper.Viper {
 
 func GetExtractMockEntry() config.GenericMap {
 	entry := config.GenericMap{
-		"srcAddr":         "10.1.2.3",
-		"dstAddr":         "10.1.2.4",
-		"srcPort":         "9001",
-		"dstPort":         "39504",
-		"bytes":           "1234",
-		"packets":         "34",
-		"recentRawValues": []float64{1.1, 2.2},
+		"srcAddr": "10.1.2.3",
+		"dstAddr": "10.1.2.4",
+		"srcPort": "9001",
+		"dstPort": "39504",
+		"bytes":   []float64{1234},
+		"packets": []float64{34},
 	}
 	return entry
 }

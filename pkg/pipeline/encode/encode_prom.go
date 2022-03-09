@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 
@@ -56,7 +55,6 @@ type entrySignature struct {
 
 type entryInfo struct {
 	eInfo entrySignature
-	value float64
 }
 
 type metricCacheEntry struct {
@@ -102,18 +100,22 @@ func (e *encodeProm) EncodeMetric(metric config.GenericMap) []config.GenericMap 
 	// TODO: We may need different handling for histograms
 	out := make([]config.GenericMap, 0)
 	for metricName, mInfo := range e.metrics {
-		metricValue, ok := metric[mInfo.input]
+		metricValueObj, ok := metric[mInfo.input]
 		if !ok {
-			log.Debugf("field %v is missing", metricName)
+			log.Errorf("field %v is missing", metricName)
 			continue
 		}
-		metricValueString := fmt.Sprintf("%v", metricValue)
-		valueFloat, err := strconv.ParseFloat(metricValueString, 64)
-		if err != nil {
-			log.Debugf("field cannot be converted to float: %v, %s", metricValue, metricValueString)
+		var metricValue []float64
+		switch metricValueRaw := metricValueObj.(type) {
+		case []float64:
+			metricValue = metricValueRaw
+		case float64:
+			metricValue = []float64{metricValueRaw}
+		default:
+			log.Errorf("Type assertion failed. %v is not []float64 neither float64", metricValueObj)
 			continue
 		}
-		log.Debugf("metricName = %v, metricValue = %v, valueFloat = %v", metricName, metricValue, valueFloat)
+		log.Debugf("metricName = %v, metricValue = %v", metricName, metricValue)
 		entryLabels := make(map[string]string, len(mInfo.labelNames))
 		for _, t := range mInfo.labelNames {
 			entryLabels[t] = fmt.Sprintf("%v", metric[t])
@@ -123,12 +125,11 @@ func (e *encodeProm) EncodeMetric(metric config.GenericMap) []config.GenericMap 
 				Name:   e.prefix + metricName,
 				Labels: entryLabels,
 			},
-			value: valueFloat,
 		}
 		entryMap := map[string]interface{}{
 			"Name":   e.prefix + metricName,
 			"Labels": entryLabels,
-			"value":  valueFloat,
+			"value":  metricValue,
 		}
 		out = append(out, entryMap)
 
@@ -137,15 +138,15 @@ func (e *encodeProm) EncodeMetric(metric config.GenericMap) []config.GenericMap 
 		// push the metric to prometheus
 		switch mInfo.PromMetric.metricType {
 		case api.PromEncodeOperationName("Gauge"):
-			mInfo.promGauge.With(entryLabels).Set(valueFloat)
+			mInfo.promGauge.With(entryLabels).Set(metricValue[0])
 			cEntry.PromMetric.promGauge = mInfo.promGauge
 		case api.PromEncodeOperationName("Counter"):
-			for _, v := range metric["recentRawValues"].([]float64) {
+			for _, v := range metricValue {
 				mInfo.promCounter.With(entryLabels).Add(v)
 			}
 			cEntry.PromMetric.promCounter = mInfo.promCounter
 		case api.PromEncodeOperationName("Histogram"):
-			for _, v := range metric["recentRawValues"].([]float64) {
+			for _, v := range metricValue {
 				mInfo.promHist.With(entryLabels).Observe(v)
 			}
 			cEntry.PromMetric.promHist = mInfo.promHist

@@ -28,8 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createAgg(name, recordKey, by, agg, op string, value float64, count int, rrv []float64) config.GenericMap {
-	valueString := fmt.Sprintf("%f", value)
+func createAgg(name, recordKey, by, agg, op string, value float64, count int) config.GenericMap {
 	return config.GenericMap{
 		"name":                        name,
 		"record_key":                  recordKey,
@@ -37,9 +36,8 @@ func createAgg(name, recordKey, by, agg, op string, value float64, count int, rr
 		"aggregate":                   agg,
 		by:                            agg,
 		"operation":                   api.AggregateOperation(op),
-		"value":                       valueString,
-		fmt.Sprintf("%v_value", name): valueString,
-		"recentRawValues":             rrv,
+		"value":                       value,
+		fmt.Sprintf("%v_value", name): value,
 		"count":                       fmt.Sprintf("%v", count),
 	}
 }
@@ -51,41 +49,41 @@ func Test_Extract(t *testing.T) {
 	// Setup
 	yamlConfig := `
 pipeline:
-  - name: extract1
+ - name: extract1
 parameters:
-  - name: extract1
-    extract:
-      type: aggregates
-      aggregates:
-        - name: bandwidth_count
-          by:
-          - service
-          operation: count
-          recordkey: ""
+ - name: extract1
+   extract:
+     type: aggregates
+     aggregates:
+       - name: bandwidth_count
+         by:
+         - service
+         operation: count
+         recordkey: ""
 
-        - name: bandwidth_sum
-          by:
-          - service
-          operation: sum
-          recordkey: bytes
+       - name: bandwidth_sum
+         by:
+         - service
+         operation: sum
+         recordkey: bytes
 
-        - name: bandwidth_max
-          by:
-          - service
-          operation: max
-          recordkey: bytes
+       - name: bandwidth_max
+         by:
+         - service
+         operation: max
+         recordkey: bytes
 
-        - name: bandwidth_min
-          by:
-          - service
-          operation: min
-          recordkey: bytes
+       - name: bandwidth_min
+         by:
+         - service
+         operation: min
+         recordkey: bytes
 
-        - name: bandwidth_avg
-          by:
-          - service
-          operation: avg
-          recordkey: bytes
+       - name: bandwidth_avg
+         by:
+         - service
+         operation: avg
+         recordkey: bytes
 `
 	var err error
 
@@ -110,16 +108,16 @@ parameters:
 				{"service": "tcp", "bytes": 2},
 			},
 			expectedAggs: []config.GenericMap{
-				createAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 2, 2, []float64{1.0, 1.0}),
-				createAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 2, 2, []float64{1.0, 1.0}),
-				createAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 30, 2, []float64{10.0, 20.0}),
-				createAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 3, 2, []float64{1.0, 2.0}),
-				createAgg("bandwidth_max", "bytes", "service", "http", aggregate.OperationMax, 20, 2, []float64{10.0, 20.0}),
-				createAgg("bandwidth_max", "bytes", "service", "tcp", aggregate.OperationMax, 2, 2, []float64{1.0, 2.0}),
-				createAgg("bandwidth_min", "bytes", "service", "http", aggregate.OperationMin, 10, 2, []float64{10.0, 20.0}),
-				createAgg("bandwidth_min", "bytes", "service", "tcp", aggregate.OperationMin, 1, 2, []float64{1.0, 2.0}),
-				createAgg("bandwidth_avg", "bytes", "service", "http", aggregate.OperationAvg, 15, 2, []float64{10.0, 20.0}),
-				createAgg("bandwidth_avg", "bytes", "service", "tcp", aggregate.OperationAvg, 1.5, 2, []float64{1.0, 2.0}),
+				createAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 2, 2),
+				createAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 2, 2),
+				createAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 30, 2),
+				createAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 3, 2),
+				createAgg("bandwidth_max", "bytes", "service", "http", aggregate.OperationMax, 20, 2),
+				createAgg("bandwidth_max", "bytes", "service", "tcp", aggregate.OperationMax, 2, 2),
+				createAgg("bandwidth_min", "bytes", "service", "http", aggregate.OperationMin, 10, 2),
+				createAgg("bandwidth_min", "bytes", "service", "tcp", aggregate.OperationMin, 1, 2),
+				createAgg("bandwidth_avg", "bytes", "service", "http", aggregate.OperationAvg, 15, 2),
+				createAgg("bandwidth_avg", "bytes", "service", "tcp", aggregate.OperationAvg, 1.5, 2),
 			},
 		},
 		{
@@ -130,16 +128,16 @@ parameters:
 				{"service": "tcp", "bytes": 5},
 			},
 			expectedAggs: []config.GenericMap{
-				createAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 3, 3, []float64{1.0}),
-				createAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 4, 4, []float64{1.0, 1.0}),
-				createAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 60, 3, []float64{30.0}),
-				createAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 12, 4, []float64{4.0, 5.0}),
-				createAgg("bandwidth_max", "bytes", "service", "http", aggregate.OperationMax, 30, 3, []float64{30.0}),
-				createAgg("bandwidth_max", "bytes", "service", "tcp", aggregate.OperationMax, 5, 4, []float64{4.0, 5.0}),
-				createAgg("bandwidth_min", "bytes", "service", "http", aggregate.OperationMin, 10, 3, []float64{30.0}),
-				createAgg("bandwidth_min", "bytes", "service", "tcp", aggregate.OperationMin, 1, 4, []float64{4.0, 5.0}),
-				createAgg("bandwidth_avg", "bytes", "service", "http", aggregate.OperationAvg, 20, 3, []float64{30.0}),
-				createAgg("bandwidth_avg", "bytes", "service", "tcp", aggregate.OperationAvg, 3, 4, []float64{4.0, 5.0}),
+				createAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 3, 3),
+				createAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 4, 4),
+				createAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 60, 3),
+				createAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 12, 4),
+				createAgg("bandwidth_max", "bytes", "service", "http", aggregate.OperationMax, 30, 3),
+				createAgg("bandwidth_max", "bytes", "service", "tcp", aggregate.OperationMax, 5, 4),
+				createAgg("bandwidth_min", "bytes", "service", "http", aggregate.OperationMin, 10, 3),
+				createAgg("bandwidth_min", "bytes", "service", "tcp", aggregate.OperationMin, 1, 4),
+				createAgg("bandwidth_avg", "bytes", "service", "http", aggregate.OperationAvg, 20, 3),
+				createAgg("bandwidth_avg", "bytes", "service", "tcp", aggregate.OperationAvg, 3, 4),
 			},
 		},
 	}

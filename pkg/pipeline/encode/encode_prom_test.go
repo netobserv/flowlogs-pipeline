@@ -106,19 +106,19 @@ func Test_NewEncodeProm(t *testing.T) {
 	gEntryInfo1 := config.GenericMap{
 		"Name":   "test_Bytes",
 		"Labels": entryLabels1,
-		"value":  float64(1234),
+		"value":  []float64{1234},
 	}
 	gEntryInfo2 := config.GenericMap{
 		"Name":   "test_Packets",
 		"Labels": entryLabels2,
-		"value":  float64(34),
+		"value":  []float64{34},
 	}
 	require.Contains(t, output, gEntryInfo1)
 	require.Contains(t, output, gEntryInfo2)
 	gaugeA, err := gInfo.promGauge.GetMetricWith(entryLabels1)
 	require.Equal(t, nil, err)
 	bytesA := testutil.ToFloat64(gaugeA)
-	require.Equal(t, gEntryInfo1["value"], bytesA)
+	require.Equal(t, gEntryInfo1["value"], []float64{bytesA})
 
 	// verify entries are in cache; one for the gauge and one for the counter
 	entriesMap := encodeProm.mCache
@@ -151,8 +151,8 @@ func Test_EncodeAggregate(t *testing.T) {
 		"record_key":                "IP",
 		"by":                        "[dstIP srcIP]",
 		"aggregate":                 "20.0.0.2,10.0.0.1",
-		"value":                     "7",
-		"test_aggregate" + "_value": "7",
+		"value":                     []float64{7},
+		"test_aggregate" + "_value": []float64{7},
 		"count":                     "1",
 	}}
 
@@ -177,7 +177,7 @@ func Test_EncodeAggregate(t *testing.T) {
 			"by":        "[dstIP srcIP]",
 			"aggregate": "20.0.0.2,10.0.0.1",
 		},
-		"value": float64(7),
+		"value": []float64{7},
 	}
 
 	expectedOutput := []config.GenericMap{gEntryInfo1}

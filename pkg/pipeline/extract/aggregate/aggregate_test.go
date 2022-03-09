@@ -18,8 +18,6 @@
 package aggregate
 
 import (
-	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -127,11 +125,11 @@ func Test_GetMetrics(t *testing.T) {
 	entry3 := test.GetIngestMockEntry(true)
 	entries := []config.GenericMap{entry1, entry2, entry3}
 
-	_ = aggregate.Evaluate(entries)
+	err := aggregate.Evaluate(entries)
+	require.NoError(t, err)
 	metrics := aggregate.GetMetrics()
 
 	require.Equal(t, len(metrics), 1)
 	require.Equal(t, metrics[0]["name"], aggregate.Definition.Name)
-	valueFloat64, _ := strconv.ParseFloat(fmt.Sprintf("%s", metrics[0]["value"]), 64)
-	require.Equal(t, valueFloat64, float64(7))
+	require.Equal(t, float64(7), metrics[0]["value"])
 }

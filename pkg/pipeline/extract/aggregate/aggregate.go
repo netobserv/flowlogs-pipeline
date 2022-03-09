@@ -35,6 +35,7 @@ const (
 	OperationMax   = "max"
 	OperationMin   = "min"
 	OperationCount = "count"
+	OperationNop   = "nop"
 )
 
 type Labels map[string]string
@@ -47,8 +48,7 @@ type Aggregate struct {
 
 type GroupState struct {
 	normalizedValues NormalizedValues
-	RecentRawValues  []float64
-	value            float64
+	value            interface{} // either float64 or []float64
 	count            int
 }
 
@@ -102,10 +102,12 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	if !ok {
 		groupState = &GroupState{normalizedValues: normalizedValues}
 		switch string(aggregate.Definition.Operation) {
-		case OperationSum, OperationMax:
-			groupState.value = 0
+		case OperationSum, OperationMax, OperationCount, OperationAvg:
+			groupState.value = float64(0)
 		case OperationMin:
 			groupState.value = math.MaxFloat64
+		case OperationNop:
+			groupState.value = []float64{}
 		default:
 		}
 		aggregate.Groups[normalizedValues] = groupState
@@ -117,23 +119,33 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 
 	if operation == OperationCount {
 		groupState.value = float64(groupState.count + 1)
-		groupState.RecentRawValues = append(groupState.RecentRawValues, 1)
 	} else {
 		if recordKey != "" {
 			value, ok := entry[recordKey]
 			if ok {
+				// TODO: remove string parsing
 				valueString := fmt.Sprintf("%v", value)
-				valueFloat64, _ := strconv.ParseFloat(valueString, 64)
-				groupState.RecentRawValues = append(groupState.RecentRawValues, valueFloat64)
+				valueFloat64, err := strconv.ParseFloat(valueString, 64)
+				if err != nil {
+					return fmt.Errorf("couldn't parse %v as a float. err: %v", valueString, err)
+				}
+				groupStateFloat, _ := groupState.value.(float64)
+
 				switch operation {
 				case OperationSum:
-					groupState.value += valueFloat64
+					groupState.value = groupStateFloat + valueFloat64
 				case OperationMax:
-					groupState.value = math.Max(groupState.value, valueFloat64)
+					groupState.value = math.Max(groupStateFloat, valueFloat64)
 				case OperationMin:
-					groupState.value = math.Min(groupState.value, valueFloat64)
+					groupState.value = math.Min(groupStateFloat, valueFloat64)
 				case OperationAvg:
-					groupState.value = (groupState.value*float64(groupState.count) + valueFloat64) / float64(groupState.count+1)
+					groupState.value = (groupStateFloat*float64(groupState.count) + valueFloat64) / float64(groupState.count+1)
+				case OperationNop:
+					groupStateFloatSlice, ok := groupState.value.([]float64)
+					if !ok {
+						return fmt.Errorf("couldn't parse %v as a []float", groupState.value)
+					}
+					groupState.value = append(groupStateFloatSlice, valueFloat64)
 				}
 			}
 		}
@@ -156,7 +168,7 @@ func (aggregate Aggregate) Evaluate(entries []config.GenericMap) error {
 		// update aggregate group by entry
 		err = aggregate.UpdateByEntry(entry, normalizedValues)
 		if err != nil {
-			log.Debugf("UpdateByEntry error %v", err)
+			log.Errorf("UpdateByEntry error %v", err)
 			continue
 		}
 	}
@@ -167,20 +179,25 @@ func (aggregate Aggregate) Evaluate(entries []config.GenericMap) error {
 func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 	var metrics []config.GenericMap
 	for _, group := range aggregate.Groups {
-		metrics = append(metrics, config.GenericMap{
-			"name":                               aggregate.Definition.Name,
-			"operation":                          aggregate.Definition.Operation,
-			"record_key":                         aggregate.Definition.RecordKey,
-			"by":                                 strings.Join(aggregate.Definition.By, ","),
-			"aggregate":                          string(group.normalizedValues),
-			"value":                              fmt.Sprintf("%f", group.value),
-			"recentRawValues":                    group.RecentRawValues,
-			"count":                              fmt.Sprintf("%d", group.count),
-			aggregate.Definition.Name + "_value": fmt.Sprintf("%f", group.value),
-			strings.Join(aggregate.Definition.By, "_"): string(group.normalizedValues),
-		})
-		// Once reported, we reset the raw values accumulation
-		group.RecentRawValues = make([]float64, 0)
+		byFieldName := strings.Join(aggregate.Definition.By, "_")
+		aggregateFieldName := aggregate.Definition.Name + "_value"
+		m := config.GenericMap{
+			"name":             aggregate.Definition.Name,
+			"operation":        aggregate.Definition.Operation,
+			"record_key":       aggregate.Definition.RecordKey,
+			"by":               strings.Join(aggregate.Definition.By, ","),
+			"aggregate":        string(group.normalizedValues),
+			"value":            group.value,
+			"count":            fmt.Sprintf("%d", group.count),
+			aggregateFieldName: group.value,
+			byFieldName:        string(group.normalizedValues),
+		}
+		if aggregate.Definition.Operation == OperationNop {
+			m["recent_value_count"] = len(group.value.([]float64))
+			// Once reported, we reset the value accumulation
+			group.value = []float64{}
+		}
+		metrics = append(metrics, m)
 	}
 
 	return metrics
