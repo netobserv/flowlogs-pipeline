@@ -17,9 +17,9 @@ transform and persist the logs also into **[loki](https://grafana.com/oss/loki/)
 FLP decorates the metrics and the transformed logs with **context**, 
 allowing visualization layers and analytics frameworks to present **network insights** to SRE’s, cloud operators and network experts.
 
-FLP pipe-line module is built on top of [gopipes](https://github.com/netobserv/gopipes) providing customizability and parallelism
-
 It also allows defining mathematical transformations to generate condense metrics that encapsulate network domain knowledge.
+
+FLP pipe-line module is built on top of [gopipes](https://github.com/netobserv/gopipes) providing customizability and parallelism
 
 In addition, along with Prometheus and its ecosystem tools such as Thanos, Cortex etc., 
 FLP provides an efficient scalable multi-cloud solution for comprehensive network analytics that can rely **solely on metrics data-source**.
@@ -73,13 +73,13 @@ To deploy FLP on OCP perform the following steps:
 ```shell
 kubectl get namespace openshift
 ```
-1. Deploy FLP with all dependent components (into `default` namespace)
+2. Deploy FLP with all dependent components (into `default` namespace)
 ```shell
 kubectl config set-context --current --namespace=default
 make ocp-deploy
 ```
 
-1. Use a web-browser to access grafana dashboards ( end-point address exposed by the script) and observe metrics and logs  
+3. Use a web-browser to access grafana dashboards ( end-point address exposed by the script) and observe metrics and logs  
 
 ## Deploy with Kind and netflow-simulator (for development and exploration)
 These instructions apply for deploying FLP development and exploration environment with [kind](https://kind.sigs.k8s.io/) and [netflow-simulator](https://hub.docker.com/r/networkstatic/nflow-generator),
@@ -88,7 +88,7 @@ tested on Ubuntu 20.4 and Fedora 34.
    - make
    - go (version 1.17)
    - docker
-1. To deploy the full simulated environment which includes a kind cluster with FLP, Prometheus, Grafana, and
+2. To deploy the full simulated environment which includes a kind cluster with FLP, Prometheus, Grafana, and
    netflow-simulator, run (note that depending on your user permissions, you may have to run this command under sudo):
     ```shell
     make local-deploy
