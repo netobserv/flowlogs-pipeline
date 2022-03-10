@@ -12,6 +12,8 @@ and uses a pipe-line to transform the logs into
 time series metrics in **[prometheus](https://prometheus.io/)** format and in parallel
 transform and persist the logs also into **[loki](https://grafana.com/oss/loki/)**.
 
+![Animated gif](docs/images/animation.gif)
+
 FLP decorates the metrics and the transformed logs with **context**, 
 allowing visualization layers and analytics frameworks to present **network insights** to SRE’s, cloud operators and network experts.
 
