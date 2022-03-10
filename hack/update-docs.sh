@@ -14,8 +14,16 @@ update-readme() {
 	sed -z -i 's|<!---'$md_tag'--->.*<!---END-'$md_tag'--->|<!---'$md_tag'--->'"\n\`\`\`bash\n$help\n\`\`\`\n"'<!---END-'$md_tag'--->|g' README.md
 }
 
+update-animated-gif() {
+  # update animated-gif in README.md from all images under docs/images/animated-gif-images
+  IMAGES_PATH=$PWD/docs/images
+  docker run -v "$IMAGES_PATH":/docs/images dpokidov/imagemagick -loop 0 -delay 500 -resize 800x800 /docs/images/animated-gif-images/*.png /docs/images/animation.gif
+}
+
+
 main() {
   update-readme
+  update-animated-gif
 }
 
 main
