@@ -903,7 +903,7 @@
          "steppedLine": false,
          "targets": [
             {
-               "expr": "topk(10,rate(flp_egress_per_namespace{aggregate=~\".*pod.*\"}[1m]))",
+               "expr": "rate(flp_egress_per_namespace{aggregate=~\".*Pod.*\"}[1m])",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "",
