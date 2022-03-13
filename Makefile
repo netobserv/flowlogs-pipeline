@@ -102,11 +102,10 @@ tests-unit: validate_go ## Unit tests
 
 .PHONY: tests-e2e
 tests-e2e: validate_go ## End-to-end tests
-	go test -v -timeout 1200s -p 1 -race -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out $$(go list ./... | grep  /e2e)
+	go test -v -timeout 1200s -race $$(go list ./... | grep  /e2e)
 
 .PHONY: tests-all
-tests-all: validate_go ## All tests
-	go test -v -timeout 1200s -p 1 -race -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out  ./... 
+tests-all: validate_go tests-unit tests-e2e ## All tests
 
 # note: to review profile execute: go tool pprof -web /tmp/flowlogs-pipeline-cpu-profile.out (make sure graphviz is installed)
 .PHONY: benchmarks
