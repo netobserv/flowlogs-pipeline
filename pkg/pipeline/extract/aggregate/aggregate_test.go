@@ -132,6 +132,6 @@ func Test_GetMetrics(t *testing.T) {
 
 	require.Equal(t, len(metrics), 1)
 	require.Equal(t, metrics[0]["name"], aggregate.Definition.Name)
-	valueFloat64, _ := strconv.ParseFloat(fmt.Sprintf("%s", metrics[0]["value"]), 64)
+	valueFloat64, _ := strconv.ParseFloat(fmt.Sprintf("%s", metrics[0]["total_value"]), 64)
 	require.Equal(t, valueFloat64, float64(7))
 }

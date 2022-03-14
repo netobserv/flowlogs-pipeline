@@ -192,12 +192,12 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 			"record_key":      aggregate.Definition.RecordKey,
 			"by":              strings.Join(aggregate.Definition.By, ","),
 			"aggregate":       string(group.normalizedValues),
-			"value":           fmt.Sprintf("%f", group.value),
+			"total_value":     fmt.Sprintf("%f", group.value),
 			"recentRawValues": group.RecentRawValues,
-			"count":           fmt.Sprintf("%d", group.count),
+			"total_count":     fmt.Sprintf("%d", group.count),
 			aggregate.Definition.Name + "_recent_op_value": group.recentOpValue,
 			aggregate.Definition.Name + "_recent_count":    group.recentCount,
-			aggregate.Definition.Name + "_value":           fmt.Sprintf("%f", group.value),
+			aggregate.Definition.Name + "_total_value":     fmt.Sprintf("%f", group.value),
 			strings.Join(aggregate.Definition.By, "_"):     string(group.normalizedValues),
 		})
 		// Once reported, we reset the raw values accumulation

@@ -38,10 +38,10 @@ func createAgg(name, recordKey, by, agg, op string, value float64, count int, rr
 		"aggregate":                             agg,
 		by:                                      agg,
 		"operation":                             api.AggregateOperation(op),
-		"value":                                 valueString,
-		fmt.Sprintf("%v_value", name):           valueString,
+		"total_value":                           valueString,
+		fmt.Sprintf("%v_total_value", name):     valueString,
 		"recentRawValues":                       rrv,
-		"count":                                 fmt.Sprintf("%v", count),
+		"total_count":                           fmt.Sprintf("%v", count),
 		fmt.Sprintf("%v_recent_op_value", name): recentOpValue,
 		fmt.Sprintf("%v_recent_count", name):    recentCount,
 	}
