@@ -200,7 +200,7 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 			aggregate.Definition.Name + "_total_value":     fmt.Sprintf("%f", group.value),
 			strings.Join(aggregate.Definition.By, "_"):     string(group.normalizedValues),
 		})
-		// Once reported, we reset the raw values accumulation
+		// Once reported, we reset the recentXXX fields
 		group.RecentRawValues = make([]float64, 0)
 		group.recentCount = 0
 		initVal, err := initValue(string(aggregate.Definition.Operation))
