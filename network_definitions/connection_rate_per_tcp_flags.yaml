@@ -21,7 +21,7 @@ encode:
     metrics:
       - name: connections_per_tcp_flags
         type: counter
-        valuekey: TCPFlags_count_value
+        valuekey: TCPFlags_recent_count
         labels:
           - by
           - aggregate

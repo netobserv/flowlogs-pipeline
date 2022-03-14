@@ -22,7 +22,7 @@ encode:
     metrics:
       - name: connections_per_source_as
         type: counter
-        valuekey: src_as_connection_count_value
+        valuekey: src_as_connection_recent_count
         labels:
           - by
           - aggregate

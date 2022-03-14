@@ -29,7 +29,7 @@ encode:
     metrics:
       - name: bandwidth_per_source_subnet
         type: counter
-        valuekey: bandwidth_source_subnet_value
+        valuekey: bandwidth_source_subnet_recent_op_value
         labels:
           - by
           - aggregate
