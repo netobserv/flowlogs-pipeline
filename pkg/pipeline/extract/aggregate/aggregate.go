@@ -185,19 +185,20 @@ func (aggregate Aggregate) Evaluate(entries []config.GenericMap) error {
 func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 	var metrics []config.GenericMap
 	for _, group := range aggregate.Groups {
+		// TODO: remove prefixes when filtering is implemented in prom encode.
 		metrics = append(metrics, config.GenericMap{
-			"name":                               aggregate.Definition.Name,
-			"operation":                          aggregate.Definition.Operation,
-			"record_key":                         aggregate.Definition.RecordKey,
-			"by":                                 strings.Join(aggregate.Definition.By, ","),
-			"aggregate":                          string(group.normalizedValues),
-			"value":                              fmt.Sprintf("%f", group.value),
-			"recentRawValues":                    group.RecentRawValues,
-			"count":                              fmt.Sprintf("%d", group.count),
-			"recent_op_value":                    group.recentOpValue,
-			"recent_count":                       group.recentCount,
-			aggregate.Definition.Name + "_value": fmt.Sprintf("%f", group.value),
-			strings.Join(aggregate.Definition.By, "_"): string(group.normalizedValues),
+			"name":            aggregate.Definition.Name,
+			"operation":       aggregate.Definition.Operation,
+			"record_key":      aggregate.Definition.RecordKey,
+			"by":              strings.Join(aggregate.Definition.By, ","),
+			"aggregate":       string(group.normalizedValues),
+			"value":           fmt.Sprintf("%f", group.value),
+			"recentRawValues": group.RecentRawValues,
+			"count":           fmt.Sprintf("%d", group.count),
+			aggregate.Definition.Name + "_recent_op_value": group.recentOpValue,
+			aggregate.Definition.Name + "_recent_count":    group.recentCount,
+			aggregate.Definition.Name + "_value":           fmt.Sprintf("%f", group.value),
+			strings.Join(aggregate.Definition.By, "_"):     string(group.normalizedValues),
 		})
 		// Once reported, we reset the raw values accumulation
 		group.RecentRawValues = make([]float64, 0)

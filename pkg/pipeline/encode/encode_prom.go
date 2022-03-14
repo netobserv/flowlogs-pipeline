@@ -126,6 +126,7 @@ func (e *encodeProm) EncodeMetric(metric config.GenericMap) []config.GenericMap 
 			value: valueFloat,
 		}
 		entryMap := map[string]interface{}{
+			// TODO: change to lower case
 			"Name":   e.prefix + metricName,
 			"Labels": entryLabels,
 			"value":  valueFloat,
