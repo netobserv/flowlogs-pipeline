@@ -165,105 +165,150 @@ parameters:
       metrics:
       - name: bandwidth_per_network_service
         type: counter
-        valuekey: bandwidth_network_service_recent_op_value
+        filter:
+          key: name
+          value: bandwidth_network_service
+        valuekey: recent_op_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: bandwidth_per_source_destination_subnet
         type: counter
-        valuekey: bandwidth_source_destination_subnet_recent_op_value
+        filter:
+          key: name
+          value: bandwidth_source_destination_subnet
+        valuekey: recent_op_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: bandwidth_per_source_subnet
         type: counter
-        valuekey: bandwidth_source_subnet_recent_op_value
+        filter:
+          key: name
+          value: bandwidth_source_subnet
+        valuekey: recent_op_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: connections_per_destination_subnet
         type: counter
-        valuekey: dest_connection_subnet_recent_count
+        filter:
+          key: name
+          value: dest_connection_subnet_count
+        valuekey: recent_count
         labels:
         - by
         - aggregate
         buckets: []
       - name: connections_per_source_subnet
         type: counter
-        valuekey: src_connection_count_recent_count
+        filter:
+          key: name
+          value: src_connection_count
+        valuekey: recent_count
         labels:
         - by
         - aggregate
         buckets: []
       - name: connections_per_tcp_flags
         type: counter
-        valuekey: TCPFlags_recent_count
+        filter:
+          key: name
+          value: TCPFlags_count
+        valuekey: recent_count
         labels:
         - by
         - aggregate
         buckets: []
       - name: connections_per_destination_as
         type: counter
-        valuekey: dst_as_connection_recent_count
+        filter:
+          key: name
+          value: dst_as_connection_count
+        valuekey: recent_count
         labels:
         - by
         - aggregate
         buckets: []
       - name: connections_per_source_as
         type: counter
-        valuekey: src_as_connection_recent_count
+        filter:
+          key: name
+          value: src_as_connection_count
+        valuekey: recent_count
         labels:
         - by
         - aggregate
         buckets: []
       - name: count_per_source_destination_subnet
         type: counter
-        valuekey: count_source_destination_subnet_recent_count
+        filter:
+          key: name
+          value: count_source_destination_subnet
+        valuekey: recent_count
         labels:
         - by
         - aggregate
         buckets: []
       - name: egress_per_destination_subnet
         type: counter
-        valuekey: bandwidth_destination_subnet_recent_op_value
+        filter:
+          key: name
+          value: bandwidth_destination_subnet
+        valuekey: recent_op_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: egress_per_namespace
         type: counter
-        valuekey: bandwidth_namespace_recent_op_value
+        filter:
+          key: name
+          value: bandwidth_namespace
+        valuekey: recent_op_value
         labels:
         - by
         - aggregate
         buckets: []
       - name: connections_per_destination_location
         type: counter
-        valuekey: dest_connection_location_recent_count
+        filter:
+          key: name
+          value: dest_connection_location_count
+        valuekey: recent_count
         labels:
         - by
         - aggregate
         buckets: []
       - name: mice_count
         type: counter
-        valuekey: mice_count_recent_count
+        filter:
+          key: name
+          value: mice_count
+        valuekey: recent_count
         labels:
         - by
         - aggregate
         buckets: []
       - name: elephant_count
         type: counter
-        valuekey: elephant_count_recent_count
+        filter:
+          key: name
+          value: elephant_count
+        valuekey: recent_count
         labels:
         - by
         - aggregate
         buckets: []
       - name: service_count
         type: counter
-        valuekey: dest_service_recent_count
+        filter:
+          key: name
+          value: dest_service_count
+        valuekey: recent_count
         labels:
         - by
         - aggregate
