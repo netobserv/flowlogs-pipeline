@@ -63,11 +63,11 @@ make local-redeploy
 ```
 > Note: Additional information on usage and deployment can be found in flowlogs-pipeline README  
 
-> Note: learning from examples and existing metric definitions is very-useful
+> Note: Learning from examples and existing metric definitions is very useful.
 
 ### Network definition explained
 
-In this section we explain how network definition are structured.  This is useful for development of 
+In this section we explain how network definition is structured. This is useful for development of 
 new network definitions as well as debugging and working with existing network definition.
 
 ```shell
