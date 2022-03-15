@@ -40,7 +40,7 @@ func (cg *ConfGen) parseEncode(encode *map[string]interface{}) (*api.PromEncode,
 		log.Debugf("Unmarshal aggregate.Definitions err: %v ", err)
 		return nil, err
 	}
-	
+
 	cg.promMetrics = append(cg.promMetrics, prom.Metrics...)
 	return &prom, nil
 }
