@@ -29,7 +29,6 @@ type DecodeJson struct {
 }
 
 // Decode decodes input strings to a list of flow entries
-// All entries should be saved as strings
 func (c *DecodeJson) Decode(in []interface{}) []config.GenericMap {
 	out := make([]config.GenericMap, 0)
 	for _, line := range in {
@@ -39,6 +38,7 @@ func (c *DecodeJson) Decode(in []interface{}) []config.GenericMap {
 		err := json.Unmarshal(line2, &decodedLine)
 		if err != nil {
 			log.Errorf("decodeJson Decode: error unmarshalling a line: %v", err)
+			log.Errorf("line = %s", line)
 			continue
 		}
 		decodedLine2 := make(config.GenericMap, len(decodedLine))

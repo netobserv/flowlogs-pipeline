@@ -61,12 +61,10 @@ func (ingestK *ingestKafka) kafkaListener() {
 	log.Debugf("entering  kafkaListener")
 
 	go func() {
-		var kafkaMessage kafkago.Message
-		var err error
 		for {
 			// block until a message arrives
 			log.Debugf("before ReadMessage")
-			kafkaMessage, err = ingestK.kafkaReader.ReadMessage(context.Background())
+			kafkaMessage, err := ingestK.kafkaReader.ReadMessage(context.Background())
 			if err != nil {
 				log.Errorln(err)
 			}

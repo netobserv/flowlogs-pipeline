@@ -48,6 +48,7 @@ parameters:
         brokers: ["localhost:9092"]
         topic: topic_in
         groupid: group_test_in
+        startoffset: LastOffset
   - name: decode_json
     decode:
       type: json
