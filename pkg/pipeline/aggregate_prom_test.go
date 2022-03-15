@@ -72,12 +72,14 @@ parameters:
        metrics:
          - name: flow_count
            type: counter
+           filter: {key: name, value: bandwidth_count}
            valuekey: bandwidth_count_recent_count
            labels:
              - service
 
          - name: bytes_sum
            type: counter
+           filter: {key: name, value: bandwidth_sum}
            valuekey: bandwidth_sum_recent_op_value
            labels:
              - service
