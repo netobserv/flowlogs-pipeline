@@ -44,8 +44,10 @@ type PromMetric struct {
 }
 
 type metricInfo struct {
-	input      string
-	labelNames []string
+	input       string
+	filterKey   string
+	filterValue string
+	labelNames  []string
 	PromMetric
 }
 
@@ -102,9 +104,15 @@ func (e *encodeProm) EncodeMetric(metric config.GenericMap) []config.GenericMap 
 	// TODO: We may need different handling for histograms
 	out := make([]config.GenericMap, 0)
 	for metricName, mInfo := range e.metrics {
+		val, keyFound := metric[mInfo.filterKey]
+		shouldKeepRecord := keyFound && val == mInfo.filterValue
+		if !shouldKeepRecord {
+			continue
+		}
+
 		metricValue, ok := metric[mInfo.input]
 		if !ok {
-			log.Debugf("field %v is missing", metricName)
+			log.Errorf("field %v is missing", mInfo.input)
 			continue
 		}
 		metricValueString := fmt.Sprintf("%v", metricValue)
@@ -302,9 +310,11 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 			continue
 		}
 		metrics[mInfo.Name] = metricInfo{
-			input:      mInfo.ValueKey,
-			labelNames: labels,
-			PromMetric: pMetric,
+			input:       mInfo.ValueKey,
+			filterKey:   mInfo.Filter.Key,
+			filterValue: mInfo.Filter.Value,
+			labelNames:  labels,
+			PromMetric:  pMetric,
 		}
 	}
 

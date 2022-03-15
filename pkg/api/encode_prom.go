@@ -35,11 +35,17 @@ func PromEncodeOperationName(operation string) string {
 }
 
 type PromMetricsItem struct {
-	Name     string    `yaml:"name" doc:"the metric name"`
-	Type     string    `yaml:"type" enum:"PromEncodeOperationEnum" doc:"one of the following:"`
-	ValueKey string    `yaml:"valuekey" doc:"entry key from which to resolve metric value"`
-	Labels   []string  `yaml:"labels" doc:"labels to be associated with the metric"`
-	Buckets  []float64 `yaml:"buckets" doc:"histogram buckets"`
+	Name     string            `yaml:"name" doc:"the metric name"`
+	Type     string            `yaml:"type" enum:"PromEncodeOperationEnum" doc:"one of the following:"`
+	Filter   PromMetricsFilter `yaml:"filter" doc:"the criterion to filter entries by"`
+	ValueKey string            `yaml:"valuekey" doc:"entry key from which to resolve metric value"`
+	Labels   []string          `yaml:"labels" doc:"labels to be associated with the metric"`
+	Buckets  []float64         `yaml:"buckets" doc:"histogram buckets"`
 }
 
 type PromMetricsItems []PromMetricsItem
+
+type PromMetricsFilter struct {
+	Key   string `yaml:"key" doc:"the key to match and filter by"`
+	Value string `yaml:"value" doc:"the value to match and filter by"`
+}
