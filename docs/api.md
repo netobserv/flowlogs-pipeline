@@ -10,6 +10,9 @@ Following is the supported API format for prometheus encode:
                      gauge: single numerical value that can arbitrarily go up and down
                      counter: monotonically increasing counter whose value can only increase
                      histogram: counts samples in configurable buckets
+                 filter: the criterion to filter entries by
+                     key: the key to match and filter by
+                     value: the value to match and filter by
                  valuekey: entry key from which to resolve metric value
                  labels: labels to be associated with the metric
                  buckets: histogram buckets
