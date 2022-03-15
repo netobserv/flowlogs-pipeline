@@ -128,7 +128,7 @@ func CreateMockAgg(name, recordKey, by, agg, op string, value float64, count int
 		fmt.Sprintf("%v_total_value", name): valueString,
 		"recentRawValues":                   rrv,
 		"total_count":                       fmt.Sprintf("%v", count),
-		name + "_recent_op_value":           recentOpValue,
-		name + "_recent_count":              recentCount,
+		"recent_op_value":                   recentOpValue,
+		"recent_count":                      recentCount,
 	}
 }
