@@ -101,8 +101,9 @@ encode: (9)
     metrics:
       - name: metricName (9.2)
         type: metricType (9.3)
-        valuekey: aggregate_name_value (9.4)
-        labels: (9.5)
+        filter: {key: myKey, value: myValue} (9.4)
+        valuekey: value (9.5)
+        labels: (9.6)
           - by
           - aggregate
 visualization: (10)
@@ -133,12 +134,15 @@ this actually moves the data from being log lines into being a metric named (8.2
 > For additional details on `extract aggregates`
 > refer to [README.md](../README.md#aggregates).  
 
-(9) Next, the metrics from (8.2) are sent to prometheus (9.1). Make sure that (9.4) value is
-set to the metric name from (8.2) with suffix `_value`. 
+(9) Next, the metrics from (8.2) are sent to prometheus (9.1). 
 The metric name in prometheus will be called as the value of (9.2) with 
 the prefix from the `config.yaml` file. 
 The type of the prometheus metric will be (9.3) (e.g. gauge). 
-Prometheus will add labels to the metric based on the (9.5) fields.  
+The filter field (9.4) determines which aggregates will take into account. 
+The key should be `"name"` and the value should match the aggregate name (8.2)
+The value to be used by prometheus is taken from the field defined in (9.5).
+For `Gauges`, use `value` and `Counters`, use `recent_op_value`.
+Prometheus will add labels to the metric based on the (9.6) fields. 
 
 (10) next, using grafana to visualize the metric with name from (9.2) including the 
 prefix and using the prometheus expression from (10.1). 
