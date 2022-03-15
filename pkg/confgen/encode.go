@@ -40,17 +40,7 @@ func (cg *ConfGen) parseEncode(encode *map[string]interface{}) (*api.PromEncode,
 		log.Debugf("Unmarshal aggregate.Definitions err: %v ", err)
 		return nil, err
 	}
-
-	// validate that ValueKey is unique
-	for _, existingPromMetric := range cg.promMetrics {
-		for _, newPromMetric := range prom.Metrics {
-			if existingPromMetric.ValueKey == newPromMetric.ValueKey {
-				log.Panicf("error in parseEncode: ValueKey %s overlaps, metric encoding ignored !!!! ", newPromMetric.ValueKey)
-				return nil, err
-			}
-		}
-	}
-
+	
 	cg.promMetrics = append(cg.promMetrics, prom.Metrics...)
 	return &prom, nil
 }
