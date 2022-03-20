@@ -118,17 +118,16 @@ func GetExtractMockEntry() config.GenericMap {
 func CreateMockAgg(name, recordKey, by, agg, op string, value float64, count int, rrv []float64, recentOpValue float64, recentCount int) config.GenericMap {
 	valueString := fmt.Sprintf("%f", value)
 	return config.GenericMap{
-		"name":                              name,
-		"record_key":                        recordKey,
-		"by":                                by,
-		"aggregate":                         agg,
-		by:                                  agg,
-		"operation":                         api.AggregateOperation(op),
-		"total_value":                       valueString,
-		fmt.Sprintf("%v_total_value", name): valueString,
-		"recentRawValues":                   rrv,
-		"total_count":                       fmt.Sprintf("%v", count),
-		"recent_op_value":                   recentOpValue,
-		"recent_count":                      recentCount,
+		"name":            name,
+		"record_key":      recordKey,
+		"by":              by,
+		"aggregate":       agg,
+		by:                agg,
+		"operation":       api.AggregateOperation(op),
+		"total_value":     valueString,
+		"recentRawValues": rrv,
+		"total_count":     fmt.Sprintf("%v", count),
+		"recent_op_value": recentOpValue,
+		"recent_count":    recentCount,
 	}
 }
