@@ -99,14 +99,15 @@ func (aggregate Aggregate) FilterEntry(entry config.GenericMap) (error, Normaliz
 	return nil, normalizedValues
 }
 
-func initValue(operation string) (float64, error) {
+func initValue(operation string) float64 {
 	switch operation {
 	case OperationSum, OperationAvg, OperationMax, OperationCount:
-		return 0, nil
+		return 0
 	case OperationMin:
-		return math.MaxFloat64, nil
+		return math.MaxFloat64
 	default:
-		return 0, fmt.Errorf("unkown operation %v", operation)
+		log.Panicf("unkown operation %v", operation)
+		return 0
 	}
 }
 
@@ -114,10 +115,7 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	groupState, ok := aggregate.Groups[normalizedValues]
 	if !ok {
 		groupState = &GroupState{normalizedValues: normalizedValues}
-		initVal, err := initValue(string(aggregate.Definition.Operation))
-		if err != nil {
-			return err
-		}
+		initVal := initValue(string(aggregate.Definition.Operation))
 		groupState.value = initVal
 		groupState.recentOpValue = initVal
 		aggregate.Groups[normalizedValues] = groupState
@@ -203,10 +201,7 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 		// Once reported, we reset the recentXXX fields
 		group.RecentRawValues = make([]float64, 0)
 		group.recentCount = 0
-		initVal, err := initValue(string(aggregate.Definition.Operation))
-		if err != nil {
-			log.Errorf("Error: %v", err)
-		}
+		initVal := initValue(string(aggregate.Definition.Operation))
 		group.recentOpValue = initVal
 	}
 
