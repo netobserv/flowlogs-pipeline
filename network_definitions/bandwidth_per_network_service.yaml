@@ -29,7 +29,7 @@ encode:
     metrics:
       - name: bandwidth_per_network_service
         type: counter
-        valuekey: bandwidth_network_service_value
+        valuekey: bandwidth_network_service_recent_op_value
         labels:
           - by
           - aggregate

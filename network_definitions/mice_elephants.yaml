@@ -36,13 +36,13 @@ encode:
     metrics:
       - name: mice_count
         type: counter
-        valuekey: mice_count_value
+        valuekey: mice_count_recent_count
         labels:
           - by
           - aggregate
       - name: elephant_count
         type: counter
-        valuekey: elephant_count_value
+        valuekey: elephant_count_recent_count
         labels:
           - by
           - aggregate

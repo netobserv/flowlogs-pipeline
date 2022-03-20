@@ -29,7 +29,7 @@ encode:
     metrics:
       - name: egress_per_namespace
         type: counter
-        valuekey: bandwidth_namespace_value
+        valuekey: bandwidth_namespace_recent_op_value
         labels:
           - by
           - aggregate

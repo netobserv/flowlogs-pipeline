@@ -27,7 +27,7 @@ encode:
     metrics:
       - name: connections_per_source_subnet
         type: counter
-        valuekey: src_connection_count_value
+        valuekey: src_connection_count_recent_count
         labels:
           - by
           - aggregate

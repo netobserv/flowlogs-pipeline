@@ -126,6 +126,7 @@ func (e *encodeProm) EncodeMetric(metric config.GenericMap) []config.GenericMap 
 			value: valueFloat,
 		}
 		entryMap := map[string]interface{}{
+			// TODO: change to lower case
 			"Name":   e.prefix + metricName,
 			"Labels": entryLabels,
 			"value":  valueFloat,
@@ -140,9 +141,7 @@ func (e *encodeProm) EncodeMetric(metric config.GenericMap) []config.GenericMap 
 			mInfo.promGauge.With(entryLabels).Set(valueFloat)
 			cEntry.PromMetric.promGauge = mInfo.promGauge
 		case api.PromEncodeOperationName("Counter"):
-			for _, v := range metric["recentRawValues"].([]float64) {
-				mInfo.promCounter.With(entryLabels).Add(v)
-			}
+			mInfo.promCounter.With(entryLabels).Add(valueFloat)
 			cEntry.PromMetric.promCounter = mInfo.promCounter
 		case api.PromEncodeOperationName("Histogram"):
 			for _, v := range metric["recentRawValues"].([]float64) {

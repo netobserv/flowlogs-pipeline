@@ -29,7 +29,7 @@ encode:
     metrics:
       - name: service_count
         type: counter
-        valuekey: dest_service_count_value
+        valuekey: dest_service_recent_count
         labels:
           - by
           - aggregate
