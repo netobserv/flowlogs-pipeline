@@ -163,10 +163,12 @@ func Test_EncodeAggregate(t *testing.T) {
 		prefix: "test_",
 		metrics: map[string]metricInfo{
 			"gauge": {
-				input:       "test_aggregate_value",
-				filterKey:   "name",
-				filterValue: "test_aggregate",
-				labelNames:  []string{"by", "aggregate"},
+				input: "test_aggregate_value",
+				filter: keyValuePair{
+					key:   "name",
+					value: "test_aggregate",
+				},
+				labelNames: []string{"by", "aggregate"},
 			},
 		},
 		mList:  list.New(),

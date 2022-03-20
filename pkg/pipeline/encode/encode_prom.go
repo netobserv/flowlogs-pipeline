@@ -43,11 +43,15 @@ type PromMetric struct {
 	promHist    *prometheus.HistogramVec
 }
 
+type keyValuePair struct {
+	key   string
+	value string
+}
+
 type metricInfo struct {
-	input       string
-	filterKey   string
-	filterValue string
-	labelNames  []string
+	input      string
+	filter     keyValuePair
+	labelNames []string
 	PromMetric
 }
 
@@ -104,8 +108,8 @@ func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 	// TODO: We may need different handling for histograms
 	out := make([]config.GenericMap, 0)
 	for metricName, mInfo := range e.metrics {
-		val, keyFound := metricRecord[mInfo.filterKey]
-		shouldKeepRecord := keyFound && val == mInfo.filterValue
+		val, keyFound := metricRecord[mInfo.filter.key]
+		shouldKeepRecord := keyFound && val == mInfo.filter.value
 		if !shouldKeepRecord {
 			continue
 		}
@@ -310,11 +314,13 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 			continue
 		}
 		metrics[mInfo.Name] = metricInfo{
-			input:       mInfo.ValueKey,
-			filterKey:   mInfo.Filter.Key,
-			filterValue: mInfo.Filter.Value,
-			labelNames:  labels,
-			PromMetric:  pMetric,
+			input: mInfo.ValueKey,
+			filter: keyValuePair{
+				key:   mInfo.Filter.Key,
+				value: mInfo.Filter.Value,
+			},
+			labelNames: labels,
+			PromMetric: pMetric,
 		}
 	}
 
