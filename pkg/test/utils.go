@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
@@ -112,4 +113,22 @@ func GetExtractMockEntry() config.GenericMap {
 		"recentRawValues": []float64{1.1, 2.2},
 	}
 	return entry
+}
+
+func CreateMockAgg(name, recordKey, by, agg, op string, value float64, count int, rrv []float64, recentOpValue float64, recentCount int) config.GenericMap {
+	valueString := fmt.Sprintf("%f", value)
+	return config.GenericMap{
+		"name":                              name,
+		"record_key":                        recordKey,
+		"by":                                by,
+		"aggregate":                         agg,
+		by:                                  agg,
+		"operation":                         api.AggregateOperation(op),
+		"total_value":                       valueString,
+		fmt.Sprintf("%v_total_value", name): valueString,
+		"recentRawValues":                   rrv,
+		"total_count":                       fmt.Sprintf("%v", count),
+		name + "_recent_op_value":           recentOpValue,
+		name + "_recent_count":              recentCount,
+	}
 }

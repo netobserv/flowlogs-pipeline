@@ -17,10 +17,8 @@
 package pipeline
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
@@ -28,24 +26,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
-
-func createAgg(name, recordKey, by, agg, op string, value float64, count int, rrv []float64, recentOpValue float64, recentCount int) config.GenericMap {
-	valueString := fmt.Sprintf("%f", value)
-	return config.GenericMap{
-		"name":                                  name,
-		"record_key":                            recordKey,
-		"by":                                    by,
-		"aggregate":                             agg,
-		by:                                      agg,
-		"operation":                             api.AggregateOperation(op),
-		"total_value":                           valueString,
-		fmt.Sprintf("%v_total_value", name):     valueString,
-		"recentRawValues":                       rrv,
-		"total_count":                           fmt.Sprintf("%v", count),
-		fmt.Sprintf("%v_recent_op_value", name): recentOpValue,
-		fmt.Sprintf("%v_recent_count", name):    recentCount,
-	}
-}
 
 func createEncodeOutput(name string, labels map[string]string, value float64) config.GenericMap {
 	gm := config.GenericMap{
@@ -135,10 +115,10 @@ parameters:
 				{"service": "tcp", "bytes": 2.0},
 			},
 			expectedAggs: []config.GenericMap{
-				createAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 30, 2, []float64{10, 20}, 30, 2),
-				createAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 3, 2, []float64{1, 2}, 3, 2),
-				createAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 2, 2, []float64{1, 1}, 2, 2),
-				createAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 2, 2, []float64{1, 1}, 2, 2),
+				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 30, 2, []float64{10, 20}, 30, 2),
+				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 3, 2, []float64{1, 2}, 3, 2),
+				test.CreateMockAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 2, 2, []float64{1, 1}, 2, 2),
+				test.CreateMockAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 2, 2, []float64{1, 1}, 2, 2),
 			},
 			expectedEncode: []config.GenericMap{
 				createEncodeOutput("test_flow_count", map[string]string{"service": "http"}, 2),
@@ -158,10 +138,10 @@ parameters:
 				{"service": "tcp", "bytes": 5},
 			},
 			expectedAggs: []config.GenericMap{
-				createAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 60, 3, []float64{30}, 30, 1),
-				createAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 12, 4, []float64{4, 5}, 9, 2),
-				createAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 3, 3, []float64{1}, 1, 1),
-				createAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 4, 4, []float64{1, 1}, 2, 2),
+				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 60, 3, []float64{30}, 30, 1),
+				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 12, 4, []float64{4, 5}, 9, 2),
+				test.CreateMockAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 3, 3, []float64{1}, 1, 1),
+				test.CreateMockAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 4, 4, []float64{1, 1}, 2, 2),
 			},
 			expectedEncode: []config.GenericMap{
 				createEncodeOutput("test_flow_count", map[string]string{"service": "http"}, 1),
