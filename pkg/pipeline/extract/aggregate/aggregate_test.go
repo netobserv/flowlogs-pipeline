@@ -116,8 +116,8 @@ func Test_Evaluate(t *testing.T) {
 	err := aggregate.Evaluate(entries)
 
 	require.Equal(t, err, nil)
-	require.Equal(t, aggregate.Groups[normalizedValues].count, 2)
-	require.Equal(t, aggregate.Groups[normalizedValues].value, float64(7))
+	require.Equal(t, aggregate.Groups[normalizedValues].totalCount, 2)
+	require.Equal(t, aggregate.Groups[normalizedValues].totalValue, float64(7))
 }
 
 func Test_GetMetrics(t *testing.T) {

@@ -50,8 +50,8 @@ type GroupState struct {
 	RecentRawValues  []float64
 	recentOpValue    float64
 	recentCount      int
-	value            float64
-	count            int
+	totalValue       float64
+	totalCount       int
 }
 
 func (aggregate Aggregate) LabelsFromEntry(entry config.GenericMap) (Labels, bool) {
@@ -116,7 +116,7 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	if !ok {
 		groupState = &GroupState{normalizedValues: normalizedValues}
 		initVal := initValue(string(aggregate.Definition.Operation))
-		groupState.value = initVal
+		groupState.totalValue = initVal
 		groupState.recentOpValue = initVal
 		aggregate.Groups[normalizedValues] = groupState
 	}
@@ -126,7 +126,7 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	operation := aggregate.Definition.Operation
 
 	if operation == OperationCount {
-		groupState.value = float64(groupState.count + 1)
+		groupState.totalValue = float64(groupState.totalCount + 1)
 		groupState.recentOpValue = float64(groupState.recentCount + 1)
 		groupState.RecentRawValues = append(groupState.RecentRawValues, 1)
 	} else {
@@ -138,16 +138,16 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 				groupState.RecentRawValues = append(groupState.RecentRawValues, valueFloat64)
 				switch operation {
 				case OperationSum:
-					groupState.value += valueFloat64
+					groupState.totalValue += valueFloat64
 					groupState.recentOpValue += valueFloat64
 				case OperationMax:
-					groupState.value = math.Max(groupState.value, valueFloat64)
+					groupState.totalValue = math.Max(groupState.totalValue, valueFloat64)
 					groupState.recentOpValue = math.Max(groupState.recentOpValue, valueFloat64)
 				case OperationMin:
-					groupState.value = math.Min(groupState.value, valueFloat64)
+					groupState.totalValue = math.Min(groupState.totalValue, valueFloat64)
 					groupState.recentOpValue = math.Min(groupState.recentOpValue, valueFloat64)
 				case OperationAvg:
-					groupState.value = (groupState.value*float64(groupState.count) + valueFloat64) / float64(groupState.count+1)
+					groupState.totalValue = (groupState.totalValue*float64(groupState.totalCount) + valueFloat64) / float64(groupState.totalCount+1)
 					groupState.recentOpValue = (groupState.recentOpValue*float64(groupState.recentCount) + valueFloat64) / float64(groupState.recentCount+1)
 				}
 			}
@@ -155,7 +155,7 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	}
 
 	// update count
-	groupState.count += 1
+	groupState.totalCount += 1
 	groupState.recentCount += 1
 
 	return nil
@@ -190,12 +190,12 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 			"record_key":      aggregate.Definition.RecordKey,
 			"by":              strings.Join(aggregate.Definition.By, ","),
 			"aggregate":       string(group.normalizedValues),
-			"total_value":     fmt.Sprintf("%f", group.value),
+			"total_value":     fmt.Sprintf("%f", group.totalValue),
 			"recentRawValues": group.RecentRawValues,
-			"total_count":     fmt.Sprintf("%d", group.count),
+			"total_count":     fmt.Sprintf("%d", group.totalCount),
 			aggregate.Definition.Name + "_recent_op_value": group.recentOpValue,
 			aggregate.Definition.Name + "_recent_count":    group.recentCount,
-			aggregate.Definition.Name + "_total_value":     fmt.Sprintf("%f", group.value),
+			aggregate.Definition.Name + "_total_value":     fmt.Sprintf("%f", group.totalValue),
 			strings.Join(aggregate.Definition.By, "_"):     string(group.normalizedValues),
 		})
 		// Once reported, we reset the recentXXX fields
