@@ -47,7 +47,7 @@ type Aggregate struct {
 
 type GroupState struct {
 	normalizedValues NormalizedValues
-	RecentRawValues  []float64
+	recentRawValues  []float64
 	recentOpValue    float64
 	recentCount      int
 	totalValue       float64
@@ -128,14 +128,14 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	if operation == OperationCount {
 		groupState.totalValue = float64(groupState.totalCount + 1)
 		groupState.recentOpValue = float64(groupState.recentCount + 1)
-		groupState.RecentRawValues = append(groupState.RecentRawValues, 1)
+		groupState.recentRawValues = append(groupState.recentRawValues, 1)
 	} else {
 		if recordKey != "" {
 			value, ok := entry[recordKey]
 			if ok {
 				valueString := fmt.Sprintf("%v", value)
 				valueFloat64, _ := strconv.ParseFloat(valueString, 64)
-				groupState.RecentRawValues = append(groupState.RecentRawValues, valueFloat64)
+				groupState.recentRawValues = append(groupState.recentRawValues, valueFloat64)
 				switch operation {
 				case OperationSum:
 					groupState.totalValue += valueFloat64
@@ -191,7 +191,7 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 			"by":              strings.Join(aggregate.Definition.By, ","),
 			"aggregate":       string(group.normalizedValues),
 			"total_value":     fmt.Sprintf("%f", group.totalValue),
-			"recentRawValues": group.RecentRawValues,
+			"recentRawValues": group.recentRawValues,
 			"total_count":     fmt.Sprintf("%d", group.totalCount),
 			aggregate.Definition.Name + "_recent_op_value": group.recentOpValue,
 			aggregate.Definition.Name + "_recent_count":    group.recentCount,
@@ -199,7 +199,7 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 			strings.Join(aggregate.Definition.By, "_"):     string(group.normalizedValues),
 		})
 		// Once reported, we reset the recentXXX fields
-		group.RecentRawValues = make([]float64, 0)
+		group.recentRawValues = make([]float64, 0)
 		group.recentCount = 0
 		initVal := initValue(string(aggregate.Definition.Operation))
 		group.recentOpValue = initVal
