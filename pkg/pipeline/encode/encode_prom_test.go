@@ -44,6 +44,7 @@ parameters:
         metrics:
           - name: Bytes
             type: gauge
+            filter: {key: dstAddr, value: 10.1.2.4}
             valuekey: bytes
             labels:
               - srcAddr
@@ -51,6 +52,7 @@ parameters:
               - srcPort
           - name: Packets
             type: counter
+            filter: {key: dstAddr, value: 10.1.2.4}
             valuekey: packets
             labels:
               - srcAddr
@@ -161,7 +163,11 @@ func Test_EncodeAggregate(t *testing.T) {
 		prefix: "test_",
 		metrics: map[string]metricInfo{
 			"gauge": {
-				input:      "test_aggregate_value",
+				input: "test_aggregate_value",
+				filter: keyValuePair{
+					key:   "name",
+					value: "test_aggregate",
+				},
 				labelNames: []string{"by", "aggregate"},
 			},
 		},

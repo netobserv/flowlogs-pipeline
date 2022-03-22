@@ -33,7 +33,8 @@ encode:
     metrics:
       - name: count_per_source_destination_subnet
         type: counter
-        valuekey: count_source_destination_subnet_recent_count
+        filter: { key: name, value: count_source_destination_subnet }
+        valuekey: recent_count
         labels:
           - by
           - aggregate

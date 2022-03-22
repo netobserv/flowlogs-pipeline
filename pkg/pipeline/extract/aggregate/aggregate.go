@@ -183,7 +183,6 @@ func (aggregate Aggregate) Evaluate(entries []config.GenericMap) error {
 func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 	var metrics []config.GenericMap
 	for _, group := range aggregate.Groups {
-		// TODO: remove prefixes when filtering is implemented in prom encode.
 		metrics = append(metrics, config.GenericMap{
 			"name":            aggregate.Definition.Name,
 			"operation":       aggregate.Definition.Operation,
@@ -193,10 +192,9 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 			"total_value":     fmt.Sprintf("%f", group.totalValue),
 			"recentRawValues": group.recentRawValues,
 			"total_count":     fmt.Sprintf("%d", group.totalCount),
-			aggregate.Definition.Name + "_recent_op_value": group.recentOpValue,
-			aggregate.Definition.Name + "_recent_count":    group.recentCount,
-			aggregate.Definition.Name + "_total_value":     fmt.Sprintf("%f", group.totalValue),
-			strings.Join(aggregate.Definition.By, "_"):     string(group.normalizedValues),
+			"recent_op_value": group.recentOpValue,
+			"recent_count":    group.recentCount,
+			strings.Join(aggregate.Definition.By, "_"): string(group.normalizedValues),
 		})
 		// Once reported, we reset the recentXXX fields
 		group.recentRawValues = make([]float64, 0)

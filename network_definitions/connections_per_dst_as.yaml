@@ -22,7 +22,8 @@ encode:
     metrics:
       - name: connections_per_destination_as
         type: counter
-        valuekey: dst_as_connection_recent_count
+        filter: { key: name, value: dst_as_connection_count }
+        valuekey: recent_count
         labels:
           - by
           - aggregate

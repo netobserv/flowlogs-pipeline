@@ -28,7 +28,8 @@ encode:
     metrics:
       - name: connections_per_destination_location
         type: counter
-        valuekey: dest_connection_location_recent_count
+        filter: { key: name, value: dest_connection_location_count }
+        valuekey: recent_count
         labels:
           - by
           - aggregate

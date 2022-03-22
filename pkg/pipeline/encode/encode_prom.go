@@ -43,8 +43,14 @@ type PromMetric struct {
 	promHist    *prometheus.HistogramVec
 }
 
+type keyValuePair struct {
+	key   string
+	value string
+}
+
 type metricInfo struct {
 	input      string
+	filter     keyValuePair
 	labelNames []string
 	PromMetric
 }
@@ -97,14 +103,20 @@ func (e *encodeProm) Encode(metrics []config.GenericMap) []config.GenericMap {
 	return out
 }
 
-func (e *encodeProm) EncodeMetric(metric config.GenericMap) []config.GenericMap {
-	log.Debugf("entering EncodeMetric metric = %v", metric)
+func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.GenericMap {
+	log.Debugf("entering EncodeMetric. metricRecord = %v", metricRecord)
 	// TODO: We may need different handling for histograms
 	out := make([]config.GenericMap, 0)
 	for metricName, mInfo := range e.metrics {
-		metricValue, ok := metric[mInfo.input]
+		val, keyFound := metricRecord[mInfo.filter.key]
+		shouldKeepRecord := keyFound && val == mInfo.filter.value
+		if !shouldKeepRecord {
+			continue
+		}
+
+		metricValue, ok := metricRecord[mInfo.input]
 		if !ok {
-			log.Debugf("field %v is missing", metricName)
+			log.Errorf("field %v is missing", mInfo.input)
 			continue
 		}
 		metricValueString := fmt.Sprintf("%v", metricValue)
@@ -116,7 +128,7 @@ func (e *encodeProm) EncodeMetric(metric config.GenericMap) []config.GenericMap 
 		log.Debugf("metricName = %v, metricValue = %v, valueFloat = %v", metricName, metricValue, valueFloat)
 		entryLabels := make(map[string]string, len(mInfo.labelNames))
 		for _, t := range mInfo.labelNames {
-			entryLabels[t] = fmt.Sprintf("%v", metric[t])
+			entryLabels[t] = fmt.Sprintf("%v", metricRecord[t])
 		}
 		entry := entryInfo{
 			eInfo: entrySignature{
@@ -135,7 +147,7 @@ func (e *encodeProm) EncodeMetric(metric config.GenericMap) []config.GenericMap 
 
 		cEntry := e.saveEntryInCache(entry, entryLabels)
 		cEntry.PromMetric.metricType = mInfo.PromMetric.metricType
-		// push the metric to prometheus
+		// push the metric record to prometheus
 		switch mInfo.PromMetric.metricType {
 		case api.PromEncodeOperationName("Gauge"):
 			mInfo.promGauge.With(entryLabels).Set(valueFloat)
@@ -144,7 +156,7 @@ func (e *encodeProm) EncodeMetric(metric config.GenericMap) []config.GenericMap 
 			mInfo.promCounter.With(entryLabels).Add(valueFloat)
 			cEntry.PromMetric.promCounter = mInfo.promCounter
 		case api.PromEncodeOperationName("Histogram"):
-			for _, v := range metric["recentRawValues"].([]float64) {
+			for _, v := range metricRecord["recentRawValues"].([]float64) {
 				mInfo.promHist.With(entryLabels).Observe(v)
 			}
 			cEntry.PromMetric.promHist = mInfo.promHist
@@ -302,7 +314,11 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 			continue
 		}
 		metrics[mInfo.Name] = metricInfo{
-			input:      mInfo.ValueKey,
+			input: mInfo.ValueKey,
+			filter: keyValuePair{
+				key:   mInfo.Filter.Key,
+				value: mInfo.Filter.Value,
+			},
 			labelNames: labels,
 			PromMetric: pMetric,
 		}
