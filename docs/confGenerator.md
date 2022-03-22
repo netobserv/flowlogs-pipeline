@@ -137,11 +137,11 @@ this actually moves the data from being log lines into being a metric named (8.2
 (9) Next, the metrics from (8.2) are sent to prometheus (9.1). 
 The metric name in prometheus will be called as the value of (9.2) with 
 the prefix from the `config.yaml` file. 
-The type of the prometheus metric will be (9.3) (e.g. gauge). 
+The type of the prometheus metric will be (9.3) (e.g. gauge, counter or histogram). 
 The filter field (9.4) determines which aggregates will take into account. 
 The key should be `"name"` and the value should match the aggregate name (8.2)
 The value to be used by prometheus is taken from the field defined in (9.5).
-For `Gauges`, use `value` and `Counters`, use `recent_op_value`.
+For `Gauges`, use `total_value` or `total_count`. For `Counters`, use `recent_op_value` or `recent_count`.
 Prometheus will add labels to the metric based on the (9.6) fields. 
 
 (10) next, using grafana to visualize the metric with name from (9.2) including the 
