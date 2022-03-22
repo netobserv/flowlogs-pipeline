@@ -62,6 +62,12 @@ parameters:
          - service
          operation: count
          recordkey: 
+
+       - name: bandwidth_raw_values
+         by:
+         - service
+         operation: raw_values
+         recordkey: bytes
  - name: encode
    encode:
      type: prom
@@ -121,6 +127,8 @@ parameters:
 				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 3, 2, nil, 3, 2),
 				test.CreateMockAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 2, 2, nil, 2, 2),
 				test.CreateMockAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 2, 2, nil, 2, 2),
+				test.CreateMockAgg("bandwidth_raw_values", "bytes", "service", "http", aggregate.OperationRawValues, 0, 2, []float64{10, 20}, 0, 2),
+				test.CreateMockAgg("bandwidth_raw_values", "bytes", "service", "tcp", aggregate.OperationRawValues, 0, 2, []float64{1, 2}, 0, 2),
 			},
 			expectedEncode: []config.GenericMap{
 				createEncodeOutput("test_flow_count", map[string]string{"service": "http"}, 2),
@@ -144,6 +152,8 @@ parameters:
 				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 12, 4, nil, 9, 2),
 				test.CreateMockAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 3, 3, nil, 1, 1),
 				test.CreateMockAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 4, 4, nil, 2, 2),
+				test.CreateMockAgg("bandwidth_raw_values", "bytes", "service", "http", aggregate.OperationRawValues, 0, 3, []float64{30}, 0, 1),
+				test.CreateMockAgg("bandwidth_raw_values", "bytes", "service", "tcp", aggregate.OperationRawValues, 0, 4, []float64{4, 5}, 0, 2),
 			},
 			expectedEncode: []config.GenericMap{
 				createEncodeOutput("test_flow_count", map[string]string{"service": "http"}, 1),

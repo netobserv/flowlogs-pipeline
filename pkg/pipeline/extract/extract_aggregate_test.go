@@ -68,6 +68,12 @@ parameters:
           - service
           operation: avg
           recordkey: bytes
+
+        - name: bandwidth_raw_values
+          by:
+          - service
+          operation: raw_values
+          recordkey: bytes
 `
 	var err error
 
@@ -102,6 +108,8 @@ parameters:
 				test.CreateMockAgg("bandwidth_min", "bytes", "service", "tcp", aggregate.OperationMin, 1, 2, nil, 1, 2),
 				test.CreateMockAgg("bandwidth_avg", "bytes", "service", "http", aggregate.OperationAvg, 15, 2, nil, 15, 2),
 				test.CreateMockAgg("bandwidth_avg", "bytes", "service", "tcp", aggregate.OperationAvg, 1.5, 2, nil, 1.5, 2),
+				test.CreateMockAgg("bandwidth_raw_values", "bytes", "service", "http", aggregate.OperationRawValues, 0, 2, []float64{10, 20}, 0, 2),
+				test.CreateMockAgg("bandwidth_raw_values", "bytes", "service", "tcp", aggregate.OperationRawValues, 0, 2, []float64{1, 2}, 0, 2),
 			},
 		},
 		{
@@ -122,6 +130,8 @@ parameters:
 				test.CreateMockAgg("bandwidth_min", "bytes", "service", "tcp", aggregate.OperationMin, 1, 4, nil, 4, 2),
 				test.CreateMockAgg("bandwidth_avg", "bytes", "service", "http", aggregate.OperationAvg, 20, 3, nil, 30, 1),
 				test.CreateMockAgg("bandwidth_avg", "bytes", "service", "tcp", aggregate.OperationAvg, 3, 4, nil, 4.5, 2),
+				test.CreateMockAgg("bandwidth_raw_values", "bytes", "service", "http", aggregate.OperationRawValues, 0, 3, []float64{30}, 0, 1),
+				test.CreateMockAgg("bandwidth_raw_values", "bytes", "service", "tcp", aggregate.OperationRawValues, 0, 4, []float64{4, 5}, 0, 2),
 			},
 		},
 	}
