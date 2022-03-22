@@ -121,7 +121,8 @@ func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 		}
 		metricValueString := fmt.Sprintf("%v", metricValue)
 		valueFloat, err := strconv.ParseFloat(metricValueString, 64)
-		if err != nil {
+		// TODO: fix hack
+		if err != nil && mInfo.input != "recent_raw_values" {
 			log.Debugf("field cannot be converted to float: %v, %s", metricValue, metricValueString)
 			continue
 		}

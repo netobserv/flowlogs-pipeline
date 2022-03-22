@@ -90,11 +90,12 @@ parameters:
            labels:
              - service
 
-#         - name: bytes_histogram
-#           type: histogram
-#           valuekey: recent_raw_values
-#           labels:
-#             - service
+         - name: bytes_histogram
+           type: histogram
+           filter: {key: name, value: bandwidth_raw_values}
+           valuekey: recent_raw_values
+           labels:
+             - service
 `
 	var err error
 
@@ -135,9 +136,9 @@ parameters:
 				createEncodeOutput("test_flow_count", map[string]string{"service": "tcp"}, 2),
 				createEncodeOutput("test_bytes_sum", map[string]string{"service": "http"}, 30),
 				createEncodeOutput("test_bytes_sum", map[string]string{"service": "tcp"}, 3),
-				// TODO: add the following test once raw_values operation and filters are implemented
-				//createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, nil),
-				//createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, nil),
+				// TODO: fix the value of the following 2 entries
+				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, 0),
+				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, 0),
 			},
 		},
 		{
@@ -160,8 +161,9 @@ parameters:
 				createEncodeOutput("test_flow_count", map[string]string{"service": "tcp"}, 2),
 				createEncodeOutput("test_bytes_sum", map[string]string{"service": "http"}, 30),
 				createEncodeOutput("test_bytes_sum", map[string]string{"service": "tcp"}, 9),
-				//createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, nil),
-				//createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, nil),
+				// TODO: fix the value of the following 2 entries
+				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, 0),
+				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, 0),
 			},
 		},
 	}
