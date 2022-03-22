@@ -117,10 +117,10 @@ parameters:
 				{"service": "tcp", "bytes": 2.0},
 			},
 			expectedAggs: []config.GenericMap{
-				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 30, 2, []float64{10, 20}, 30, 2),
-				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 3, 2, []float64{1, 2}, 3, 2),
-				test.CreateMockAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 2, 2, []float64{1, 1}, 2, 2),
-				test.CreateMockAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 2, 2, []float64{1, 1}, 2, 2),
+				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 30, 2, nil, 30, 2),
+				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 3, 2, nil, 3, 2),
+				test.CreateMockAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 2, 2, nil, 2, 2),
+				test.CreateMockAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 2, 2, nil, 2, 2),
 			},
 			expectedEncode: []config.GenericMap{
 				createEncodeOutput("test_flow_count", map[string]string{"service": "http"}, 2),
@@ -128,8 +128,8 @@ parameters:
 				createEncodeOutput("test_bytes_sum", map[string]string{"service": "http"}, 30),
 				createEncodeOutput("test_bytes_sum", map[string]string{"service": "tcp"}, 3),
 				// TODO: add the following test once raw_values operation and filters are implemented
-				//createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, []float64{10, 20}),
-				//createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, []float64{1, 2}),
+				//createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, nil),
+				//createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, nil),
 			},
 		},
 		{
@@ -140,18 +140,18 @@ parameters:
 				{"service": "tcp", "bytes": 5},
 			},
 			expectedAggs: []config.GenericMap{
-				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 60, 3, []float64{30}, 30, 1),
-				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 12, 4, []float64{4, 5}, 9, 2),
-				test.CreateMockAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 3, 3, []float64{1}, 1, 1),
-				test.CreateMockAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 4, 4, []float64{1, 1}, 2, 2),
+				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "http", aggregate.OperationSum, 60, 3, nil, 30, 1),
+				test.CreateMockAgg("bandwidth_sum", "bytes", "service", "tcp", aggregate.OperationSum, 12, 4, nil, 9, 2),
+				test.CreateMockAgg("bandwidth_count", "", "service", "http", aggregate.OperationCount, 3, 3, nil, 1, 1),
+				test.CreateMockAgg("bandwidth_count", "", "service", "tcp", aggregate.OperationCount, 4, 4, nil, 2, 2),
 			},
 			expectedEncode: []config.GenericMap{
 				createEncodeOutput("test_flow_count", map[string]string{"service": "http"}, 1),
 				createEncodeOutput("test_flow_count", map[string]string{"service": "tcp"}, 2),
 				createEncodeOutput("test_bytes_sum", map[string]string{"service": "http"}, 30),
 				createEncodeOutput("test_bytes_sum", map[string]string{"service": "tcp"}, 9),
-				//createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, []float64{30}),
-				//createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, []float64{4, 5}),
+				//createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, nil),
+				//createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, nil),
 			},
 		},
 	}
