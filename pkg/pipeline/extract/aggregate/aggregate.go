@@ -198,10 +198,10 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 			"aggregate":   string(group.normalizedValues),
 			"total_value": fmt.Sprintf("%f", group.totalValue),
 			// TODO: change to snake_case
-			"recentRawValues": group.recentRawValues,
-			"total_count":     fmt.Sprintf("%d", group.totalCount),
-			"recent_op_value": group.recentOpValue,
-			"recent_count":    group.recentCount,
+			"recent_raw_values": group.recentRawValues,
+			"total_count":       fmt.Sprintf("%d", group.totalCount),
+			"recent_op_value":   group.recentOpValue,
+			"recent_count":      group.recentCount,
 			strings.Join(aggregate.Definition.By, "_"): string(group.normalizedValues),
 		})
 		// Once reported, we reset the recentXXX fields

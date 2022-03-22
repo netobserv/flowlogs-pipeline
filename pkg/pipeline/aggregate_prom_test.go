@@ -92,7 +92,7 @@ parameters:
 
 #         - name: bytes_histogram
 #           type: histogram
-#           valuekey: recentRawValues
+#           valuekey: recent_raw_values
 #           labels:
 #             - service
 `

@@ -156,7 +156,7 @@ func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 			mInfo.promCounter.With(entryLabels).Add(valueFloat)
 			cEntry.PromMetric.promCounter = mInfo.promCounter
 		case api.PromEncodeOperationName("Histogram"):
-			for _, v := range metricRecord["recentRawValues"].([]float64) {
+			for _, v := range metricRecord["recent_raw_values"].([]float64) {
 				mInfo.promHist.With(entryLabels).Observe(v)
 			}
 			cEntry.PromMetric.promHist = mInfo.promHist
