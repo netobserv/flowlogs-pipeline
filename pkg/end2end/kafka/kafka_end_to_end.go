@@ -22,6 +22,8 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -34,7 +36,7 @@ import (
 )
 
 const (
-	defaultInputFile        = "goflow2_input.txt"
+	defaultInputFile        = "../../../hack/examples/ocp-ipfix-flowlogs.json"
 	kafkaBrokerDefaultAddr  = "localhost:9092"
 	inputFileEnvVar         = "INPUT_FILE"
 	kafkaBrokerEnvVar       = "KAFKA_BROKER"
@@ -42,12 +44,11 @@ const (
 	kafkaOutputTopicEnvVar  = "KAFKA_OUTPUT_TOPIC"
 	kafkaInputTopicDefault  = "topic_in"
 	kafkaOutputTopicDefault = "topic_out"
-	dockerComposeFile       = "docker-compose.yaml"
 )
 
 type lineBuffer []byte
 
-func makeKafkaProducer() kafkago.Writer {
+func makeKafkaProducer() *kafkago.Writer {
 	// prepare a kafka producer on specified topic
 	kafkaAddr := os.Getenv(kafkaBrokerEnvVar)
 	if kafkaAddr == "" {
@@ -86,10 +87,10 @@ func makeKafkaProducer() kafkago.Writer {
 		Addr:  kafkago.TCP(kafkaAddr),
 		Topic: topic,
 	}
-	return kafkaProducer
+	return &kafkaProducer
 }
 
-func makeKafkaConsumer() kafkago.Reader {
+func makeKafkaConsumer() *kafkago.Reader {
 	kafkaAddr := os.Getenv(kafkaBrokerEnvVar)
 	if kafkaAddr == "" {
 		kafkaAddr = kafkaBrokerDefaultAddr
@@ -130,10 +131,10 @@ func makeKafkaConsumer() kafkago.Reader {
 		Topic:       topic,
 		StartOffset: kafkago.LastOffset,
 	})
-	return *kafkaConsumer
+	return kafkaConsumer
 }
 
-func sendKafkaData(producer kafkago.Writer, inputData []lineBuffer) {
+func sendKafkaData(producer *kafkago.Writer, inputData []lineBuffer) {
 	var msgs []kafkago.Message
 	msgs = make([]kafkago.Message, 0)
 	for _, entry := range inputData {
@@ -176,8 +177,7 @@ func getInput() []lineBuffer {
 	return lines
 }
 
-func receiveData(consumer kafkago.Reader, nLines int) []lineBuffer {
-	fmt.Printf("inside receiveData \n")
+func receiveData(consumer *kafkago.Reader, nLines int) []lineBuffer {
 	fmt.Printf(" nLines = %d \n", nLines)
 	output := make([]lineBuffer, nLines)
 	for i := 0; i < nLines; i++ {
@@ -192,7 +192,8 @@ func checkResults(input, output []lineBuffer) {
 	for i, line := range input {
 		if !bytes.Equal(output[i], line) {
 			fmt.Printf("output does not equal input, i = %d \n input = %s \n output = %s \n", i, string(line), string(output[i]))
-			os.Exit(1)
+			fmt.Printf("FAILED \n")
+			return
 		}
 	}
 	fmt.Printf("SUCCESS \n")
@@ -295,21 +296,77 @@ parameters:
 	}()
 }
 
+func runCommand(command string) {
+	var cmd *exec.Cmd
+	cmdStrings := strings.Split(command, " ")
+	cmdBase := cmdStrings[0]
+	cmdStrings = cmdStrings[1:]
+	cmd = exec.Command(cmdBase, cmdStrings...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func runCommandGetOutput(command string) string {
+	var cmd *exec.Cmd
+	var outBuf bytes.Buffer
+	var err error
+	cmdStrings := strings.Split(command, " ")
+	cmdBase := cmdStrings[0]
+	cmdStrings = cmdStrings[1:]
+	cmd = exec.Command(cmdBase, cmdStrings...)
+	cmd.Stdout = &outBuf
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println(err)
+	}
+	output := outBuf.Bytes()
+	fmt.Printf("output = %v\n", output)
+	fmt.Printf("output = %s\n", string(output))
+	// strip the line feed from the end of the output string and the quotation marks
+	output = output[1 : len(output)-2]
+	fmt.Printf("output = %v\n", output)
+	fmt.Printf("output = %s\n", string(output))
+	return string(output)
+}
+
 func main() {
-	fmt.Printf("before makeKafkaProducer \n")
+	var command string
+
+	fmt.Printf("set up kind and kafka \n")
+	command = "kafka_kind_start.sh"
+	runCommand(command)
+
+	fmt.Printf("wait for kafka to be active \n")
+	command = "kubectl wait kafka/my-cluster --for=condition=Ready --timeout=1200s -n default"
+	runCommand(command)
+
+	command = "kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.type==\"external\")].bootstrapServers}{\"\\n\"}'"
+	kafkaAddr := runCommandGetOutput(command)
+	fmt.Printf("kafkaAddr = %s \n", kafkaAddr)
+	os.Setenv(kafkaBrokerEnvVar, kafkaAddr)
+
+	fmt.Printf("create kafka producer \n")
 	producer := makeKafkaProducer()
-	fmt.Printf("before makeKafkaConsumer \n")
+	fmt.Printf("create kafka consumer \n")
 	consumer := makeKafkaConsumer()
-	fmt.Printf("before setupPipeline \n")
+	fmt.Printf("set up pipeline \n")
 	setupPipeline()
-	fmt.Printf("before getInput \n")
+	fmt.Printf("read input \n")
 	input := getInput()
 	nLines := len(input)
-	fmt.Printf("before sendKafkaData \n")
+	fmt.Printf("send input data to kafka input topic \n")
 	sendKafkaData(producer, input)
-	fmt.Printf("before receiveData \n")
+	fmt.Printf("read data from kafka output topic \n")
 	output := receiveData(consumer, nLines)
-	fmt.Printf("before checkResults \n")
+	fmt.Printf("check results \n")
 	checkResults(input, output)
-	fmt.Printf("after checkResults \n")
+
+	fmt.Printf("delete kind and kafka \n")
+	command = "kafka_kind_stop.sh"
+	runCommand(command)
 }
