@@ -113,12 +113,13 @@ func makeKafkaConsumer() *kafkago.Reader {
 	fmt.Printf("wait a second for topic deletion to complete \n")
 	time.Sleep(time.Second)
 
-	kafkaClient.CreateTopics(context.Background(), &kafkago.CreateTopicsRequest{
+	createTopcisResponse, err := kafkaClient.CreateTopics(context.Background(), &kafkago.CreateTopicsRequest{
 		Topics: []kafkago.TopicConfig{
 			{Topic: topic,
 				NumPartitions:     1,
 				ReplicationFactor: 1}},
 	})
+	fmt.Printf("createTopcisResponse response = %v, err = %v \n", createTopcisResponse, err)
 
 	electResponse, err := kafkaClient.ElectLeaders(context.Background(), &kafkago.ElectLeadersRequest{
 		Topic: topic,
@@ -348,7 +349,10 @@ func main() {
 	command = "kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.type==\"external\")].bootstrapServers}{\"\\n\"}'"
 	kafkaAddr := runCommandGetOutput(command)
 	fmt.Printf("kafkaAddr = %s \n", kafkaAddr)
-	os.Setenv(kafkaBrokerEnvVar, kafkaAddr)
+	err := os.Setenv(kafkaBrokerEnvVar, kafkaAddr)
+	if err != nil {
+		fmt.Printf("error in setenv = %v \n", err)
+	}
 
 	fmt.Printf("create kafka producer \n")
 	producer := makeKafkaProducer()
