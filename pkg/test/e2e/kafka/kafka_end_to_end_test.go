@@ -15,7 +15,7 @@
  *
  */
 
-package main
+package test
 
 import (
 	"bufio"
@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	defaultInputFile        = "../../../../hack/examples/ocp-ipfix-flowlogs-short.json"
+	defaultInputFile        = "../../../../hack/examples/ocp-ipfix-flowlogs.json"
 	kafkaBrokerDefaultAddr  = "localhost:9092"
 	inputFileEnvVar         = "INPUT_FILE"
 	kafkaBrokerEnvVar       = "KAFKA_BROKER"

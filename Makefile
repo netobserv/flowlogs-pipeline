@@ -92,13 +92,17 @@ clean: ## Clean
 	go clean ./...
 
 # note: to review coverage execute: go tool cover -html=/tmp/coverage.out
-.PHONY: test
-test: validate_go ## Unit tests
+.PHONY: tests-unit
+tests-unit: validate_go ## Unit tests
 	go test -p 1 -race -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out $$(go list ./... | grep -v /e2e)
 
-.PHONY: test-e2e
-test-e2e: validate_go ## End-to-end tests
+.PHONY: tests-e2e
+tests-e2e: validate_go ## End-to-end tests
 	go test -v -timeout 1200s -p 1 -race -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out $$(go list ./... | grep  /e2e)
+
+.PHONY: tests-all
+tests-all: validate_go ## All tests
+	go test -v -timeout 1200s -p 1 -race -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out  ./... 
 
 # note: to review profile execute: go tool pprof -web /tmp/flowlogs-pipeline-cpu-profile.out (make sure graphviz is installed)
 .PHONY: benchmarks

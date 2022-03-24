@@ -579,7 +579,8 @@ Develop
   dashboards            Build grafana dashboards  
   docs                  Update flowlogs-pipeline documentation  
   clean                 Clean  
-  test                  Test  
+  test                  Unit tests  
+  test-e2e              End-to-end tests  
   benchmarks            Benchmark  
   run                   Run  
   
