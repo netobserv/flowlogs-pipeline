@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"testing"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -32,11 +33,12 @@ import (
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 )
 
 const (
-	defaultInputFile        = "../../../hack/examples/ocp-ipfix-flowlogs.json"
+	defaultInputFile        = "../../../../hack/examples/ocp-ipfix-flowlogs-short.json"
 	kafkaBrokerDefaultAddr  = "localhost:9092"
 	inputFileEnvVar         = "INPUT_FILE"
 	kafkaBrokerEnvVar       = "KAFKA_BROKER"
@@ -48,7 +50,7 @@ const (
 
 type lineBuffer []byte
 
-func makeKafkaProducer() *kafkago.Writer {
+func makeKafkaProducer(t *testing.T) *kafkago.Writer {
 	// prepare a kafka producer on specified topic
 	kafkaAddr := os.Getenv(kafkaBrokerEnvVar)
 	if kafkaAddr == "" {
@@ -67,22 +69,25 @@ func makeKafkaProducer() *kafkago.Writer {
 	deleteResponse, err := kafkaClient.DeleteTopics(context.Background(), &kafkago.DeleteTopicsRequest{
 		Topics: []string{topic},
 	})
-	fmt.Printf("DeleteTopics response = %v, err = %v \n", deleteResponse, err)
+	log.Debugf("DeleteTopics response = %v, err = %v \n", deleteResponse, err)
 	fmt.Printf("wait a second for topic deletion to complete \n")
 	time.Sleep(time.Second)
 
+	fmt.Printf("create topic: %s \n", topic)
 	createResponse, err := kafkaClient.CreateTopics(context.Background(), &kafkago.CreateTopicsRequest{
 		Topics: []kafkago.TopicConfig{
 			{Topic: topic,
 				NumPartitions:     1,
 				ReplicationFactor: 1}},
 	})
-	fmt.Printf("CreateTopics response = %v, err = %v \n", createResponse, err)
+	assert.NoError(t, err)
+	log.Debugf("CreateTopics response = %v, err = %v \n", createResponse, err)
 
 	electResponse, err := kafkaClient.ElectLeaders(context.Background(), &kafkago.ElectLeadersRequest{
 		Topic: topic,
 	})
-	fmt.Printf("ElectLeaders response = %v, err = %v \n", electResponse, err)
+	assert.NoError(t, err)
+	log.Debugf("ElectLeaders response = %v, err = %v \n", electResponse, err)
 	kafkaProducer := kafkago.Writer{
 		Addr:  kafkago.TCP(kafkaAddr),
 		Topic: topic,
@@ -90,7 +95,7 @@ func makeKafkaProducer() *kafkago.Writer {
 	return &kafkaProducer
 }
 
-func makeKafkaConsumer() *kafkago.Reader {
+func makeKafkaConsumer(t *testing.T) *kafkago.Reader {
 	kafkaAddr := os.Getenv(kafkaBrokerEnvVar)
 	if kafkaAddr == "" {
 		kafkaAddr = kafkaBrokerDefaultAddr
@@ -109,22 +114,26 @@ func makeKafkaConsumer() *kafkago.Reader {
 	deleteResponse, err := kafkaClient.DeleteTopics(context.Background(), &kafkago.DeleteTopicsRequest{
 		Topics: []string{topic},
 	})
-	fmt.Printf("DeleteTopics response = %v, err = %v \n", deleteResponse, err)
+	assert.NoError(t, err)
+	log.Debugf("DeleteTopics response = %v, err = %v \n", deleteResponse, err)
 	fmt.Printf("wait a second for topic deletion to complete \n")
 	time.Sleep(time.Second)
 
+	fmt.Printf("create topic: %s \n", topic)
 	createTopcisResponse, err := kafkaClient.CreateTopics(context.Background(), &kafkago.CreateTopicsRequest{
 		Topics: []kafkago.TopicConfig{
 			{Topic: topic,
 				NumPartitions:     1,
 				ReplicationFactor: 1}},
 	})
-	fmt.Printf("createTopcisResponse response = %v, err = %v \n", createTopcisResponse, err)
+	assert.NoError(t, err)
+	log.Debugf("createTopcisResponse response = %v, err = %v \n", createTopcisResponse, err)
 
 	electResponse, err := kafkaClient.ElectLeaders(context.Background(), &kafkago.ElectLeadersRequest{
 		Topic: topic,
 	})
-	fmt.Printf("ElectLeaders response = %v, err = %v \n", electResponse, err)
+	assert.NoError(t, err)
+	log.Debugf("ElectLeaders response = %v, err = %v \n", electResponse, err)
 
 	// prepare a kafka consumer on specified topic
 	kafkaConsumer := kafkago.NewReader(kafkago.ReaderConfig{
@@ -135,7 +144,7 @@ func makeKafkaConsumer() *kafkago.Reader {
 	return kafkaConsumer
 }
 
-func sendKafkaData(producer *kafkago.Writer, inputData []lineBuffer) {
+func sendKafkaData(t *testing.T, producer *kafkago.Writer, inputData []lineBuffer) {
 	var msgs []kafkago.Message
 	msgs = make([]kafkago.Message, 0)
 	for _, entry := range inputData {
@@ -147,21 +156,20 @@ func sendKafkaData(producer *kafkago.Writer, inputData []lineBuffer) {
 
 	err := producer.WriteMessages(context.Background(), msgs...)
 	if err != nil {
-		fmt.Printf("error conecting to kafka; cannot perform kafka end-to-end test; err = %v \n", err)
-		os.Exit(1)
+		msg := fmt.Sprintf("error conecting to kafka; cannot perform kafka end-to-end test; err = %v \n", err)
+		assert.Fail(t, msg)
 	}
+	assert.NoError(t, err)
 }
 
-func getInput() []lineBuffer {
+func getInput(t *testing.T) []lineBuffer {
 	inputFile := os.Getenv(inputFileEnvVar)
 	if inputFile == "" {
 		inputFile = defaultInputFile
 	}
 	fmt.Printf("input file = %v \n", inputFile)
 	file, err := os.Open(inputFile)
-	if err != nil {
-		log.Fatal(err)
-	}
+	assert.NoError(t, err)
 	defer func() {
 		_ = file.Close()
 	}()
@@ -174,33 +182,31 @@ func getInput() []lineBuffer {
 		copy(text2, text)
 		lines = append(lines, text2)
 	}
-
 	return lines
 }
 
-func receiveData(consumer *kafkago.Reader, nLines int) []lineBuffer {
-	fmt.Printf(" nLines = %d \n", nLines)
+func receiveData(t *testing.T, consumer *kafkago.Reader, nLines int) []lineBuffer {
+	fmt.Printf("receiveData:  nLines = %d \n", nLines)
 	output := make([]lineBuffer, nLines)
 	for i := 0; i < nLines; i++ {
 		kafkaMessage, _ := consumer.ReadMessage(context.Background())
 		output[i] = kafkaMessage.Value
+		fmt.Printf(".")
 	}
-	fmt.Printf("exiting receiveData \n")
+	fmt.Printf("\n")
 	return output
 }
 
-func checkResults(input, output []lineBuffer) {
-	for i, line := range input {
-		if !bytes.Equal(output[i], line) {
-			fmt.Printf("output does not equal input, i = %d \n input = %s \n output = %s \n", i, string(line), string(output[i]))
-			fmt.Printf("FAILED \n")
-			return
-		}
+func checkResults(t *testing.T, input, output []lineBuffer) {
+	assert.Equal(t, len(input), len(output))
+	for _, line := range input {
+		fmt.Printf(".")
+		assert.Contains(t, output, line)
 	}
-	fmt.Printf("SUCCESS \n")
+	fmt.Printf("\n")
 }
 
-func setupPipeline() {
+func setupPipeline(t *testing.T) {
 
 	kafkaAddr := os.Getenv(kafkaBrokerEnvVar)
 	if kafkaAddr == "" {
@@ -251,41 +257,47 @@ parameters:
 	v.SetConfigType("yaml")
 	r := bytes.NewReader(yamlConfig)
 	err = v.ReadConfig(r)
+	assert.NoError(t, err)
 	if err != nil {
-		fmt.Printf("Error reading config file, err = %v \n", err)
-		os.Exit(1)
+		msg := fmt.Sprintf("Error reading config file, err = %v \n", err)
+		assert.Fail(t, msg)
 	}
 
 	var b []byte
 	pipelineStr := v.Get("pipeline")
 	b, err = json.Marshal(&pipelineStr)
+	assert.NoError(t, err)
 	if err != nil {
-		fmt.Printf("error marshaling: %v\n", err)
-		os.Exit(1)
+		msg := fmt.Sprintf("error marshaling: %v\n", err)
+		assert.Fail(t, msg)
 	}
 	config.Opt.PipeLine = string(b)
 	parametersStr := v.Get("parameters")
 	b, err = json.Marshal(&parametersStr)
+	assert.NoError(t, err)
 	if err != nil {
-		fmt.Printf("error marshaling: %v\n", err)
-		os.Exit(1)
+		msg := fmt.Sprintf("error marshaling: %v\n", err)
+		assert.Fail(t, msg)
 	}
 	config.Opt.Parameters = string(b)
 	err = json.Unmarshal([]byte(config.Opt.PipeLine), &config.PipeLine)
+	assert.NoError(t, err)
 	if err != nil {
-		fmt.Printf("error unmarshaling: %v\n", err)
-		os.Exit(1)
+		msg := fmt.Sprintf("error unmarshaling: %v\n", err)
+		assert.Fail(t, msg)
 	}
 	err = json.Unmarshal([]byte(config.Opt.Parameters), &config.Parameters)
+	assert.NoError(t, err)
 	if err != nil {
-		fmt.Printf("error unmarshaling: %v\n", err)
-		os.Exit(1)
+		msg := fmt.Sprintf("error unmarshaling: %v\n", err)
+		assert.Fail(t, msg)
 	}
 
 	err = config.ParseConfig()
+	assert.NoError(t, err)
 	if err != nil {
-		fmt.Printf("error in parsing config file: %v \n", err)
-		os.Exit(1)
+		msg := fmt.Sprintf("error in parsing config file: %v \n", err)
+		assert.Fail(t, msg)
 	}
 
 	var mainPipeline *pipeline.Pipeline
@@ -297,7 +309,7 @@ parameters:
 	}()
 }
 
-func runCommand(command string) {
+func runCommand(t *testing.T, command string) {
 	var cmd *exec.Cmd
 	cmdStrings := strings.Split(command, " ")
 	cmdBase := cmdStrings[0]
@@ -306,12 +318,14 @@ func runCommand(command string) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
+	assert.NoError(t, err)
 	if err != nil {
-		fmt.Println(err)
+		msg := fmt.Sprintf("error in running command: %v \n", err)
+		assert.Fail(t, msg)
 	}
 }
 
-func runCommandGetOutput(command string) string {
+func runCommandGetOutput(t *testing.T, command string) string {
 	var cmd *exec.Cmd
 	var outBuf bytes.Buffer
 	var err error
@@ -322,55 +336,56 @@ func runCommandGetOutput(command string) string {
 	cmd.Stdout = &outBuf
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
+	assert.NoError(t, err)
 	if err != nil {
-		fmt.Println(err)
+		msg := fmt.Sprintf("error in running command: %v \n", err)
+		assert.Fail(t, msg)
 	}
 	output := outBuf.Bytes()
-	fmt.Printf("output = %v\n", output)
-	fmt.Printf("output = %s\n", string(output))
 	// strip the line feed from the end of the output string and the quotation marks
 	output = output[1 : len(output)-2]
-	fmt.Printf("output = %v\n", output)
 	fmt.Printf("output = %s\n", string(output))
 	return string(output)
 }
 
-func main() {
+func TestEnd2EndKafka(t *testing.T) {
 	var command string
 
-	fmt.Printf("set up kind and kafka \n")
+	fmt.Printf("\nset up kind and kafka \n\n")
 	command = "kafka_kind_start.sh"
-	runCommand(command)
+	runCommand(t, command)
 
-	fmt.Printf("wait for kafka to be active \n")
+	fmt.Printf("\nwait for kafka to be active \n\n")
 	command = "kubectl wait kafka/my-cluster --for=condition=Ready --timeout=1200s -n default"
-	runCommand(command)
+	runCommand(t, command)
 
 	command = "kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.type==\"external\")].bootstrapServers}{\"\\n\"}'"
-	kafkaAddr := runCommandGetOutput(command)
+	kafkaAddr := runCommandGetOutput(t, command)
 	fmt.Printf("kafkaAddr = %s \n", kafkaAddr)
 	err := os.Setenv(kafkaBrokerEnvVar, kafkaAddr)
+	assert.NoError(t, err)
 	if err != nil {
-		fmt.Printf("error in setenv = %v \n", err)
+		msg := fmt.Sprintf("error in Setenv: %v \n", err)
+		assert.Fail(t, msg)
 	}
 
 	fmt.Printf("create kafka producer \n")
-	producer := makeKafkaProducer()
+	producer := makeKafkaProducer(t)
 	fmt.Printf("create kafka consumer \n")
-	consumer := makeKafkaConsumer()
+	consumer := makeKafkaConsumer(t)
 	fmt.Printf("set up pipeline \n")
-	setupPipeline()
+	setupPipeline(t)
 	fmt.Printf("read input \n")
-	input := getInput()
+	input := getInput(t)
 	nLines := len(input)
 	fmt.Printf("send input data to kafka input topic \n")
-	sendKafkaData(producer, input)
+	sendKafkaData(t, producer, input)
 	fmt.Printf("read data from kafka output topic \n")
-	output := receiveData(consumer, nLines)
+	output := receiveData(t, consumer, nLines)
 	fmt.Printf("check results \n")
-	checkResults(input, output)
+	checkResults(t, input, output)
 
 	fmt.Printf("delete kind and kafka \n")
 	command = "kafka_kind_stop.sh"
-	runCommand(command)
+	runCommand(t, command)
 }
