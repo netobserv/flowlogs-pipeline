@@ -66,7 +66,11 @@ validate_go:
 .PHONY: validate_go lint
 lint: $(GOLANGCI_LINT) ## Lint the code
 	@go mod vendor
-	@$(GOLANGCI_LINT) run --enable goimports --timeout 5m
+	@current_ver=$$(go version | { read _ _ v _; echo $${v#go}; }); \
+	if [[ "$$current_ver" == *"1.18."* ]]; then echo "Linting is not fully supported for golang 1.18. Consider using golang 1.17";\
+		$(GOLANGCI_LINT) run --disable-all --enable goimports --enable gofmt --enable ineffassign --timeout 5m; else \
+		$(GOLANGCI_LINT) run --enable goimports --timeout 5m; \
+	fi
 
 .PHONY: build_code
 build_code: validate_go lint
