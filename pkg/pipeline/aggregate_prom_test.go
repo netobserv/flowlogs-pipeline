@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createEncodeOutput(name string, labels map[string]string, value float64) config.GenericMap {
+func createEncodeOutput(name string, labels map[string]string, value interface{}) config.GenericMap {
 	gm := config.GenericMap{
 		"Name":   name,
 		"Labels": labels,
@@ -134,11 +134,10 @@ parameters:
 			expectedEncode: []config.GenericMap{
 				createEncodeOutput("test_flow_count", map[string]string{"service": "http"}, 2),
 				createEncodeOutput("test_flow_count", map[string]string{"service": "tcp"}, 2),
-				createEncodeOutput("test_bytes_sum", map[string]string{"service": "http"}, 30),
-				createEncodeOutput("test_bytes_sum", map[string]string{"service": "tcp"}, 3),
-				// TODO: fix the value of the following 2 entries
-				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, 0),
-				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, 0),
+				createEncodeOutput("test_bytes_sum", map[string]string{"service": "http"}, 30.0),
+				createEncodeOutput("test_bytes_sum", map[string]string{"service": "tcp"}, 3.0),
+				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, []float64{10, 20}),
+				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, []float64{1, 2}),
 			},
 		},
 		{
@@ -159,11 +158,10 @@ parameters:
 			expectedEncode: []config.GenericMap{
 				createEncodeOutput("test_flow_count", map[string]string{"service": "http"}, 1),
 				createEncodeOutput("test_flow_count", map[string]string{"service": "tcp"}, 2),
-				createEncodeOutput("test_bytes_sum", map[string]string{"service": "http"}, 30),
-				createEncodeOutput("test_bytes_sum", map[string]string{"service": "tcp"}, 9),
-				// TODO: fix the value of the following 2 entries
-				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, 0),
-				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, 0),
+				createEncodeOutput("test_bytes_sum", map[string]string{"service": "http"}, 30.0),
+				createEncodeOutput("test_bytes_sum", map[string]string{"service": "tcp"}, 9.0),
+				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, []float64{30}),
+				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, []float64{4, 5}),
 			},
 		},
 	}
