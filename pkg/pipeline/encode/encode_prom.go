@@ -140,7 +140,7 @@ func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 			// TODO: change to lower case
 			"Name":   e.prefix + metricName,
 			"Labels": entryLabels,
-			"value":  valueFloat,
+			"value":  metricValue,
 		}
 		out = append(out, entryMap)
 
