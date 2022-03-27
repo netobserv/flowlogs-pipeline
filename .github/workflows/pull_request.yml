@@ -26,7 +26,7 @@ jobs:
     - name: run build
       run: make build
     - name: run tests
-      run: make test
+      run: make tests-unit
     - name: upload coverage to codecov.io
       uses: codecov/codecov-action@v2
       with:

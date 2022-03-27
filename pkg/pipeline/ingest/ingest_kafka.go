@@ -47,6 +47,8 @@ const defaultBatchReadTimeout = int64(100)
 
 // Ingest ingests entries from kafka topic
 func (ingestK *ingestKafka) Ingest(out chan<- []interface{}) {
+	log.Debugf("entering  ingestKafka.Ingest")
+
 	// initialize background listener
 	ingestK.kafkaListener()
 
@@ -59,12 +61,10 @@ func (ingestK *ingestKafka) kafkaListener() {
 	log.Debugf("entering  kafkaListener")
 
 	go func() {
-		var kafkaMessage kafkago.Message
-		var err error
 		for {
 			// block until a message arrives
 			log.Debugf("before ReadMessage")
-			kafkaMessage, err = ingestK.kafkaReader.ReadMessage(context.Background())
+			kafkaMessage, err := ingestK.kafkaReader.ReadMessage(context.Background())
 			if err != nil {
 				log.Errorln(err)
 			}

@@ -1,4 +1,4 @@
-log-level: info
+log-level: debug
 pipeline:
   - name: ingest1
   - name: decode1
