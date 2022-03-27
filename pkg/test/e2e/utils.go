@@ -29,6 +29,7 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/vladimirvivien/gexe"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -47,26 +48,26 @@ import (
 
 type namespaceContextKey string
 
-func Main(m *testing.M, TestEnv *env.Environment) {
-	*TestEnv = env.New()
+func Main(m *testing.M, testEnv *env.Environment) {
+	*testEnv = env.New()
 	kindClusterName := "test"
 	namespace := "test"
 	yamlFiles := []string{"k8s-objects.yaml"}
 	dockerImage := "quay.io/netobserv/flowlogs-pipeline"
 	dockerTag := "e2e"
 
-	(*TestEnv).Setup(
+	(*testEnv).Setup(
 		e2eCreateKindCluster(kindClusterName),
 		e2eBuildAndLoadImageIntoKind(dockerImage, dockerTag, kindClusterName),
 		e2eRecreateNamespace(namespace),
 		e2eDeployEnvironmentResources(yamlFiles, namespace),
 	)
 
-	(*TestEnv).Finish(
+	(*testEnv).Finish(
 		envfuncs.DeleteNamespace(namespace),
 		envfuncs.DestroyKindCluster(kindClusterName),
 	)
-	os.Exit((*TestEnv).Run(m))
+	os.Exit((*testEnv).Run(m))
 }
 
 func e2eCreateKindCluster(clusterName string) env.Func {
@@ -78,6 +79,8 @@ func e2eCreateKindCluster(clusterName string) env.Func {
 	}
 }
 
+// NOTE: the e2e framework uses `kind load` command that forces usage of docker (and not podman)
+// ref: https://github.com/kubernetes-sigs/kind/issues/2027
 func e2eBuildAndLoadImageIntoKind(dockerImg, dockerTag, clusterName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		e := gexe.New()
@@ -211,7 +214,7 @@ func parseK8sYaml(yaml string) []runtime.Object {
 	return resources
 }
 
-func GetConfigSet(confFileName string) (*corev1client.CoreV1Client, error) {
+func GetCoreV1Client(confFileName string) (*corev1client.CoreV1Client, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", confFileName)
 	if err != nil {
 		return nil, err
@@ -225,24 +228,23 @@ func GetConfigSet(confFileName string) (*corev1client.CoreV1Client, error) {
 	return clientSet, err
 }
 
-func LogsFromPods(pods corev1.PodList, clientSet *corev1client.CoreV1Client, namespace string) string {
-	logs := ""
+func LogsFromPods(pods corev1.PodList, coreV1Client *corev1client.CoreV1Client, namespace string) string {
+	var logsBuilder strings.Builder
 	for _, pod := range pods.Items {
-		req := clientSet.Pods(namespace).GetLogs(pod.GetName(), &v1.PodLogOptions{Follow: false})
+		req := coreV1Client.Pods(namespace).GetLogs(pod.GetName(), &v1.PodLogOptions{Follow: false})
 		podLogs, err := req.Stream(context.TODO())
 		if err != nil {
-			// skipping
+			log.Errorf("req.Stream from pod %s error %v", pod.GetName(), err)
 			continue
 		}
 		buf := new(bytes.Buffer)
 		_, err = io.Copy(buf, podLogs)
 		if err != nil {
-			// skipping
+			log.Errorf("io.Copy from pod %s error %v", pod.GetName(), err)
 			continue
 		}
-		str := buf.String()
-		logs += fmt.Sprintf("Logs from pod %s\n----\n%s\n", pod.GetName(), str)
+		logsBuilder.WriteString(fmt.Sprintf("Logs from pod %s\n----\n%s\n", pod.GetName(), buf.String()))
 	}
 
-	return logs
+	return logsBuilder.String()
 }

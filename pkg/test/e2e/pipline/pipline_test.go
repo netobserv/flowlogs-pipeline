@@ -38,14 +38,6 @@ import (
 func TestPipeline_Basic(t *testing.T) {
 	pipelineFeature := features.New("FLP/pipeline").WithLabel("env", "dev").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			// Add any additional setup code and resources here
-			//client, err := cfg.NewClient()
-			//if err != nil {
-			//	t.Fatal(err)
-			//}
-			//if err := client.Resources().Create(ctx, resource); err != nil {
-			//	t.Fatal(err)
-			//}
 			return ctx
 		}).
 		Assess("FLP deployment available", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
@@ -62,8 +54,8 @@ func TestPipeline_Basic(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// clientSet from current context in kubeconfig
-			clientSet, err := e2e.GetConfigSet(cfg.KubeconfigFile())
+			// coreV1Client from current context in kubeconfig
+			coreV1Client, err := e2e.GetCoreV1Client(cfg.KubeconfigFile())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -74,7 +66,7 @@ func TestPipeline_Basic(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			logs := e2e.LogsFromPods(pods, clientSet, cfg.Namespace())
+			logs := e2e.LogsFromPods(pods, coreV1Client, cfg.Namespace())
 			fmt.Print(logs)
 			startExist := strings.Contains(logs, "Starting flowlogs-pipeline")
 			if !startExist {
