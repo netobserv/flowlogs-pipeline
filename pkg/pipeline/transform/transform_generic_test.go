@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testConfigTransformGeneric = `---
+const testConfigTransformGenericDefault = `---
 log-level: debug
 pipeline:
   - name: transform1
@@ -48,8 +48,57 @@ parameters:
         - input: srcIP
           output: srcIP
 `
+const testConfigTransformGenericMaintainFalse = `---
+log-level: debug
+pipeline:
+  - name: transform1
+parameters:
+  - name: transform1
+    transform:
+      type: generic
+      generic:
+        maintain: false
+        rules:
+        - input: srcIP
+          output: SrcAddr
+        - input: dstIP
+          output: DstAddr
+        - input: dstPort
+          output: DstPort
+        - input: srcPort
+          output: SrcPort
+        - input: protocol
+          output: Protocol
+        - input: srcIP
+          output: srcIP
+`
 
-func getGenericExpectedOutput() config.GenericMap {
+const testConfigTransformGenericMaintainTrue = `---
+log-level: debug
+pipeline:
+  - name: transform1
+parameters:
+  - name: transform1
+    transform:
+      type: generic
+      generic:
+        maintain: true
+        rules:
+        - input: srcIP
+          output: SrcAddr
+        - input: dstIP
+          output: DstAddr
+        - input: dstPort
+          output: DstPort
+        - input: srcPort
+          output: SrcPort
+        - input: protocol
+          output: Protocol
+        - input: srcIP
+          output: srcIP
+`
+
+func getGenericExpectedOutputShort() config.GenericMap {
 	return config.GenericMap{
 		"SrcAddr":  "10.0.0.1",
 		"srcIP":    "10.0.0.1",
@@ -60,14 +109,53 @@ func getGenericExpectedOutput() config.GenericMap {
 	}
 }
 
-func TestNewTransformGeneric(t *testing.T) {
-	newTransform := InitNewTransformGeneric(t, testConfigTransformGeneric)
+func getGenericExpectedOutputLong() config.GenericMap {
+	return config.GenericMap{
+		"SrcAddr":      "10.0.0.1",
+		"srcIP":        "10.0.0.1",
+		"SrcPort":      11777,
+		"Protocol":     "tcp",
+		"DstAddr":      "20.0.0.2",
+		"DstPort":      22,
+		"8888IP":       "8.8.8.8",
+		"emptyIP":      "",
+		"level":        "error",
+		"protocol_num": 6,
+		"value":        7.0,
+		"message":      "test message",
+	}
+}
+
+func TestNewTransformGenericDefault(t *testing.T) {
+	newTransform := InitNewTransformGeneric(t, testConfigTransformGenericDefault)
 	transformGeneric := newTransform.(*Generic)
-	require.Len(t, transformGeneric.Rules, 6)
+	require.Len(t, transformGeneric.rules, 6)
 
 	input := test.GetIngestMockEntry(false)
 	output := transformGeneric.Transform([]config.GenericMap{input})
-	expectedOutput := getGenericExpectedOutput()
+	expectedOutput := getGenericExpectedOutputShort()
+	require.Equal(t, expectedOutput, output[0])
+}
+
+func TestNewTransformGenericMaintainFalse(t *testing.T) {
+	newTransform := InitNewTransformGeneric(t, testConfigTransformGenericMaintainFalse)
+	transformGeneric := newTransform.(*Generic)
+	require.Len(t, transformGeneric.rules, 6)
+
+	input := test.GetIngestMockEntry(false)
+	output := transformGeneric.Transform([]config.GenericMap{input})
+	expectedOutput := getGenericExpectedOutputShort()
+	require.Equal(t, expectedOutput, output[0])
+}
+
+func TestNewTransformGenericMaintainTrue(t *testing.T) {
+	newTransform := InitNewTransformGeneric(t, testConfigTransformGenericMaintainTrue)
+	transformGeneric := newTransform.(*Generic)
+	require.Len(t, transformGeneric.rules, 6)
+
+	input := test.GetIngestMockEntry(false)
+	output := transformGeneric.Transform([]config.GenericMap{input})
+	expectedOutput := getGenericExpectedOutputLong()
 	require.Equal(t, expectedOutput, output[0])
 }
 

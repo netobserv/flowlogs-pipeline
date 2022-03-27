@@ -18,7 +18,8 @@
 package api
 
 type TransformGeneric struct {
-	Rules []GenericTransformRule `yaml:"rules" doc:"list of transform rules, each includes:"`
+	Maintain bool                   `yaml:"maintain" doc:"maintain old fields that are not specified (default: false)"`
+	Rules    []GenericTransformRule `yaml:"rules" doc:"list of transform rules, each includes:"`
 }
 
 type GenericTransformRule struct {

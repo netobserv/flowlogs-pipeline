@@ -249,6 +249,7 @@ The generic transform module maps the input json keys into another set of keys.
 This allows to perform subsequent operations using a uniform set of keys.
 In some use cases, only a subset of the provided fields are required.
 Using the generic transform, we may specify those particular fields that interest us.
+To include keys that are not specified in the `rules`, add the line `maintain: true`.
 
 For example, suppose we have a flow log with the following syntax:
 ```
@@ -295,7 +296,7 @@ pipeline:
     follows: transform1
 parameters:
   - name: transform1
-    transform
+    transform:
       type: generic
       generic:
         rules:
@@ -304,7 +305,7 @@ parameters:
           - input: SrcAddr
             output: srcAddr
   - name: transform2
-    transform
+    transform:
       type: generic
       generic:
         rules:
@@ -320,6 +321,19 @@ parameters:
 Before the first transform suppose we have the keys `DstAddr` and `SrcAddr`.
 After the first transform, we have the keys `dstAddr` and `srcAddr`.
 After the second transform, we have the keys `dstAddr`, `dstIP`, `srcAddr`, and `srcIP`.
+
+To maintain all the old key/values and change only the key `DstAddr` to `dstAddr`, use the following:
+```
+parameters:
+  - name: transform1
+    transform:
+      type: generic
+      generic:
+        maintain: true
+        rules:
+          - input: DstAddr
+            output: dstAddr
+```
 
 ### Transform Filter
 

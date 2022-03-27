@@ -24,7 +24,9 @@ import (
 )
 
 type Generic struct {
-	Rules []api.GenericTransformRule
+	maintain  bool
+	rules     []api.GenericTransformRule
+	mapOfKeys map[string]bool
 }
 
 // Transform transforms a flow to a new set of keys
@@ -33,9 +35,12 @@ func (g *Generic) Transform(input []config.GenericMap) []config.GenericMap {
 	output := make([]config.GenericMap, 0)
 	for _, entry := range input {
 		outputEntry := make(config.GenericMap)
-		for _, transformRule := range g.Rules {
+		for _, transformRule := range g.rules {
 			log.Debugf("transformRule = %v", transformRule)
 			outputEntry[transformRule.Output] = entry[transformRule.Input]
+		}
+		if g.maintain {
+			g.MaintainEntrichment(outputEntry, entry)
 		}
 		log.Debugf("Transform.GenericMap = %v", outputEntry)
 		output = append(output, outputEntry)
@@ -43,11 +48,31 @@ func (g *Generic) Transform(input []config.GenericMap) []config.GenericMap {
 	return output
 }
 
+func (g *Generic) MaintainEntrichment(outputEntry, inputEntry config.GenericMap) {
+	log.Debugf("entering MaintainEntrichment")
+	for key, value := range inputEntry {
+		// if key appears in list of Rules (mapOfKeys), it was already handled
+		if g.mapOfKeys[key] {
+			continue
+		}
+		outputEntry[key] = value
+	}
+}
+
 // NewTransformGeneric create a new transform
 func NewTransformGeneric(params config.StageParam) (Transformer, error) {
 	log.Debugf("entering NewTransformGeneric")
-	transformGeneric := &Generic{
-		Rules: params.Transform.Generic.Rules,
+	log.Debugf("params.Transform.Generic = %v", params.Transform.Generic)
+	mapOfKeys := make(map[string]bool)
+	rules := params.Transform.Generic.Rules
+	for _, rule := range rules {
+		mapOfKeys[rule.Input] = true
 	}
+	transformGeneric := &Generic{
+		maintain:  params.Transform.Generic.Maintain,
+		rules:     rules,
+		mapOfKeys: mapOfKeys,
+	}
+	log.Debugf("transformGeneric = %v", transformGeneric)
 	return transformGeneric, nil
 }

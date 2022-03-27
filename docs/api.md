@@ -79,6 +79,7 @@ Following is the supported API format for generic transformations:
 
 <pre>
  generic:
+         maintain: maintain old fields that are not specified (default: false)
          rules: list of transform rules, each includes:
                  input: entry input field
                  output: entry output field
