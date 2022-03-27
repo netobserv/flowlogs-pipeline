@@ -342,8 +342,8 @@ func runCommandGetOutput(t *testing.T, command string) string {
 		assert.Fail(t, msg)
 	}
 	output := outBuf.Bytes()
-	// strip the line feed from the end of the output string and the quotation marks
-	output = output[1 : len(output)-2]
+	// strip the line feed from the end of the output string
+	output = output[0 : len(output)-1]
 	fmt.Printf("output = %s\n", string(output))
 	return string(output)
 }
@@ -351,8 +351,10 @@ func runCommandGetOutput(t *testing.T, command string) string {
 func TestEnd2EndKafka(t *testing.T) {
 	var command string
 
+	pwd := runCommandGetOutput(t, "pwd")
+
 	fmt.Printf("\nset up kind and kafka \n\n")
-	command = "kafka_kind_start.sh"
+	command = pwd + "/kafka_kind_start.sh"
 	runCommand(t, command)
 
 	fmt.Printf("\nwait for kafka to be active \n\n")
@@ -361,6 +363,8 @@ func TestEnd2EndKafka(t *testing.T) {
 
 	command = "kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.type==\"external\")].bootstrapServers}{\"\\n\"}'"
 	kafkaAddr := runCommandGetOutput(t, command)
+	// strip the quotation marks
+	kafkaAddr = kafkaAddr[1 : len(kafkaAddr)-1]
 	fmt.Printf("kafkaAddr = %s \n", kafkaAddr)
 	err := os.Setenv(kafkaBrokerEnvVar, kafkaAddr)
 	assert.NoError(t, err)
@@ -386,6 +390,6 @@ func TestEnd2EndKafka(t *testing.T) {
 	checkResults(t, input, output)
 
 	fmt.Printf("delete kind and kafka \n")
-	command = "kafka_kind_stop.sh"
+	command = pwd + "/kafka_kind_stop.sh"
 	runCommand(t, command)
 }
