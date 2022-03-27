@@ -27,5 +27,5 @@ import (
 var TestEnv env.Environment
 
 func TestMain(m *testing.M) {
-	e2e.Main(m, &TestEnv)
+	e2e.Main(m, []string{"k8s-objects.yaml"}, &TestEnv)
 }

@@ -48,11 +48,10 @@ import (
 
 type namespaceContextKey string
 
-func Main(m *testing.M, testEnv *env.Environment) {
+func Main(m *testing.M, yamlFiles []string, testEnv *env.Environment) {
 	*testEnv = env.New()
 	kindClusterName := "test"
 	namespace := "test"
-	yamlFiles := []string{"k8s-objects.yaml"}
 	dockerImage := "quay.io/netobserv/flowlogs-pipeline"
 	dockerTag := "e2e"
 
