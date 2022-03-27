@@ -62,7 +62,6 @@ type entrySignature struct {
 
 type entryInfo struct {
 	eInfo entrySignature
-	value float64
 }
 
 type metricCacheEntry struct {
@@ -136,7 +135,6 @@ func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 				Name:   e.prefix + metricName,
 				Labels: entryLabels,
 			},
-			value: valueFloat,
 		}
 		entryMap := map[string]interface{}{
 			// TODO: change to lower case
