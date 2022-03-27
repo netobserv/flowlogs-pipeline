@@ -21,6 +21,7 @@ jobs:
         run: |
           wget -S "https://www.ip2location.com/download/?token=$DB_TOKEN_SECRET&file=DB9LITEBIN" -O contrib/location/location.db
       - name: commit
+        continue-on-error: true
         run: |
           ls -la contrib/location/location.db
           git config user.name github-actions
