@@ -26,6 +26,7 @@ type enums struct {
 	PromEncodeOperationEnum       PromEncodeOperationEnum
 	TransformNetworkOperationEnum TransformNetworkOperationEnum
 	TransformFilterOperationEnum  TransformFilterOperationEnum
+	TransformGenericOperationEnum TransformGenericOperationEnum
 	KafkaEncodeBalancerEnum       KafkaEncodeBalancerEnum
 }
 

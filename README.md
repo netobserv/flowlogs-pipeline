@@ -152,6 +152,7 @@ parameters:
     transform:
       type: generic
       generic:
+        policy: replace_keys
         rules:
           - input: Bytes
             output: v1_bytes
@@ -168,6 +169,7 @@ parameters:
     transform:
       type: generic
       generic:
+        policy: replace_keys
         rules:
           - input: Bytes
             output: v2_bytes
@@ -249,7 +251,9 @@ The generic transform module maps the input json keys into another set of keys.
 This allows to perform subsequent operations using a uniform set of keys.
 In some use cases, only a subset of the provided fields are required.
 Using the generic transform, we may specify those particular fields that interest us.
-To include keys that are not specified in the `rules`, add the line `maintain: true`.
+Specify `policy: replace_keys` to use only the newly specified keys
+To include the original keys in addition to those specified in the `rules`,
+specify `policy: preserve_original_keys`.
 
 For example, suppose we have a flow log with the following syntax:
 ```
@@ -265,6 +269,7 @@ parameters:
     transform:
       type: generic
       generic:
+        policy: replace_keys
         rules:
           - input: Bytes
             output: bytes
@@ -299,6 +304,7 @@ parameters:
     transform:
       type: generic
       generic:
+        policy: replace_keys
         rules:
           - input: DstAddr
             output: dstAddr
@@ -308,6 +314,7 @@ parameters:
     transform:
       type: generic
       generic:
+        policy: replace_keys
         rules:
           - input: dstAddr
             output: dstIP
@@ -322,14 +329,14 @@ Before the first transform suppose we have the keys `DstAddr` and `SrcAddr`.
 After the first transform, we have the keys `dstAddr` and `srcAddr`.
 After the second transform, we have the keys `dstAddr`, `dstIP`, `srcAddr`, and `srcIP`.
 
-To maintain all the old key/values and change only the key `DstAddr` to `dstAddr`, use the following:
+To maintain all the old key/values and simply add the key `dstAddr` (derived from `DstAddr`), use the following:
 ```
 parameters:
   - name: transform1
     transform:
       type: generic
       generic:
-        maintain: true
+        policy: preserve_original_keys
         rules:
           - input: DstAddr
             output: dstAddr

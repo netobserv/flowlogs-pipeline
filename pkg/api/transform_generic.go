@@ -18,8 +18,17 @@
 package api
 
 type TransformGeneric struct {
-	Maintain bool                   `yaml:"maintain" doc:"maintain old fields that are not specified (default: false)"`
-	Rules    []GenericTransformRule `yaml:"rules" doc:"list of transform rules, each includes:"`
+	Policy string                 `yaml:"policy" enum:"TransformGenericOperationEnum" doc:"key replacement policy; may be one of the following:"`
+	Rules  []GenericTransformRule `yaml:"rules" doc:"list of transform rules, each includes:"`
+}
+
+type TransformGenericOperationEnum struct {
+	PreserveOriginalKeys string `yaml:"preserve_original_keys" doc:"adds new keys in addition to existing keys (default)"`
+	ReplaceKeys          string `yaml:"replace_keys" doc:"removes all old keys and uses only the new keys"`
+}
+
+func TransformGenericOperationName(operation string) string {
+	return GetEnumName(TransformGenericOperationEnum{}, operation)
 }
 
 type GenericTransformRule struct {

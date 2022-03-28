@@ -25,29 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testConfigTransformGenericDefault = `---
-log-level: debug
-pipeline:
-  - name: transform1
-parameters:
-  - name: transform1
-    transform:
-      type: generic
-      generic:
-        rules:
-        - input: srcIP
-          output: SrcAddr
-        - input: dstIP
-          output: DstAddr
-        - input: dstPort
-          output: DstPort
-        - input: srcPort
-          output: SrcPort
-        - input: protocol
-          output: Protocol
-        - input: srcIP
-          output: srcIP
-`
 const testConfigTransformGenericMaintainFalse = `---
 log-level: debug
 pipeline:
@@ -57,7 +34,7 @@ parameters:
     transform:
       type: generic
       generic:
-        maintain: false
+        policy: replace_keys
         rules:
         - input: srcIP
           output: SrcAddr
@@ -82,7 +59,7 @@ parameters:
     transform:
       type: generic
       generic:
-        maintain: true
+        policy: preserve_original_keys
         rules:
         - input: srcIP
           output: SrcAddr
@@ -112,29 +89,22 @@ func getGenericExpectedOutputShort() config.GenericMap {
 func getGenericExpectedOutputLong() config.GenericMap {
 	return config.GenericMap{
 		"SrcAddr":      "10.0.0.1",
-		"srcIP":        "10.0.0.1",
 		"SrcPort":      11777,
 		"Protocol":     "tcp",
 		"DstAddr":      "20.0.0.2",
 		"DstPort":      22,
+		"srcIP":        "10.0.0.1",
 		"8888IP":       "8.8.8.8",
 		"emptyIP":      "",
 		"level":        "error",
+		"srcPort":      11777,
+		"protocol":     "tcp",
 		"protocol_num": 6,
 		"value":        7.0,
 		"message":      "test message",
+		"dstIP":        "20.0.0.2",
+		"dstPort":      22,
 	}
-}
-
-func TestNewTransformGenericDefault(t *testing.T) {
-	newTransform := InitNewTransformGeneric(t, testConfigTransformGenericDefault)
-	transformGeneric := newTransform.(*Generic)
-	require.Len(t, transformGeneric.rules, 6)
-
-	input := test.GetIngestMockEntry(false)
-	output := transformGeneric.Transform([]config.GenericMap{input})
-	expectedOutput := getGenericExpectedOutputShort()
-	require.Equal(t, expectedOutput, output[0])
 }
 
 func TestNewTransformGenericMaintainFalse(t *testing.T) {
