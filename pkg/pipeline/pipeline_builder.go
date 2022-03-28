@@ -273,6 +273,8 @@ func getIngester(params config.StageParam) (ingest.Ingester, error) {
 		ingester, err = ingest.NewIngestCollector(params)
 	case "kafka":
 		ingester, err = ingest.NewIngestKafka(params)
+	case "grpc":
+		ingester, err = ingest.NewGRPCProtobuf(params)
 	default:
 		panic(fmt.Sprintf("`ingest` type %s not defined", params.Ingest.Type))
 	}
@@ -287,6 +289,8 @@ func getDecoder(params config.StageParam) (decode.Decoder, error) {
 		decoder, err = decode.NewDecodeJson()
 	case "aws":
 		decoder, err = decode.NewDecodeAws(params)
+	case "protobuf":
+		decoder, err = decode.NewProtobuf()
 	case "none":
 		decoder, err = decode.NewDecodeNone()
 	default:
@@ -300,7 +304,7 @@ func getWriter(params config.StageParam) (write.Writer, error) {
 	var err error
 	switch params.Write.Type {
 	case "stdout":
-		writer, err = write.NewWriteStdout()
+		writer, err = write.NewWriteStdout(params)
 	case "none":
 		writer, err = write.NewWriteNone()
 	case "loki":

@@ -28,10 +28,12 @@ type API struct {
 	KafkaEncode      EncodeKafka         `yaml:"kafka" doc:"## Kafka encode API\nFollowing is the supported API format for kafka encode:\n"`
 	IngestCollector  IngestCollector     `yaml:"collector" doc:"## Ingest collector API\nFollowing is the supported API format for the netflow collector:\n"`
 	IngestKafka      IngestKafka         `yaml:"kafka" doc:"## Ingest Kafka API\nFollowing is the supported API format for the kafka ingest:\n"`
+	IngestGRPCProto  IngestGRPCProto     `yaml:"grpc" doc:"## Ingest GRPC from Network Observability eBPF Agent\nFollowing is the supported API format for the Network Observability eBPF ingest:\n"`
 	DecodeAws        DecodeAws           `yaml:"aws" doc:"## Aws ingest API\nFollowing is the supported API format for Aws flow entries:\n"`
 	TransformGeneric TransformGeneric    `yaml:"generic" doc:"## Transform Generic API\nFollowing is the supported API format for generic transformations:\n"`
 	TransformFilter  TransformFilter     `yaml:"filter" doc:"## Transform Filter API\nFollowing is the supported API format for filter transformations:\n"`
 	TransformNetwork TransformNetwork    `yaml:"network" doc:"## Transform Network API\nFollowing is the supported API format for network transformations:\n"`
 	WriteLoki        WriteLoki           `yaml:"loki" doc:"## Write Loki API\nFollowing is the supported API format for writing to loki:\n"`
+	WriteStdout      WriteStdout         `yaml:"stdout" doc:"## Write Standard Output\nFollowing is the supported API format for writing to standard output:\n"`
 	ExtractAggregate AggregateDefinition `yaml:"aggregates" doc:"## Aggregate metrics API\nFollowing is the supported API format for specifying metrics aggregations:\n"`
 }

@@ -18,6 +18,7 @@
 package write
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -26,19 +27,29 @@ import (
 )
 
 type writeStdout struct {
+	format string
 }
 
 // Write writes a flow before being stored
 func (t *writeStdout) Write(in []config.GenericMap) {
 	log.Debugf("entering writeStdout Write")
 	log.Debugf("writeStdout: number of entries = %d", len(in))
-	for _, v := range in {
-		fmt.Printf("%s: %v\n", time.Now().Format(time.StampMilli), v)
+	if t.format == "json" {
+		for _, v := range in {
+			txt, _ := json.Marshal(v)
+			fmt.Println(string(txt))
+		}
+	} else {
+		for _, v := range in {
+			fmt.Printf("%s: %v\n", time.Now().Format(time.StampMilli), v)
+		}
 	}
 }
 
 // NewWriteStdout create a new write
-func NewWriteStdout() (Writer, error) {
+func NewWriteStdout(params config.StageParam) (Writer, error) {
 	log.Debugf("entering NewWriteStdout")
-	return &writeStdout{}, nil
+	return &writeStdout{
+		format: params.Write.Stdout.Format,
+	}, nil
 }

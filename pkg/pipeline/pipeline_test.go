@@ -18,17 +18,28 @@
 package pipeline
 
 import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
 	"strings"
 	"testing"
+	"time"
 
+	test2 "github.com/mariomac/guara/pkg/test"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
+	"github.com/netobserv/netobserv-agent/pkg/grpc"
+	"github.com/netobserv/netobserv-agent/pkg/pbflow"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var yamlConfigNoParams = `
@@ -126,6 +137,110 @@ func Test_SimplePipeline(t *testing.T) {
 		"flp_srcAddr": "10.130.2.13",
 		"flp_srcPort": float64(3100),
 	}, writer.PrevRecords[0])
+}
+
+func TestGRPCProtobuf(t *testing.T) {
+	port, err := test2.FreeTCPPort()
+	require.NoError(t, err)
+	test.InitConfig(t, fmt.Sprintf(`---
+log-level: debug
+pipeline:
+  - name: ingest1
+  - name: decode1
+    follows: ingest1
+  - name: writer1
+    follows: decode1
+parameters:
+  - name: ingest1
+    ingest:
+      type: grpc
+      grpc:
+        port: %d
+  - name: decode1
+    decode:
+      type: protobuf
+  - name: writer1
+    write:
+      type: stdout
+      stdout:
+        format: json
+`, port))
+
+	pipe, err := NewPipeline()
+	require.NoError(t, err)
+
+	capturedOut, w, _ := os.Pipe()
+	old := os.Stdout
+	os.Stdout = w
+	defer func() {
+		os.Stdout = old
+	}()
+
+	go pipe.Run()
+
+	// yield thread to allow pipe services correctly start
+	time.Sleep(10 * time.Millisecond)
+
+	flowSender, err := grpc.ConnectClient(fmt.Sprintf("127.0.0.1:%d", port))
+	require.NoError(t, err)
+	defer flowSender.Close()
+
+	startTime := time.Now()
+	endTime := startTime.Add(7 * time.Second)
+	_, err = flowSender.Client().Send(context.Background(), &pbflow.Records{
+		Entries: []*pbflow.Record{{
+			Interface:     "eth0",
+			EthProtocol:   2048,
+			Bytes:         456,
+			Packets:       123,
+			Direction:     pbflow.Direction_EGRESS,
+			TimeFlowStart: timestamppb.New(startTime),
+			TimeFlowEnd:   timestamppb.New(endTime),
+			Network: &pbflow.Network{
+				SrcAddr: &pbflow.IP{
+					IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x01020304},
+				},
+				DstAddr: &pbflow.IP{
+					IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x05060708},
+				},
+			},
+			DataLink: &pbflow.DataLink{
+				DstMac: 0x112233445566,
+				SrcMac: 0x010203040506,
+			},
+			Transport: &pbflow.Transport{
+				Protocol: 1,
+				SrcPort:  23000,
+				DstPort:  443,
+			},
+		}},
+	})
+	require.NoError(t, err)
+
+	scanner := bufio.NewScanner(capturedOut)
+	require.True(t, scanner.Scan())
+	capturedRecord := map[string]interface{}{}
+	bytes := scanner.Bytes()
+	require.NoError(t, json.Unmarshal(bytes, &capturedRecord))
+
+	assert.NotZero(t, capturedRecord["TimeReceived"])
+	delete(capturedRecord, "TimeReceived")
+	assert.EqualValues(t, map[string]interface{}{
+		"FlowDirection": float64(1),
+		"Bytes":         float64(456),
+		"SrcAddr":       "1.2.3.4",
+		"DstAddr":       "5.6.7.8",
+		"DstMac":        "11:22:33:44:55:66",
+		"SrcMac":        "01:02:03:04:05:06",
+		"SrcPort":       float64(23000),
+		"DstPort":       float64(443),
+		"Etype":         float64(2048),
+		"Packets":       float64(123),
+		"Proto":         float64(1),
+		"TimeFlowStart": float64(startTime.Unix()),
+		"TimeFlowEnd":   float64(endTime.Unix()),
+		"Interface":     "eth0",
+	}, capturedRecord)
 }
 
 func BenchmarkPipeline(b *testing.B) {
