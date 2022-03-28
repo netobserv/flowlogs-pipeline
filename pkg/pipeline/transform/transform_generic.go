@@ -34,11 +34,12 @@ func (g *Generic) Transform(input []config.GenericMap) []config.GenericMap {
 	output := make([]config.GenericMap, 0)
 	for _, entry := range input {
 		var outputEntry config.GenericMap
-		if g.policy == api.TransformGenericOperationName("PreserveOriginalKeys") {
-			outputEntry = entry
-		} else {
+		if g.policy == api.TransformGenericOperationName("ReplaceKeys") {
 			outputEntry = make(config.GenericMap)
+		} else {
+			outputEntry = entry
 		}
+		log.Debugf("outputEntry = %v", outputEntry)
 		for _, transformRule := range g.rules {
 			log.Debugf("transformRule = %v", transformRule)
 			outputEntry[transformRule.Output] = entry[transformRule.Input]

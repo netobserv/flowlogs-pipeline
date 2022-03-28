@@ -51,6 +51,7 @@ parameters:
     transform:
       type: generic
       generic:
+        policy: replace_keys
         rules:
         - input: srcIP
           output: SrcAddr
@@ -69,6 +70,7 @@ parameters:
     transform:
       type: generic
       generic:
+        policy: replace_keys
         rules:
         - input: SrcAddr
           output: SrcAddr2
