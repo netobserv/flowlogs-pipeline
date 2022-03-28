@@ -6,15 +6,15 @@ WORKDIR /app
 COPY go.mod .
 COPY go.sum .
 
+# Download modules
+RUN go mod download
+RUN go mod vendor
+
 COPY cmd/ cmd/
 COPY pkg/ pkg/
 COPY .bingo/ .bingo/
 COPY .git/ .git/
 COPY Makefile Makefile
-
-# Download modules
-RUN go mod download
-RUN go mod vendor
 
 RUN make build_code
 
