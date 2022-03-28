@@ -33,11 +33,10 @@ func (g *Generic) Transform(input []config.GenericMap) []config.GenericMap {
 	log.Debugf("entering Generic Transform g = %v", g)
 	output := make([]config.GenericMap, 0)
 	for _, entry := range input {
-		var outputEntry config.GenericMap
-		if g.policy == api.TransformGenericOperationName("ReplaceKeys") {
+		outputEntry := entry
+		if g.policy == "replace_keys" {
+			// start with a clean GenericMap
 			outputEntry = make(config.GenericMap)
-		} else {
-			outputEntry = entry
 		}
 		log.Debugf("outputEntry = %v", outputEntry)
 		for _, transformRule := range g.rules {
