@@ -103,7 +103,6 @@ func (e *encodeProm) Encode(metrics []config.GenericMap) []config.GenericMap {
 
 func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.GenericMap {
 	log.Debugf("entering EncodeMetric. metricRecord = %v", metricRecord)
-	// TODO: We may need different handling for histograms
 	out := make([]config.GenericMap, 0)
 	for metricName, mInfo := range e.metrics {
 		val, keyFound := metricRecord[mInfo.filter.key]
