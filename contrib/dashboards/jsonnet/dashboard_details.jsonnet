@@ -5,6 +5,7 @@ local row = grafana.row;
 local singlestat = grafana.singlestat;
 local graphPanel = grafana.graphPanel;
 local heatmapPanel = grafana.heatmapPanel;
+local barGaugePanel = grafana.barGaugePanel;
 local table = grafana.table;
 local prometheus = grafana.prometheus;
 local template = grafana.template;
