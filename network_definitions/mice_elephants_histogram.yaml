@@ -1,0 +1,57 @@
+#flp_confgen
+description:
+  A histogram of flowlog bytes
+details:
+  A histogram of flowlog bytes
+usage:
+  Evaluate network behaviour
+labels:
+  - bandwidth
+  - mice
+  - elephant
+  - rate
+transform:
+  rules:
+    - input: bytes
+      output: all
+      type: add_if
+      parameters: ">=0"
+extract:
+  aggregates:
+    - name: bytes_hist
+      by:
+        - all_Evaluate
+      operation: raw_values
+      recordkey: bytes
+encode:
+  type: prom
+  prom:
+    metrics:
+      - name: mice_elephants_histogram
+        type: histogram
+        filter: { key: name, value: bytes_hist }
+        valuekey: recent_raw_values
+        labels:
+          - by
+          - aggregate
+        buckets:
+          - 100
+          - 1000
+          - 4000
+          - 100000
+          - 400000
+visualization:
+  type: grafana
+  grafana:
+    # The visualizations are based on:
+    # https://grafana.com/blog/2020/06/23/how-to-visualize-prometheus-histograms-in-grafana/
+    - expr: 'sum(rate(flp_mice_elephants_histogram_bucket[$__interval])) by (le)'
+      type: heatmap
+      dashboard: details
+      title:
+        Mice-elepahnts heatmap
+    - expr: 'flp_mice_elephants_histogram_bucket'
+      type: barGauge
+      dashboard: totals
+      title:
+        Mice-elepahnts histogram

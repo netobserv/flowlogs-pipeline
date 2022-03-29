@@ -77,6 +77,10 @@ parameters:
         output: elephant
         type: add_if
         parameters: '>=512'
+      - input: bytes
+        output: all
+        type: add_if
+        parameters: '>=0'
     type: network
 - extract:
     aggregates:
@@ -153,6 +157,11 @@ parameters:
       - elephant_Evaluate
       Operation: count
       RecordKey: ""
+    - Name: bytes_hist
+      By:
+      - all_Evaluate
+      Operation: raw_values
+      RecordKey: bytes
     - Name: dest_service_count
       By:
       - service
@@ -303,6 +312,21 @@ parameters:
         - by
         - aggregate
         buckets: []
+      - name: mice_elephants_histogram
+        type: histogram
+        filter:
+          key: name
+          value: bytes_hist
+        valuekey: recent_raw_values
+        labels:
+        - by
+        - aggregate
+        buckets:
+        - 100
+        - 1000
+        - 4000
+        - 100000
+        - 400000
       - name: service_count
         type: counter
         filter:

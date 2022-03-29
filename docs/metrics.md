@@ -172,6 +172,19 @@ and the transformation to generate the exported metric.
 |||  
 
 
+### mice elephants histogram
+| **Description** | A histogram of flowlog bytes | 
+|:---|:---|
+| **Details** | A histogram of flowlog bytes | 
+| **Usage** | Evaluate network behaviour | 
+| **Labels** | bandwidth, mice, elephant, rate |
+| **Operation** | aggregate by `all_Evaluate` and `raw_values` field `bytes` |
+| **Exposed as** | `flp_mice_elephants_histogram` of type `histogram` |
+| **Visualized as** | "Mice-elepahnts heatmap" on dashboard `details` |
+| **Visualized as** | "Mice-elepahnts histogram" on dashboard `totals` |
+|||  
+
+
 ### network services count
 | **Description** | This metric observes network services rate (total) | 
 |:---|:---|
