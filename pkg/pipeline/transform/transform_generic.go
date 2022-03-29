@@ -53,11 +53,7 @@ func (g *Generic) Transform(input []config.GenericMap) []config.GenericMap {
 func NewTransformGeneric(params config.StageParam) (Transformer, error) {
 	log.Debugf("entering NewTransformGeneric")
 	log.Debugf("params.Transform.Generic = %v", params.Transform.Generic)
-	mapOfKeys := make(map[string]bool)
 	rules := params.Transform.Generic.Rules
-	for _, rule := range rules {
-		mapOfKeys[rule.Input] = true
-	}
 	transformGeneric := &Generic{
 		policy: params.Transform.Generic.Policy,
 		rules:  rules,
