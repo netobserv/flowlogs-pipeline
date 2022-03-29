@@ -106,10 +106,10 @@ func GetExtractMockEntry() config.GenericMap {
 	entry := config.GenericMap{
 		"srcAddr": "10.1.2.3",
 		"dstAddr": "10.1.2.4",
-		"srcPort": "9001",
-		"dstPort": "39504",
-		"bytes":   "1234",
-		"packets": "34",
+		"srcPort": 9001,
+		"dstPort": 39504,
+		"bytes":   1234,
+		"packets": 34,
 	}
 	return entry
 }
