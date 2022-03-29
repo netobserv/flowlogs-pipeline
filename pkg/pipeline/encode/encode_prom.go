@@ -135,7 +135,7 @@ func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 		case api.PromEncodeOperationName("Gauge"):
 			metricValueFloat, err := utils.ConvertToFloat64(metricValue)
 			if err != nil {
-				log.Errorf("field cannot be converted to float: %v, %v", metricValue, err)
+				log.Errorf("value cannot be converted to float64. err: %v, metric: %v, key: %v, value: %v", err, metricName, mInfo.input, metricValue)
 				continue
 			}
 			mInfo.promGauge.With(entryLabels).Set(metricValueFloat)
@@ -143,14 +143,17 @@ func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 		case api.PromEncodeOperationName("Counter"):
 			metricValueFloat, err := utils.ConvertToFloat64(metricValue)
 			if err != nil {
-				log.Errorf("field cannot be converted to float: %v, %v", metricValue, err)
+				log.Errorf("value cannot be converted to float64. err: %v, metric: %v, key: %v, value: %v", err, metricName, mInfo.input, metricValue)
 				continue
 			}
 			mInfo.promCounter.With(entryLabels).Add(metricValueFloat)
 			cEntry.PromMetric.promCounter = mInfo.promCounter
 		case api.PromEncodeOperationName("Histogram"):
-			// TODO: Check what happens if not a slice
-			metricValueSlice := metricValue.([]float64)
+			metricValueSlice, ok := metricValue.([]float64)
+			if !ok {
+				log.Errorf("value is not []float64. metric: %v, key: %v, value: %v", metricName, mInfo.input, metricValue)
+				continue
+			}
 			for _, v := range metricValueSlice {
 				mInfo.promHist.With(entryLabels).Observe(v)
 			}
