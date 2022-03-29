@@ -1202,6 +1202,61 @@
          ]
       },
       {
+         "cards": {
+            "cardPadding": null,
+            "cardRound": null
+         },
+         "color": {
+            "cardColor": "#b4ff00",
+            "colorScale": "sqrt",
+            "colorScheme": "interpolateOranges",
+            "exponent": 0.5,
+            "mode": "spectrum"
+         },
+         "dataFormat": "tsbuckets",
+         "datasource": "prometheus",
+         "gridPos": {
+            "h": 8,
+            "w": 25,
+            "x": 0,
+            "y": 0
+         },
+         "heatmap": { },
+         "hideZeroBuckets": false,
+         "highlightCards": true,
+         "id": 16,
+         "legend": {
+            "show": false
+         },
+         "targets": [
+            {
+               "expr": "sum(rate(flp_mice_elephants_histogram_bucket[$__interval])) by (le)",
+               "format": "heatmap",
+               "intervalFactor": 2,
+               "legendFormat": "{{le}}",
+               "refId": "A"
+            }
+         ],
+         "title": "Mice-elepahnts heatmap",
+         "tooltip": {
+            "show": true,
+            "showHistogram": false
+         },
+         "type": "heatmap",
+         "xAxis": {
+            "show": true
+         },
+         "xBucketNumber": null,
+         "xBucketSize": null,
+         "yAxis": {
+            "decimals": null,
+            "format": "short",
+            "show": true,
+            "splitFactor": null
+         },
+         "yBucketBound": "auto"
+      },
+      {
          "aliasColors": { },
          "bars": false,
          "dashLength": 10,
@@ -1215,7 +1270,7 @@
             "x": 0,
             "y": 0
          },
-         "id": 16,
+         "id": 17,
          "legend": {
             "alignAsTable": false,
             "avg": false,

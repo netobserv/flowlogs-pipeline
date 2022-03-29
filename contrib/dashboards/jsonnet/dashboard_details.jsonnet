@@ -241,6 +241,25 @@ dashboard.new(
   }
 )
 .addPanel(
+  heatmapPanel.new(
+    datasource='prometheus',
+    title="Mice-elepahnts heatmap",
+    dataFormat="tsbuckets",
+  )
+  .addTarget(
+    prometheus.target(
+      expr='sum(rate(flp_mice_elephants_histogram_bucket[$__interval])) by (le)',
+      format='heatmap',
+      legendFormat='{{le}}',
+    )
+  ), gridPos={
+    x: 0,
+    y: 0,
+    w: 25,
+    h: 8,
+  }
+)
+.addPanel(
   graphPanel.new(
     datasource='prometheus',
     title="Network services connections rate",
