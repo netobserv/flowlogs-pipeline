@@ -5,14 +5,15 @@ WORKDIR /app
 # Copy source code
 COPY go.mod .
 COPY go.sum .
+COPY .bingo/ .bingo/
 
 # Download modules
 RUN go mod download
 RUN go mod vendor
+RUN go mod download -modfile=.bingo/golangci-lint.mod
 
 COPY cmd/ cmd/
 COPY pkg/ pkg/
-COPY .bingo/ .bingo/
 COPY .git/ .git/
 COPY Makefile Makefile
 
