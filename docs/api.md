@@ -59,6 +59,14 @@ Following is the supported API format for the kafka ingest:
          startoffset: FirstOffset (least recent - default) or LastOffset (most recent) offset available for a partition
          batchreadtimeout: how often (in milliseconds) to process input
 </pre>
+## Ingest GRPC from Network Observability eBPF Agent
+Following is the supported API format for the Network Observability eBPF ingest:
+
+<pre>
+ grpc:
+         port: the port number to listen on
+         buffer_length: the length of the ingest channel buffer, in groups of flows, containing each group hundreds of flows (default: 100)
+</pre>
 ## Aws ingest API
 Following is the supported API format for Aws flow entries:
 
@@ -125,6 +133,13 @@ Following is the supported API format for writing to loki:
          clientConfig: clientConfig
          timestampLabel: label to use for time indexing
          timestampScale: timestamp units scale (e.g. for UNIX = 1s)
+</pre>
+## Write Standard Output
+Following is the supported API format for writing to standard output:
+
+<pre>
+ stdout:
+         format: the format of each line: printf (default) or json
 </pre>
 ## Aggregate metrics API
 Following is the supported API format for specifying metrics aggregations:

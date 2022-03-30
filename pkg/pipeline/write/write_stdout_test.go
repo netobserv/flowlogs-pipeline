@@ -30,7 +30,7 @@ func Test_WriteStdout(t *testing.T) {
 }
 
 func Test_NewWriteStdout(t *testing.T) {
-	writer, err := NewWriteStdout()
+	writer, err := NewWriteStdout(config.StageParam{})
 	require.Nil(t, err)
 	require.Equal(t, writer, &writeStdout{})
 

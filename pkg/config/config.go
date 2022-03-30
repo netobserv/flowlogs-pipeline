@@ -62,6 +62,7 @@ type Ingest struct {
 	File      File
 	Collector api.IngestCollector
 	Kafka     api.IngestKafka
+	GRPC      api.IngestGRPCProto
 }
 
 type File struct {
@@ -98,8 +99,9 @@ type Encode struct {
 }
 
 type Write struct {
-	Type string
-	Loki api.WriteLoki
+	Type   string
+	Loki   api.WriteLoki
+	Stdout api.WriteStdout
 }
 
 // ParseConfig creates the internal unmarshalled representation from the Pipeline and Parameters json
