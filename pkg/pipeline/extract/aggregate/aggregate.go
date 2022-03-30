@@ -191,15 +191,14 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 	var metrics []config.GenericMap
 	for _, group := range aggregate.Groups {
 		metrics = append(metrics, config.GenericMap{
-			"name":        aggregate.Definition.Name,
-			"operation":   aggregate.Definition.Operation,
-			"record_key":  aggregate.Definition.RecordKey,
-			"by":          strings.Join(aggregate.Definition.By, ","),
-			"aggregate":   string(group.normalizedValues),
-			"total_value": fmt.Sprintf("%f", group.totalValue),
-			// TODO: change to snake_case
-			"recent_raw_values": group.recentRawValues,
+			"name":              aggregate.Definition.Name,
+			"operation":         aggregate.Definition.Operation,
+			"record_key":        aggregate.Definition.RecordKey,
+			"by":                strings.Join(aggregate.Definition.By, ","),
+			"aggregate":         string(group.normalizedValues),
+			"total_value":       fmt.Sprintf("%f", group.totalValue),
 			"total_count":       fmt.Sprintf("%d", group.totalCount),
+			"recent_raw_values": group.recentRawValues,
 			"recent_op_value":   group.recentOpValue,
 			"recent_count":      group.recentCount,
 			strings.Join(aggregate.Definition.By, "_"): string(group.normalizedValues),
