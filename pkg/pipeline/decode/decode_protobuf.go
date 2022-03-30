@@ -23,7 +23,7 @@ func NewProtobuf() (Decoder, error) {
 }
 
 // Decode decodes input strings to a list of flow entries
-func (c *Protobuf) Decode(in []interface{}) []config.GenericMap {
+func (p *Protobuf) Decode(in []interface{}) []config.GenericMap {
 	if len(in) == 0 {
 		pflog.Warn("empty input. Skipping")
 		return []config.GenericMap{}
