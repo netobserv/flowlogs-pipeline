@@ -70,7 +70,8 @@ func (cg *ConfGen) generateFlowlogs2PipelineConfig(fileName string) error {
 				"transform": map[string]interface{}{
 					"type": "generic",
 					"generic": map[string]interface{}{
-						"rules": cg.config.Transform.Generic.Rules,
+						"policy": "replace_keys",
+						"rules":  cg.config.Transform.Generic.Rules,
 					},
 				},
 			},

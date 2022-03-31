@@ -13,6 +13,7 @@ parameters:
 - name: transform_generic
   transform:
     generic:
+      policy: replace_keys
       rules:
       - input: SrcAddr
         output: srcIP
