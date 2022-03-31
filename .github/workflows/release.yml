@@ -38,7 +38,7 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
       - name: build images
-        run: DOCKER_TAG=${{ steps.validate_tag.outputs.tag }} make build-images
+        run: DOCKER_TAG=${{ steps.validate_tag.outputs.tag }} make build-image
       - name: podman login to quay.io
         uses: redhat-actions/podman-login@v1
         with:
