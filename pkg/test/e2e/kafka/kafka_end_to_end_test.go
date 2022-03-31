@@ -15,21 +15,20 @@
  *
  */
 
-package test
+package e2e
 
 import (
 	"bufio"
 	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
-	"strings"
 	"testing"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -309,60 +308,28 @@ parameters:
 	}()
 }
 
-func runCommand(t *testing.T, command string) {
-	var cmd *exec.Cmd
-	cmdStrings := strings.Split(command, " ")
-	cmdBase := cmdStrings[0]
-	cmdStrings = cmdStrings[1:]
-	cmd = exec.Command(cmdBase, cmdStrings...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	assert.NoError(t, err)
-	if err != nil {
-		msg := fmt.Sprintf("error in running command: %v \n", err)
-		assert.Fail(t, msg)
-	}
-}
+/*
+var TestEnv env.Environment
 
-func runCommandGetOutput(t *testing.T, command string) string {
-	var cmd *exec.Cmd
-	var outBuf bytes.Buffer
-	var err error
-	cmdStrings := strings.Split(command, " ")
-	cmdBase := cmdStrings[0]
-	cmdStrings = cmdStrings[1:]
-	cmd = exec.Command(cmdBase, cmdStrings...)
-	cmd.Stdout = &outBuf
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	assert.NoError(t, err)
-	if err != nil {
-		msg := fmt.Sprintf("error in running command: %v \n", err)
-		assert.Fail(t, msg)
-	}
-	output := outBuf.Bytes()
-	// strip the line feed from the end of the output string
-	output = output[0 : len(output)-1]
-	fmt.Printf("output = %s\n", string(output))
-	return string(output)
+func TestMain(m *testing.M) {
+	yamlFiles := []string{"strimzi.yaml", "kafka.strimzi.yaml"}
+	e2e.Main(m, yamlFiles, &TestEnv)
 }
-
+*/
 func TestEnd2EndKafka(t *testing.T) {
 	var command string
 
-	pwd := runCommandGetOutput(t, "pwd")
-
+	pwd := test.RunCommand("pwd")
 	fmt.Printf("\nset up kind and kafka \n\n")
 	command = pwd + "/kafka_kind_start.sh"
-	runCommand(t, command)
+	test.RunCommand(command)
 
 	fmt.Printf("\nwait for kafka to be active \n\n")
 	command = "kubectl wait kafka/my-cluster --for=condition=Ready --timeout=1200s -n default"
-	runCommand(t, command)
+	test.RunCommand(command)
 
-	command = "kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.type==\"external\")].bootstrapServers}{\"\\n\"}'"
-	kafkaAddr := runCommandGetOutput(t, command)
+	command = "kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.type==\"external\")].bootstrapServers}'"
+	kafkaAddr := test.RunCommand(command)
 	// strip the quotation marks
 	kafkaAddr = kafkaAddr[1 : len(kafkaAddr)-1]
 	fmt.Printf("kafkaAddr = %s \n", kafkaAddr)
@@ -391,5 +358,5 @@ func TestEnd2EndKafka(t *testing.T) {
 
 	fmt.Printf("delete kind and kafka \n")
 	command = pwd + "/kafka_kind_stop.sh"
-	runCommand(t, command)
+	test.RunCommand(command)
 }

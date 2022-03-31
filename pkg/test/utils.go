@@ -20,7 +20,10 @@ package test
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"os/exec"
 	"reflect"
+	"strings"
 	"testing"
 
 	jsoniter "github.com/json-iterator/go"
@@ -130,4 +133,27 @@ func CreateMockAgg(name, recordKey, by, agg, op string, value float64, count int
 		"recent_op_value": recentOpValue,
 		"recent_count":    recentCount,
 	}
+}
+
+func RunCommand(command string) string {
+	var cmd *exec.Cmd
+	var outBuf bytes.Buffer
+	var err error
+	cmdStrings := strings.Split(command, " ")
+	cmdBase := cmdStrings[0]
+	cmdStrings = cmdStrings[1:]
+	cmd = exec.Command(cmdBase, cmdStrings...)
+	cmd.Stdout = &outBuf
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		fmt.Printf("error in running command: %v \n", err)
+	}
+	output := outBuf.Bytes()
+	//strip newline from end of output
+	if len(output) > 0 && output[len(output)-1] == '\n' {
+		output = output[0 : len(output)-1]
+	}
+	fmt.Printf("output = %s\n", string(output))
+	return string(output)
 }
