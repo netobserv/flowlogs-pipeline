@@ -498,9 +498,9 @@ These fields are used by the next stage (for example `prom` encoder).
 The pipeline processes flowlogs in batches.
 The output fields with `recent_` prefix are related to the recent batch.
 They are needed when exposing metrics in Prometheus using Counters and Histograms.
-Prometheus Counters API accepts the amount to be added to the counter and not the final value as in Gauges.
+Prometheus Counters API accepts the delta amount to be added to the counter and not the total value as in Gauges.
 In this case, `recent_op_value` and `recent_count` should be used as the `valuekey`.
-The API of Histograms accepts the sample value, so it could be added to the right bucket.
+The API of Histograms accepts the sample value, so it could be added to the appropriate bucket.
 In this case, we are interested in the raw values of the records in the aggregation group.
 No aggregate operation is needed and it should be set `raw_values`. The `valuekey` should be set to `recent_raw_values`.
 
