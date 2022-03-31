@@ -9,14 +9,11 @@ COPY .bingo/ .bingo/
 
 # Download modules
 RUN go mod download
-RUN go mod vendor
 RUN go mod download -modfile=.bingo/golangci-lint.mod
 
-COPY cmd/ cmd/
-COPY pkg/ pkg/
-COPY .git/ .git/
-COPY Makefile Makefile
-
+COPY . ./
+RUN rm -r bin/*
+RUN git status --porcelain
 RUN make build_code
 
 # final stage
