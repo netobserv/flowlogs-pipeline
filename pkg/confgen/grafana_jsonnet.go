@@ -28,6 +28,8 @@ import (
 const TypeGrafana = "grafana"
 const panelTargetTypeGraphPanel = "graphPanel"
 const singleStatTypeGraphPanel = "singleStat"
+const barGaugeTypeGraphPanel = "barGauge"
+const heatmapTypeGraphPanel = "heatmap"
 
 const jsonNetHeaderTemplate = `
 local grafana = import 'grafana.libsonnet';
@@ -36,6 +38,7 @@ local row = grafana.row;
 local singlestat = grafana.singlestat;
 local graphPanel = grafana.graphPanel;
 local heatmapPanel = grafana.heatmapPanel;
+local barGaugePanel = grafana.barGaugePanel;
 local table = grafana.table;
 local prometheus = grafana.prometheus;
 local template = grafana.template;
@@ -82,6 +85,55 @@ const singleStatTemplate = `
     y: 0,
     w: 5,
     h: 5,
+  }
+)`
+
+// "{{`{{le}}`}}" is a trick to write "{{le}}" in a template without getting it to be parsed.
+const barGaugeTemplate = `
+.addPanel(
+  barGaugePanel.new(
+    datasource='prometheus',
+    title="{{.Title}}",
+    thresholds=[
+          {
+            "color": "green",
+            "value": null
+          }
+        ],
+  )
+  .addTarget(
+    prometheus.target(
+      expr='{{.Expr}}',
+      format='heatmap',
+      legendFormat='` + "{{`{{le}}`}}" + `',
+    )
+  ), gridPos={
+    x: 0,
+    y: 0,
+    w: 12,
+    h: 8,
+  }
+)`
+
+// "{{`{{le}}`}}" is a trick to write "{{le}}" in a template without getting it to be parsed.
+const heatmapTemplate = `
+.addPanel(
+  heatmapPanel.new(
+    datasource='prometheus',
+    title="{{.Title}}",
+    dataFormat="tsbuckets",
+  )
+  .addTarget(
+    prometheus.target(
+      expr='{{.Expr}}',
+      format='heatmap',
+      legendFormat='` + "{{`{{le}}`}}" + `',
+    )
+  ), gridPos={
+    x: 0,
+    y: 0,
+    w: 25,
+    h: 8,
   }
 )`
 
@@ -151,6 +203,8 @@ func (cg *ConfGen) addPanelsToDashboards(dashboards Dashboards) (Dashboards, err
 
 	graphPanelTemplate := template.Must(template.New("graphPanelTemplate").Parse(graphPanelTemplate))
 	singleStatTemplate := template.Must(template.New("graphPanelTemplate").Parse(singleStatTemplate))
+	barGaugeTemplate := template.Must(template.New("graphPanelTemplate").Parse(barGaugeTemplate))
+	heatmapTemplate := template.Must(template.New("graphPanelTemplate").Parse(heatmapTemplate))
 
 	for _, definition := range cg.visualizations {
 		if definition.Type != TypeGrafana {
@@ -171,6 +225,18 @@ func (cg *ConfGen) addPanelsToDashboards(dashboards Dashboards) (Dashboards, err
 				err := singleStatTemplate.Execute(newPanel, panelTarget)
 				if err != nil {
 					log.Infof("singleStatTemplate.Execute for %s err: %v ", panelTarget.Title, err)
+					continue
+				}
+			case barGaugeTypeGraphPanel:
+				err := barGaugeTemplate.Execute(newPanel, panelTarget)
+				if err != nil {
+					log.Infof("barGaugeTemplate.Execute for %s err: %v ", panelTarget.Title, err)
+					continue
+				}
+			case heatmapTypeGraphPanel:
+				err := heatmapTemplate.Execute(newPanel, panelTarget)
+				if err != nil {
+					log.Infof("heatmapTemplate.Execute for %s err: %v ", panelTarget.Title, err)
 					continue
 				}
 			default:

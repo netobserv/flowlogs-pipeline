@@ -145,6 +145,19 @@ and the transformation to generate the exported metric.
 |||  
 
 
+### flows length histogram
+| **Description** | A histogram of flowlog bytes | 
+|:---|:---|
+| **Details** | Flows length distribution over time | 
+| **Usage** | Evaluate flows length behavior including mice/elephant use-case | 
+| **Labels** | bandwidth, mice, elephant, rate |
+| **Operation** | aggregate by `all_Evaluate` and `raw_values` field `bytes` |
+| **Exposed as** | `flp_flows_length_histogram` of type `histogram` |
+| **Visualized as** | "Flows length heatmap" on dashboard `details` |
+| **Visualized as** | "Flows length histogram" on dashboard `totals` |
+|||  
+
+
 ### geo location rate per dest
 | **Description** | This metric observes connections geo-location rate per destination IP | 
 |:---|:---|
@@ -154,21 +167,6 @@ and the transformation to generate the exported metric.
 | **Operation** | aggregate by `dstLocation_CountryName` and `count`  |
 | **Exposed as** | `flp_connections_per_destination_location` of type `counter` |
 | **Visualized as** | "Connections rate per destinationIP geo-location" on dashboard `details` |
-|||  
-
-
-### mice elephants
-| **Description** | This metric counts mice and elephant flows | 
-|:---|:---|
-| **Details** | Count connections with bytes lower than 0.5K and bigger than 0.5K | 
-| **Usage** | Evaluate network behaviour | 
-| **Labels** | bandwidth, mice, elephant, rate |
-| **Operation** | aggregate by `mice_Evaluate` and `count`  |
-| **Operation** | aggregate by `elephant_Evaluate` and `count`  |
-| **Exposed as** | `flp_mice_count` of type `counter` |
-| **Exposed as** | `flp_elephant_count` of type `counter` |
-| **Visualized as** | "Mice flows count" on dashboard `details` |
-| **Visualized as** | "Elephant flows count" on dashboard `details` |
 |||  
 
 

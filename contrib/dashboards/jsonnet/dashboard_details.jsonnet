@@ -5,6 +5,7 @@ local row = grafana.row;
 local singlestat = grafana.singlestat;
 local graphPanel = grafana.graphPanel;
 local heatmapPanel = grafana.heatmapPanel;
+local barGaugePanel = grafana.barGaugePanel;
 local table = grafana.table;
 local prometheus = grafana.prometheus;
 local template = grafana.template;
@@ -192,6 +193,25 @@ dashboard.new(
   }
 )
 .addPanel(
+  heatmapPanel.new(
+    datasource='prometheus',
+    title="Flows length heatmap",
+    dataFormat="tsbuckets",
+  )
+  .addTarget(
+    prometheus.target(
+      expr='sum(rate(flp_flows_length_histogram_bucket[$__interval])) by (le)',
+      format='heatmap',
+      legendFormat='{{le}}',
+    )
+  ), gridPos={
+    x: 0,
+    y: 0,
+    w: 25,
+    h: 8,
+  }
+)
+.addPanel(
   graphPanel.new(
     datasource='prometheus',
     title="Connections rate per destinationIP geo-location",
@@ -199,38 +219,6 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_connections_per_destination_location[1m]))',
-    )
-  ), gridPos={
-    x: 0,
-    y: 0,
-    w: 25,
-    h: 20,
-  }
-)
-.addPanel(
-  graphPanel.new(
-    datasource='prometheus',
-    title="Mice flows count",
-  )
-  .addTarget(
-    prometheus.target(
-      expr='rate(flp_mice_count{}[1m])',
-    )
-  ), gridPos={
-    x: 0,
-    y: 0,
-    w: 25,
-    h: 20,
-  }
-)
-.addPanel(
-  graphPanel.new(
-    datasource='prometheus',
-    title="Elephant flows count",
-  )
-  .addTarget(
-    prometheus.target(
-      expr='rate(flp_elephant_count{}[1m])',
     )
   ), gridPos={
     x: 0,

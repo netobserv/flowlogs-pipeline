@@ -947,6 +947,61 @@
          ]
       },
       {
+         "cards": {
+            "cardPadding": null,
+            "cardRound": null
+         },
+         "color": {
+            "cardColor": "#b4ff00",
+            "colorScale": "sqrt",
+            "colorScheme": "interpolateOranges",
+            "exponent": 0.5,
+            "mode": "spectrum"
+         },
+         "dataFormat": "tsbuckets",
+         "datasource": "prometheus",
+         "gridPos": {
+            "h": 8,
+            "w": 25,
+            "x": 0,
+            "y": 0
+         },
+         "heatmap": { },
+         "hideZeroBuckets": false,
+         "highlightCards": true,
+         "id": 13,
+         "legend": {
+            "show": false
+         },
+         "targets": [
+            {
+               "expr": "sum(rate(flp_flows_length_histogram_bucket[$__interval])) by (le)",
+               "format": "heatmap",
+               "intervalFactor": 2,
+               "legendFormat": "{{le}}",
+               "refId": "A"
+            }
+         ],
+         "title": "Flows length heatmap",
+         "tooltip": {
+            "show": true,
+            "showHistogram": false
+         },
+         "type": "heatmap",
+         "xAxis": {
+            "show": true
+         },
+         "xBucketNumber": null,
+         "xBucketSize": null,
+         "yAxis": {
+            "decimals": null,
+            "format": "short",
+            "show": true,
+            "splitFactor": null
+         },
+         "yBucketBound": "auto"
+      },
+      {
          "aliasColors": { },
          "bars": false,
          "dashLength": 10,
@@ -960,7 +1015,7 @@
             "x": 0,
             "y": 0
          },
-         "id": 13,
+         "id": 14,
          "legend": {
             "alignAsTable": false,
             "avg": false,
@@ -1045,177 +1100,7 @@
             "x": 0,
             "y": 0
          },
-         "id": 14,
-         "legend": {
-            "alignAsTable": false,
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "rightSide": false,
-            "show": true,
-            "sideWidth": null,
-            "total": false,
-            "values": false
-         },
-         "lines": true,
-         "linewidth": 1,
-         "links": [ ],
-         "nullPointMode": "null",
-         "percentage": false,
-         "pointradius": 5,
-         "points": false,
-         "renderer": "flot",
-         "repeat": null,
-         "seriesOverrides": [ ],
-         "spaceLength": 10,
-         "stack": false,
-         "steppedLine": false,
-         "targets": [
-            {
-               "expr": "rate(flp_mice_count{}[1m])",
-               "format": "time_series",
-               "intervalFactor": 2,
-               "legendFormat": "",
-               "refId": "A"
-            }
-         ],
-         "thresholds": [ ],
-         "timeFrom": null,
-         "timeShift": null,
-         "title": "Mice flows count",
-         "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-         },
-         "type": "graph",
-         "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": [ ]
-         },
-         "yaxes": [
-            {
-               "format": "short",
-               "label": null,
-               "logBase": 1,
-               "max": null,
-               "min": null,
-               "show": true
-            },
-            {
-               "format": "short",
-               "label": null,
-               "logBase": 1,
-               "max": null,
-               "min": null,
-               "show": true
-            }
-         ]
-      },
-      {
-         "aliasColors": { },
-         "bars": false,
-         "dashLength": 10,
-         "dashes": false,
-         "datasource": "prometheus",
-         "fill": 1,
-         "fillGradient": 0,
-         "gridPos": {
-            "h": 20,
-            "w": 25,
-            "x": 0,
-            "y": 0
-         },
          "id": 15,
-         "legend": {
-            "alignAsTable": false,
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "rightSide": false,
-            "show": true,
-            "sideWidth": null,
-            "total": false,
-            "values": false
-         },
-         "lines": true,
-         "linewidth": 1,
-         "links": [ ],
-         "nullPointMode": "null",
-         "percentage": false,
-         "pointradius": 5,
-         "points": false,
-         "renderer": "flot",
-         "repeat": null,
-         "seriesOverrides": [ ],
-         "spaceLength": 10,
-         "stack": false,
-         "steppedLine": false,
-         "targets": [
-            {
-               "expr": "rate(flp_elephant_count{}[1m])",
-               "format": "time_series",
-               "intervalFactor": 2,
-               "legendFormat": "",
-               "refId": "A"
-            }
-         ],
-         "thresholds": [ ],
-         "timeFrom": null,
-         "timeShift": null,
-         "title": "Elephant flows count",
-         "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-         },
-         "type": "graph",
-         "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": [ ]
-         },
-         "yaxes": [
-            {
-               "format": "short",
-               "label": null,
-               "logBase": 1,
-               "max": null,
-               "min": null,
-               "show": true
-            },
-            {
-               "format": "short",
-               "label": null,
-               "logBase": 1,
-               "max": null,
-               "min": null,
-               "show": true
-            }
-         ]
-      },
-      {
-         "aliasColors": { },
-         "bars": false,
-         "dashLength": 10,
-         "dashes": false,
-         "datasource": "prometheus",
-         "fill": 1,
-         "fillGradient": 0,
-         "gridPos": {
-            "h": 20,
-            "w": 25,
-            "x": 0,
-            "y": 0
-         },
-         "id": 16,
          "legend": {
             "alignAsTable": false,
             "avg": false,

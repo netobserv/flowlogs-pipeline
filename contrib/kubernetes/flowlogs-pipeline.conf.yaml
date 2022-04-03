@@ -65,18 +65,14 @@ parameters:
         output: srcK8S
         type: add_kubernetes
         parameters: srcK8S_labels
+      - input: bytes
+        output: all
+        type: add_if
+        parameters: '>=0'
       - input: dstIP
         output: dstLocation
         type: add_location
         parameters: ""
-      - input: bytes
-        output: mice
-        type: add_if
-        parameters: <512
-      - input: bytes
-        output: elephant
-        type: add_if
-        parameters: '>=512'
     type: network
 - extract:
     aggregates:
@@ -138,19 +134,14 @@ parameters:
       - srcK8S_Type
       Operation: sum
       RecordKey: bytes
+    - Name: flows_bytes_hist
+      By:
+      - all_Evaluate
+      Operation: raw_values
+      RecordKey: bytes
     - Name: dest_connection_location_count
       By:
       - dstLocation_CountryName
-      Operation: count
-      RecordKey: ""
-    - Name: mice_count
-      By:
-      - mice_Evaluate
-      Operation: count
-      RecordKey: ""
-    - Name: elephant_count
-      By:
-      - elephant_Evaluate
       Operation: count
       RecordKey: ""
     - Name: dest_service_count
@@ -273,31 +264,26 @@ parameters:
         - by
         - aggregate
         buckets: []
+      - name: flows_length_histogram
+        type: histogram
+        filter:
+          key: name
+          value: flows_bytes_hist
+        valuekey: recent_raw_values
+        labels:
+        - by
+        - aggregate
+        buckets:
+        - 128
+        - 2048
+        - 10240
+        - 102400
+        - 1.048576e+06
       - name: connections_per_destination_location
         type: counter
         filter:
           key: name
           value: dest_connection_location_count
-        valuekey: recent_count
-        labels:
-        - by
-        - aggregate
-        buckets: []
-      - name: mice_count
-        type: counter
-        filter:
-          key: name
-          value: mice_count
-        valuekey: recent_count
-        labels:
-        - by
-        - aggregate
-        buckets: []
-      - name: elephant_count
-        type: counter
-        filter:
-          key: name
-          value: elephant_count
         valuekey: recent_count
         labels:
         - by

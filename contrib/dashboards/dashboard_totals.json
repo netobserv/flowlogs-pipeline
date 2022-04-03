@@ -93,6 +93,41 @@
          "valueName": "avg"
       },
       {
+         "datasource": "prometheus",
+         "fieldConfig": {
+            "defaults": {
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": null
+            }
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+         },
+         "id": 3,
+         "targets": [
+            {
+               "expr": "flp_flows_length_histogram_bucket",
+               "format": "heatmap",
+               "intervalFactor": 2,
+               "legendFormat": "{{le}}",
+               "refId": "A"
+            }
+         ],
+         "title": "Flows length histogram",
+         "type": "bargauge"
+      },
+      {
          "cacheTimeout": null,
          "colorBackground": false,
          "colorValue": false,
@@ -116,7 +151,7 @@
             "x": 0,
             "y": 0
          },
-         "id": 3,
+         "id": 4,
          "interval": null,
          "links": [ ],
          "mappingType": 1,
