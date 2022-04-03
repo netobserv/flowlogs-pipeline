@@ -4,7 +4,7 @@ description:
 details:
   A histogram of flowlog bytes
 usage:
-  Evaluate network behaviour
+  Evaluate flows length behavior including mice/elephant use-case 
 labels:
   - bandwidth
   - mice
