@@ -35,11 +35,11 @@ dashboard.new(
 .addPanel(
   barGaugePanel.new(
     datasource='prometheus',
-    title="Mice-elepahnts histogram",
+    title="Flows length histogram",
   )
   .addTarget(
     prometheus.target(
-      expr='flp_mice_elephants_histogram_bucket',
+      expr='flp_flows_length_histogram_bucket',
       format='heatmap',
       legendFormat='{{le}}',
     )

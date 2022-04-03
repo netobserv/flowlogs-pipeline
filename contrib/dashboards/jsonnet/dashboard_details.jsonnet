@@ -195,12 +195,12 @@ dashboard.new(
 .addPanel(
   heatmapPanel.new(
     datasource='prometheus',
-    title="Mice-elepahnts heatmap",
+    title="Flows length heatmap",
     dataFormat="tsbuckets",
   )
   .addTarget(
     prometheus.target(
-      expr='sum(rate(flp_mice_elephants_histogram_bucket[$__interval])) by (le)',
+      expr='sum(rate(flp_flows_length_histogram_bucket[$__interval])) by (le)',
       format='heatmap',
       legendFormat='{{le}}',
     )

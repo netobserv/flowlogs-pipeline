@@ -264,7 +264,7 @@ parameters:
         - by
         - aggregate
         buckets: []
-      - name: mice_elephants_histogram
+      - name: flows_length_histogram
         type: histogram
         filter:
           key: name

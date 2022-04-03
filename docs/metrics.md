@@ -152,9 +152,9 @@ and the transformation to generate the exported metric.
 | **Usage** | Evaluate flows length behavior including mice/elephant use-case | 
 | **Labels** | bandwidth, mice, elephant, rate |
 | **Operation** | aggregate by `all_Evaluate` and `raw_values` field `bytes` |
-| **Exposed as** | `flp_mice_elephants_histogram` of type `histogram` |
-| **Visualized as** | "Mice-elepahnts heatmap" on dashboard `details` |
-| **Visualized as** | "Mice-elepahnts histogram" on dashboard `totals` |
+| **Exposed as** | `flp_flows_length_histogram` of type `histogram` |
+| **Visualized as** | "Flows length heatmap" on dashboard `details` |
+| **Visualized as** | "Flows length histogram" on dashboard `totals` |
 |||  
 
 

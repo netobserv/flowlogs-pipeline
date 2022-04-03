@@ -27,7 +27,7 @@ encode:
   type: prom
   prom:
     metrics:
-      - name: mice_elephants_histogram
+      - name: flows_length_histogram
         type: histogram
         filter: { key: name, value: bytes_hist }
         valuekey: recent_raw_values
@@ -45,13 +45,13 @@ visualization:
   grafana:
     # The visualizations are based on:
     # https://grafana.com/blog/2020/06/23/how-to-visualize-prometheus-histograms-in-grafana/
-    - expr: 'sum(rate(flp_mice_elephants_histogram_bucket[$__interval])) by (le)'
+    - expr: 'sum(rate(flp_flows_length_histogram_bucket[$__interval])) by (le)'
       type: heatmap
       dashboard: details
       title:
-        Mice-elepahnts heatmap
-    - expr: 'flp_mice_elephants_histogram_bucket'
+        Flows length heatmap
+    - expr: 'flp_flows_length_histogram_bucket'
       type: barGauge
       dashboard: totals
       title:
-        Mice-elepahnts histogram
+        Flows length histogram

@@ -112,14 +112,14 @@
          "id": 3,
          "targets": [
             {
-               "expr": "flp_mice_elephants_histogram_bucket",
+               "expr": "flp_flows_length_histogram_bucket",
                "format": "heatmap",
                "intervalFactor": 2,
                "legendFormat": "{{le}}",
                "refId": "A"
             }
          ],
-         "title": "Mice-elepahnts histogram",
+         "title": "Flows length histogram",
          "type": "bargauge"
       },
       {
