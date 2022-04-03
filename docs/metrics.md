@@ -173,7 +173,7 @@ and the transformation to generate the exported metric.
 
 
 ### mice elephants histogram
-| **Description** | A histogram of flowlog bytes | 
+| **Description** | A histogram of flows length (in bytes) | 
 |:---|:---|
 | **Details** | A histogram of flowlog bytes | 
 | **Usage** | Evaluate network behaviour | 
