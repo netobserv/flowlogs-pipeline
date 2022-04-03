@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 
@@ -62,7 +61,6 @@ type entrySignature struct {
 
 type entryInfo struct {
 	eInfo entrySignature
-	value float64
 }
 
 type metricCacheEntry struct {
@@ -105,7 +103,6 @@ func (e *encodeProm) Encode(metrics []config.GenericMap) []config.GenericMap {
 
 func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.GenericMap {
 	log.Debugf("entering EncodeMetric. metricRecord = %v", metricRecord)
-	// TODO: We may need different handling for histograms
 	out := make([]config.GenericMap, 0)
 	for metricName, mInfo := range e.metrics {
 		val, keyFound := metricRecord[mInfo.filter.key]
@@ -119,13 +116,6 @@ func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 			log.Errorf("field %v is missing", mInfo.input)
 			continue
 		}
-		metricValueString := fmt.Sprintf("%v", metricValue)
-		valueFloat, err := strconv.ParseFloat(metricValueString, 64)
-		if err != nil {
-			log.Debugf("field cannot be converted to float: %v, %s", metricValue, metricValueString)
-			continue
-		}
-		log.Debugf("metricName = %v, metricValue = %v, valueFloat = %v", metricName, metricValue, valueFloat)
 		entryLabels := make(map[string]string, len(mInfo.labelNames))
 		for _, t := range mInfo.labelNames {
 			entryLabels[t] = fmt.Sprintf("%v", metricRecord[t])
@@ -135,32 +125,47 @@ func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 				Name:   e.prefix + metricName,
 				Labels: entryLabels,
 			},
-			value: valueFloat,
 		}
-		entryMap := map[string]interface{}{
-			// TODO: change to lower case
-			"Name":   e.prefix + metricName,
-			"Labels": entryLabels,
-			"value":  valueFloat,
-		}
-		out = append(out, entryMap)
 
 		cEntry := e.saveEntryInCache(entry, entryLabels)
 		cEntry.PromMetric.metricType = mInfo.PromMetric.metricType
 		// push the metric record to prometheus
 		switch mInfo.PromMetric.metricType {
 		case api.PromEncodeOperationName("Gauge"):
-			mInfo.promGauge.With(entryLabels).Set(valueFloat)
+			metricValueFloat, err := utils.ConvertToFloat64(metricValue)
+			if err != nil {
+				log.Errorf("value cannot be converted to float64. err: %v, metric: %v, key: %v, value: %v", err, metricName, mInfo.input, metricValue)
+				continue
+			}
+			mInfo.promGauge.With(entryLabels).Set(metricValueFloat)
 			cEntry.PromMetric.promGauge = mInfo.promGauge
 		case api.PromEncodeOperationName("Counter"):
-			mInfo.promCounter.With(entryLabels).Add(valueFloat)
+			metricValueFloat, err := utils.ConvertToFloat64(metricValue)
+			if err != nil {
+				log.Errorf("value cannot be converted to float64. err: %v, metric: %v, key: %v, value: %v", err, metricName, mInfo.input, metricValue)
+				continue
+			}
+			mInfo.promCounter.With(entryLabels).Add(metricValueFloat)
 			cEntry.PromMetric.promCounter = mInfo.promCounter
 		case api.PromEncodeOperationName("Histogram"):
-			for _, v := range metricRecord["recentRawValues"].([]float64) {
+			metricValueSlice, ok := metricValue.([]float64)
+			if !ok {
+				log.Errorf("value is not []float64. metric: %v, key: %v, value: %v", metricName, mInfo.input, metricValue)
+				continue
+			}
+			for _, v := range metricValueSlice {
 				mInfo.promHist.With(entryLabels).Observe(v)
 			}
 			cEntry.PromMetric.promHist = mInfo.promHist
 		}
+
+		entryMap := map[string]interface{}{
+			// TODO: change to lower case
+			"Name":   e.prefix + metricName,
+			"Labels": entryLabels,
+			"value":  metricValue,
+		}
+		out = append(out, entryMap)
 	}
 	return out
 }

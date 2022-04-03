@@ -148,6 +148,6 @@ Following is the supported API format for specifying metrics aggregations:
  aggregates:
          Name: description of aggregation result
          By: list of fields on which to aggregate
-         Operation: sum, min, max, or avg
+         Operation: sum, min, max, avg or raw_values
          RecordKey: internal field on which to perform the operation
 </pre>
