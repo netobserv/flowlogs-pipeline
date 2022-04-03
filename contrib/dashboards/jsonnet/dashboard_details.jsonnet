@@ -230,38 +230,6 @@ dashboard.new(
 .addPanel(
   graphPanel.new(
     datasource='prometheus',
-    title="Mice flows count",
-  )
-  .addTarget(
-    prometheus.target(
-      expr='rate(flp_mice_count{}[1m])',
-    )
-  ), gridPos={
-    x: 0,
-    y: 0,
-    w: 25,
-    h: 20,
-  }
-)
-.addPanel(
-  graphPanel.new(
-    datasource='prometheus',
-    title="Elephant flows count",
-  )
-  .addTarget(
-    prometheus.target(
-      expr='rate(flp_elephant_count{}[1m])',
-    )
-  ), gridPos={
-    x: 0,
-    y: 0,
-    w: 25,
-    h: 20,
-  }
-)
-.addPanel(
-  graphPanel.new(
-    datasource='prometheus',
     title="Network services connections rate",
   )
   .addTarget(

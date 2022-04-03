@@ -170,21 +170,6 @@ and the transformation to generate the exported metric.
 |||  
 
 
-### mice elephants
-| **Description** | This metric counts mice and elephant flows | 
-|:---|:---|
-| **Details** | Count connections with bytes lower than 0.5K and bigger than 0.5K | 
-| **Usage** | Evaluate network behaviour | 
-| **Labels** | bandwidth, mice, elephant, rate |
-| **Operation** | aggregate by `mice_Evaluate` and `count`  |
-| **Operation** | aggregate by `elephant_Evaluate` and `count`  |
-| **Exposed as** | `flp_mice_count` of type `counter` |
-| **Exposed as** | `flp_elephant_count` of type `counter` |
-| **Visualized as** | "Mice flows count" on dashboard `details` |
-| **Visualized as** | "Elephant flows count" on dashboard `details` |
-|||  
-
-
 ### network services count
 | **Description** | This metric observes network services rate (total) | 
 |:---|:---|

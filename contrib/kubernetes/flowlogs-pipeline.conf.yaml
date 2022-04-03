@@ -73,14 +73,6 @@ parameters:
         output: dstLocation
         type: add_location
         parameters: ""
-      - input: bytes
-        output: mice
-        type: add_if
-        parameters: <512
-      - input: bytes
-        output: elephant
-        type: add_if
-        parameters: '>=512'
     type: network
 - extract:
     aggregates:
@@ -150,16 +142,6 @@ parameters:
     - Name: dest_connection_location_count
       By:
       - dstLocation_CountryName
-      Operation: count
-      RecordKey: ""
-    - Name: mice_count
-      By:
-      - mice_Evaluate
-      Operation: count
-      RecordKey: ""
-    - Name: elephant_count
-      By:
-      - elephant_Evaluate
       Operation: count
       RecordKey: ""
     - Name: dest_service_count
@@ -302,26 +284,6 @@ parameters:
         filter:
           key: name
           value: dest_connection_location_count
-        valuekey: recent_count
-        labels:
-        - by
-        - aggregate
-        buckets: []
-      - name: mice_count
-        type: counter
-        filter:
-          key: name
-          value: mice_count
-        valuekey: recent_count
-        labels:
-        - by
-        - aggregate
-        buckets: []
-      - name: elephant_count
-        type: counter
-        filter:
-          key: name
-          value: elephant_count
         valuekey: recent_count
         labels:
         - by
