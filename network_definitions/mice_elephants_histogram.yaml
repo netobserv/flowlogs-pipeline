@@ -2,7 +2,7 @@
 description:
   A histogram of flowlog bytes
 details:
-  A histogram of flowlog bytes
+  Flows length distribution over time
 usage:
   Evaluate flows length behavior including mice/elephant use-case 
 labels:
