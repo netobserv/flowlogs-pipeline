@@ -36,6 +36,12 @@ dashboard.new(
   barGaugePanel.new(
     datasource='prometheus',
     title="Flows length histogram",
+    thresholds=[
+          {
+            "color": "green",
+            "value": null
+          }
+        ],
   )
   .addTarget(
     prometheus.target(

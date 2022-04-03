@@ -94,6 +94,12 @@ const barGaugeTemplate = `
   barGaugePanel.new(
     datasource='prometheus',
     title="{{.Title}}",
+    thresholds=[
+          {
+            "color": "green",
+            "value": null
+          }
+        ],
   )
   .addTarget(
     prometheus.target(

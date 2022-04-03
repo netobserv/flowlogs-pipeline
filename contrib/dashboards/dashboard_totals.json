@@ -98,7 +98,12 @@
             "defaults": {
                "thresholds": {
                   "mode": "absolute",
-                  "steps": [ ]
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
                },
                "unit": null
             }
