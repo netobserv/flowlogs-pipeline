@@ -38,7 +38,6 @@ import (
 
 const (
 	defaultInputFile        = "../../../../hack/examples/ocp-ipfix-flowlogs.json"
-	kafkaBrokerDefaultAddr  = "localhost:9092"
 	inputFileEnvVar         = "INPUT_FILE"
 	kafkaInputTopicEnvVar   = "KAFKA_INPUT_TOPIC"
 	kafkaOutputTopicEnvVar  = "KAFKA_OUTPUT_TOPIC"
