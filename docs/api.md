@@ -79,6 +79,9 @@ Following is the supported API format for generic transformations:
 
 <pre>
  generic:
+         policy: (enum) key replacement policy; may be one of the following:
+             preserve_original_keys: adds new keys in addition to existing keys (default)
+             replace_keys: removes all old keys and uses only the new keys
          rules: list of transform rules, each includes:
                  input: entry input field
                  output: entry output field

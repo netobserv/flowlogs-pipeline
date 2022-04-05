@@ -90,6 +90,7 @@ parameters:
     transform:
       type: generic
       generic:
+        policy: replace_keys
         rules:
           - input: Bytes
             output: flp_bytes

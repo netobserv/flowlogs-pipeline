@@ -24,16 +24,24 @@ import (
 )
 
 type Generic struct {
-	Rules []api.GenericTransformRule
+	policy string
+	rules  []api.GenericTransformRule
 }
 
 // Transform transforms a flow to a new set of keys
 func (g *Generic) Transform(input []config.GenericMap) []config.GenericMap {
-	log.Debugf("f = %v", g)
+	log.Debugf("entering Generic Transform g = %v", g)
 	output := make([]config.GenericMap, 0)
 	for _, entry := range input {
 		outputEntry := make(config.GenericMap)
-		for _, transformRule := range g.Rules {
+		if g.policy != "replace_keys" {
+			// copy old map to new map
+			for key, value := range entry {
+				outputEntry[key] = value
+			}
+		}
+		log.Debugf("outputEntry = %v", outputEntry)
+		for _, transformRule := range g.rules {
 			log.Debugf("transformRule = %v", transformRule)
 			outputEntry[transformRule.Output] = entry[transformRule.Input]
 		}
@@ -46,8 +54,20 @@ func (g *Generic) Transform(input []config.GenericMap) []config.GenericMap {
 // NewTransformGeneric create a new transform
 func NewTransformGeneric(params config.StageParam) (Transformer, error) {
 	log.Debugf("entering NewTransformGeneric")
-	transformGeneric := &Generic{
-		Rules: params.Transform.Generic.Rules,
+	log.Debugf("params.Transform.Generic = %v", params.Transform.Generic)
+	rules := params.Transform.Generic.Rules
+	policy := params.Transform.Generic.Policy
+	switch policy {
+	case "replace_keys", "preserve_original_keys", "":
+		// valid; nothing to do
+		log.Infof("NewTransformGeneric, policy = %s", policy)
+	default:
+		log.Panicf("unknown policy %s for transform.generic", policy)
 	}
+	transformGeneric := &Generic{
+		policy: policy,
+		rules:  rules,
+	}
+	log.Debugf("transformGeneric = %v", transformGeneric)
 	return transformGeneric, nil
 }
