@@ -116,6 +116,8 @@ Following is the supported API format for network transformations:
                      add_kubernetes: add output kubernetes fields from input
                  parameters: parameters specific to type
          kubeconfigpath: path to kubeconfig file (optional)
+         servicesfile: path to services file (optional, default: /etc/services)
+         protocolsfile: path to protocols file (optional, default: /etc/protocols)
 </pre>
 ## Write Loki API
 Following is the supported API format for writing to loki:

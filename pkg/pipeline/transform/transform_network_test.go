@@ -18,11 +18,13 @@
 package transform
 
 import (
+	"os"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
+	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/network_services"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
@@ -134,6 +136,9 @@ func Test_Transform(t *testing.T) {
 	err := location.InitLocationDB()
 	require.NoError(t, err)
 
+	err = netdb.Init("", "")
+	require.NoError(t, err)
+
 	output := networkTransform.Transform([]config.GenericMap{entry})
 
 	require.Equal(t, expectedOutput, output[0])
@@ -155,6 +160,9 @@ func Test_TransformAddSubnetParseCIDRFailure(t *testing.T) {
 	}
 
 	err := location.InitLocationDB()
+	require.NoError(t, err)
+
+	err = netdb.Init("", "")
 	require.NoError(t, err)
 
 	output := networkTransform.Transform([]config.GenericMap{entry})
@@ -312,4 +320,67 @@ func Test_Transform_AddIfScientificNotation(t *testing.T) {
 	output = newNetworkTransform.Transform([]config.GenericMap{entry})
 	require.Equal(t, true, output[0]["smaller_than_10_Evaluate"])
 	require.Equal(t, 1.2345e-67, output[0]["smaller_than_10"])
+}
+
+func Test_TransformNetworkOperationNameCustomServices(t *testing.T) {
+	rules := api.NetworkTransformRules{
+		api.NetworkTransformRule{
+			Input:      "dstPort",
+			Output:     "service",
+			Type:       "add_service",
+			Parameters: "protocol",
+		},
+	}
+
+	entry := test.GetIngestMockEntry(false)
+
+	var networkTransform = Network{
+		api.TransformNetwork{
+			Rules: rules,
+		},
+	}
+
+	err := netdb.Init("", "")
+	require.NoError(t, err)
+	output := networkTransform.Transform([]config.GenericMap{entry})
+	require.Equal(t, "ssh", output[0]["service"])
+
+	// check custom services file
+	customService := "custom_ssh             22/tcp                          # The Secure Shell (SSH) Protocol\n"
+	err = os.WriteFile("/tmp/services", []byte(customService), 0644)
+	require.NoError(t, err)
+
+	err = netdb.Init("", "/tmp/services")
+	require.NoError(t, err)
+	output = networkTransform.Transform([]config.GenericMap{entry})
+	require.Equal(t, "custom_ssh", output[0]["service"])
+
+	rules = api.NetworkTransformRules{
+		api.NetworkTransformRule{
+			Input:      "dstPort",
+			Output:     "service_protocol_num",
+			Type:       "add_service",
+			Parameters: "protocol_num",
+		},
+	}
+
+	networkTransform = Network{
+		api.TransformNetwork{
+			Rules: rules,
+		},
+	}
+
+	// check custom protocol file
+	customProtocol := "custom_tcp     6       CUSTOM_TCP             # transmission control protocol\n"
+	err = os.WriteFile("/tmp/protocols", []byte(customProtocol), 0644)
+	require.NoError(t, err)
+
+	customService = "custom_ssh             22/custom_TCP                          # The Secure Shell (SSH) Protocol\n"
+	err = os.WriteFile("/tmp/services", []byte(customService), 0644)
+	require.NoError(t, err)
+
+	err = netdb.Init("/tmp/protocols", "/tmp/services")
+	require.NoError(t, err)
+	output = networkTransform.Transform([]config.GenericMap{entry})
+	require.Equal(t, "custom_ssh", output[0]["service_protocol_num"])
 }

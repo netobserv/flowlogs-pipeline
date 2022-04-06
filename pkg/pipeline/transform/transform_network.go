@@ -31,8 +31,8 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/connection_tracking"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
+	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/network_services"
 	log "github.com/sirupsen/logrus"
-	"honnef.co/go/netdb"
 )
 
 type Network struct {
@@ -168,6 +168,7 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	var needToInitLocationDB = false
 	var needToInitKubeData = false
 	var needToInitConnectionTracking = false
+	var needToInitNetworkServices = false
 
 	jsonNetworkTransform := params.Transform.Network
 	for _, rule := range jsonNetworkTransform.Rules {
@@ -178,6 +179,8 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 			needToInitKubeData = true
 		case api.TransformNetworkOperationName("ConnTracking"):
 			needToInitConnectionTracking = true
+		case api.TransformNetworkOperationName("AddService"):
+			needToInitNetworkServices = true
 		}
 	}
 
@@ -194,6 +197,13 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 
 	if needToInitKubeData {
 		err := kubernetes.Data.InitFromConfig(jsonNetworkTransform.KubeConfigPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if needToInitNetworkServices {
+		err := netdb.Init(jsonNetworkTransform.ProtocolsFile, jsonNetworkTransform.ServicesFile)
 		if err != nil {
 			return nil, err
 		}
