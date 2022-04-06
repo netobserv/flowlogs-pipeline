@@ -91,7 +91,7 @@ func initLogger() {
 		ll = log.ErrorLevel
 	}
 	log.SetLevel(ll)
-	log.SetFormatter(&log.TextFormatter{DisableColors: false, FullTimestamp: true, PadLevelText: true})
+	log.SetFormatter(&log.TextFormatter{DisableColors: false, FullTimestamp: true, PadLevelText: true, DisableQuote: true})
 }
 
 func dumpConfig() {

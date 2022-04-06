@@ -17,7 +17,12 @@ update-readme() {
 update-animated-gif() {
   # update animated-gif in README.md from all images under docs/images/animated-gif-images
   IMAGES_PATH=$PWD/docs/images
-  docker run -v "$IMAGES_PATH":/docs/images dpokidov/imagemagick -loop 0 -delay 500 -resize 800x800 /docs/images/animated-gif-images/*.png /docs/images/animation.gif
+  if [[ $(type -P "podman") ]]; then
+    # for podman with selinux, volume mounting requires :Z flag
+    podman run -v "$IMAGES_PATH":/docs/images:Z docker.io/dpokidov/imagemagick -loop 0 -delay 500 -resize 800x800 /docs/images/animated-gif-images/*.png /docs/images/animation.gif
+  else
+    docker run -v "$IMAGES_PATH":/docs/images docker.io/dpokidov/imagemagick -loop 0 -delay 500 -resize 800x800 /docs/images/animated-gif-images/*.png /docs/images/animation.gif
+  fi
 }
 
 
