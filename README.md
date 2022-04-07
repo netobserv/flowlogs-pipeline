@@ -24,7 +24,10 @@ FLP pipe-line module is built on top of [gopipes](https://github.com/netobserv/g
 In addition, along with Prometheus and its ecosystem tools such as Thanos, Cortex etc., 
 FLP provides an efficient scalable multi-cloud solution for comprehensive network analytics that can rely **solely on metrics data-source**.
 
-Default metrics are documented here [docs/metrics.md](docs/metrics.md).
+Default network metrics are documented here [docs/metrics.md](docs/metrics.md).  
+Operational metrics are documented here [docs/operational-metrics.md](docs/operational-metrics.md).
+
+> note: operational metrics are exported only using prometheus   
 <br>
 <br>
 

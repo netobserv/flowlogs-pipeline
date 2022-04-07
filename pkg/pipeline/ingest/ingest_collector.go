@@ -27,12 +27,14 @@ import (
 
 	ms "github.com/mitchellh/mapstructure"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	goflowFormat "github.com/netsampler/goflow2/format"
 	goflowCommonFormat "github.com/netsampler/goflow2/format/common"
 	_ "github.com/netsampler/goflow2/format/protobuf"
 	goflowpb "github.com/netsampler/goflow2/pb"
 	"github.com/netsampler/goflow2/utils"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
@@ -56,6 +58,16 @@ type ingestCollector struct {
 type TransportWrapper struct {
 	c chan map[string]interface{}
 }
+
+var queueLength = operationalMetrics.NewGauge(prometheus.GaugeOpts{
+	Name: "ingest_collector_queue_length",
+	Help: "Queue length",
+})
+
+var linesProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
+	Name: "ingest_collector_flow_logs_processed",
+	Help: "Number of log lines (flow logs) processed",
+})
 
 func NewWrapper(c chan map[string]interface{}) *TransportWrapper {
 	tw := TransportWrapper{c: c}
@@ -156,6 +168,8 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 			records = append(records, string(recordAsBytes))
 			if len(records) >= ingestC.batchMaxLength {
 				log.Debugf("ingestCollector sending %d entries", len(records))
+				linesProcessed.Add(float64(len(records)))
+				queueLength.Set(float64(len(out)))
 				out <- records
 				records = []interface{}{}
 			}
@@ -163,6 +177,8 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
 				log.Debugf("ingestCollector sending %d entries", len(records))
+				linesProcessed.Add(float64(len(records)))
+				queueLength.Set(float64(len(out)))
 				out <- records
 				records = []interface{}{}
 			}

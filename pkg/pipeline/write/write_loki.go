@@ -25,9 +25,10 @@ import (
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
-
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
+	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	"github.com/prometheus/client_golang/prometheus"
 
 	logAdapter "github.com/go-kit/kit/log/logrus"
 	jsonIter "github.com/json-iterator/go"
@@ -57,6 +58,11 @@ type Loki struct {
 	in         chan config.GenericMap
 	exitChan   chan bool
 }
+
+var recordsWritten = operationalMetrics.NewCounter(prometheus.CounterOpts{
+	Name: "loki_records_written",
+	Help: "Number of records written to loki",
+})
 
 func buildLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 	batchWait, err := time.ParseDuration(c.BatchWait)
@@ -123,7 +129,12 @@ func (l *Loki) ProcessRecord(record config.GenericMap) error {
 	if err != nil {
 		return err
 	}
-	return l.client.Handle(labels, timestamp, string(js))
+
+	err = l.client.Handle(labels, timestamp, string(js))
+	if err != nil {
+		recordsWritten.Inc()
+	}
+	return err
 }
 
 func (l *Loki) extractTimestamp(record map[string]interface{}) time.Time {
