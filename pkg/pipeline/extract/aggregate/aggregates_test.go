@@ -19,13 +19,14 @@ package aggregate
 
 import (
 	"testing"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
 
-func Test_NewAggregatesFromConfig(t *testing.T) {
+func initAggregates(t *testing.T) Aggregates {
 	var yamlConfig = `
 log-level: debug
 pipeline:
@@ -44,10 +45,32 @@ parameters:
 `
 	v := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
-
-	expectedAggregate := GetMockAggregate()
 	aggregates, err := NewAggregatesFromConfig(config.Parameters[0].Extract.Aggregates)
-
 	require.NoError(t, err)
-	require.Equal(t, aggregates[0].Definition, expectedAggregate.Definition)
+
+	return aggregates
+}
+
+func Test_NewAggregatesFromConfig(t *testing.T) {
+
+	aggregates := initAggregates(t)
+	expectedAggregate := GetMockAggregate()
+
+	require.Equal(t, aggregates.Aggregates[0].Definition, expectedAggregate.Definition)
+}
+
+func Test_CleanupExpiredEntriesLoop(t *testing.T) {
+
+	defaultExpiryTime = 4 // expiration after 4 seconds
+	aggregates := initAggregates(t)
+	expectedAggregate := GetMockAggregate()
+	require.Equal(t, expectedAggregate.Definition, aggregates.Aggregates[0].Definition)
+
+	entry := test.GetIngestMockEntry(false)
+	err := aggregates.Evaluate([]config.GenericMap{entry})
+	require.NoError(t, err)
+	time.Sleep(2 * time.Second) // still exists after 2 seconds
+	require.Equal(t, 1, len(aggregates.Aggregates[0].GetMetrics()))
+	time.Sleep(3 * time.Second) // expires after 3 more seconds (5 seconds in total)
+	require.Equal(t, 0, len(aggregates.Aggregates[0].GetMetrics()))
 }

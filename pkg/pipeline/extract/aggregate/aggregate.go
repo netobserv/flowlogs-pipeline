@@ -18,11 +18,14 @@
 package aggregate
 
 import (
+	"container/list"
 	"fmt"
 	"math"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -43,7 +46,10 @@ type NormalizedValues string
 
 type Aggregate struct {
 	Definition api.AggregateDefinition
-	Groups     map[NormalizedValues]*GroupState
+	GroupsMap  map[NormalizedValues]*GroupState
+	GroupsList *list.List
+	mutex      *sync.Mutex
+	expiryTime int64
 }
 
 type GroupState struct {
@@ -53,6 +59,8 @@ type GroupState struct {
 	recentCount      int
 	totalValue       float64
 	totalCount       int
+	lastUpdatedTime  int64
+	listElement      *list.Element
 }
 
 func (aggregate Aggregate) LabelsFromEntry(entry config.GenericMap) (Labels, bool) {
@@ -116,7 +124,11 @@ func getInitValue(operation string) float64 {
 }
 
 func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValues NormalizedValues) error {
-	groupState, ok := aggregate.Groups[normalizedValues]
+
+	aggregate.mutex.Lock()
+	defer aggregate.mutex.Unlock()
+
+	groupState, ok := aggregate.GroupsMap[normalizedValues]
 	if !ok {
 		groupState = &GroupState{normalizedValues: normalizedValues}
 		initVal := getInitValue(string(aggregate.Definition.Operation))
@@ -125,7 +137,10 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 		if aggregate.Definition.Operation == OperationRawValues {
 			groupState.recentRawValues = make([]float64, 0)
 		}
-		aggregate.Groups[normalizedValues] = groupState
+		aggregate.GroupsMap[normalizedValues] = groupState
+		groupState.listElement = aggregate.GroupsList.PushBack(groupState)
+	} else {
+		aggregate.GroupsList.MoveToBack(groupState.listElement)
 	}
 
 	// update value
@@ -164,6 +179,7 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	// update count
 	groupState.totalCount += 1
 	groupState.recentCount += 1
+	groupState.lastUpdatedTime = time.Now().Unix()
 
 	return nil
 }
@@ -188,8 +204,11 @@ func (aggregate Aggregate) Evaluate(entries []config.GenericMap) error {
 }
 
 func (aggregate Aggregate) GetMetrics() []config.GenericMap {
+	aggregate.mutex.Lock()
+	defer aggregate.mutex.Unlock()
+
 	var metrics []config.GenericMap
-	for _, group := range aggregate.Groups {
+	for _, group := range aggregate.GroupsMap {
 		metrics = append(metrics, config.GenericMap{
 			"name":              aggregate.Definition.Name,
 			"operation":         aggregate.Definition.Operation,
@@ -212,4 +231,22 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 	}
 
 	return metrics
+}
+
+func (aggregate Aggregate) cleanupExpiredEntries() {
+	nowInSecs := time.Now().Unix()
+	expireTime := nowInSecs - aggregate.expiryTime
+
+	for {
+		listEntry := aggregate.GroupsList.Front()
+		if listEntry == nil {
+			return
+		}
+		pCacheInfo := listEntry.Value.(*GroupState)
+		if pCacheInfo.lastUpdatedTime > expireTime {
+			return
+		}
+		delete(aggregate.GroupsMap, pCacheInfo.normalizedValues)
+		aggregate.GroupsList.Remove(listEntry)
+	}
 }
