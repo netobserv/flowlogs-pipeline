@@ -20,6 +20,8 @@ package api
 type TransformNetwork struct {
 	Rules          NetworkTransformRules `yaml:"rules" doc:"list of transform rules, each includes:"`
 	KubeConfigPath string                `yaml:"kubeconfigpath" doc:"path to kubeconfig file (optional)"`
+	ServicesFile   string                `yaml:"servicesfile" doc:"path to services file (optional, default: /etc/services)"`
+	ProtocolsFile  string                `yaml:"protocolsfile" doc:"path to protocols file (optional, default: /etc/protocols)"`
 }
 
 type TransformNetworkOperationEnum struct {

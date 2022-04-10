@@ -427,7 +427,10 @@ entries
 
 The third rule `add_service` generates a new field named `service` with the known network 
 service name of `dstPort` port and `protocol` protocol. Unrecognized ports are ignored 
-> Note: `protocol` can be either network protocol name or number
+> Note: `protocol` can be either network protocol name or number  
+>   
+> Note: optionally supports custom network services resolution by defining configuration parameters 
+> `servicesfile` and `protocolsfile` with paths to custom services/protocols files respectively  
 
 The fourth rule `add_location` generates new fields with the geo-location information retrieved 
 from DB [ip2location](https://lite.ip2location.com/) based on `dstIP` IP. 
