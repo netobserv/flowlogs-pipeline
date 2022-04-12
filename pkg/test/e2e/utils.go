@@ -29,6 +29,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	log "github.com/sirupsen/logrus"
 	"github.com/vladimirvivien/gexe"
 	corev1 "k8s.io/api/core/v1"
@@ -48,7 +49,13 @@ import (
 
 type namespaceContextKey string
 
-func Main(m *testing.M, yamlFiles []string, testEnv *env.Environment) {
+type YamlInfo struct {
+	YamlFile    string
+	Namespace   string
+	PreCommands []string
+}
+
+func Main(m *testing.M, yamlInfos []YamlInfo, testEnv *env.Environment) {
 	*testEnv = env.New()
 	kindClusterName := "test"
 	namespace := "test"
@@ -57,9 +64,9 @@ func Main(m *testing.M, yamlFiles []string, testEnv *env.Environment) {
 
 	(*testEnv).Setup(
 		e2eCreateKindCluster(kindClusterName),
-		e2eBuildAndLoadImageIntoKind(dockerImage, dockerTag, kindClusterName),
+		E2eBuildAndLoadImageIntoKind(dockerImage, dockerTag, kindClusterName),
 		e2eRecreateNamespace(namespace),
-		e2eDeployEnvironmentResources(yamlFiles, namespace),
+		e2eDeployEnvironmentResources(yamlInfos),
 	)
 
 	(*testEnv).Finish(
@@ -80,7 +87,7 @@ func e2eCreateKindCluster(clusterName string) env.Func {
 
 // NOTE: the e2e framework uses `kind load` command that forces usage of docker (and not podman)
 // ref: https://github.com/kubernetes-sigs/kind/issues/2027
-func e2eBuildAndLoadImageIntoKind(dockerImg, dockerTag, clusterName string) env.Func {
+func E2eBuildAndLoadImageIntoKind(dockerImg, dockerTag, clusterName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		e := gexe.New()
 		fmt.Printf("====> building docker image - %s:%s\n", dockerImg, dockerTag)
@@ -152,38 +159,48 @@ func e2eRecreateNamespace(name string) env.Func {
 	}
 }
 
-func e2eDeployEnvironmentResources(yamlFiles []string, namespace string) env.Func {
+func e2eDeployEnvironmentResources(yamlInfos []YamlInfo) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		fmt.Printf("====> Deploying k8s resources from - %v\n", yamlFiles)
-		yaml := ""
-		for _, file := range yamlFiles {
+		client, err := cfg.NewClient()
+		if err != nil {
+			return ctx, fmt.Errorf("e2eDeployEnvironmentResources - NewClient: %w", err)
+		}
+		for _, yInfo := range yamlInfos {
+			for _, cmd := range yInfo.PreCommands {
+				if cmd != "" {
+					fmt.Printf("====> Performing Command: %s\n", cmd)
+					_, err := test.RunCommand(cmd)
+					if err != nil {
+						fmt.Printf("error when running command: %v", err)
+						return ctx, err
+					}
+				}
+			}
+			file := yInfo.YamlFile
+			namespace := yInfo.Namespace
+			fmt.Printf("====> Deploying k8s resources from - %s in namespace %s\n", file, namespace)
 			fileYaml, err := ioutil.ReadFile(file)
 			if err != nil {
 				return ctx, fmt.Errorf("e2eDeployEnvironmentResources - ReadFile: %w", err)
 			}
 
-			yaml += "\n---\n" + string(fileYaml)
-		}
+			resources := parseK8sYaml(string(fileYaml))
 
-		resources := parseK8sYaml(string(yaml))
-		client, err := cfg.NewClient()
-		if err != nil {
-			return ctx, fmt.Errorf("e2eDeployEnvironmentResources - NewClient: %w", err)
-		}
+			for _, resource := range resources {
+				k8sResource := resource.(k8s.Object)
+				k8sResource.SetNamespace(namespace)
 
-		for _, resource := range resources {
-			k8sResource := resource.(k8s.Object)
-			k8sResource.SetNamespace(namespace)
-
-			// Recreate resource
-			// Note: Skip if resource do not exist, we create
-			_ = client.Resources().Delete(ctx, k8sResource)
-			err = client.Resources().Create(ctx, k8sResource)
-			if err != nil {
-				return ctx, fmt.Errorf("create resource : %w", err)
+				// Recreate resource
+				// Note: Skip if resource do not exist, we create
+				_ = client.Resources().Delete(ctx, k8sResource)
+				err = client.Resources().Create(ctx, k8sResource)
+				//err = client.Resources().Update(ctx, k8sResource)
+				if err != nil {
+					return ctx, fmt.Errorf("create resource : %w", err)
+				}
 			}
+			fmt.Printf("====> Done.\n")
 		}
-		fmt.Printf("====> Done.\n")
 		return ctx, nil
 	}
 }

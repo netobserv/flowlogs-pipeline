@@ -4,9 +4,10 @@ export KIND=../../../../bin/kind-v0.11.1
 
 echo "KIND = " $KIND
 
-$KIND create cluster --name kafka-e2e-test
-kubectl cluster-info --context kafka-e2e-test
+$KIND create cluster --name test
+kubectl cluster-info --context test
 
+kubectl create namespace test
 echo
 echo "Installing Kafka"
 echo

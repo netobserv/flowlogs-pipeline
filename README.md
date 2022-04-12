@@ -37,7 +37,7 @@ Default metrics are documented here [docs/metrics.md](docs/metrics.md).
 
 <!---AUTO-flowlogs-pipeline_help--->
 ```bash
-Expose network flow-logs from metrics  
+Transform, persist and expose flow-logs as network metrics  
   
 Usage:  
   flowlogs-pipeline [flags]  

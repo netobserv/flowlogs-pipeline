@@ -1,0 +1,141 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowlogs-pipeline
+  labels:
+    app: flowlogs-pipeline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flowlogs-pipeline
+  template:
+    metadata:
+      labels:
+        app: flowlogs-pipeline
+    spec:
+      containers:
+        - name: flowlogs-pipeline
+          image: quay.io/netobserv/flowlogs-pipeline:e2e
+          args:
+            - "--config=/etc/flowlogs-pipeline/flowlogs-pipeline.conf.yaml"
+          ports:
+            - containerPort: 6343
+            - containerPort: 2055
+            - containerPort: 2056
+          imagePullPolicy: Never
+          volumeMounts:
+            - name: configuration
+              mountPath: "/etc/flowlogs-pipeline/"
+      volumes:
+        - name: configuration
+          configMap:
+            name: flowlogs-pipeline-configuration
+      serviceAccountName: flowlogs-pipeline
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flowlogs-pipeline
+  labels:
+    app: flowlogs-pipeline
+spec:
+  ports:
+    - port: 6343
+      targetPort: 6343
+      protocol: UDP
+      name: sflow
+    - port: 2055
+      targetPort: 2055
+      protocol: UDP
+      name: netflow
+    - port: 2056
+      targetPort: 2056
+      protocol: UDP
+      name: netflow-legacy
+  selector:
+    app: flowlogs-pipeline
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flowlogs-pipeline-metrics
+  labels:
+    app: flowlogs-pipeline
+spec:
+  ports:
+    - port: 9102
+      targetPort: 9102
+      name: prometheous
+  selector:
+    app: flowlogs-pipeline
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: flowlogs-pipeline
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flowlogs-pipeline
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flowlogs-pipeline
+subjects:
+  - kind: ServiceAccount
+    name: flowlogs-pipeline
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flowlogs-pipeline
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flowlogs-pipeline-configuration
+data:
+  flowlogs-pipeline.conf.yaml: |
+    log-level: debug
+    pipeline:
+      - name: kafka_ingest
+      - name: decode_json
+        follows: kafka_ingest
+      - name: transform_none
+        follows: decode_json
+      - name: kafka_encode
+        follows: transform_none
+      - name: write_none
+        follows: kafka_encode
+    parameters:
+      - name: kafka_ingest
+        ingest:
+          type: kafka
+          kafka:
+            brokers: [my-cluster-kafka-bootstrap.default.svc:9093]
+            topic: test_topic_in
+            groupid: group_test_in
+      - name: decode_json
+        decode:
+          type: json
+      - name: transform_none
+        transform:
+          type: none
+      - name: kafka_encode
+        encode:
+          type: kafka
+          kafka:
+            address: my-cluster-kafka-bootstrap.default.svc:9093
+            topic: test_topic_out
+      - name: write_none
+        write:
+          type: none
+---

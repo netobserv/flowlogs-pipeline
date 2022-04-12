@@ -27,5 +27,12 @@ import (
 var TestEnv env.Environment
 
 func TestMain(m *testing.M) {
-	e2e.Main(m, []string{"k8s-objects.yaml"}, &TestEnv)
+	yamlInfos := []e2e.YamlInfo{
+		{
+			YamlFile:    "k8s-objects.yaml",
+			Namespace:   "test",
+			PreCommands: []string{},
+		},
+	}
+	e2e.Main(m, yamlInfos, &TestEnv)
 }

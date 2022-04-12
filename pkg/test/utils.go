@@ -20,13 +20,12 @@ package test
 import (
 	"bytes"
 	"fmt"
-	"os"
-	"os/exec"
 	"reflect"
-	"strings"
 	"testing"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/vladimirvivien/gexe"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/spf13/viper"
@@ -134,25 +133,13 @@ func CreateMockAgg(name, recordKey, by, agg, op string, totalValue float64, tota
 	}
 }
 
-func RunCommand(command string) string {
-	var cmd *exec.Cmd
-	var outBuf bytes.Buffer
-	var err error
-	cmdStrings := strings.Split(command, " ")
-	cmdBase := cmdStrings[0]
-	cmdStrings = cmdStrings[1:]
-	cmd = exec.Command(cmdBase, cmdStrings...)
-	cmd.Stdout = &outBuf
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		fmt.Printf("error in running command: %v \n", err)
+func RunCommand(command string) (string, error) {
+	fmt.Printf("entering RunCommand, command = %s\n", command)
+	e := gexe.New()
+	p := e.RunProc(command)
+	if p.Err() != nil || !p.IsSuccess() || p.ExitCode() != 0 {
+		fmt.Printf("error while running command: %s \n", p.StdErr())
 	}
-	output := outBuf.Bytes()
-	//strip newline from end of output
-	if len(output) > 0 && output[len(output)-1] == '\n' {
-		output = output[0 : len(output)-1]
-	}
-	fmt.Printf("output = %s\n", string(output))
-	return string(output)
+	fmt.Printf("output = %s\n", p.Result())
+	return p.Result(), p.Err()
 }
