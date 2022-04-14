@@ -18,19 +18,27 @@
 package aggregate
 
 import (
-	"fmt"
-	"reflect"
+	"container/list"
+	"sync"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-type Aggregates []Aggregate
+var defaultExpiryTime = 60 * 10 // 10 minutes
+
+type Aggregates struct {
+	Aggregates []Aggregate
+	expiryTime int64
+}
+
 type Definitions []api.AggregateDefinition
 
-func (aggregates Aggregates) Evaluate(entries []config.GenericMap) error {
-	for _, aggregate := range aggregates {
+func (aggregates *Aggregates) Evaluate(entries []config.GenericMap) error {
+	for _, aggregate := range aggregates.Aggregates {
 		err := aggregate.Evaluate(entries)
 		if err != nil {
 			log.Debugf("Evaluate error %v", err)
@@ -41,9 +49,9 @@ func (aggregates Aggregates) Evaluate(entries []config.GenericMap) error {
 	return nil
 }
 
-func (aggregates Aggregates) GetMetrics() []config.GenericMap {
+func (aggregates *Aggregates) GetMetrics() []config.GenericMap {
 	var metrics []config.GenericMap
-	for _, aggregate := range aggregates {
+	for _, aggregate := range aggregates.Aggregates {
 		aggregateMetrics := aggregate.GetMetrics()
 		metrics = append(metrics, aggregateMetrics...)
 	}
@@ -51,31 +59,56 @@ func (aggregates Aggregates) GetMetrics() []config.GenericMap {
 	return metrics
 }
 
-func (aggregates Aggregates) AddAggregate(aggregateDefinition api.AggregateDefinition) Aggregates {
+func (aggregates *Aggregates) AddAggregate(aggregateDefinition api.AggregateDefinition) []Aggregate {
 	aggregate := Aggregate{
 		Definition: aggregateDefinition,
-		Groups:     map[NormalizedValues]*GroupState{},
+		GroupsMap:  map[NormalizedValues]*GroupState{},
+		GroupsList: list.New(),
+		mutex:      &sync.Mutex{},
+		expiryTime: aggregates.expiryTime,
 	}
 
-	appendedAggregates := append(aggregates, aggregate)
+	appendedAggregates := append(aggregates.Aggregates, aggregate)
 	return appendedAggregates
 }
 
-func (aggregates Aggregates) RemoveAggregate(by api.AggregateBy) (Aggregates, error) {
-	for i, other := range aggregates {
-		if reflect.DeepEqual(other.Definition.By, by) {
-			return append(aggregates[:i], aggregates[i+1:]...), nil
+func (aggregates *Aggregates) cleanupExpiredEntriesLoop() {
+
+	ticker := time.NewTicker(time.Duration(aggregates.expiryTime) * time.Second)
+	done := make(chan bool)
+	utils.RegisterExitChannel(done)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				aggregates.cleanupExpiredEntries()
+			}
 		}
+	}()
+}
+
+func (aggregates *Aggregates) cleanupExpiredEntries() {
+
+	for _, aggregate := range aggregates.Aggregates {
+		aggregate.mutex.Lock()
+		aggregate.cleanupExpiredEntries()
+		aggregate.mutex.Unlock()
 	}
-	return aggregates, fmt.Errorf("can't find AggregateBy = %v", by)
+
 }
 
 func NewAggregatesFromConfig(definitions []api.AggregateDefinition) (Aggregates, error) {
-	aggregates := Aggregates{}
+	aggregates := Aggregates{
+		expiryTime: int64(defaultExpiryTime),
+	}
 
 	for _, aggregateDefinition := range definitions {
-		aggregates = aggregates.AddAggregate(aggregateDefinition)
+		aggregates.Aggregates = aggregates.AddAggregate(aggregateDefinition)
 	}
+
+	aggregates.cleanupExpiredEntriesLoop()
 
 	return aggregates, nil
 }
