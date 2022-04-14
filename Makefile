@@ -89,6 +89,7 @@ dashboards: $(JB) $(JSONNET) ## Build grafana dashboards
 docs: FORCE ## Update flowlogs-pipeline documentation
 	@./hack/update-docs.sh
 	@go run cmd/apitodoc/main.go > docs/api.md
+	@go run cmd/operationalmetricstodoc/main.go > docs/operational-metrics.md
 
 .PHONY: clean
 clean: ## Clean

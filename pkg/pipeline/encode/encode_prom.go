@@ -27,6 +27,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -84,6 +85,11 @@ type encodeProm struct {
 	exitChan   chan bool
 }
 
+var metricsProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
+	Name: "encode_prom_metrics_processed",
+	Help: "Number of metrics processed",
+})
+
 // Encode encodes a metric before being stored
 func (e *encodeProm) Encode(metrics []config.GenericMap) []config.GenericMap {
 	log.Debugf("entering encodeProm Encode")
@@ -92,6 +98,7 @@ func (e *encodeProm) Encode(metrics []config.GenericMap) []config.GenericMap {
 	out := make([]config.GenericMap, 0)
 	for _, metric := range metrics {
 		// TODO: We may need different handling for histograms
+		metricsProcessed.Inc()
 		metricOut := e.EncodeMetric(metric)
 		out = append(out, metricOut...)
 	}
