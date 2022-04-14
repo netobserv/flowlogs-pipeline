@@ -38,31 +38,26 @@ import (
 
 const (
 	defaultInputFile        = "../../../../hack/examples/ocp-ipfix-flowlogs.json"
-	kafkaBrokerDefaultAddr  = "localhost:9092"
 	inputFileEnvVar         = "INPUT_FILE"
-	kafkaBrokerEnvVar       = "KAFKA_BROKER"
 	kafkaInputTopicEnvVar   = "KAFKA_INPUT_TOPIC"
 	kafkaOutputTopicEnvVar  = "KAFKA_OUTPUT_TOPIC"
-	kafkaInputTopicDefault  = "topic_in"
-	kafkaOutputTopicDefault = "topic_out"
+	kafkaInputTopicDefault  = "test_topic_in"
+	kafkaOutputTopicDefault = "test_topic_out"
 )
+
+var kafkaInputTopic string
+var kafkaOutputTopic string
+var kafkaServer string
 
 type lineBuffer []byte
 
 func makeKafkaProducer(t *testing.T) *kafkago.Writer {
 	// prepare a kafka producer on specified topic
-	kafkaAddr := os.Getenv(kafkaBrokerEnvVar)
-	if kafkaAddr == "" {
-		kafkaAddr = kafkaBrokerDefaultAddr
-	}
-	fmt.Printf("kafkaAddr = %s \n", kafkaAddr)
-	topic := os.Getenv(kafkaInputTopicEnvVar)
-	if topic == "" {
-		topic = kafkaInputTopicDefault
-	}
+	topic := kafkaInputTopic
 	fmt.Printf("producer topic = %s \n", topic)
+	fmt.Printf("kafkaServer = %s \n", kafkaServer)
 	kafkaClient := kafkago.Client{
-		Addr: kafkago.TCP(kafkaAddr),
+		Addr: kafkago.TCP(kafkaServer),
 	}
 
 	deleteResponse, err := kafkaClient.DeleteTopics(context.Background(), &kafkago.DeleteTopicsRequest{
@@ -88,26 +83,18 @@ func makeKafkaProducer(t *testing.T) *kafkago.Writer {
 	assert.NoError(t, err)
 	log.Debugf("ElectLeaders response = %v, err = %v \n", electResponse, err)
 	kafkaProducer := kafkago.Writer{
-		Addr:  kafkago.TCP(kafkaAddr),
+		Addr:  kafkago.TCP(kafkaServer),
 		Topic: topic,
 	}
 	return &kafkaProducer
 }
 
 func makeKafkaConsumer(t *testing.T) *kafkago.Reader {
-	kafkaAddr := os.Getenv(kafkaBrokerEnvVar)
-	if kafkaAddr == "" {
-		kafkaAddr = kafkaBrokerDefaultAddr
-	}
-	fmt.Printf("kafkaAddr = %s \n", kafkaAddr)
-	topic := os.Getenv(kafkaOutputTopicEnvVar)
-	if topic == "" {
-		topic = kafkaOutputTopicDefault
-	}
+	topic := kafkaOutputTopic
 	fmt.Printf("consumer topic = %s \n", topic)
 
 	kafkaClient := kafkago.Client{
-		Addr: kafkago.TCP(kafkaAddr),
+		Addr: kafkago.TCP(kafkaServer),
 	}
 
 	deleteResponse, err := kafkaClient.DeleteTopics(context.Background(), &kafkago.DeleteTopicsRequest{
@@ -119,14 +106,14 @@ func makeKafkaConsumer(t *testing.T) *kafkago.Reader {
 	time.Sleep(time.Second)
 
 	fmt.Printf("create topic: %s \n", topic)
-	createTopcisResponse, err := kafkaClient.CreateTopics(context.Background(), &kafkago.CreateTopicsRequest{
+	createTopicsResponse, err := kafkaClient.CreateTopics(context.Background(), &kafkago.CreateTopicsRequest{
 		Topics: []kafkago.TopicConfig{
 			{Topic: topic,
 				NumPartitions:     1,
 				ReplicationFactor: 1}},
 	})
 	assert.NoError(t, err)
-	log.Debugf("createTopcisResponse response = %v, err = %v \n", createTopcisResponse, err)
+	log.Debugf("createTopicsResponse response = %v, err = %v \n", createTopicsResponse, err)
 
 	electResponse, err := kafkaClient.ElectLeaders(context.Background(), &kafkago.ElectLeadersRequest{
 		Topic: topic,
@@ -136,7 +123,7 @@ func makeKafkaConsumer(t *testing.T) *kafkago.Reader {
 
 	// prepare a kafka consumer on specified topic
 	kafkaConsumer := kafkago.NewReader(kafkago.ReaderConfig{
-		Brokers:     []string{kafkaAddr},
+		Brokers:     []string{kafkaServer},
 		Topic:       topic,
 		StartOffset: kafkago.LastOffset,
 	})
@@ -207,12 +194,6 @@ func checkResults(t *testing.T, input, output []lineBuffer) {
 
 func setupPipeline(t *testing.T) {
 
-	kafkaAddr := os.Getenv(kafkaBrokerEnvVar)
-	if kafkaAddr == "" {
-		kafkaAddr = kafkaBrokerDefaultAddr
-	}
-	fmt.Printf("kafkaAddr = %s \n", kafkaAddr)
-
 	kafkaConfigTemplate := fmt.Sprintf(`
 pipeline:
   - name: kafka_ingest
@@ -230,7 +211,7 @@ parameters:
       type: kafka
       kafka:
         brokers: [%s]
-        topic: topic_in
+        topic: %s
         groupid: group_test_in
   - name: decode_json
     decode:
@@ -243,11 +224,11 @@ parameters:
       type: kafka
       kafka:
         address: %s
-        topic: topic_out
+        topic: %s
   - name: write_none
     write:
       type: none
-`, kafkaAddr, kafkaAddr)
+`, kafkaServer, kafkaInputTopic, kafkaServer, kafkaOutputTopic)
 
 	var err error
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -308,14 +289,6 @@ parameters:
 	}()
 }
 
-/*
-var TestEnv env.Environment
-
-func TestMain(m *testing.M) {
-	yamlFiles := []string{"strimzi.yaml", "kafka.strimzi.yaml"}
-	e2e.Main(m, yamlFiles, &TestEnv)
-}
-*/
 func TestEnd2EndKafka(t *testing.T) {
 	var command string
 
@@ -331,13 +304,17 @@ func TestEnd2EndKafka(t *testing.T) {
 	command = "kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.type==\"external\")].bootstrapServers}'"
 	kafkaAddr := test.RunCommand(command)
 	// strip the quotation marks
-	kafkaAddr = kafkaAddr[1 : len(kafkaAddr)-1]
-	fmt.Printf("kafkaAddr = %s \n", kafkaAddr)
-	err := os.Setenv(kafkaBrokerEnvVar, kafkaAddr)
-	assert.NoError(t, err)
-	if err != nil {
-		msg := fmt.Sprintf("error in Setenv: %v \n", err)
-		assert.Fail(t, msg)
+	kafkaServer = kafkaAddr[1 : len(kafkaAddr)-1]
+	fmt.Printf("kafkaServer = %s \n", kafkaServer)
+
+	kafkaInputTopic = os.Getenv(kafkaInputTopicEnvVar)
+	if kafkaInputTopic == "" {
+		kafkaInputTopic = kafkaInputTopicDefault
+	}
+
+	kafkaOutputTopic = os.Getenv(kafkaOutputTopicEnvVar)
+	if kafkaOutputTopic == "" {
+		kafkaOutputTopic = kafkaOutputTopicDefault
 	}
 
 	fmt.Printf("create kafka producer \n")
