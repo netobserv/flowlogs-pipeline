@@ -18,11 +18,14 @@ RUN make build_code
 
 # final stage
 FROM ubuntu
-RUN apt-get update -y
-RUN apt-get install -y netbase
-RUN apt-get install -y curl
-RUN apt-get install -y net-tools
+RUN apt-get update && apt-get install -y \
+  netbase \
+  curl \
+  net-tools \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /app/flowlogs-pipeline /app/
+COPY --from=builder /app/confgenerator /app/
 
 # expose ports
 EXPOSE 2055
