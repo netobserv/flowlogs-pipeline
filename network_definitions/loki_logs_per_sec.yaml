@@ -1,0 +1,19 @@
+#flp_confgen
+description:
+  This metric observes the number of loki logs
+details:
+  Rate of loki logs per sec
+usage:
+  Evaluate loki service usage
+labels:
+  - loki
+  - graph
+  - rate
+visualization:
+  type: grafana
+  grafana:
+    - expr: 'rate({job="flowlogs-pipeline"}[60s])'
+      type: lokiGraphPanel
+      dashboard: details
+      title:
+        Loki logs rate

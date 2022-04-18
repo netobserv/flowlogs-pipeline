@@ -229,6 +229,38 @@ dashboard.new(
 )
 .addPanel(
   graphPanel.new(
+    datasource='loki',
+    title="Bandwidth per source namespace",
+  )
+  .addTarget(
+    prometheus.target(
+      expr='sum by (srcK8S_Namespace) (sum_over_time({job="flowlogs-pipeline"} | json | unwrap bytes [1m]))',
+    )
+  ), gridPos={
+    x: 0,
+    y: 0,
+    w: 25,
+    h: 20,
+  }
+)
+.addPanel(
+  graphPanel.new(
+    datasource='loki',
+    title="Loki logs rate",
+  )
+  .addTarget(
+    prometheus.target(
+      expr='rate({job="flowlogs-pipeline"}[60s])',
+    )
+  ), gridPos={
+    x: 0,
+    y: 0,
+    w: 25,
+    h: 20,
+  }
+)
+.addPanel(
+  graphPanel.new(
     datasource='prometheus',
     title="Network services connections rate",
   )

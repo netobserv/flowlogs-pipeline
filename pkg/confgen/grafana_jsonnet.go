@@ -30,6 +30,7 @@ const panelTargetTypeGraphPanel = "graphPanel"
 const singleStatTypeGraphPanel = "singleStat"
 const barGaugeTypeGraphPanel = "barGauge"
 const heatmapTypeGraphPanel = "heatmap"
+const panelTargetTypeLokiGraphPanel = "lokiGraphPanel"
 
 const jsonNetHeaderTemplate = `
 local grafana = import 'grafana.libsonnet';
@@ -137,6 +138,24 @@ const heatmapTemplate = `
   }
 )`
 
+const lokiGraphPanelTemplate = `
+.addPanel(
+  graphPanel.new(
+    datasource='loki',
+    title="{{.Title}}",
+  )
+  .addTarget(
+    prometheus.target(
+      expr='{{.Expr}}',
+    )
+  ), gridPos={
+    x: 0,
+    y: 0,
+    w: 25,
+    h: 20,
+  }
+)`
+
 type Dashboards map[string]Dashboard
 
 type Dashboard struct {
@@ -206,6 +225,8 @@ func (cg *ConfGen) addPanelsToDashboards(dashboards Dashboards) (Dashboards, err
 	barGaugeTemplate := template.Must(template.New("graphPanelTemplate").Parse(barGaugeTemplate))
 	heatmapTemplate := template.Must(template.New("graphPanelTemplate").Parse(heatmapTemplate))
 
+	lokiGraphPanelTemplate := template.Must(template.New("graphPanelTemplate").Parse(lokiGraphPanelTemplate))
+
 	for _, definition := range cg.visualizations {
 		if definition.Type != TypeGrafana {
 			log.Infof("skipping definition of type %s", definition.Type)
@@ -237,6 +258,12 @@ func (cg *ConfGen) addPanelsToDashboards(dashboards Dashboards) (Dashboards, err
 				err := heatmapTemplate.Execute(newPanel, panelTarget)
 				if err != nil {
 					log.Infof("heatmapTemplate.Execute for %s err: %v ", panelTarget.Title, err)
+					continue
+				}
+			case panelTargetTypeLokiGraphPanel:
+				err := lokiGraphPanelTemplate.Execute(newPanel, panelTarget)
+				if err != nil {
+					log.Infof("addPanelAddTargetTemplate.Execute for %s err: %v ", panelTarget.Title, err)
 					continue
 				}
 			default:
