@@ -124,10 +124,6 @@ func Test_IngestKafka(t *testing.T) {
 	require.Equal(t, record1, receivedEntries[0])
 	require.Equal(t, record2, receivedEntries[1])
 	require.Equal(t, record3, receivedEntries[2])
-
-	// make the ingest thread exit
-	close(ingestKafka.exitChan)
-	time.Sleep(time.Second)
 }
 
 type fakeKafkaReader struct {
@@ -177,9 +173,4 @@ func Test_KafkaListener(t *testing.T) {
 
 	require.Equal(t, 1, len(receivedEntries))
 	require.Equal(t, string(fakeRecord), receivedEntries[0])
-
-	// make the ingest thread exit
-	close(ingestKafka.exitChan)
-	time.Sleep(time.Second)
-
 }

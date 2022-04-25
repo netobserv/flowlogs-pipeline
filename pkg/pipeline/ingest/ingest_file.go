@@ -30,7 +30,7 @@ import (
 
 type IngestFile struct {
 	params       config.Ingest
-	exitChan     chan struct{}
+	exitChan     <-chan struct{}
 	PrevRecords  []interface{}
 	TotalRecords int
 }
@@ -104,10 +104,8 @@ func NewIngestFile(params config.StageParam) (Ingester, error) {
 
 	log.Debugf("input file name = %s", params.Ingest.File.Filename)
 
-	ch := make(chan struct{})
-	utils.RegisterExitChannel(ch)
 	return &IngestFile{
 		params:   params.Ingest,
-		exitChan: ch,
+		exitChan: utils.ExitChannel(),
 	}, nil
 }
