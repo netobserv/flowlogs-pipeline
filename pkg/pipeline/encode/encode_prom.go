@@ -82,7 +82,7 @@ type encodeProm struct {
 	expiryTime int64
 	mList      *list.List
 	mCache     metricCache
-	exitChan   chan bool
+	exitChan   chan struct{}
 }
 
 var metricsProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
@@ -336,7 +336,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 		}
 	}
 
-	ch := make(chan bool, 1)
+	ch := make(chan struct{})
 	utils.RegisterExitChannel(ch)
 
 	log.Debugf("metrics = %v", metrics)

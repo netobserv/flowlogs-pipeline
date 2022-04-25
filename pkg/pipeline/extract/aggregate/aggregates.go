@@ -75,7 +75,7 @@ func (aggregates *Aggregates) AddAggregate(aggregateDefinition api.AggregateDefi
 func (aggregates *Aggregates) cleanupExpiredEntriesLoop() {
 
 	ticker := time.NewTicker(time.Duration(aggregates.expiryTime) * time.Second)
-	done := make(chan bool)
+	done := make(chan struct{})
 	utils.RegisterExitChannel(done)
 	go func() {
 		for {

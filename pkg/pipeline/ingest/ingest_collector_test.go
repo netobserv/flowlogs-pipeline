@@ -19,7 +19,7 @@ func TestIngest(t *testing.T) {
 		hostname:       "0.0.0.0",
 		port:           collectorPort,
 		batchFlushTime: 10 * time.Millisecond,
-		exitChan:       make(chan bool),
+		exitChan:       make(chan struct{}),
 	}
 	forwarded := make(chan []interface{})
 	//defer close(forwarded)
