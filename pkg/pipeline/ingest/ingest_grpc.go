@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/netobserv-agent/pkg/grpc"
 	"github.com/netobserv/netobserv-agent/pkg/pbflow"
 )
@@ -37,6 +38,13 @@ func NewGRPCProtobuf(params config.StageParam) (*GRPCProtobuf, error) {
 }
 
 func (no *GRPCProtobuf) Ingest(out chan<- []interface{}) {
+	exitCh := make(chan struct{})
+	utils.RegisterExitChannel(exitCh)
+	go func() {
+		<-exitCh
+		close(no.flowPackets)
+		no.collector.Close()
+	}()
 	for fp := range no.flowPackets {
 		out <- []interface{}{fp}
 	}

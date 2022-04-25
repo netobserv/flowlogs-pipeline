@@ -38,7 +38,7 @@ type ingestKafka struct {
 	kafkaParams api.IngestKafka
 	kafkaReader kafkaReadMessage
 	in          chan string
-	exitChan    chan bool
+	exitChan    chan struct{}
 	prevRecords []interface{} // copy of most recently sent records; for testing and debugging
 }
 
@@ -153,7 +153,7 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 	}
 	log.Debugf("kafkaReader = %v", kafkaReader)
 
-	ch := make(chan bool, 1)
+	ch := make(chan struct{})
 	utils.RegisterExitChannel(ch)
 
 	return &ingestKafka{

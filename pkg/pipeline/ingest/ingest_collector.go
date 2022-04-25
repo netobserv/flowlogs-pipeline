@@ -51,7 +51,7 @@ type ingestCollector struct {
 	in             chan map[string]interface{}
 	batchFlushTime time.Duration
 	batchMaxLength int
-	exitChan       chan bool
+	exitChan       chan struct{}
 }
 
 // TransportWrapper is an implementation of the goflow2 transport interface
@@ -200,7 +200,7 @@ func NewIngestCollector(params config.StageParam) (Ingester, error) {
 	log.Infof("hostname = %s", jsonIngestCollector.HostName)
 	log.Infof("port = %d", jsonIngestCollector.Port)
 
-	ch := make(chan bool, 1)
+	ch := make(chan struct{})
 	pUtils.RegisterExitChannel(ch)
 
 	bml := defaultBatchMaxLength

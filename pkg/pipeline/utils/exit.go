@@ -27,11 +27,11 @@ import (
 )
 
 var (
-	registeredChannels []chan bool
+	registeredChannels []chan struct{}
 	chanMutex          sync.Mutex
 )
 
-func RegisterExitChannel(ch chan bool) {
+func RegisterExitChannel(ch chan struct{}) {
 	chanMutex.Lock()
 	defer chanMutex.Unlock()
 	registeredChannels = append(registeredChannels, ch)
@@ -40,7 +40,7 @@ func RegisterExitChannel(ch chan bool) {
 func SetupElegantExit() {
 	log.Debugf("entering SetupElegantExit")
 	// handle elegant exit; create support for channels of go routines that want to exit cleanly
-	registeredChannels = make([]chan bool, 0)
+	registeredChannels = make([]chan struct{}, 0)
 	exitSigChan := make(chan os.Signal, 1)
 	log.Debugf("registered exit signal channel")
 	signal.Notify(exitSigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -52,7 +52,7 @@ func SetupElegantExit() {
 		defer chanMutex.Unlock()
 		// exit signal received; stop other go functions
 		for _, ch := range registeredChannels {
-			ch <- true
+			close(ch)
 		}
 		log.Debugf("exiting SetupElegantExit go function")
 	}()

@@ -126,7 +126,7 @@ func Test_IngestKafka(t *testing.T) {
 	require.Equal(t, record3, receivedEntries[2])
 
 	// make the ingest thread exit
-	ingestKafka.exitChan <- true
+	close(ingestKafka.exitChan)
 	time.Sleep(time.Second)
 }
 
@@ -179,7 +179,7 @@ func Test_KafkaListener(t *testing.T) {
 	require.Equal(t, string(fakeRecord), receivedEntries[0])
 
 	// make the ingest thread exit
-	ingestKafka.exitChan <- true
+	close(ingestKafka.exitChan)
 	time.Sleep(time.Second)
 
 }
