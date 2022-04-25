@@ -38,10 +38,8 @@ func NewGRPCProtobuf(params config.StageParam) (*GRPCProtobuf, error) {
 }
 
 func (no *GRPCProtobuf) Ingest(out chan<- []interface{}) {
-	exitCh := make(chan struct{})
-	utils.RegisterExitChannel(exitCh)
 	go func() {
-		<-exitCh
+		<-utils.ExitChannel()
 		close(no.flowPackets)
 		no.collector.Close()
 	}()

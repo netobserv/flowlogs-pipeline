@@ -56,7 +56,7 @@ type Loki struct {
 	client     emitter
 	timeNow    func() time.Time
 	in         chan config.GenericMap
-	exitChan   chan struct{}
+	exitChan   <-chan struct{}
 }
 
 var recordsWritten = operationalMetrics.NewCounter(prometheus.CounterOpts{
@@ -263,9 +263,6 @@ func NewWriteLoki(params config.StageParam) (*Loki, error) {
 		return nil, err
 	}
 
-	ch := make(chan struct{})
-	pUtils.RegisterExitChannel(ch)
-
 	in := make(chan config.GenericMap, channelSize)
 
 	l := &Loki{
@@ -273,7 +270,7 @@ func NewWriteLoki(params config.StageParam) (*Loki, error) {
 		apiConfig:  jsonWriteLoki,
 		client:     client,
 		timeNow:    time.Now,
-		exitChan:   ch,
+		exitChan:   pUtils.ExitChannel(),
 		in:         in,
 	}
 

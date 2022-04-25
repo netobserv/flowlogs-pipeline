@@ -82,7 +82,7 @@ type encodeProm struct {
 	expiryTime int64
 	mList      *list.List
 	mCache     metricCache
-	exitChan   chan struct{}
+	exitChan   <-chan struct{}
 }
 
 var metricsProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
@@ -336,9 +336,6 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 		}
 	}
 
-	ch := make(chan struct{})
-	utils.RegisterExitChannel(ch)
-
 	log.Debugf("metrics = %v", metrics)
 	w := &encodeProm{
 		port:       fmt.Sprintf(":%v", portNum),
@@ -347,7 +344,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 		expiryTime: expiryTime,
 		mList:      list.New(),
 		mCache:     make(metricCache),
-		exitChan:   ch,
+		exitChan:   utils.ExitChannel(),
 	}
 	go startPrometheusInterface(w)
 	go w.cleanupExpiredEntriesLoop()
