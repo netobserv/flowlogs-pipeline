@@ -33,6 +33,8 @@ import (
 )
 
 var (
+	BuildVersion       string
+	BuildDate          string
 	cfgFile            string
 	logLevel           string
 	envPrefix          = "FLP_CONFGEN"
@@ -143,8 +145,9 @@ func main() {
 }
 
 func run() {
-	// Starting log message
-	log.Infof("starting %s", filepath.Base(os.Args[0]))
+	// Initial log message
+	fmt.Printf("Starting %s:\n=====\nBuild Version: %s\nBuild Date: %s\n\n",
+		filepath.Base(os.Args[0]), BuildVersion, BuildDate)
 	// Dump the configuration
 	dumpConfig()
 	// creating a new configuration generator

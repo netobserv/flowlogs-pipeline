@@ -76,6 +76,7 @@ lint: $(GOLANGCI_LINT) ## Lint the code
 build_code: validate_go lint
 	@go mod vendor
 	go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${FLP_BIN_FILE}"
+	go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${CG_BIN_FILE}"
 
 .PHONY: build
 build: build_code docs ## Build flowlogs-pipeline executable and update the docs
