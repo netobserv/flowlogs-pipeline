@@ -28,10 +28,18 @@ var TestEnv env.Environment
 
 var manifestDeployDefinitions = e2e.ManifestDeployDefinitions{
 	e2e.ManifestDeployDefinition{
+		YamlFile: "strimzi.yaml",
+	},
+	e2e.ManifestDeployDefinition{
+		YamlFile:     "kafka.strimzi.yaml",
+		PostFunction: postStrimziDeploy,
+	},
+	e2e.ManifestDeployDefinition{
 		YamlFile: "flp-config.yaml",
 	},
 	e2e.ManifestDeployDefinition{
-		YamlFile: "flp.yaml",
+		YamlFile:     "flp.yaml",
+		PostFunction: postFLPDeploy,
 	},
 }
 

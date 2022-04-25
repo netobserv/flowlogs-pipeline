@@ -22,9 +22,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"regexp"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -34,11 +33,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/e2e-framework/klient/k8s"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/env"
@@ -48,32 +44,49 @@ import (
 
 type namespaceContextKey string
 
-func Main(m *testing.M, yamlFiles []string, testEnv *env.Environment) {
+type ManifestDeployDefinitions []ManifestDeployDefinition
+
+type ManifestDeployDefinition struct {
+	PreFunction  func(ctx context.Context, cfg *envconf.Config, namespace string) error
+	YamlFile     string
+	PostFunction func(ctx context.Context, cfg *envconf.Config, namespace string) error
+}
+
+func Main(m *testing.M, manifestDeployDefinitions ManifestDeployDefinitions, testEnv *env.Environment) {
 	*testEnv = env.New()
 	kindClusterName := "test"
-	namespace := "test"
+	namespace := "default"
 	dockerImage := "quay.io/netobserv/flowlogs-pipeline"
 	dockerTag := "e2e"
 
 	(*testEnv).Setup(
-		e2eCreateKindCluster(kindClusterName),
+		e2eRecreateKindCluster(kindClusterName),
 		e2eBuildAndLoadImageIntoKind(dockerImage, dockerTag, kindClusterName),
 		e2eRecreateNamespace(namespace),
-		e2eDeployEnvironmentResources(yamlFiles, namespace),
+		e2eDeployEnvironmentResources(manifestDeployDefinitions, namespace),
 	)
 
 	(*testEnv).Finish(
-		envfuncs.DeleteNamespace(namespace),
-		envfuncs.DestroyKindCluster(kindClusterName),
+		e2eDeleteKindCluster(kindClusterName),
 	)
 	os.Exit((*testEnv).Run(m))
 }
 
-func e2eCreateKindCluster(clusterName string) env.Func {
+func e2eRecreateKindCluster(clusterName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		fmt.Printf("====> Creating KIND cluster - %s\n", clusterName)
+		fmt.Printf("====> Recreating KIND cluster - %s\n", clusterName)
+		gexe.RunProc(fmt.Sprintf(`kind delete cluster --name %s`, clusterName))
 		newCtx, err := envfuncs.CreateKindCluster(clusterName)(ctx, cfg)
 		fmt.Printf("====> Done.\n")
+		return newCtx, err
+	}
+}
+
+func e2eDeleteKindCluster(clusterName string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		fmt.Printf("====> Deleting KIND cluster - %s\n", clusterName)
+		newCtx, err := envfuncs.DestroyKindCluster(clusterName)(ctx, cfg)
+		fmt.Printf("\n====> Done.\n")
 		return newCtx, err
 	}
 }
@@ -103,6 +116,7 @@ func e2eBuildAndLoadImageIntoKind(dockerImg, dockerTag, clusterName string) env.
 
 func e2eRecreateNamespace(name string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+
 		fmt.Printf("====> Recreating namespace - %s\n", name)
 		var namespace *corev1.Namespace
 
@@ -125,6 +139,12 @@ func e2eRecreateNamespace(name string) env.Func {
 			if err = client.Resources().Get(ctx, name, name, &ns); err == nil {
 				namespace = &ns
 			}
+		}
+
+		if name == "default" {
+			fmt.Printf("====> Done. (Default namespace always exist)\n")
+			cfg.WithNamespace(name)
+			return context.WithValue(ctx, namespaceContextKey(name), namespace), err
 		}
 
 		// remove if exists
@@ -152,65 +172,41 @@ func e2eRecreateNamespace(name string) env.Func {
 	}
 }
 
-func e2eDeployEnvironmentResources(yamlFiles []string, namespace string) env.Func {
+func e2eDeployEnvironmentResources(manifestDeployDefinitions ManifestDeployDefinitions, namespace string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		fmt.Printf("====> Deploying k8s resources from - %v\n", yamlFiles)
-		yaml := ""
-		for _, file := range yamlFiles {
-			fileYaml, err := ioutil.ReadFile(file)
-			if err != nil {
-				return ctx, fmt.Errorf("e2eDeployEnvironmentResources - ReadFile: %w", err)
+		for _, manifestDeployDefinition := range manifestDeployDefinitions {
+			if manifestDeployDefinition.PreFunction != nil {
+				err := manifestDeployDefinition.PreFunction(ctx, cfg, namespace)
+				if err != nil {
+					return ctx, fmt.Errorf("e2eDeployEnvironmentResources:PreFunction: error: %v", err)
+				}
 			}
-
-			yaml += "\n---\n" + string(fileYaml)
-		}
-
-		resources := parseK8sYaml(string(yaml))
-		client, err := cfg.NewClient()
-		if err != nil {
-			return ctx, fmt.Errorf("e2eDeployEnvironmentResources - NewClient: %w", err)
-		}
-
-		for _, resource := range resources {
-			k8sResource := resource.(k8s.Object)
-			k8sResource.SetNamespace(namespace)
-
-			// Recreate resource
-			// Note: Skip if resource do not exist, we create
-			_ = client.Resources().Delete(ctx, k8sResource)
-			err = client.Resources().Create(ctx, k8sResource)
+			err := deployManifest(ctx, cfg, namespace, manifestDeployDefinition.YamlFile)
 			if err != nil {
-				return ctx, fmt.Errorf("create resource : %w", err)
+				return ctx, fmt.Errorf("deployManifest failed: %v", err)
+			}
+			if manifestDeployDefinition.PostFunction != nil {
+				err = manifestDeployDefinition.PostFunction(ctx, cfg, namespace)
+				if err != nil {
+					return ctx, fmt.Errorf("e2eDeployEnvironmentResources:PostFunction: error: %v", err)
+				}
 			}
 		}
-		fmt.Printf("====> Done.\n")
+
 		return ctx, nil
 	}
 }
 
-func parseK8sYaml(yaml string) []runtime.Object {
-	acceptedK8sTypes := regexp.MustCompile(`(ConfigMap|Service|Deployment|ServiceAccount|ClusterRole|ClusterRoleBinding|Secret)`)
-	sepYamlFiles := strings.Split(yaml, "---")
-	resources := make([]runtime.Object, 0, len(sepYamlFiles))
-	for _, f := range sepYamlFiles {
-		if f == "\n" || f == "" {
-			// ignore empty cases
-			continue
-		}
-
-		decode := scheme.Codecs.UniversalDeserializer().Decode
-		resource, groupVersionKind, err := decode([]byte(f), nil, nil)
-
-		if err != nil {
-			continue
-		}
-
-		if !acceptedK8sTypes.MatchString(groupVersionKind.Kind) {
-		} else {
-			resources = append(resources, resource)
-		}
+func deployManifest(ctx context.Context, cfg *envconf.Config, namespace string, yamlFileName string) error {
+	fmt.Printf("====> Deploying k8s manifest - %s\n", yamlFileName)
+	cmd := fmt.Sprintf("cat %s | kubectl apply -n %s -f -", yamlFileName, namespace)
+	out, err := exec.Command("bash", "-c", cmd).Output()
+	if err != nil {
+		fmt.Printf("deployManifest %s error :: %v", yamlFileName, out)
 	}
-	return resources
+
+	fmt.Printf("====> Done.\n")
+	return nil
 }
 
 func GetCoreV1Client(confFileName string) (*corev1client.CoreV1Client, error) {
