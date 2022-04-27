@@ -1,0 +1,126 @@
+log-level: error
+parameters:
+  - ingest:
+      ...
+    name: ingest_collector
+  - decode:
+      ...
+    name: decode_json
+
+  - name: transform_generic
+    transform:
+      generic:
+        ...
+      type: generic
+
+  - name: transform_network
+    transform:
+      network:
+        ...
+      type: network
+
+  - name: connection_tracking
+    conn_track: # Or connTrack/connectionTracking/connection_tracking
+
+      finishTimeouts: # Per protocol. What if protocol is not one of key fields?
+        tcp: 2m
+        udp: 30s
+        default: 5m
+
+      updateInterval: 1m
+      updateFlowLogsCount: 100
+
+      outputRecordTypes:
+        - start # newConnection
+        - updates # updatedConnection
+        - end # finishedConnection
+        # Optional: we might not need the following option
+        - input # flows/originalFlowLogs
+
+
+      keyFields:
+        nonPairs: # think of a better name
+          - protocol
+          # If ObservationPoint is NOT set, then we'll have duplicate flow logs from different ObservationPoints in the
+          # same connection. Should we handle it somehow?
+          - ObservationPoint
+        # Need to verify that the following 2 flows will end up in different connections.
+        # srcIP | srcPort | dstIP | dstPort
+        # ----------------------------------
+        # IP1  | port1    | IP2   |  port2
+        # IP2  | port2    | IP1   |  port1
+
+
+        # IP1  | port2    | IP2   |  port1
+        pairs: # key1 and key2 will be grouped across all pairs.
+          - name: IP
+            key1: srcIP
+            key2: dstIP
+          - name: port
+            key1: srcPort
+            key2: dstPort
+      # `direction` and `perObservationPoint`are redundant if keyFields is specified.
+      # In IPFIX, the terms "Unidirectional" and "bidirectional" are used instead of "one-way" and "two-way".
+      # https://datatracker.ietf.org/doc/html/rfc5103#section-2
+      direction: one-way # two-way
+      perObservationPoint: true
+
+
+      # In case of two-way, each tracking field must be duplicated one for src->dst and one for dst->src.
+      # What prefix/suffix to use?
+      # Do we really want this complication?
+      # I guess summing bytes from the two directions makes no sense.
+      outputFields:
+        - name: bytes
+          operation: sum
+        - name: packets
+          operation: sum
+        # Number of flows in a connection
+        # The following is confusing because it says "count bytes"
+        - name: numFlowLogEntries # This could be any field in the flow log
+          operation: count
+          # If the operation is `count` we don't need an 'input' field
+          # add an example for input in a different field
+          input: bytes # if input is not specified, it's set the same as "name"
+        - name: startTime
+          operation: min
+        - name: endTime
+          operation: max
+
+  - name: extract_aggregate
+    extract:
+      aggregates:
+        ...
+      type: aggregates
+
+  - name: encode_prom
+    encode:
+      prom:
+        ...
+      type: prom
+
+
+  - name: write_none
+    write:
+      ...
+
+pipeline:
+  - name: ingest_collector
+  - follows: ingest_collector
+    name: decode_json
+  - follows: decode_json
+    name: transform_generic
+  - follows: transform_generic
+    name: transform_network
+
+  - follows: transform_network
+    name: connection_tracking
+
+  - follows: connection_tracking
+    name: encode_prom
+
+  - follows: extract_aggregate
+    name: encode_prom
+  - follows: encode_prom
+    name: write_none
+
