@@ -148,16 +148,9 @@ push-image: build-image ## Push latest image
 
 # note: to deploy with custom image tag use: DOCKER_TAG=test make deploy
 .PHONY: deploy
-deploy: build-image ## Deploy the image
+deploy: ## Deploy the image
 	sed 's|%DOCKER_IMG%|$(DOCKER_IMG)|g;s|%DOCKER_TAG%|$(DOCKER_TAG)|g' contrib/kubernetes/deployment.yaml > /tmp/deployment.yaml
 	kubectl create configmap flowlogs-pipeline-configuration --from-file=flowlogs-pipeline.conf.yaml=$(FLP_CONF_FILE)
-ifeq ($(OCI_RUNTIME),$(shell which docker))
-# This is an optimization for docker provider. "kind load docker-image" can load an image directly from docker's
-# local registry. For other providers (i.e. podman), we must use "kind load image-archive" instead.
-	$(KIND) load docker-image $(DOCKER_IMG):$(DOCKER_TAG)
-else
-	$(OCI_RUNTIME) save $(DOCKER_IMG):$(DOCKER_TAG) | kind load image-archive -
-endif
 	kubectl apply -f /tmp/deployment.yaml
 	kubectl rollout status "deploy/flowlogs-pipeline" --timeout=600s
 
@@ -230,6 +223,16 @@ create-kind-cluster: $(KIND) ## Create cluster
 delete-kind-cluster: $(KIND) ## Delete cluster
 	$(KIND) delete cluster
 
+.PHONY: kind-load-image
+kind-load-image: ## Load image to kind
+ifeq ($(OCI_RUNTIME),$(shell which docker))
+# This is an optimization for docker provider. "kind load docker-image" can load an image directly from docker's
+# local registry. For other providers (i.e. podman), we must use "kind load image-archive" instead.
+	$(KIND) load docker-image $(DOCKER_IMG):$(DOCKER_TAG)
+else
+	$(OCI_RUNTIME) save $(DOCKER_IMG):$(DOCKER_TAG) | kind load image-archive -
+endif
+
 ##@ metrics
 
 .PHONY: generate-configuration
@@ -243,7 +246,7 @@ generate-configuration: $(KIND) ## Generate metrics configuration
 ##@ End2End
 
 .PHONY: local-deployments-deploy
-local-deployments-deploy: $(KIND) deploy-prometheus deploy-loki deploy-grafana deploy deploy-netflow-simulator
+local-deployments-deploy: $(KIND) deploy-prometheus deploy-loki deploy-grafana build-image kind-load-image deploy deploy-netflow-simulator
 	kubectl get pods
 	kubectl rollout status -w deployment/flowlogs-pipeline
 	kubectl logs -l app=flowlogs-pipeline
