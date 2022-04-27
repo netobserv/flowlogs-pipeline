@@ -23,7 +23,7 @@ spec:
             - containerPort: 6343
             - containerPort: 2055
             - containerPort: 2056
-          imagePullPolicy: Always
+          imagePullPolicy: Never
           volumeMounts:
             - name: configuration
               mountPath: "/etc/flowlogs-pipeline/"
