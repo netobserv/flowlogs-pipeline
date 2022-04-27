@@ -151,9 +151,6 @@ push-image: build-image ## Push latest image
 deploy: build-image ## Deploy the image
 	sed 's|%DOCKER_IMG%|$(DOCKER_IMG)|g;s|%DOCKER_TAG%|$(DOCKER_TAG)|g' contrib/kubernetes/deployment.yaml > /tmp/deployment.yaml
 	kubectl create configmap flowlogs-pipeline-configuration --from-file=flowlogs-pipeline.conf.yaml=$(FLP_CONF_FILE)
-# The following "if" statement is still part of the "deploy" recipe. It couldn't be indented with tabs because it will
-# be considered as part of the recipe. It could be indented with spaces but I find it confusing.
-# https://stackoverflow.com/a/28720186/2749989
 ifeq ($(OCI_RUNTIME),$(shell which docker))
 # This is an optimization for docker provider. "kind load docker-image" can load an image directly from docker's
 # local registry. For other providers (i.e. podman), we must use "kind load image-archive" instead.
