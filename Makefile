@@ -230,7 +230,11 @@ ifeq ($(OCI_RUNTIME),$(shell which docker))
 # local registry. For other providers (i.e. podman), we must use "kind load image-archive" instead.
 	$(KIND) load docker-image $(DOCKER_IMG):$(DOCKER_TAG)
 else
-	$(OCI_RUNTIME) save $(DOCKER_IMG):$(DOCKER_TAG) | kind load image-archive -
+	$(eval tmpfile="/tmp/flp.tar")
+	-rm $(tmpfile)
+	$(OCI_RUNTIME) save $(DOCKER_IMG):$(DOCKER_TAG) -o $(tmpfile)
+	$(KIND) load image-archive $(tmpfile)
+	-rm $(tmpfile)
 endif
 
 ##@ metrics
