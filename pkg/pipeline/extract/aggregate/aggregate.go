@@ -203,6 +203,50 @@ func (aggregate Aggregate) Evaluate(entries []config.GenericMap) error {
 	return nil
 }
 
+func (aggregate Aggregate) computeTopK(inputMetrics []config.GenericMap) []config.GenericMap {
+	nItemsInList := int(0)
+	topk := aggregate.Definition.TopK
+
+	outputMetrics := make([]config.GenericMap, topk)
+	minRecentCount := inputMetrics[0]["recent_count"].(int)
+	log.Debugf("minRecentCount = %d", minRecentCount)
+
+	for _, metric := range inputMetrics {
+		// fill output with first topk items
+		if nItemsInList < topk {
+			outputMetrics[nItemsInList] = metric
+			nItemsInList++
+			count := metric["recent_count"].(int)
+			log.Debugf("item added, count = %d", count)
+			if count < minRecentCount {
+				minRecentCount = count
+				log.Debugf("minRecentCount = %d", minRecentCount)
+			}
+			continue
+		}
+
+		currentRecentCount := metric["recent_count"].(int)
+		if currentRecentCount > minRecentCount {
+			// find the item with the minRecentCount and replace it
+			// find updated minRecentCount
+			newMinRecentCount := currentRecentCount
+			for i, m := range outputMetrics {
+				count := m["recent_count"].(int)
+				if count == minRecentCount {
+					outputMetrics[i] = metric
+					log.Debugf("item added, count = %d", currentRecentCount)
+					log.Debugf("replaced i = %d, count = %d", i, count)
+				} else if count < newMinRecentCount {
+					newMinRecentCount = count
+				}
+			}
+			minRecentCount = newMinRecentCount
+			log.Debugf("minRecentCount = %d", minRecentCount)
+		}
+	}
+	return outputMetrics
+}
+
 func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 	aggregate.mutex.Lock()
 	defer aggregate.mutex.Unlock()
@@ -228,6 +272,10 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 		}
 		group.recentCount = 0
 		group.recentOpValue = getInitValue(string(aggregate.Definition.Operation))
+	}
+
+	if aggregate.Definition.TopK > 0 {
+		metrics = aggregate.computeTopK(metrics)
 	}
 
 	return metrics
