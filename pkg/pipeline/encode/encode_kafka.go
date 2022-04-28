@@ -43,11 +43,10 @@ type encodeKafka struct {
 }
 
 // Encode writes entries to kafka topic
-func (r *encodeKafka) Encode(in []config.GenericMap) []config.GenericMap {
+func (r *encodeKafka) Encode(in []config.GenericMap) {
 	log.Debugf("entering encodeKafka Encode, #items = %d", len(in))
 	var msgs []kafkago.Message
 	msgs = make([]kafkago.Message, 0)
-	out := make([]config.GenericMap, 0)
 	for _, entry := range in {
 		var entryByteArray []byte
 		entryByteArray, _ = json.Marshal(entry)
@@ -55,13 +54,11 @@ func (r *encodeKafka) Encode(in []config.GenericMap) []config.GenericMap {
 			Value: entryByteArray,
 		}
 		msgs = append(msgs, msg)
-		out = append(out, entry)
 	}
 	err := r.kafkaWriter.WriteMessages(context.Background(), msgs...)
 	if err != nil {
 		log.Errorf("encodeKafka error: %v", err)
 	}
-	return out
 }
 
 // NewEncodeKafka create a new writer to kafka

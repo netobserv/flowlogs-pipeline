@@ -236,9 +236,9 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 			}
 		})
 	case StageEncode:
-		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
+		stage = node.AsTerminal(func(in <-chan []config.GenericMap) {
 			for i := range in {
-				out <- pe.Encoder.Encode(i)
+				pe.Encoder.Encode(i)
 			}
 		})
 	case StageTransform:

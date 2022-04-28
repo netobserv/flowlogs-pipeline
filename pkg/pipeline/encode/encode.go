@@ -23,19 +23,22 @@ import (
 )
 
 type encodeNone struct {
+	prevRecords []config.GenericMap
 }
 
 type Encoder interface {
-	Encode(in []config.GenericMap) []config.GenericMap
+	Encode(in []config.GenericMap)
 }
 
 // Encode encodes a flow before being stored
-func (t *encodeNone) Encode(in []config.GenericMap) []config.GenericMap {
-	return in
+func (t *encodeNone) Encode(in []config.GenericMap) {
+	t.prevRecords = in
 }
 
 // NewEncodeNone create a new encode
 func NewEncodeNone() (Encoder, error) {
 	log.Debugf("entering NewEncodeNone")
-	return &encodeNone{}, nil
+	return &encodeNone{
+		prevRecords: make([]config.GenericMap, 0),
+	}, nil
 }

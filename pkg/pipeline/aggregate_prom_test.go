@@ -173,8 +173,8 @@ parameters:
 			// we use ElementsMatch() rather than Equals()
 			require.ElementsMatch(t, tt.expectedAggs, actualAggs)
 
-			actualEncode := promEncode.Encode(actualAggs)
-			require.ElementsMatch(t, tt.expectedEncode, actualEncode)
+			promEncode.Encode(actualAggs)
+			require.ElementsMatch(t, tt.expectedEncode, promEncode.(*encode.EncodeProm).PrevRecords)
 		})
 	}
 }
