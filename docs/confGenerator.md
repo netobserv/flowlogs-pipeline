@@ -150,10 +150,14 @@ For `Histogram`, use `recent_raw_values`. <br>
 Prometheus will add labels to the metric based on the (9.6) fields. <br>
 
 (10) next, using grafana to visualize the metric with name from (9.2) including the 
-prefix and using the prometheus expression from (10.1). 
+prefix and using the expression from (10.1). 
 Grafana will visualize the metric as (10.2) and place the panel inside
 a dashboard named (10.3) as defined in `config.yaml`. 
 The title for the panel will be (10.4)  
+
+The type field for (10.2) can be one of:
+"graphPanel", "singleStat", "barGauge", "heatmap" to use prometheus datasource and visualize accordingly or,  
+"lokiGraphPanel" to use loki datasource and visualize accordingly
 
 > [connection_rate_per_dest_subnet.yaml](../network_definitions/connection_rate_per_dest_subnet.yaml) is an
 > example for a network_definition file in which the metric is defined to hold counts 

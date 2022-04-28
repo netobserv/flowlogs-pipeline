@@ -1,0 +1,20 @@
+#flp_confgen
+description:
+  This metric observes the bandwidth per namespace (from Loki)
+details:
+  Sum bytes for all traffic per source namespace
+usage:
+  Evaluate network usage breakdown per source namespace
+labels:
+  - loki
+  - graph
+  - rate
+  - namespace
+visualization:
+  type: grafana
+  grafana:
+    - expr: 'sum by (srcK8S_Namespace) (sum_over_time({job="flowlogs-pipeline"} | json | unwrap bytes [1m]))'
+      type: lokiGraphPanel
+      dashboard: details
+      title:
+        Bandwidth per source namespace

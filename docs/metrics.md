@@ -170,6 +170,26 @@ and the transformation to generate the exported metric.
 |||  
 
 
+### loki bandwidth per namespace
+| **Description** | This metric observes the bandwidth per namespace (from Loki) | 
+|:---|:---|
+| **Details** | Sum bytes for all traffic per source namespace | 
+| **Usage** | Evaluate network usage breakdown per source namespace | 
+| **Labels** | loki, graph, rate, namespace |
+| **Visualized as** | "Bandwidth per source namespace" on dashboard `details` |
+|||  
+
+
+### loki logs per sec
+| **Description** | This metric observes the number of loki logs | 
+|:---|:---|
+| **Details** | Rate of loki logs per sec | 
+| **Usage** | Evaluate loki service usage | 
+| **Labels** | loki, graph, rate |
+| **Visualized as** | "Loki logs rate" on dashboard `details` |
+|||  
+
+
 ### network services count
 | **Description** | This metric observes network services rate (total) | 
 |:---|:---|
