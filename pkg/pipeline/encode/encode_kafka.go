@@ -40,6 +40,7 @@ type kafkaWriteMessage interface {
 type encodeKafka struct {
 	kafkaParams api.EncodeKafka
 	kafkaWriter kafkaWriteMessage
+	prevRecords []config.GenericMap
 }
 
 // Encode writes entries to kafka topic
@@ -59,6 +60,7 @@ func (r *encodeKafka) Encode(in []config.GenericMap) {
 	if err != nil {
 		log.Errorf("encodeKafka error: %v", err)
 	}
+	r.prevRecords = in
 }
 
 // NewEncodeKafka create a new writer to kafka
