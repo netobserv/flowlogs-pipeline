@@ -21,7 +21,7 @@ RUN go mod download
 RUN go mod download -modfile=.bingo/golangci-lint.mod
 
 COPY . ./
-#RUN rm -rf bin
+RUN rm -rf bin
 RUN git status --porcelain
 RUN make build_code
 
