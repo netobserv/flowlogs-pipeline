@@ -209,39 +209,41 @@ func (aggregate Aggregate) computeTopK(inputMetrics []config.GenericMap) []confi
 
 	outputMetrics := make([]config.GenericMap, topk)
 	minRecentCount := inputMetrics[0]["recent_count"].(int)
+	indexMin := 0
 	log.Debugf("minRecentCount = %d", minRecentCount)
 
-	for _, metric := range inputMetrics {
+	for index, metric := range inputMetrics {
 		// fill output with first topk items
 		if nItemsInList < topk {
 			outputMetrics[nItemsInList] = metric
 			nItemsInList++
 			count := metric["recent_count"].(int)
-			log.Debugf("item added, count = %d", count)
+			log.Debugf("item added, count = %d, index = %d", count, index)
 			if count < minRecentCount {
 				minRecentCount = count
-				log.Debugf("minRecentCount = %d", minRecentCount)
+				indexMin = index
+				log.Debugf("minRecentCount = %d, index = %d", minRecentCount, index)
 			}
 			continue
 		}
 
 		currentRecentCount := metric["recent_count"].(int)
 		if currentRecentCount > minRecentCount {
-			// find the item with the minRecentCount and replace it
+			// replace item that has minRecentCount
+			outputMetrics[indexMin] = metric
+			log.Debugf("item added, count = %d", currentRecentCount)
+			log.Debugf("replaced index = %d, count = %d", indexMin, minRecentCount)
 			// find updated minRecentCount
 			newMinRecentCount := currentRecentCount
 			for i, m := range outputMetrics {
 				count := m["recent_count"].(int)
-				if count == minRecentCount {
-					outputMetrics[i] = metric
-					log.Debugf("item added, count = %d", currentRecentCount)
-					log.Debugf("replaced i = %d, count = %d", i, count)
-				} else if count < newMinRecentCount {
+				if count < newMinRecentCount {
 					newMinRecentCount = count
+					indexMin = i
 				}
 			}
 			minRecentCount = newMinRecentCount
-			log.Debugf("minRecentCount = %d", minRecentCount)
+			log.Debugf("minRecentCount = %d, index = %d", minRecentCount, indexMin)
 		}
 	}
 	return outputMetrics
