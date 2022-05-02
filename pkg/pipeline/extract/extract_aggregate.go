@@ -23,20 +23,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type extractAggregate struct {
-	aggregates aggregate.Aggregates
+type ExtractAggregate struct {
+	Aggregates aggregate.Aggregates
 }
 
 // Extract extracts a flow before being stored
-func (ea *extractAggregate) Extract(entries []config.GenericMap) []config.GenericMap {
-	err := ea.aggregates.Evaluate(entries)
+func (ea *ExtractAggregate) Extract(entries []config.GenericMap) []config.GenericMap {
+	err := ea.Aggregates.Evaluate(entries)
 	if err != nil {
 		log.Debugf("Evaluate error %v", err)
 	}
 
 	// TODO: This need to be async function that is being called for the metrics and not
 	// TODO: synchronized from the pipeline directly.
-	return ea.aggregates.GetMetrics()
+	return ea.Aggregates.GetMetrics()
 }
 
 // NewExtractAggregate creates a new extractor
@@ -48,7 +48,7 @@ func NewExtractAggregate(params config.StageParam) (Extractor, error) {
 		return nil, err
 	}
 
-	return &extractAggregate{
-		aggregates: aggregates,
+	return &ExtractAggregate{
+		Aggregates: aggregates,
 	}, nil
 }
