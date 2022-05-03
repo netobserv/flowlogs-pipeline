@@ -23,7 +23,9 @@ spec:
             - containerPort: 6343
             - containerPort: 2055
             - containerPort: 2056
-          imagePullPolicy: Always
+          # When deployed on KinD, the image is pre-pushed to KinD from the local registry.
+          # When deployed on OCP, OCP will pull the image from quay.io.
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: configuration
               mountPath: "/etc/flowlogs-pipeline/"

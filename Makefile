@@ -223,6 +223,20 @@ create-kind-cluster: $(KIND) ## Create cluster
 delete-kind-cluster: $(KIND) ## Delete cluster
 	$(KIND) delete cluster
 
+.PHONY: kind-load-image
+kind-load-image: ## Load image to kind
+ifeq ($(OCI_RUNTIME),$(shell which docker))
+# This is an optimization for docker provider. "kind load docker-image" can load an image directly from docker's
+# local registry. For other providers (i.e. podman), we must use "kind load image-archive" instead.
+	$(KIND) load docker-image $(DOCKER_IMG):$(DOCKER_TAG)
+else
+	$(eval tmpfile="/tmp/flp.tar")
+	-rm $(tmpfile)
+	$(OCI_RUNTIME) save $(DOCKER_IMG):$(DOCKER_TAG) -o $(tmpfile)
+	$(KIND) load image-archive $(tmpfile)
+	-rm $(tmpfile)
+endif
+
 ##@ metrics
 
 .PHONY: generate-configuration
@@ -236,7 +250,7 @@ generate-configuration: $(KIND) ## Generate metrics configuration
 ##@ End2End
 
 .PHONY: local-deployments-deploy
-local-deployments-deploy: $(KIND) deploy-prometheus deploy-loki deploy-grafana deploy deploy-netflow-simulator
+local-deployments-deploy: $(KIND) deploy-prometheus deploy-loki deploy-grafana build-image kind-load-image deploy deploy-netflow-simulator
 	kubectl get pods
 	kubectl rollout status -w deployment/flowlogs-pipeline
 	kubectl logs -l app=flowlogs-pipeline
