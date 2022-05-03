@@ -21,7 +21,7 @@ parameters:
 
   - name: connection_tracking
     conn_track: # Or connTrack/connectionTracking/connection_tracking
-      finishTimeouts: # Per protocol
+      finishTimeouts: # Per protocol. What if protocol is not one of key fields?
         tcp: 2m
         udp: 30s
         default: 5m
@@ -29,10 +29,11 @@ parameters:
       updateFlowLogsCount: 100
       # TODO: Add config option to set the field of the hash
       outputRecordTypes:
-        - newConnection
-        - updatedConnection
-        - endConnection
-        - flowlogs
+        - start # newConnection
+        - updates # updatedConnection
+        - end # finishedConnection
+        # The input fields should include the hash of the connection
+        - input # flows/originalFlowLogs
 
       # All the key fields, along with the hash of the connection will be outputted as well.
       keyFields:
@@ -53,24 +54,20 @@ parameters:
         hash:
           fieldGroups:
             - protocol
-          # Option1
-          fieldGroupPair: # fieldGroupAB
-            keyA: src
-            keyB: dst
-          # Option2
-          fieldGroupA: src
-          fieldGroupB: dst
+          fieldGroupPair:
+            keyA: dst
+            keyB: src
 
       outputFields:
         - name: Bytes
           operation: sum
-          splitAB: true # default: false
+          splitBA: true # default: false
         - name: Packets
           operation: sum
-          splitAB: true
+          splitBA: true
         - name: numFlowLogEntries
-          operation: count # If the operation is `count` we don't need an 'input' field
-          splitAB: true
+          operation: count
+          # If the operation is `count` we don't need an 'input' field
         - name: StartTime
           operation: min
           input: TimeReceived
