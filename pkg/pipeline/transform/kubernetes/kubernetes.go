@@ -83,6 +83,7 @@ func (k *KubeData) GetInfo(ip string) (*Info, error) {
 					Labels:          pod.Labels,
 					OwnerReferences: pod.OwnerReferences,
 					HostIP:          pod.Status.HostIP,
+					HostName:        k.getHostName(pod.Status.HostIP),
 				}
 			case typeNode:
 				node := objs[0].(*v1.Node)
@@ -103,7 +104,6 @@ func (k *KubeData) GetInfo(ip string) (*Info, error) {
 			}
 
 			info.Owner = k.getOwner(info)
-			info.HostName = k.getHostName(info)
 			return info, nil
 		}
 	}
@@ -142,9 +142,9 @@ func (k *KubeData) getOwner(info *Info) Owner {
 	}
 }
 
-func (k *KubeData) getHostName(info *Info) string {
-	if k.ipInformers[typeNode] != nil && len(info.HostIP) > 0 {
-		objs, err := k.ipInformers[typeNode].GetIndexer().ByIndex(IndexIP, info.HostIP)
+func (k *KubeData) getHostName(hostIP string) string {
+	if k.ipInformers[typeNode] != nil && len(hostIP) > 0 {
+		objs, err := k.ipInformers[typeNode].GetIndexer().ByIndex(IndexIP, hostIP)
 		if err == nil && len(objs) > 0 {
 			return objs[0].(*v1.Node).Name
 		}
