@@ -75,7 +75,7 @@ func initNewEncodeProm(t *testing.T) Encoder {
 
 func Test_NewEncodeProm(t *testing.T) {
 	newEncode := initNewEncodeProm(t)
-	encodeProm := newEncode.(*encodeProm)
+	encodeProm := newEncode.(*EncodeProm)
 	require.Equal(t, ":9103", encodeProm.port)
 	require.Equal(t, "test_", encodeProm.prefix)
 	require.Equal(t, 3, len(encodeProm.metrics))
@@ -95,7 +95,7 @@ func Test_NewEncodeProm(t *testing.T) {
 	require.Equal(t, cInfo.labelNames, expectedList)
 	entry := test.GetExtractMockEntry()
 	input := []config.GenericMap{entry}
-	output := encodeProm.Encode(input)
+	encodeProm.Encode(input)
 
 	entryLabels1 := make(map[string]string, 3)
 	entryLabels2 := make(map[string]string, 3)
@@ -115,8 +115,8 @@ func Test_NewEncodeProm(t *testing.T) {
 		"Labels": entryLabels2,
 		"value":  34,
 	}
-	require.Contains(t, output, gEntryInfo1)
-	require.Contains(t, output, gEntryInfo2)
+	require.Contains(t, encodeProm.PrevRecords, gEntryInfo1)
+	require.Contains(t, encodeProm.PrevRecords, gEntryInfo2)
 	gaugeA, err := gInfo.promGauge.GetMetricWith(entryLabels1)
 	require.Equal(t, nil, err)
 	bytesA := testutil.ToFloat64(gaugeA)
@@ -157,7 +157,7 @@ func Test_EncodeAggregate(t *testing.T) {
 		"count":      1,
 	}}
 
-	newEncode := &encodeProm{
+	newEncode := &EncodeProm{
 		port:   ":0000",
 		prefix: "test_",
 		metrics: map[string]metricInfo{
@@ -174,7 +174,7 @@ func Test_EncodeAggregate(t *testing.T) {
 		mCache: make(metricCache),
 	}
 
-	output := newEncode.Encode(metrics)
+	newEncode.Encode(metrics)
 
 	gEntryInfo1 := config.GenericMap{
 		"Name": "test_gauge",
@@ -186,5 +186,5 @@ func Test_EncodeAggregate(t *testing.T) {
 	}
 
 	expectedOutput := []config.GenericMap{gEntryInfo1}
-	require.Equal(t, expectedOutput, output)
+	require.Equal(t, expectedOutput, newEncode.PrevRecords)
 }

@@ -74,15 +74,16 @@ type metricCacheEntry struct {
 
 type metricCache map[string]*metricCacheEntry
 
-type encodeProm struct {
-	mu         sync.Mutex
-	port       string
-	prefix     string
-	metrics    map[string]metricInfo
-	expiryTime int64
-	mList      *list.List
-	mCache     metricCache
-	exitChan   <-chan struct{}
+type EncodeProm struct {
+	mu          sync.Mutex
+	port        string
+	prefix      string
+	metrics     map[string]metricInfo
+	expiryTime  int64
+	mList       *list.List
+	mCache      metricCache
+	exitChan    <-chan struct{}
+	PrevRecords []config.GenericMap
 }
 
 var metricsProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
@@ -91,8 +92,8 @@ var metricsProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
 })
 
 // Encode encodes a metric before being stored
-func (e *encodeProm) Encode(metrics []config.GenericMap) []config.GenericMap {
-	log.Debugf("entering encodeProm Encode")
+func (e *EncodeProm) Encode(metrics []config.GenericMap) {
+	log.Debugf("entering EncodeProm Encode")
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	out := make([]config.GenericMap, 0)
@@ -102,13 +103,13 @@ func (e *encodeProm) Encode(metrics []config.GenericMap) []config.GenericMap {
 		metricOut := e.EncodeMetric(metric)
 		out = append(out, metricOut...)
 	}
+	e.PrevRecords = out
 	log.Debugf("out = %v", out)
 	log.Debugf("cache = %v", e.mCache)
 	log.Debugf("list = %v", e.mList)
-	return out
 }
 
-func (e *encodeProm) EncodeMetric(metricRecord config.GenericMap) []config.GenericMap {
+func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) []config.GenericMap {
 	log.Debugf("entering EncodeMetric. metricRecord = %v", metricRecord)
 	out := make([]config.GenericMap, 0)
 	for metricName, mInfo := range e.metrics {
@@ -183,7 +184,7 @@ func generateCacheKey(sig *entrySignature) string {
 	return eInfoString
 }
 
-func (e *encodeProm) saveEntryInCache(entry entryInfo, entryLabels map[string]string) *metricCacheEntry {
+func (e *EncodeProm) saveEntryInCache(entry entryInfo, entryLabels map[string]string) *metricCacheEntry {
 	// save item in cache; use eInfo as key to the cache
 	var cEntry *metricCacheEntry
 	nowInSecs := time.Now().Unix()
@@ -210,7 +211,7 @@ func (e *encodeProm) saveEntryInCache(entry entryInfo, entryLabels map[string]st
 	return cEntry
 }
 
-func (e *encodeProm) cleanupExpiredEntriesLoop() {
+func (e *EncodeProm) cleanupExpiredEntriesLoop() {
 	ticker := time.NewTicker(time.Duration(e.expiryTime) * time.Second)
 	for {
 		select {
@@ -224,7 +225,7 @@ func (e *encodeProm) cleanupExpiredEntriesLoop() {
 }
 
 // cleanupExpiredEntries - any entry that has expired should be removed from the prometheus reporting and cache
-func (e *encodeProm) cleanupExpiredEntries() {
+func (e *EncodeProm) cleanupExpiredEntries() {
 	log.Debugf("entering cleanupExpiredEntries")
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -262,7 +263,7 @@ func (e *encodeProm) cleanupExpiredEntries() {
 }
 
 // startPrometheusInterface listens for prometheus resource usage requests
-func startPrometheusInterface(w *encodeProm) {
+func startPrometheusInterface(w *EncodeProm) {
 	log.Debugf("entering startPrometheusInterface")
 	log.Infof("startPrometheusInterface: port num = %s", w.port)
 
@@ -337,14 +338,15 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 	}
 
 	log.Debugf("metrics = %v", metrics)
-	w := &encodeProm{
-		port:       fmt.Sprintf(":%v", portNum),
-		prefix:     promPrefix,
-		metrics:    metrics,
-		expiryTime: expiryTime,
-		mList:      list.New(),
-		mCache:     make(metricCache),
-		exitChan:   utils.ExitChannel(),
+	w := &EncodeProm{
+		port:        fmt.Sprintf(":%v", portNum),
+		prefix:      promPrefix,
+		metrics:     metrics,
+		expiryTime:  expiryTime,
+		mList:       list.New(),
+		mCache:      make(metricCache),
+		exitChan:    utils.ExitChannel(),
+		PrevRecords: make([]config.GenericMap, 0),
 	}
 	go startPrometheusInterface(w)
 	go w.cleanupExpiredEntriesLoop()

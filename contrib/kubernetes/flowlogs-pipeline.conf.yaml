@@ -304,9 +304,6 @@ parameters:
       prefix: flp_
     type: prom
   name: encode_prom
-- name: write_none
-  write:
-    type: none
 - name: write_loki
   write:
     loki:
@@ -326,8 +323,6 @@ pipeline:
   name: extract_aggregate
 - follows: extract_aggregate
   name: encode_prom
-- follows: encode_prom
-  name: write_none
 - follows: transform_network
   name: write_loki
 
