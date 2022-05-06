@@ -21,12 +21,12 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"net"
 	"time"
 
+	"github.com/mariomac/pipes/pkg/node"
 	ms "github.com/mitchellh/mapstructure"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	goflowFormat "github.com/netsampler/goflow2/format"
@@ -186,30 +186,16 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 	}
 }
 
-// NewIngestCollector create a new ingester
-func NewIngestCollector(params config.StageParam) (Ingester, error) {
-	jsonIngestCollector := params.Ingest.Collector
-
-	if jsonIngestCollector.HostName == "" {
-		return nil, fmt.Errorf("ingest hostname not specified")
-	}
-	if jsonIngestCollector.Port == 0 {
-		return nil, fmt.Errorf("ingest port not specified")
-	}
-
-	log.Infof("hostname = %s", jsonIngestCollector.HostName)
-	log.Infof("port = %d", jsonIngestCollector.Port)
-
+func CollectorProvider(cfg api.IngestCollector) node.StartFunc[[]interface{}] {
 	bml := defaultBatchMaxLength
-	if jsonIngestCollector.BatchMaxLen != 0 {
-		bml = jsonIngestCollector.BatchMaxLen
+	if cfg.BatchMaxLen != 0 {
+		bml = cfg.BatchMaxLen
 	}
-
-	return &ingestCollector{
-		hostname:       jsonIngestCollector.HostName,
-		port:           jsonIngestCollector.Port,
+	return ingestCollector{
+		hostname:       cfg.HostName,
+		port:           cfg.Port,
 		exitChan:       pUtils.ExitChannel(),
 		batchFlushTime: defaultBatchFlushTime,
 		batchMaxLength: bml,
-	}, nil
+	}.Ingest
 }

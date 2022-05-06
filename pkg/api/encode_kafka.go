@@ -17,7 +17,10 @@
 
 package api
 
+import "github.com/mariomac/pipes/pkg/graph/stage"
+
 type EncodeKafka struct {
+	stage.Instance
 	Address      string `yaml:"addr" doc:"address of kafka server"`
 	Topic        string `yaml:"topic" doc:"kafka topic to write to"`
 	Balancer     string `yaml:"balancer" enum:"KafkaEncodeBalancerEnum" doc:"one of the following:"`

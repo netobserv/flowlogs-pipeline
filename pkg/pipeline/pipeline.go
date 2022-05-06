@@ -21,58 +21,53 @@ import (
 	"fmt"
 
 	"github.com/heptiolabs/healthcheck"
+	"github.com/mariomac/pipes/pkg/graph"
+	"github.com/mariomac/pipes/pkg/node"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/gopipes/pkg/node"
-	log "github.com/sirupsen/logrus"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
 )
 
-// interface definitions of pipeline components
-const (
-	StageIngest    = "ingest"
-	StageDecode    = "decode"
-	StageTransform = "transform"
-	StageExtract   = "extract"
-	StageEncode    = "encode"
-	StageWrite     = "write"
-)
+//TODO: can go into config.Options
+const channelBufferLen = 20
 
 // Pipeline manager
 type Pipeline struct {
-	startNodes    []*node.Init
-	terminalNodes []*node.Terminal
-	IsRunning     bool
-	// TODO: this field is only used for test verification. We should rewrite the build process
-	// to be able to remove it from here
-	pipelineStages []*pipelineEntry
+	IsRunning bool
+	graph     graph.Graph
 }
 
 // NewPipeline defines the pipeline elements
-func NewPipeline() (*Pipeline, error) {
-	log.Debugf("entering NewPipeline")
+func NewPipeline(options config.Options) (*Pipeline, error) {
+	builder := graph.NewBuilder(node.ChannelBufferLen(channelBufferLen))
 
-	stages := config.PipeLine
-	log.Debugf("stages = %v ", stages)
-	configParams := config.Parameters
-	log.Debugf("configParams = %v ", configParams)
+	graph.RegisterStart(builder, ingest.FileProvider)
+	graph.RegisterStart(builder, ingest.CollectorProvider)
+	graph.RegisterStart(builder, ingest.GRPCProtobufProvider)
+	graph.RegisterStart(builder, ingest.IngestKafkaProvider)
 
-	build := newBuilder(configParams, stages)
-	if err := build.readStages(); err != nil {
+	graph.RegisterMiddle(builder, decode.AwsProvider)
+	graph.RegisterMiddle(builder, decode.JSONProvider)
+	graph.RegisterMiddle(builder, decode.ProtobufProvider)
+
+	/** etc **/
+
+	graph, err := builder.Build(options.PipeLine)
+	if err != nil {
 		return nil, err
 	}
-	return build.build()
+	return &Pipeline{
+		IsRunning: false,
+		graph:     graph,
+	}, nil
 }
 
 func (p *Pipeline) Run() {
-	// starting the graph
-	for _, s := range p.startNodes {
-		s.Start()
-	}
+
 	p.IsRunning = true
 
-	// blocking the execution until the graph terminal stages end
-	for _, t := range p.terminalNodes {
-		<-t.Done()
-	}
+	p.graph.Run()
+
 	p.IsRunning = false
 }
 

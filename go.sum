@@ -616,6 +616,8 @@ github.com/mailru/easyjson v0.7.0/go.mod h1:KAzv3t3aY1NaHWoQz1+4F1ccyAH66Jk7yos7
 github.com/mailru/easyjson v0.7.1/go.mod h1:KAzv3t3aY1NaHWoQz1+4F1ccyAH66Jk7yos7ldAVICs=
 github.com/mariomac/guara v0.0.0-20220321135847-54b7fb6a8657 h1:j9fkeesYBfGearK29ZA4F84vU4s8CufCyaTdKkDjgHU=
 github.com/mariomac/guara v0.0.0-20220321135847-54b7fb6a8657/go.mod h1:Ec37gLe3vH+cnOp7x3qfd+0sz0pnP3CyIXKmQJ2ZOXU=
+github.com/mariomac/pipes v0.5.0 h1:a1hmiqxpuqDF9HK+ZV0xykh0zB1q1G7bX3IFoaKbzNY=
+github.com/mariomac/pipes v0.5.0/go.mod h1:jQjrTTJxshdixw/Gh4NbnilbL0pVyq2Ssp/v2YE3A1c=
 github.com/markbates/oncer v0.0.0-20181203154359-bf2de49a0be2/go.mod h1:Ld9puTsIW75CHf65OeIOkyKbteujpZVXDpWK6YGZbxE=
 github.com/markbates/safe v1.0.1/go.mod h1:nAqgmRi7cY2nqMc92/bSEeQA+R4OheNU2T1kNSCBdG0=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=

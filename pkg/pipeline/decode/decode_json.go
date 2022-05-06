@@ -20,9 +20,15 @@ package decode
 import (
 	"encoding/json"
 
+	"github.com/mariomac/pipes/pkg/graph/stage"
+	"github.com/mariomac/pipes/pkg/node"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
+
+type JSONConfig struct {
+	stage.Instance
+}
 
 type DecodeJson struct {
 	PrevRecords []interface{}
@@ -54,8 +60,11 @@ func (c *DecodeJson) Decode(in []interface{}) []config.GenericMap {
 	return out
 }
 
-// NewDecodeJson create a new decode
-func NewDecodeJson() (Decoder, error) {
-	log.Debugf("entering NewDecodeJson")
-	return &DecodeJson{}, nil
+func JSONProvider(_ JSONConfig) node.MiddleFunc[[]interface{}, []config.GenericMap] {
+	dj := DecodeJson{}
+	return func(in <-chan []interface{}, out chan<- []config.GenericMap) {
+		for i := range in {
+			out <- dj.Decode(i)
+		}
+	}
 }

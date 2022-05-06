@@ -17,7 +17,10 @@
 
 package api
 
+import "github.com/mariomac/pipes/pkg/graph/stage"
+
 type PromEncode struct {
+	stage.Instance
 	Metrics    PromMetricsItems `yaml:"metrics" doc:"list of prometheus metric definitions, each includes:"`
 	Port       int              `yaml:"port" doc:"port number to expose \"/metrics\" endpoint"`
 	Prefix     string           `yaml:"prefix" doc:"prefix added to each metric name"`

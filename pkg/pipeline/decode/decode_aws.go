@@ -20,6 +20,7 @@ package decode
 import (
 	"strings"
 
+	"github.com/mariomac/pipes/pkg/node"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -70,15 +71,19 @@ func (c *decodeAws) Decode(in []interface{}) []config.GenericMap {
 	return out
 }
 
-// NewDecodeAws create a new decode
-func NewDecodeAws(params config.StageParam) (Decoder, error) {
+func AwsProvider(cfg config.Aws) node.MiddleFunc[[]interface{}, []config.GenericMap] {
 	log.Debugf("entering NewDecodeAws")
-	recordKeys := params.Decode.Aws.Fields
+	recordKeys := cfg.Fields
 	if len(recordKeys) == 0 {
 		recordKeys = defaultKeys
 	}
 	log.Debugf("recordKeys = %v", recordKeys)
-	return &decodeAws{
+	daws := decodeAws{
 		keyTags: recordKeys,
-	}, nil
+	}
+	return func(in <-chan []interface{}, out chan<- []config.GenericMap) {
+		for i := range in {
+			out <- daws.Decode(i)
+		}
+	}
 }
