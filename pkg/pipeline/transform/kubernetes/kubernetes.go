@@ -64,6 +64,7 @@ type Info struct {
 	Labels          map[string]string
 	OwnerReferences []metav1.OwnerReference
 	Owner           Owner
+	HostName        string
 	HostIP          string
 }
 
@@ -82,6 +83,7 @@ func (k *KubeData) GetInfo(ip string) (*Info, error) {
 					Labels:          pod.Labels,
 					OwnerReferences: pod.OwnerReferences,
 					HostIP:          pod.Status.HostIP,
+					HostName:        k.getHostName(pod.Status.HostIP),
 				}
 			case typeNode:
 				node := objs[0].(*v1.Node)
@@ -138,6 +140,16 @@ func (k *KubeData) getOwner(info *Info) Owner {
 		Name: info.Name,
 		Type: info.Type,
 	}
+}
+
+func (k *KubeData) getHostName(hostIP string) string {
+	if k.ipInformers[typeNode] != nil && len(hostIP) > 0 {
+		objs, err := k.ipInformers[typeNode].GetIndexer().ByIndex(IndexIP, hostIP)
+		if err == nil && len(objs) > 0 {
+			return objs[0].(*v1.Node).Name
+		}
+	}
+	return ""
 }
 
 func (k *KubeData) NewNodeInformer(informerFactory informers.SharedInformerFactory) error {
