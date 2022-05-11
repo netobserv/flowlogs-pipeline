@@ -40,8 +40,8 @@ type ConnTrackHash struct {
 }
 
 type OutputField struct {
-	Name      string `yaml:"name" doc:"entry input field"`
-	Operation string `yaml:"operation" doc:"entry output field"`
-	SplitAB   bool   `yaml:"splitAB" doc:"one of the following:"`
-	Input     string `yaml:"input" doc:"parameters specific to type"`
+	Name      string `yaml:"name" doc:"output field name"`
+	Operation string `yaml:"operation" doc:"aggregate operation on the field value"`
+	SplitAB   bool   `yaml:"splitAB" doc:"When true, 2 output fields will be created. One for A->B and one for B->A flows."`
+	Input     string `yaml:"input" doc:"The input field to base the operation on. When omitted, 'name' is used"`
 }
