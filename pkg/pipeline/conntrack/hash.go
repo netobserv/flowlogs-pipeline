@@ -25,23 +25,10 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	log "github.com/sirupsen/logrus"
 )
 
-type ConnectionTracker interface {
-	ConnectionTrack(in []config.GenericMap) []config.GenericMap
-}
-
-type connectionTrackNone struct {
-}
-
-// ConnectionTrack TODO
-func (ct *connectionTrackNone) ConnectionTrack(f []config.GenericMap) []config.GenericMap {
-	return f
-}
-
 // ComputeHash computes the hash of a flow log according to keyFields.
-// 2 flow logs will have the same hash if they belong to the same connection.
+// Two flow logs will have the same hash if they belong to the same connection.
 func ComputeHash(flowLog config.GenericMap, keyFields api.KeyFields) ([]byte, error) {
 	type hashType []byte
 	fieldGroup2hash := make(map[string]hashType)
@@ -97,10 +84,4 @@ func toBytes(data interface{}) ([]byte, error) {
 	}
 	bytes := buf.Bytes()
 	return bytes, nil
-}
-
-// NewConnectionTrackNone create a new ConnectionTrack
-func NewConnectionTrackNone() (ConnectionTracker, error) {
-	log.Debugf("entering NewConnectionTrackNone")
-	return &connectionTrackNone{}, nil
 }
