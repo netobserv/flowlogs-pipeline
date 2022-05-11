@@ -65,6 +65,7 @@ func ComputeHash(flowLog config.GenericMap, keyFields api.KeyFields) ([]byte, er
 func computeHashFields(flowLog config.GenericMap, fieldNames []string) ([]byte, error) {
 	h := fnv.New32a()
 	for _, fn := range fieldNames {
+		// TODO: How should we handle a missing fieldName?
 		f := flowLog[fn]
 		bytes, err := toBytes(f)
 		if err != nil {
