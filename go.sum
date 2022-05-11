@@ -686,6 +686,8 @@ github.com/netobserv/netobserv-agent v0.0.0-20220328101628-406b2999d580 h1:UNOBD
 github.com/netobserv/netobserv-agent v0.0.0-20220328101628-406b2999d580/go.mod h1:O18ytrk3IEB4GE3YWXcbarIR+Va7DtEe3Ifvs1Daxec=
 github.com/netsampler/goflow2 v1.0.5-0.20220106210010-20e8e567090c h1:1Hk5lzky++7t4O/cLwMoPXDXGgpja35Nf/U6rXXjEns=
 github.com/netsampler/goflow2 v1.0.5-0.20220106210010-20e8e567090c/go.mod h1:yqw2cLe+lbnDN1+JKBqxoj2FKOA83iB8wV0aCKnlesg=
+github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785 h1:qhDrIMXlk8YV7BxwA6UR/dQVdUzohjLlmrUXymsBx6g=
+github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785/go.mod h1:yqw2cLe+lbnDN1+JKBqxoj2FKOA83iB8wV0aCKnlesg=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=

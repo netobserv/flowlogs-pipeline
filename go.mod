@@ -14,7 +14,7 @@ require (
 	github.com/netobserv/gopipes v0.1.1
 	github.com/netobserv/loki-client-go v0.0.0-20211018150932-cb17208397a9
 	github.com/netobserv/netobserv-agent v0.0.0-20220328101628-406b2999d580
-	github.com/netsampler/goflow2 v1.0.5-0.20220106210010-20e8e567090c
+	github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.32.1
 	github.com/segmentio/kafka-go v0.4.28
