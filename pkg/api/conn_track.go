@@ -23,22 +23,20 @@ type ConnTrack struct {
 	OutputFields      []OutputField `yaml:"outputFields" doc:"list of output fields"`
 }
 
-// TODO: add annotations
-
 type KeyFields struct {
-	FieldGroups []FieldGroup
-	Hash        ConnTrackHash
+	FieldGroups []FieldGroup  `yaml:"fieldGroups" doc:"list of field groups"`
+	Hash        ConnTrackHash `yaml:"hash" doc:"how to build the connection hash"`
 }
 
 type FieldGroup struct {
-	Name   string
-	Fields []string
+	Name   string   `yaml:"name" doc:"field group name"`
+	Fields []string `yaml:"fields" doc:"list of fields in the group"`
 }
 
 type ConnTrackHash struct {
-	FieldGroups []string
-	FieldGroupA string
-	FieldGroupB string
+	FieldGroups []string `yaml:"fieldGroups" doc:"list of field groups"`
+	FieldGroupA string   `yaml:"fieldGroupA" doc:"field group A"`
+	FieldGroupB string   `yaml:"fieldGroupB" doc:"field group B"`
 }
 
 type OutputField struct {
