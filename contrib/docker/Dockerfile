@@ -10,6 +10,7 @@ ENV PATH $GOROOT/bin:$PATH
 # END OF LINES TO REMOVE
 
 WORKDIR /app
+USER 1001
 
 # Copy source code
 COPY go.mod .
