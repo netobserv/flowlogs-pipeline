@@ -18,6 +18,7 @@
 package aggregate
 
 import (
+	"container/heap"
 	"container/list"
 	"fmt"
 	"math"
@@ -203,52 +204,6 @@ func (aggregate Aggregate) Evaluate(entries []config.GenericMap) error {
 	return nil
 }
 
-func (aggregate Aggregate) computeTopK(inputMetrics []config.GenericMap) []config.GenericMap {
-	nItemsInList := int(0)
-	topk := aggregate.Definition.TopK
-
-	outputMetrics := make([]config.GenericMap, topk)
-	minTotalValue := inputMetrics[0]["total_value"].(float64)
-	indexMin := 0
-	log.Debugf("minTotalValue = %f", minTotalValue)
-
-	for index, metric := range inputMetrics {
-		// fill output with first topk items
-		if nItemsInList < topk {
-			outputMetrics[nItemsInList] = metric
-			nItemsInList++
-			totalValue := metric["total_value"].(float64)
-			log.Debugf("item added, count = %f, index = %d", totalValue, index)
-			if totalValue < minTotalValue {
-				minTotalValue = totalValue
-				indexMin = index
-				log.Debugf("minTotalValue = %f, index = %d", minTotalValue, index)
-			}
-			continue
-		}
-
-		currentTotalValue := metric["total_value"].(float64)
-		if currentTotalValue > minTotalValue {
-			// replace item that has minRecentCount
-			outputMetrics[indexMin] = metric
-			log.Debugf("item added, value = %f", currentTotalValue)
-			log.Debugf("replaced index = %d, value = %f", indexMin, minTotalValue)
-			// find updated minRecentCount
-			newMinTotalValue := currentTotalValue
-			for i, m := range outputMetrics {
-				count := m["total_value"].(float64)
-				if count < newMinTotalValue {
-					newMinTotalValue = count
-					indexMin = i
-				}
-			}
-			minTotalValue = newMinTotalValue
-			log.Debugf("minTotalValue = %f, index = %d", minTotalValue, indexMin)
-		}
-	}
-	return outputMetrics
-}
-
 func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 	aggregate.mutex.Lock()
 	defer aggregate.mutex.Unlock()
@@ -256,13 +211,11 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 	var metrics []config.GenericMap
 	for _, group := range aggregate.GroupsMap {
 		metrics = append(metrics, config.GenericMap{
-			"name":       aggregate.Definition.Name,
-			"operation":  aggregate.Definition.Operation,
-			"record_key": aggregate.Definition.RecordKey,
-			"by":         strings.Join(aggregate.Definition.By, ","),
-			"aggregate":  string(group.normalizedValues),
-			//"total_value":       fmt.Sprintf("%f", group.totalValue),
-			//"total_count":       fmt.Sprintf("%d", group.totalCount),
+			"name":              aggregate.Definition.Name,
+			"operation":         aggregate.Definition.Operation,
+			"record_key":        aggregate.Definition.RecordKey,
+			"by":                strings.Join(aggregate.Definition.By, ","),
+			"aggregate":         string(group.normalizedValues),
 			"total_value":       group.totalValue,
 			"total_count":       group.totalCount,
 			"recent_raw_values": group.recentRawValues,
@@ -301,4 +254,67 @@ func (aggregate Aggregate) cleanupExpiredEntries() {
 		delete(aggregate.GroupsMap, pCacheInfo.normalizedValues)
 		aggregate.GroupsList.Remove(listEntry)
 	}
+}
+
+// functions to manipulate a heap to generate TopK entries
+// We need to implement the heap interface: Len(), Less(), Swap(), Push(), Pop()
+
+type heapItem struct {
+	value   float64
+	metrics *config.GenericMap
+}
+
+type topkHeap []heapItem
+
+func (h topkHeap) Len() int {
+	return len(h)
+}
+
+func (h topkHeap) Less(i, j int) bool {
+	return h[i].value < h[j].value
+}
+
+func (h topkHeap) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+}
+
+func (h *topkHeap) Push(x interface{}) {
+	*h = append(*h, x.(heapItem))
+}
+
+func (h *topkHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
+}
+
+func (aggregate Aggregate) computeTopK(inputMetrics []config.GenericMap) []config.GenericMap {
+	// maintain a heap with k items, always dropping the lowest
+	// we will be left with the TopK items
+	topk := aggregate.Definition.TopK
+	h := &topkHeap{}
+	for index, metricMap := range inputMetrics {
+		item := heapItem{
+			metrics: &inputMetrics[index],
+			value:   metricMap["total_value"].(float64),
+		}
+		heap.Push(h, item)
+		if h.Len() > topk {
+			heap.Pop(h)
+		}
+	}
+	log.Debugf("heap: %v", h)
+
+	// convert the remaining heap to a sorted array
+	result := make([]config.GenericMap, h.Len())
+	heapLen := h.Len()
+	for i := heapLen; i > 0; i-- {
+		poppedItem := heap.Pop(h).(heapItem)
+		log.Debugf("poppedItem: %v", poppedItem)
+		result[i-1] = *poppedItem.metrics
+	}
+	log.Debugf("topk items: %v", result)
+	return result
 }
