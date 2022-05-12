@@ -41,7 +41,7 @@ func NewFlowLog(srcIP string, srcPort int, dstIP string, dstPort int, protocol i
 var hasher = fnv.New32a()
 
 func TestComputeHash_Unidirectional(t *testing.T) {
-	keyFields := api.KeyFields{
+	keyDefinition := api.KeyDefinition{
 		FieldGroups: []api.FieldGroup{
 			{
 				Name: "src",
@@ -113,8 +113,8 @@ func TestComputeHash_Unidirectional(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			h1, err1 := ComputeHash(test.flowLog1, keyFields, hasher)
-			h2, err2 := ComputeHash(test.flowLog2, keyFields, hasher)
+			h1, err1 := ComputeHash(test.flowLog1, keyDefinition, hasher)
+			h2, err2 := ComputeHash(test.flowLog2, keyDefinition, hasher)
 			require.NoError(t, err1)
 			require.NoError(t, err2)
 			if test.sameHash {
@@ -127,7 +127,7 @@ func TestComputeHash_Unidirectional(t *testing.T) {
 }
 
 func TestComputeHash_Bidirectional(t *testing.T) {
-	keyFields := api.KeyFields{
+	keyDefinition := api.KeyDefinition{
 		FieldGroups: []api.FieldGroup{
 			{
 				Name: "src",
@@ -201,8 +201,8 @@ func TestComputeHash_Bidirectional(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			h1, err1 := ComputeHash(test.flowLog1, keyFields, hasher)
-			h2, err2 := ComputeHash(test.flowLog2, keyFields, hasher)
+			h1, err1 := ComputeHash(test.flowLog1, keyDefinition, hasher)
+			h2, err2 := ComputeHash(test.flowLog2, keyDefinition, hasher)
 			require.NoError(t, err1)
 			require.NoError(t, err2)
 			if test.sameHash {

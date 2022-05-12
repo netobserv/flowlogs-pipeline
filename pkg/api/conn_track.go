@@ -18,12 +18,12 @@
 package api
 
 type ConnTrack struct {
-	KeyFields         KeyFields     `yaml:"keyFields" doc:"fields that are used to identify the connection"`
+	KeyDefinition     KeyDefinition `yaml:"keyDefinition" doc:"fields that are used to identify the connection"`
 	OutputRecordTypes []string      `yaml:"outputRecordTypes" doc:"output record types to emit"`
 	OutputFields      []OutputField `yaml:"outputFields" doc:"list of output fields"`
 }
 
-type KeyFields struct {
+type KeyDefinition struct {
 	FieldGroups []FieldGroup  `yaml:"fieldGroups" doc:"list of field group definitions"`
 	Hash        ConnTrackHash `yaml:"hash" doc:"how to build the connection hash"`
 }

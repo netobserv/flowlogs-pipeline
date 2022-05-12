@@ -30,13 +30,13 @@ import (
 
 type hashType []byte
 
-// ComputeHash computes the hash of a flow log according to keyFields.
+// ComputeHash computes the hash of a flow log according to keyDefinition.
 // Two flow logs will have the same hash if they belong to the same connection.
-func ComputeHash(flowLog config.GenericMap, keyFields api.KeyFields, hasher hash.Hash) (hashType, error) {
+func ComputeHash(flowLog config.GenericMap, keyDefinition api.KeyDefinition, hasher hash.Hash) (hashType, error) {
 	fieldGroup2hash := make(map[string]hashType)
 
 	// Compute the hash of each field group
-	for _, fg := range keyFields.FieldGroups {
+	for _, fg := range keyDefinition.FieldGroups {
 		h, err := computeHashFields(flowLog, fg.Fields, hasher)
 		if err != nil {
 			return nil, fmt.Errorf("compute hash: %w", err)
@@ -46,12 +46,12 @@ func ComputeHash(flowLog config.GenericMap, keyFields api.KeyFields, hasher hash
 
 	// Compute the total hash
 	hasher.Reset()
-	for _, fgName := range keyFields.Hash.FieldGroupRefs {
+	for _, fgName := range keyDefinition.Hash.FieldGroupRefs {
 		hasher.Write(fieldGroup2hash[fgName])
 	}
-	if keyFields.Hash.FieldGroupARef != "" {
-		hashA := fieldGroup2hash[keyFields.Hash.FieldGroupARef]
-		hashB := fieldGroup2hash[keyFields.Hash.FieldGroupBRef]
+	if keyDefinition.Hash.FieldGroupARef != "" {
+		hashA := fieldGroup2hash[keyDefinition.Hash.FieldGroupARef]
+		hashB := fieldGroup2hash[keyDefinition.Hash.FieldGroupBRef]
 		// Determine order between A's and B's hash to get the same hash for both flow logs from A to B and from B to A.
 		if bytes.Compare(hashA, hashB) < 0 {
 			hasher.Write(hashA)
