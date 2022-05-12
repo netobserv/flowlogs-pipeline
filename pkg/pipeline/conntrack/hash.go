@@ -25,6 +25,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	log "github.com/sirupsen/logrus"
 )
 
 // ComputeHash computes the hash of a flow log according to keyFields.
@@ -65,8 +66,11 @@ func ComputeHash(flowLog config.GenericMap, keyFields api.KeyFields) ([]byte, er
 func computeHashFields(flowLog config.GenericMap, fieldNames []string) ([]byte, error) {
 	h := fnv.New32a()
 	for _, fn := range fieldNames {
-		// TODO: How should we handle a missing fieldName?
-		f := flowLog[fn]
+		f, ok := flowLog[fn]
+		if !ok {
+			log.Warningf("Missing field %v", fn)
+			continue
+		}
 		bytes, err := toBytes(f)
 		if err != nil {
 			return nil, err
