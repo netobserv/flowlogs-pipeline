@@ -15,7 +15,7 @@
  *
  */
 
-package contrack
+package conntrack
 
 import (
 	"bytes"
