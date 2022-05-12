@@ -18,6 +18,8 @@
 package conntrack
 
 import (
+	"encoding/hex"
+	"fmt"
 	"hash/fnv"
 	"testing"
 
@@ -38,7 +40,7 @@ func NewFlowLog(srcIP string, srcPort int, dstIP string, dstPort int, protocol i
 	}
 }
 
-var hasher = fnv.New32a()
+var testHasher = fnv.New32a()
 
 func TestComputeHash_Unidirectional(t *testing.T) {
 	keyDefinition := api.KeyDefinition{
@@ -113,8 +115,8 @@ func TestComputeHash_Unidirectional(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			h1, err1 := ComputeHash(test.flowLog1, keyDefinition, hasher)
-			h2, err2 := ComputeHash(test.flowLog2, keyDefinition, hasher)
+			h1, err1 := ComputeHash(test.flowLog1, keyDefinition, testHasher)
+			h2, err2 := ComputeHash(test.flowLog2, keyDefinition, testHasher)
 			require.NoError(t, err1)
 			require.NoError(t, err2)
 			if test.sameHash {
@@ -201,14 +203,14 @@ func TestComputeHash_Bidirectional(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			h1, err1 := ComputeHash(test.flowLog1, keyDefinition, hasher)
-			h2, err2 := ComputeHash(test.flowLog2, keyDefinition, hasher)
+			h1, err1 := ComputeHash(test.flowLog1, keyDefinition, testHasher)
+			h2, err2 := ComputeHash(test.flowLog2, keyDefinition, testHasher)
 			require.NoError(t, err1)
 			require.NoError(t, err2)
 			if test.sameHash {
-				require.Equal(t, h1, h2)
+				require.Equal(t, h1.hashTotal, h2.hashTotal)
 			} else {
-				require.NotEqual(t, h1, h2)
+				require.NotEqual(t, h1.hashTotal, h2.hashTotal)
 			}
 		})
 	}
@@ -242,3 +244,4 @@ func TestComputeHash_MissingField(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, h)
 }
+

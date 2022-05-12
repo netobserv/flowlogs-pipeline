@@ -18,6 +18,7 @@
 package api
 
 type ConnTrack struct {
+	// TODO: should by a pointer instead?
 	KeyDefinition     KeyDefinition `yaml:"keyDefinition" doc:"fields that are used to identify the connection"`
 	OutputRecordTypes []string      `yaml:"outputRecordTypes" doc:"output record types to emit"`
 	OutputFields      []OutputField `yaml:"outputFields" doc:"list of output fields"`

@@ -30,9 +30,30 @@ import (
 
 type hashType []byte
 
+// TODO: what's a better name for this struct?
+type totalHashType struct {
+	hashA     hashType
+	hashB     hashType
+	hashTotal hashType
+}
+
+func copyTotalHash(h totalHashType) totalHashType {
+	newHashA := make([]byte, len(h.hashA))
+	newHashB := make([]byte, len(h.hashB))
+	newHashTotal := make([]byte, len(h.hashTotal))
+	copy(newHashA, h.hashA)
+	copy(newHashB, h.hashB)
+	copy(newHashTotal, h.hashTotal)
+	return totalHashType{
+		hashA:     newHashA,
+		hashB:     newHashB,
+		hashTotal: newHashTotal,
+	}
+}
+
 // ComputeHash computes the hash of a flow log according to keyDefinition.
 // Two flow logs will have the same hash if they belong to the same connection.
-func ComputeHash(flowLog config.GenericMap, keyDefinition api.KeyDefinition, hasher hash.Hash) (hashType, error) {
+func ComputeHash(flowLog config.GenericMap, keyDefinition api.KeyDefinition, hasher hash.Hash) (*totalHashType, error) {
 	fieldGroup2hash := make(map[string]hashType)
 
 	// Compute the hash of each field group
@@ -45,23 +66,25 @@ func ComputeHash(flowLog config.GenericMap, keyDefinition api.KeyDefinition, has
 	}
 
 	// Compute the total hash
+	th := &totalHashType{}
 	hasher.Reset()
 	for _, fgName := range keyDefinition.Hash.FieldGroupRefs {
 		hasher.Write(fieldGroup2hash[fgName])
 	}
 	if keyDefinition.Hash.FieldGroupARef != "" {
-		hashA := fieldGroup2hash[keyDefinition.Hash.FieldGroupARef]
-		hashB := fieldGroup2hash[keyDefinition.Hash.FieldGroupBRef]
+		th.hashA = fieldGroup2hash[keyDefinition.Hash.FieldGroupARef]
+		th.hashB = fieldGroup2hash[keyDefinition.Hash.FieldGroupBRef]
 		// Determine order between A's and B's hash to get the same hash for both flow logs from A to B and from B to A.
-		if bytes.Compare(hashA, hashB) < 0 {
-			hasher.Write(hashA)
-			hasher.Write(hashB)
+		if bytes.Compare(th.hashA, th.hashB) < 0 {
+			hasher.Write(th.hashA)
+			hasher.Write(th.hashB)
 		} else {
-			hasher.Write(hashB)
-			hasher.Write(hashA)
+			hasher.Write(th.hashB)
+			hasher.Write(th.hashA)
 		}
 	}
-	return hasher.Sum([]byte{}), nil
+	th.hashTotal = hasher.Sum([]byte{})
+	return th, nil
 }
 
 func computeHashFields(flowLog config.GenericMap, fieldNames []string, hasher hash.Hash) (hashType, error) {
