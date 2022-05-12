@@ -28,10 +28,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type hashType []byte
+
 // ComputeHash computes the hash of a flow log according to keyFields.
 // Two flow logs will have the same hash if they belong to the same connection.
-func ComputeHash(flowLog config.GenericMap, keyFields api.KeyFields, hasher hash.Hash) ([]byte, error) {
-	type hashType []byte
+func ComputeHash(flowLog config.GenericMap, keyFields api.KeyFields, hasher hash.Hash) (hashType, error) {
 	fieldGroup2hash := make(map[string]hashType)
 
 	// Compute the hash of each field group
@@ -63,7 +64,7 @@ func ComputeHash(flowLog config.GenericMap, keyFields api.KeyFields, hasher hash
 	return hasher.Sum([]byte{}), nil
 }
 
-func computeHashFields(flowLog config.GenericMap, fieldNames []string, hasher hash.Hash) ([]byte, error) {
+func computeHashFields(flowLog config.GenericMap, fieldNames []string, hasher hash.Hash) (hashType, error) {
 	hasher.Reset()
 	for _, fn := range fieldNames {
 		f, ok := flowLog[fn]
