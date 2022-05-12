@@ -21,7 +21,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"hash/fnv"
+	"hash"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -30,13 +30,13 @@ import (
 
 // ComputeHash computes the hash of a flow log according to keyFields.
 // Two flow logs will have the same hash if they belong to the same connection.
-func ComputeHash(flowLog config.GenericMap, keyFields api.KeyFields) ([]byte, error) {
+func ComputeHash(flowLog config.GenericMap, keyFields api.KeyFields, hasher hash.Hash) ([]byte, error) {
 	type hashType []byte
 	fieldGroup2hash := make(map[string]hashType)
 
 	// Compute the hash of each field group
 	for _, fg := range keyFields.FieldGroups {
-		h, err := computeHashFields(flowLog, fg.Fields)
+		h, err := computeHashFields(flowLog, fg.Fields, hasher)
 		if err != nil {
 			return nil, fmt.Errorf("compute hash: %w", err)
 		}
@@ -44,27 +44,27 @@ func ComputeHash(flowLog config.GenericMap, keyFields api.KeyFields) ([]byte, er
 	}
 
 	// Compute the total hash
-	hash := fnv.New32a()
+	hasher.Reset()
 	for _, fgName := range keyFields.Hash.FieldGroupRefs {
-		hash.Write(fieldGroup2hash[fgName])
+		hasher.Write(fieldGroup2hash[fgName])
 	}
 	if keyFields.Hash.FieldGroupARef != "" {
 		hashA := fieldGroup2hash[keyFields.Hash.FieldGroupARef]
 		hashB := fieldGroup2hash[keyFields.Hash.FieldGroupBRef]
 		// Determine order between A's and B's hash to get the same hash for both flow logs from A to B and from B to A.
 		if bytes.Compare(hashA, hashB) < 0 {
-			hash.Write(hashA)
-			hash.Write(hashB)
+			hasher.Write(hashA)
+			hasher.Write(hashB)
 		} else {
-			hash.Write(hashB)
-			hash.Write(hashA)
+			hasher.Write(hashB)
+			hasher.Write(hashA)
 		}
 	}
-	return hash.Sum([]byte{}), nil
+	return hasher.Sum([]byte{}), nil
 }
 
-func computeHashFields(flowLog config.GenericMap, fieldNames []string) ([]byte, error) {
-	h := fnv.New32a()
+func computeHashFields(flowLog config.GenericMap, fieldNames []string, hasher hash.Hash) ([]byte, error) {
+	hasher.Reset()
 	for _, fn := range fieldNames {
 		f, ok := flowLog[fn]
 		if !ok {
@@ -75,9 +75,9 @@ func computeHashFields(flowLog config.GenericMap, fieldNames []string) ([]byte, 
 		if err != nil {
 			return nil, err
 		}
-		h.Write(bytes)
+		hasher.Write(bytes)
 	}
-	return h.Sum([]byte{}), nil
+	return hasher.Sum([]byte{}), nil
 }
 
 func toBytes(data interface{}) ([]byte, error) {
