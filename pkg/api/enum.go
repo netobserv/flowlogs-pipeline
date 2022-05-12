@@ -20,6 +20,7 @@ package api
 import (
 	"log"
 	"reflect"
+	"sync"
 )
 
 type enums struct {
@@ -36,9 +37,13 @@ type enumNameCacheKey struct {
 }
 
 var enumNamesCache = map[enumNameCacheKey]string{}
+var enumMutex = &sync.Mutex{}
 
 // GetEnumName gets the name of an enum value from the representing enum struct based on `TagYaml` tag.
 func GetEnumName(enum interface{}, operation string) string {
+	enumMutex.Lock()
+	defer enumMutex.Unlock()
+
 	key := enumNameCacheKey{enum: enum, operation: operation}
 	cachedValue, found := enumNamesCache[key]
 	if found {
