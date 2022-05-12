@@ -208,42 +208,42 @@ func (aggregate Aggregate) computeTopK(inputMetrics []config.GenericMap) []confi
 	topk := aggregate.Definition.TopK
 
 	outputMetrics := make([]config.GenericMap, topk)
-	minRecentCount := inputMetrics[0]["recent_count"].(int)
+	minTotalValue := inputMetrics[0]["total_value"].(float64)
 	indexMin := 0
-	log.Debugf("minRecentCount = %d", minRecentCount)
+	log.Debugf("minTotalValue = %f", minTotalValue)
 
 	for index, metric := range inputMetrics {
 		// fill output with first topk items
 		if nItemsInList < topk {
 			outputMetrics[nItemsInList] = metric
 			nItemsInList++
-			count := metric["recent_count"].(int)
-			log.Debugf("item added, count = %d, index = %d", count, index)
-			if count < minRecentCount {
-				minRecentCount = count
+			totalValue := metric["total_value"].(float64)
+			log.Debugf("item added, count = %f, index = %d", totalValue, index)
+			if totalValue < minTotalValue {
+				minTotalValue = totalValue
 				indexMin = index
-				log.Debugf("minRecentCount = %d, index = %d", minRecentCount, index)
+				log.Debugf("minTotalValue = %f, index = %d", minTotalValue, index)
 			}
 			continue
 		}
 
-		currentRecentCount := metric["recent_count"].(int)
-		if currentRecentCount > minRecentCount {
+		currentTotalValue := metric["total_value"].(float64)
+		if currentTotalValue > minTotalValue {
 			// replace item that has minRecentCount
 			outputMetrics[indexMin] = metric
-			log.Debugf("item added, count = %d", currentRecentCount)
-			log.Debugf("replaced index = %d, count = %d", indexMin, minRecentCount)
+			log.Debugf("item added, value = %f", currentTotalValue)
+			log.Debugf("replaced index = %d, value = %f", indexMin, minTotalValue)
 			// find updated minRecentCount
-			newMinRecentCount := currentRecentCount
+			newMinTotalValue := currentTotalValue
 			for i, m := range outputMetrics {
-				count := m["recent_count"].(int)
-				if count < newMinRecentCount {
-					newMinRecentCount = count
+				count := m["total_value"].(float64)
+				if count < newMinTotalValue {
+					newMinTotalValue = count
 					indexMin = i
 				}
 			}
-			minRecentCount = newMinRecentCount
-			log.Debugf("minRecentCount = %d, index = %d", minRecentCount, indexMin)
+			minTotalValue = newMinTotalValue
+			log.Debugf("minTotalValue = %f, index = %d", minTotalValue, indexMin)
 		}
 	}
 	return outputMetrics
@@ -256,13 +256,15 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 	var metrics []config.GenericMap
 	for _, group := range aggregate.GroupsMap {
 		metrics = append(metrics, config.GenericMap{
-			"name":              aggregate.Definition.Name,
-			"operation":         aggregate.Definition.Operation,
-			"record_key":        aggregate.Definition.RecordKey,
-			"by":                strings.Join(aggregate.Definition.By, ","),
-			"aggregate":         string(group.normalizedValues),
-			"total_value":       fmt.Sprintf("%f", group.totalValue),
-			"total_count":       fmt.Sprintf("%d", group.totalCount),
+			"name":       aggregate.Definition.Name,
+			"operation":  aggregate.Definition.Operation,
+			"record_key": aggregate.Definition.RecordKey,
+			"by":         strings.Join(aggregate.Definition.By, ","),
+			"aggregate":  string(group.normalizedValues),
+			//"total_value":       fmt.Sprintf("%f", group.totalValue),
+			//"total_count":       fmt.Sprintf("%d", group.totalCount),
+			"total_value":       group.totalValue,
+			"total_count":       group.totalCount,
 			"recent_raw_values": group.recentRawValues,
 			"recent_op_value":   group.recentOpValue,
 			"recent_count":      group.recentCount,
