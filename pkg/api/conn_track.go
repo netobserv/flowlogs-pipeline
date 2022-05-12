@@ -24,7 +24,7 @@ type ConnTrack struct {
 }
 
 type KeyFields struct {
-	FieldGroups []FieldGroup  `yaml:"fieldGroups" doc:"list of field groups"`
+	FieldGroups []FieldGroup  `yaml:"fieldGroups" doc:"list of field group definitions"`
 	Hash        ConnTrackHash `yaml:"hash" doc:"how to build the connection hash"`
 }
 
@@ -33,10 +33,16 @@ type FieldGroup struct {
 	Fields []string `yaml:"fields" doc:"list of fields in the group"`
 }
 
+// ConnTrackHash determines how to compute the connection hash.
+// A and B are treated as the endpoints of the connection.
+// When FieldGroupARef and FieldGroupBRef are set, the hash is computed in a way
+// that flow logs from A to B will have the same hash as flow logs from B to A.
+// When they are not set, a different hash will be computed for A->B and B->A,
+// and they are tracked as different connections.
 type ConnTrackHash struct {
-	FieldGroups []string `yaml:"fieldGroups" doc:"list of field groups"`
-	FieldGroupA string   `yaml:"fieldGroupA" doc:"field group A"`
-	FieldGroupB string   `yaml:"fieldGroupB" doc:"field group B"`
+	FieldGroupRefs []string `yaml:"fieldGroupRefs" doc:"list of field group names to build the hash"`
+	FieldGroupARef string   `yaml:"fieldGroupARef" doc:"field group name of endpoint A"`
+	FieldGroupBRef string   `yaml:"fieldGroupBRef" doc:"field group name of endpoint B"`
 }
 
 type OutputField struct {

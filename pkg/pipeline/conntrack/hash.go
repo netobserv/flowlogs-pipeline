@@ -44,12 +44,12 @@ func ComputeHash(flowLog config.GenericMap, keyFields api.KeyFields) ([]byte, er
 
 	// Compute the total hash
 	hash := fnv.New32a()
-	for _, fgName := range keyFields.Hash.FieldGroups {
+	for _, fgName := range keyFields.Hash.FieldGroupRefs {
 		hash.Write(fieldGroup2hash[fgName])
 	}
-	if keyFields.Hash.FieldGroupA != "" {
-		hashA := fieldGroup2hash[keyFields.Hash.FieldGroupA]
-		hashB := fieldGroup2hash[keyFields.Hash.FieldGroupB]
+	if keyFields.Hash.FieldGroupARef != "" {
+		hashA := fieldGroup2hash[keyFields.Hash.FieldGroupARef]
+		hashB := fieldGroup2hash[keyFields.Hash.FieldGroupBRef]
 		// Determine order between A's and B's hash to get the same hash for both flow logs from A to B and from B to A.
 		if bytes.Compare(hashA, hashB) < 0 {
 			hash.Write(hashA)

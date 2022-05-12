@@ -62,7 +62,7 @@ func TestComputeHash_Unidirectional(t *testing.T) {
 			},
 		},
 		Hash: api.ConnTrackHash{
-			FieldGroups: []string{"src", "dst", "protocol"},
+			FieldGroupRefs: []string{"src", "dst", "protocol"},
 		},
 	}
 	ipA := "10.0.0.1"
@@ -148,9 +148,9 @@ func TestComputeHash_Bidirectional(t *testing.T) {
 			},
 		},
 		Hash: api.ConnTrackHash{
-			FieldGroups: []string{"protocol"},
-			FieldGroupA: "src",
-			FieldGroupB: "dst",
+			FieldGroupRefs: []string{"protocol"},
+			FieldGroupARef: "src",
+			FieldGroupBRef: "dst",
 		},
 	}
 	ipA := "10.0.0.1"
