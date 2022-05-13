@@ -655,6 +655,7 @@ kubernetes
 kind  
   create-kind-cluster   Create cluster  
   delete-kind-cluster   Delete cluster  
+  kind-load-image       Load image to kind  
   
 metrics  
   generate-configuration  Generate metrics configuration  

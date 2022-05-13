@@ -227,20 +227,20 @@ parameters:
 	assert.NotZero(t, capturedRecord["TimeReceived"])
 	delete(capturedRecord, "TimeReceived")
 	assert.EqualValues(t, map[string]interface{}{
-		"FlowDirection": float64(1),
-		"Bytes":         float64(456),
-		"SrcAddr":       "1.2.3.4",
-		"DstAddr":       "5.6.7.8",
-		"DstMac":        "11:22:33:44:55:66",
-		"SrcMac":        "01:02:03:04:05:06",
-		"SrcPort":       float64(23000),
-		"DstPort":       float64(443),
-		"Etype":         float64(2048),
-		"Packets":       float64(123),
-		"Proto":         float64(1),
-		"TimeFlowStart": float64(startTime.Unix()),
-		"TimeFlowEnd":   float64(endTime.Unix()),
-		"Interface":     "eth0",
+		"FlowDirection":   float64(1),
+		"Bytes":           float64(456),
+		"SrcAddr":         "1.2.3.4",
+		"DstAddr":         "5.6.7.8",
+		"DstMac":          "11:22:33:44:55:66",
+		"SrcMac":          "01:02:03:04:05:06",
+		"SrcPort":         float64(23000),
+		"DstPort":         float64(443),
+		"Etype":           float64(2048),
+		"Packets":         float64(123),
+		"Proto":           float64(1),
+		"TimeFlowStartMs": float64(startTime.UnixMilli()),
+		"TimeFlowEndMs":   float64(endTime.UnixMilli()),
+		"Interface":       "eth0",
 	}, capturedRecord)
 }
 

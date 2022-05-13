@@ -47,20 +47,20 @@ func TestDecodePBFlows(t *testing.T) {
 	assert.NotZero(t, out[0]["TimeReceived"])
 	delete(out[0], "TimeReceived")
 	assert.Equal(t, config.GenericMap{
-		"FlowDirection": 1,
-		"Bytes":         uint64(456),
-		"SrcAddr":       "1.2.3.4",
-		"DstAddr":       "5.6.7.8",
-		"DstMac":        "11:22:33:44:55:66",
-		"SrcMac":        "01:02:03:04:05:06",
-		"SrcPort":       uint32(23000),
-		"DstPort":       uint32(443),
-		"Etype":         uint32(2048),
-		"Packets":       uint64(123),
-		"Proto":         uint32(1),
-		"TimeFlowStart": someTime.Unix(),
-		"TimeFlowEnd":   someTime.Unix(),
-		"Interface":     "eth0",
+		"FlowDirection":   1,
+		"Bytes":           uint64(456),
+		"SrcAddr":         "1.2.3.4",
+		"DstAddr":         "5.6.7.8",
+		"DstMac":          "11:22:33:44:55:66",
+		"SrcMac":          "01:02:03:04:05:06",
+		"SrcPort":         uint32(23000),
+		"DstPort":         uint32(443),
+		"Etype":           uint32(2048),
+		"Packets":         uint64(123),
+		"Proto":           uint32(1),
+		"TimeFlowStartMs": someTime.UnixMilli(),
+		"TimeFlowEndMs":   someTime.UnixMilli(),
+		"Interface":       "eth0",
 	}, out[0])
 
 }

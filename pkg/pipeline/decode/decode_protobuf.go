@@ -45,21 +45,21 @@ func pbFlowToMap(flow *pbflow.Record) config.GenericMap {
 		return config.GenericMap{}
 	}
 	out := config.GenericMap{
-		"FlowDirection": int(flow.Direction.Number()),
-		"Bytes":         flow.Bytes,
-		"SrcAddr":       ipToStr(flow.Network.GetSrcAddr()),
-		"DstAddr":       ipToStr(flow.Network.GetDstAddr()),
-		"SrcMac":        macToStr(flow.DataLink.GetSrcMac()),
-		"DstMac":        macToStr(flow.DataLink.GetDstMac()),
-		"SrcPort":       flow.Transport.GetSrcPort(),
-		"DstPort":       flow.Transport.GetDstPort(),
-		"Etype":         flow.EthProtocol,
-		"Packets":       flow.Packets,
-		"Proto":         flow.Transport.GetProtocol(),
-		"TimeFlowStart": flow.TimeFlowStart.GetSeconds(),
-		"TimeFlowEnd":   flow.TimeFlowEnd.GetSeconds(),
-		"TimeReceived":  time.Now().Unix(),
-		"Interface":     flow.Interface,
+		"FlowDirection":   int(flow.Direction.Number()),
+		"Bytes":           flow.Bytes,
+		"SrcAddr":         ipToStr(flow.Network.GetSrcAddr()),
+		"DstAddr":         ipToStr(flow.Network.GetDstAddr()),
+		"SrcMac":          macToStr(flow.DataLink.GetSrcMac()),
+		"DstMac":          macToStr(flow.DataLink.GetDstMac()),
+		"SrcPort":         flow.Transport.GetSrcPort(),
+		"DstPort":         flow.Transport.GetDstPort(),
+		"Etype":           flow.EthProtocol,
+		"Packets":         flow.Packets,
+		"Proto":           flow.Transport.GetProtocol(),
+		"TimeFlowStartMs": flow.TimeFlowStart.AsTime().UnixMilli(),
+		"TimeFlowEndMs":   flow.TimeFlowEnd.AsTime().UnixMilli(),
+		"TimeReceived":    time.Now().Unix(),
+		"Interface":       flow.Interface,
 	}
 	return out
 }
