@@ -18,7 +18,6 @@
 package aggregate
 
 import (
-	"container/list"
 	"sync"
 	"time"
 
@@ -63,7 +62,7 @@ func (aggregates *Aggregates) AddAggregate(aggregateDefinition api.AggregateDefi
 	aggregate := Aggregate{
 		Definition: aggregateDefinition,
 		GroupsMap:  map[NormalizedValues]*GroupState{},
-		GroupsList: list.New(),
+		Cache:      utils.NewTimeLruCache(),
 		mutex:      &sync.Mutex{},
 		expiryTime: aggregates.expiryTime,
 	}
@@ -91,7 +90,7 @@ func (aggregates *Aggregates) cleanupExpiredEntries() {
 
 	for _, aggregate := range aggregates.Aggregates {
 		aggregate.mutex.Lock()
-		aggregate.cleanupExpiredEntries()
+		aggregate.Cache.CleanupExpiredEntries(aggregate.expiryTime, aggregate)
 		aggregate.mutex.Unlock()
 	}
 

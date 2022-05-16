@@ -18,12 +18,12 @@
 package aggregate
 
 import (
-	"container/list"
 	"sync"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
@@ -37,7 +37,7 @@ func GetMockAggregate() Aggregate {
 			RecordKey: "value",
 		},
 		GroupsMap:  map[NormalizedValues]*GroupState{},
-		GroupsList: list.New(),
+		Cache:      utils.NewTimeLruCache(),
 		mutex:      &sync.Mutex{},
 		expiryTime: 30,
 	}
@@ -119,7 +119,7 @@ func Test_Evaluate(t *testing.T) {
 	err := aggregate.Evaluate(entries)
 
 	require.Equal(t, nil, err)
-	require.Equal(t, 1, aggregate.GroupsList.Len())
+	require.Equal(t, 1, aggregate.Cache.LruCacheList.Len())
 	require.Equal(t, 2, aggregate.GroupsMap[normalizedValues].totalCount)
 	require.Equal(t, float64(7), aggregate.GroupsMap[normalizedValues].totalValue)
 }

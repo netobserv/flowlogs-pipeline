@@ -33,10 +33,10 @@ type LruCallback interface {
 }
 
 type LruCacheEntry struct {
-	key         string
-	timeStamp   int64
-	e           *list.Element
-	sourceEntry interface{}
+	key             string
+	lastUpdatedTime int64
+	e               *list.Element
+	sourceEntry     interface{}
 }
 
 type LruCacheMap map[string]*LruCacheEntry
@@ -47,6 +47,15 @@ type TimedLruCache struct {
 	LruCacheMap  LruCacheMap
 }
 
+func (l *TimedLruCache) GetEntryInCache(key string) (interface{}, bool) {
+	cEntry, ok := l.LruCacheMap[key]
+	if ok {
+		return cEntry.sourceEntry, ok
+	} else {
+		return nil, ok
+	}
+}
+
 func (l *TimedLruCache) SaveEntryInCache(key string, entry interface{}) *LruCacheEntry {
 	var cEntry *LruCacheEntry
 	nowInSecs := time.Now().Unix()
@@ -55,15 +64,15 @@ func (l *TimedLruCache) SaveEntryInCache(key string, entry interface{}) *LruCach
 	cEntry, ok := l.LruCacheMap[key]
 	if ok {
 		// item already exists in cache; update the element and move to end of list
-		cEntry.timeStamp = nowInSecs
+		cEntry.lastUpdatedTime = nowInSecs
 		// move to end of list
 		l.LruCacheList.MoveToBack(cEntry.e)
 	} else {
 		// create new entry for cache
 		cEntry = &LruCacheEntry{
-			timeStamp:   nowInSecs,
-			key:         key,
-			sourceEntry: entry,
+			lastUpdatedTime: nowInSecs,
+			key:             key,
+			sourceEntry:     entry,
 		}
 		// place at end of list
 		log.Debugf("adding entry = %v", cEntry)
@@ -85,21 +94,20 @@ func (l *TimedLruCache) CleanupExpiredEntries(expiryTime int64, callback LruCall
 	expireTime := nowInSecs - expiryTime
 	// go through the list until we reach recently used entries
 	for {
-		entry := l.LruCacheList.Front()
-		if entry == nil {
+		listEntry := l.LruCacheList.Front()
+		if listEntry == nil {
 			return
 		}
-		e := entry.Value.(*LruCacheEntry)
-		log.Debugf("timeStamp = %d, expireTime = %d", e.timeStamp, expireTime)
-		log.Debugf("e = %v", e)
-		if e.timeStamp > expireTime {
+		pCacheInfo := listEntry.Value.(*LruCacheEntry)
+		log.Debugf("lastUpdatedTime = %d, expireTime = %d", pCacheInfo.lastUpdatedTime, expireTime)
+		log.Debugf("pCacheInfo = %v", pCacheInfo)
+		if pCacheInfo.lastUpdatedTime > expireTime {
 			// no more expired items
 			return
 		}
-
-		callback.Cleanup(e.sourceEntry)
-		delete(l.LruCacheMap, e.key)
-		l.LruCacheList.Remove(entry)
+		callback.Cleanup(pCacheInfo.sourceEntry)
+		delete(l.LruCacheMap, pCacheInfo.key)
+		l.LruCacheList.Remove(listEntry)
 	}
 }
 

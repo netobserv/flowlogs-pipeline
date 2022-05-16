@@ -26,10 +26,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -48,7 +48,7 @@ type NormalizedValues string
 type Aggregate struct {
 	Definition api.AggregateDefinition
 	GroupsMap  map[NormalizedValues]*GroupState
-	GroupsList *list.List
+	Cache      *utils.TimedLruCache
 	mutex      *sync.Mutex
 	expiryTime int64
 }
@@ -60,8 +60,6 @@ type GroupState struct {
 	recentCount      int
 	totalValue       float64
 	totalCount       int
-	lastUpdatedTime  int64
-	listElement      *list.Element
 }
 
 func (aggregate Aggregate) LabelsFromEntry(entry config.GenericMap) (Labels, bool) {
@@ -129,7 +127,8 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	aggregate.mutex.Lock()
 	defer aggregate.mutex.Unlock()
 
-	groupState, ok := aggregate.GroupsMap[normalizedValues]
+	var groupState *GroupState
+	oldEntry, ok := aggregate.Cache.GetEntryInCache(string(normalizedValues))
 	if !ok {
 		groupState = &GroupState{normalizedValues: normalizedValues}
 		initVal := getInitValue(string(aggregate.Definition.Operation))
@@ -139,10 +138,10 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 			groupState.recentRawValues = make([]float64, 0)
 		}
 		aggregate.GroupsMap[normalizedValues] = groupState
-		groupState.listElement = aggregate.GroupsList.PushBack(groupState)
 	} else {
-		aggregate.GroupsList.MoveToBack(groupState.listElement)
+		groupState = oldEntry.(*GroupState)
 	}
+	aggregate.Cache.SaveEntryInCache(string(normalizedValues), groupState)
 
 	// update value
 	recordKey := aggregate.Definition.RecordKey
@@ -180,7 +179,6 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	// update count
 	groupState.totalCount += 1
 	groupState.recentCount += 1
-	groupState.lastUpdatedTime = time.Now().Unix()
 
 	return nil
 }
@@ -238,22 +236,9 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 	return metrics
 }
 
-func (aggregate Aggregate) cleanupExpiredEntries() {
-	nowInSecs := time.Now().Unix()
-	expireTime := nowInSecs - aggregate.expiryTime
-
-	for {
-		listEntry := aggregate.GroupsList.Front()
-		if listEntry == nil {
-			return
-		}
-		pCacheInfo := listEntry.Value.(*GroupState)
-		if pCacheInfo.lastUpdatedTime > expireTime {
-			return
-		}
-		delete(aggregate.GroupsMap, pCacheInfo.normalizedValues)
-		aggregate.GroupsList.Remove(listEntry)
-	}
+func (aggregate Aggregate) Cleanup(entry interface{}) {
+	groupState := entry.(*GroupState)
+	delete(aggregate.GroupsMap, groupState.normalizedValues)
 }
 
 // functions to manipulate a heap to generate TopK entries
