@@ -36,7 +36,7 @@ type LruCacheEntry struct {
 	key             string
 	lastUpdatedTime int64
 	e               *list.Element
-	sourceEntry     interface{}
+	SourceEntry     interface{}
 }
 
 type LruCacheMap map[string]*LruCacheEntry
@@ -47,16 +47,18 @@ type TimedLruCache struct {
 	LruCacheMap  LruCacheMap
 }
 
-func (l *TimedLruCache) GetEntryInCache(key string) (interface{}, bool) {
+func (l *TimedLruCache) GetCacheEntry(key string) (interface{}, bool) {
+	l.Mu.Lock()
+	defer l.Mu.Unlock()
 	cEntry, ok := l.LruCacheMap[key]
 	if ok {
-		return cEntry.sourceEntry, ok
+		return cEntry.SourceEntry, ok
 	} else {
 		return nil, ok
 	}
 }
 
-func (l *TimedLruCache) SaveEntryInCache(key string, entry interface{}) *LruCacheEntry {
+func (l *TimedLruCache) UpdateCacheEntry(key string, entry interface{}) *LruCacheEntry {
 	var cEntry *LruCacheEntry
 	nowInSecs := time.Now().Unix()
 	l.Mu.Lock()
@@ -72,7 +74,7 @@ func (l *TimedLruCache) SaveEntryInCache(key string, entry interface{}) *LruCach
 		cEntry = &LruCacheEntry{
 			lastUpdatedTime: nowInSecs,
 			key:             key,
-			sourceEntry:     entry,
+			SourceEntry:     entry,
 		}
 		// place at end of list
 		log.Debugf("adding entry = %v", cEntry)
@@ -105,7 +107,7 @@ func (l *TimedLruCache) CleanupExpiredEntries(expiryTime int64, callback LruCall
 			// no more expired items
 			return
 		}
-		callback.Cleanup(pCacheInfo.sourceEntry)
+		callback.Cleanup(pCacheInfo.SourceEntry)
 		delete(l.LruCacheMap, pCacheInfo.key)
 		l.LruCacheList.Remove(listEntry)
 	}

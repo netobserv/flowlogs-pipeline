@@ -119,7 +119,7 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 			},
 		}
 		key := generateCacheKey(&entry.eInfo)
-		e.mCache.SaveEntryInCache(key, entry)
+		e.mCache.UpdateCacheEntry(key, entry)
 		entry.PromMetric.metricType = mInfo.PromMetric.metricType
 		// push the metric record to prometheus
 		switch mInfo.PromMetric.metricType {

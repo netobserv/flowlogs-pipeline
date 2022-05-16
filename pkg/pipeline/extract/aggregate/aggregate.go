@@ -128,7 +128,7 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	defer aggregate.mutex.Unlock()
 
 	var groupState *GroupState
-	oldEntry, ok := aggregate.Cache.GetEntryInCache(string(normalizedValues))
+	oldEntry, ok := aggregate.Cache.GetCacheEntry(string(normalizedValues))
 	if !ok {
 		groupState = &GroupState{normalizedValues: normalizedValues}
 		initVal := getInitValue(string(aggregate.Definition.Operation))
@@ -141,7 +141,7 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	} else {
 		groupState = oldEntry.(*GroupState)
 	}
-	aggregate.Cache.SaveEntryInCache(string(normalizedValues), groupState)
+	aggregate.Cache.UpdateCacheEntry(string(normalizedValues), groupState)
 
 	// update value
 	recordKey := aggregate.Definition.RecordKey

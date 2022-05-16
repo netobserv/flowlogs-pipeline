@@ -20,30 +20,20 @@
 package connection_tracking
 
 import (
-	"container/list"
-	"fmt"
-	"hash/fnv"
-	"sync"
 	"time"
+
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 )
 
-type cacheKey uint32
-
 type cacheInfo struct {
-	key             cacheKey
-	flowlogsCount   int
-	lastUpdatedTime int64
-	listElement     *list.Element
+	flowlogsCount int
 }
 
 const defaultExpiryTime = 120
 
 type ConnectionTracking struct {
-	cacheMap  map[cacheKey]cacheInfo
-	cacheList *list.List
-
+	mCache     *utils.TimedLruCache
 	expiryTime int64
-	mutex      *sync.Mutex
 }
 
 var (
@@ -51,42 +41,8 @@ var (
 	expiryTime = int64(defaultExpiryTime)
 )
 
-func getHashKey(flowIDFields string) cacheKey {
-	h := fnv.New32a()
-	h.Write([]byte(flowIDFields))
-	return cacheKey(h.Sum32())
-}
-
-func (ct ConnectionTracking) getCacheEntry(flowIDFields string) (cacheInfo, error) {
-	ct.mutex.Lock()
-	defer ct.mutex.Unlock()
-
-	key := getHashKey(flowIDFields)
-	if entry, ok := ct.cacheMap[key]; ok {
-		return entry, nil
-	}
-
-	return cacheInfo{}, fmt.Errorf("not found")
-}
-
-func (ct ConnectionTracking) updateCacheEntry(flowIDFields string, entry cacheInfo) {
-	ct.mutex.Lock()
-	defer ct.mutex.Unlock()
-
-	key := getHashKey(flowIDFields)
-	entry.key = key
-	entry.lastUpdatedTime = time.Now().Unix()
-	// move element to back of the cache list, or add new entry in the back if needed
-	if _, ok := ct.cacheMap[key]; ok {
-		ct.cacheList.MoveToBack(entry.listElement)
-	} else {
-		entry.listElement = ct.cacheList.PushBack(&entry)
-	}
-	ct.cacheMap[key] = entry
-}
-
 func (ct ConnectionTracking) IsFlowKnown(flowIDFields string) bool {
-	if _, err := ct.getCacheEntry(flowIDFields); err == nil {
+	if _, ok := ct.mCache.GetCacheEntry(flowIDFields); ok {
 		return true
 	}
 	return false
@@ -95,16 +51,18 @@ func (ct ConnectionTracking) IsFlowKnown(flowIDFields string) bool {
 func (ct ConnectionTracking) AddFlow(flowIDFields string) bool {
 	entry := cacheInfo{}
 	isNew := true
-	if cacheEntry, err := ct.getCacheEntry(flowIDFields); err == nil {
-		entry = cacheEntry
+	if cacheEntry, ok := ct.mCache.GetCacheEntry(flowIDFields); ok {
+		entry = cacheEntry.(cacheInfo)
 		isNew = false
 	}
 	entry.flowlogsCount += 1
 
-	ct.updateCacheEntry(flowIDFields, entry)
+	ct.mCache.UpdateCacheEntry(flowIDFields, entry)
 
 	return isNew
 }
+
+func (ct ConnectionTracking) Cleanup(entry interface{}) {}
 
 func (ct ConnectionTracking) cleanupExpiredEntriesLoop() {
 	ticker := time.NewTicker(time.Duration(ct.expiryTime) * time.Second)
@@ -115,38 +73,16 @@ func (ct ConnectionTracking) cleanupExpiredEntriesLoop() {
 			case <-done:
 				return
 			case <-ticker.C:
-				ct.cleanupExpiredEntries()
+				ct.mCache.CleanupExpiredEntries(ct.expiryTime, ct)
 			}
 		}
 	}()
 }
 
-func (ct ConnectionTracking) cleanupExpiredEntries() {
-	ct.mutex.Lock()
-	defer ct.mutex.Unlock()
-
-	nowInSecs := time.Now().Unix()
-	expireTime := nowInSecs - ct.expiryTime
-	for {
-		listEntry := ct.cacheList.Front()
-		if listEntry == nil {
-			return
-		}
-		pCacheInfo := listEntry.Value.(*cacheInfo)
-		if pCacheInfo.lastUpdatedTime > expireTime {
-			return
-		}
-		delete(ct.cacheMap, pCacheInfo.key)
-		ct.cacheList.Remove(listEntry)
-	}
-}
-
 func InitConnectionTracking() {
 	CT = ConnectionTracking{
-		cacheMap:   map[cacheKey]cacheInfo{},
-		cacheList:  list.New(),
+		mCache:     utils.NewTimeLruCache(),
 		expiryTime: expiryTime,
-		mutex:      &sync.Mutex{},
 	}
 
 	CT.cleanupExpiredEntriesLoop()
