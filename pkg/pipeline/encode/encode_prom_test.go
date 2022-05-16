@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
@@ -123,7 +124,7 @@ func Test_NewEncodeProm(t *testing.T) {
 	require.Equal(t, gEntryInfo1["value"], int(bytesA))
 
 	// verify entries are in cache; one for the gauge and one for the counter
-	entriesMap := encodeProm.mCache
+	entriesMap := encodeProm.mCache.LruCacheMap
 	require.Equal(t, 2, len(entriesMap))
 
 	eInfo := entrySignature{
@@ -132,18 +133,18 @@ func Test_NewEncodeProm(t *testing.T) {
 	}
 
 	eInfoBytes := generateCacheKey(&eInfo)
-	encodeProm.mu.Lock()
-	_, found := encodeProm.mCache[string(eInfoBytes)]
-	encodeProm.mu.Unlock()
+	encodeProm.mCache.Mu.Lock()
+	_, found := encodeProm.mCache.LruCacheMap[string(eInfoBytes)]
+	encodeProm.mCache.Mu.Unlock()
 	require.Equal(t, true, found)
 
 	// wait a couple seconds so that the entry will expire
 	time.Sleep(2 * time.Second)
-	encodeProm.cleanupExpiredEntries()
-	entriesMap = encodeProm.mCache
-	encodeProm.mu.Lock()
+	encodeProm.mCache.CleanupExpiredEntries(encodeProm.expiryTime, encodeProm)
+	entriesMap = encodeProm.mCache.LruCacheMap
+	encodeProm.mCache.Mu.Lock()
 	require.Equal(t, 0, len(entriesMap))
-	encodeProm.mu.Unlock()
+	encodeProm.mCache.Mu.Unlock()
 }
 
 func Test_EncodeAggregate(t *testing.T) {
@@ -170,8 +171,10 @@ func Test_EncodeAggregate(t *testing.T) {
 				labelNames: []string{"by", "aggregate"},
 			},
 		},
-		mList:  list.New(),
-		mCache: make(metricCache),
+		mCache: &utils.TimedLruCache{
+			LruCacheList: list.New(),
+			LruCacheMap:  make(utils.LruCacheMap),
+		},
 	}
 
 	newEncode.Encode(metrics)
