@@ -48,7 +48,7 @@ type NormalizedValues string
 type Aggregate struct {
 	Definition api.AggregateDefinition
 	GroupsMap  map[NormalizedValues]*GroupState
-	Cache      *utils.TimedLruCache
+	Cache      *utils.TimedCache
 	mutex      *sync.Mutex
 	expiryTime int64
 }

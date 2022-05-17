@@ -68,7 +68,7 @@ type EncodeProm struct {
 	prefix      string
 	metrics     map[string]metricInfo
 	expiryTime  int64
-	mCache      *utils.TimedLruCache
+	mCache      *utils.TimedCache
 	exitChan    <-chan struct{}
 	PrevRecords []config.GenericMap
 }
@@ -281,7 +281,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 		prefix:      promPrefix,
 		metrics:     metrics,
 		expiryTime:  expiryTime,
-		mCache:      utils.NewTimeLruCache(),
+		mCache:      utils.NewTimedCache(),
 		exitChan:    utils.ExitChannel(),
 		PrevRecords: make([]config.GenericMap, 0),
 	}

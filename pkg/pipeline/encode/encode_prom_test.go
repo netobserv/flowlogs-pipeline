@@ -124,7 +124,7 @@ func Test_NewEncodeProm(t *testing.T) {
 	require.Equal(t, gEntryInfo1["value"], int(bytesA))
 
 	// verify entries are in cache; one for the gauge and one for the counter
-	entriesMap := encodeProm.mCache.LruCacheMap
+	entriesMap := encodeProm.mCache.CacheMap
 	require.Equal(t, 2, len(entriesMap))
 
 	eInfo := entrySignature{
@@ -134,14 +134,14 @@ func Test_NewEncodeProm(t *testing.T) {
 
 	eInfoBytes := generateCacheKey(&eInfo)
 	encodeProm.mCache.Mu.Lock()
-	_, found := encodeProm.mCache.LruCacheMap[string(eInfoBytes)]
+	_, found := encodeProm.mCache.CacheMap[string(eInfoBytes)]
 	encodeProm.mCache.Mu.Unlock()
 	require.Equal(t, true, found)
 
 	// wait a couple seconds so that the entry will expire
 	time.Sleep(2 * time.Second)
 	encodeProm.mCache.CleanupExpiredEntries(encodeProm.expiryTime, encodeProm)
-	entriesMap = encodeProm.mCache.LruCacheMap
+	entriesMap = encodeProm.mCache.CacheMap
 	encodeProm.mCache.Mu.Lock()
 	require.Equal(t, 0, len(entriesMap))
 	encodeProm.mCache.Mu.Unlock()
@@ -171,9 +171,9 @@ func Test_EncodeAggregate(t *testing.T) {
 				labelNames: []string{"by", "aggregate"},
 			},
 		},
-		mCache: &utils.TimedLruCache{
-			LruCacheList: list.New(),
-			LruCacheMap:  make(utils.LruCacheMap),
+		mCache: &utils.TimedCache{
+			CacheList: list.New(),
+			CacheMap:  make(utils.TimedCacheMap),
 		},
 	}
 

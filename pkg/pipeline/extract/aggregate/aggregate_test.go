@@ -37,7 +37,7 @@ func GetMockAggregate() Aggregate {
 			RecordKey: "value",
 		},
 		GroupsMap:  map[NormalizedValues]*GroupState{},
-		Cache:      utils.NewTimeLruCache(),
+		Cache:      utils.NewTimedCache(),
 		mutex:      &sync.Mutex{},
 		expiryTime: 30,
 	}
@@ -119,7 +119,7 @@ func Test_Evaluate(t *testing.T) {
 	err := aggregate.Evaluate(entries)
 
 	require.Equal(t, nil, err)
-	require.Equal(t, 1, aggregate.Cache.LruCacheList.Len())
+	require.Equal(t, 1, aggregate.Cache.CacheList.Len())
 	require.Equal(t, 2, aggregate.GroupsMap[normalizedValues].totalCount)
 	require.Equal(t, float64(7), aggregate.GroupsMap[normalizedValues].totalValue)
 }

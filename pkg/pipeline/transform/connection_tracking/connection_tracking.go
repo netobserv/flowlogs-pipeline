@@ -32,7 +32,7 @@ type cacheInfo struct {
 const defaultExpiryTime = 120
 
 type ConnectionTracking struct {
-	mCache     *utils.TimedLruCache
+	mCache     *utils.TimedCache
 	expiryTime int64
 }
 
@@ -81,7 +81,7 @@ func (ct ConnectionTracking) cleanupExpiredEntriesLoop() {
 
 func InitConnectionTracking() {
 	CT = ConnectionTracking{
-		mCache:     utils.NewTimeLruCache(),
+		mCache:     utils.NewTimedCache(),
 		expiryTime: expiryTime,
 	}
 

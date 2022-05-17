@@ -62,7 +62,7 @@ func (aggregates *Aggregates) AddAggregate(aggregateDefinition api.AggregateDefi
 	aggregate := Aggregate{
 		Definition: aggregateDefinition,
 		GroupsMap:  map[NormalizedValues]*GroupState{},
-		Cache:      utils.NewTimeLruCache(),
+		Cache:      utils.NewTimedCache(),
 		mutex:      &sync.Mutex{},
 		expiryTime: aggregates.expiryTime,
 	}
