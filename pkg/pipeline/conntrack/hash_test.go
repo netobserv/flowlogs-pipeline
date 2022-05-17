@@ -213,3 +213,32 @@ func TestComputeHash_Bidirectional(t *testing.T) {
 		})
 	}
 }
+
+func TestComputeHash_MissingField(t *testing.T) {
+	keyDefinition := api.KeyDefinition{
+		FieldGroups: []api.FieldGroup{
+			{
+				Name: "src",
+				Fields: []string{
+					"SrcAddr",
+					"Missing",
+				},
+			},
+		},
+		Hash: api.ConnTrackHash{
+			FieldGroupRefs: []string{"src"},
+		},
+	}
+
+	ipA := "10.0.0.1"
+	ipB := "10.0.0.2"
+	portA := 1
+	portB := 9002
+	protocolA := 6
+
+	fl := NewFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22)
+
+	h, err := ComputeHash(fl, keyDefinition, hasher)
+	require.NoError(t, err)
+	require.NotNil(t, h)
+}
