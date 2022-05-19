@@ -55,7 +55,7 @@ Flags:
 ```
 <!---END-AUTO-flowlogs-pipeline_help--->
 
-> Note: for API details refer to  [docs/api.md](docs/api.md).
+> Note: for API details refer to [docs/api.md](docs/api.md).
 > 
 ## Configuration generation
 
