@@ -104,7 +104,7 @@ tests-unit: validate_go ## Unit tests
 
 .PHONY: tests-e2e
 tests-e2e: validate_go $(KIND)  ## End-to-end tests
-	go test -p 1 -v -timeout 1200s -race $$(go list ./... | grep  /e2e)
+	go test -p 1 -v -timeout 20m -race $$(go list ./... | grep  /e2e)
 
 .PHONY: tests-all
 tests-all: validate_go tests-unit tests-e2e ## All tests

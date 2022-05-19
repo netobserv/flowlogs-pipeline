@@ -17,12 +17,12 @@ RUN git status --porcelain
 RUN make build_code
 
 # final stage
-FROM ubuntu
-RUN apt-get update && apt-get install -y \
-  netbase \
+FROM registry.access.redhat.com/ubi8/ubi-minimal
+RUN microdnf install -y \
+  iputils \
   curl \
   net-tools \
-  && rm -rf /var/lib/apt/lists/*
+  && microdnf -y clean all  && rm -rf /var/cache
 
 COPY --from=builder /app/flowlogs-pipeline /app/
 COPY --from=builder /app/confgenerator /app/
