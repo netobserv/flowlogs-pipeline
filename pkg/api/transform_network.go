@@ -34,8 +34,8 @@ type TransformNetworkOperationEnum struct {
 	AddKubernetes string `yaml:"add_kubernetes" doc:"add output kubernetes fields from input"`
 }
 
-func TransformNetworkOperationName(operation string) string {
-	return GetEnumName(TransformNetworkOperationEnum{}, operation)
+func TransformNetworkOperationName(enumCache *EnumNamesCache, operation string) string {
+	return GetEnumName(TransformNetworkOperationEnum{}, enumCache, operation)
 }
 
 type NetworkTransformRule struct {

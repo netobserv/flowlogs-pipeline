@@ -36,7 +36,8 @@ import (
 )
 
 type Network struct {
-	api.TransformNetwork
+	enumCache    *api.EnumNamesCache
+	networkRules api.TransformNetwork
 }
 
 func (n *Network) Transform(inputEntries []config.GenericMap) []config.GenericMap {
@@ -51,9 +52,9 @@ func (n *Network) Transform(inputEntries []config.GenericMap) []config.GenericMa
 func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap {
 	outputEntries := inputEntry
 
-	for _, rule := range n.Rules {
+	for _, rule := range n.networkRules.Rules {
 		switch rule.Type {
-		case api.TransformNetworkOperationName("ConnTracking"):
+		case api.TransformNetworkOperationName(n.enumCache, "ConnTracking"):
 			template, err := template.New("").Parse(rule.Input)
 			if err != nil {
 				panic(err)
@@ -73,7 +74,7 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 				}
 			}
 
-		case api.TransformNetworkOperationName("AddRegExIf"):
+		case api.TransformNetworkOperationName(n.enumCache, "AddRegExIf"):
 			matched, err := regexp.MatchString(rule.Parameters, fmt.Sprintf("%s", outputEntries[rule.Input]))
 			if err != nil {
 				continue
@@ -82,7 +83,7 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 				outputEntries[rule.Output] = outputEntries[rule.Input]
 				outputEntries[rule.Output+"_Matched"] = true
 			}
-		case api.TransformNetworkOperationName("AddIf"):
+		case api.TransformNetworkOperationName(n.enumCache, "AddIf"):
 			expressionString := fmt.Sprintf("val %s", rule.Parameters)
 			expression, err := govaluate.NewEvaluableExpression(expressionString)
 			if err != nil {
@@ -94,14 +95,14 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 				outputEntries[rule.Output] = outputEntries[rule.Input]
 				outputEntries[rule.Output+"_Evaluate"] = true
 			}
-		case api.TransformNetworkOperationName("AddSubnet"):
+		case api.TransformNetworkOperationName(n.enumCache, "AddSubnet"):
 			_, ipv4Net, err := net.ParseCIDR(fmt.Sprintf("%v%s", outputEntries[rule.Input], rule.Parameters))
 			if err != nil {
 				log.Errorf("Can't find subnet for IP %v and prefix length %s - err %v", outputEntries[rule.Input], rule.Parameters, err)
 				continue
 			}
 			outputEntries[rule.Output] = ipv4Net.String()
-		case api.TransformNetworkOperationName("AddLocation"):
+		case api.TransformNetworkOperationName(n.enumCache, "AddLocation"):
 			var locationInfo *location.Info
 			err, locationInfo := location.GetLocation(fmt.Sprintf("%s", outputEntries[rule.Input]))
 			if err != nil {
@@ -114,7 +115,7 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 			outputEntries[rule.Output+"_CityName"] = locationInfo.CityName
 			outputEntries[rule.Output+"_Latitude"] = locationInfo.Latitude
 			outputEntries[rule.Output+"_Longitude"] = locationInfo.Longitude
-		case api.TransformNetworkOperationName("AddService"):
+		case api.TransformNetworkOperationName(n.enumCache, "AddService"):
 			protocol := fmt.Sprintf("%v", outputEntries[rule.Parameters])
 			portNumber, err := strconv.Atoi(fmt.Sprintf("%v", outputEntries[rule.Input]))
 			if err != nil {
@@ -135,7 +136,7 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 				}
 			}
 			outputEntries[rule.Output] = service.Name
-		case api.TransformNetworkOperationName("AddKubernetes"):
+		case api.TransformNetworkOperationName(n.enumCache, "AddKubernetes"):
 			var kubeInfo *kubernetes.Info
 			kubeInfo, err := kubernetes.Data.GetInfo(fmt.Sprintf("%s", outputEntries[rule.Input]))
 			if err != nil {
@@ -173,16 +174,18 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	var needToInitConnectionTracking = false
 	var needToInitNetworkServices = false
 
+	enumCache := api.InitEnumCache(7)
+
 	jsonNetworkTransform := params.Transform.Network
 	for _, rule := range jsonNetworkTransform.Rules {
 		switch rule.Type {
-		case api.TransformNetworkOperationName("AddLocation"):
+		case api.TransformNetworkOperationName(enumCache, "AddLocation"):
 			needToInitLocationDB = true
-		case api.TransformNetworkOperationName("AddKubernetes"):
+		case api.TransformNetworkOperationName(enumCache, "AddKubernetes"):
 			needToInitKubeData = true
-		case api.TransformNetworkOperationName("ConnTracking"):
+		case api.TransformNetworkOperationName(enumCache, "ConnTracking"):
 			needToInitConnectionTracking = true
-		case api.TransformNetworkOperationName("AddService"):
+		case api.TransformNetworkOperationName(enumCache, "AddService"):
 			needToInitNetworkServices = true
 		}
 	}
@@ -213,7 +216,8 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	}
 
 	return &Network{
-		api.TransformNetwork{
+		enumCache: enumCache,
+		networkRules: api.TransformNetwork{
 			Rules: jsonNetworkTransform.Rules,
 		},
 	}, nil

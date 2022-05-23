@@ -24,8 +24,9 @@ import (
 )
 
 type Generic struct {
-	policy string
-	rules  []api.GenericTransformRule
+	policy    string
+	rules     []api.GenericTransformRule
+	enumCache *api.EnumNamesCache
 }
 
 // Transform transforms a flow to a new set of keys
@@ -55,18 +56,21 @@ func (g *Generic) Transform(input []config.GenericMap) []config.GenericMap {
 func NewTransformGeneric(params config.StageParam) (Transformer, error) {
 	log.Debugf("entering NewTransformGeneric")
 	log.Debugf("params.Transform.Generic = %v", params.Transform.Generic)
+	enumCache := api.InitEnumCache(2)
+
 	rules := params.Transform.Generic.Rules
 	policy := params.Transform.Generic.Policy
 	switch policy {
-	case "replace_keys", "preserve_original_keys", "":
+	case api.TransformGenericOperationName(enumCache, "ReplaceKeys"), api.TransformGenericOperationName(enumCache, "PreserveOriginalKeys"), "":
 		// valid; nothing to do
 		log.Infof("NewTransformGeneric, policy = %s", policy)
 	default:
 		log.Panicf("unknown policy %s for transform.generic", policy)
 	}
 	transformGeneric := &Generic{
-		policy: policy,
-		rules:  rules,
+		policy:    policy,
+		rules:     rules,
+		enumCache: enumCache,
 	}
 	log.Debugf("transformGeneric = %v", transformGeneric)
 	return transformGeneric, nil

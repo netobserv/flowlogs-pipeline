@@ -24,7 +24,8 @@ import (
 )
 
 type Filter struct {
-	Rules []api.TransformFilterRule
+	Rules     []api.TransformFilterRule
+	enumCache *api.EnumNamesCache
 }
 
 // Transform transforms a flow
@@ -37,13 +38,13 @@ func (f *Filter) Transform(input []config.GenericMap) []config.GenericMap {
 		for _, rule := range f.Rules {
 			log.Debugf("rule = %v", rule)
 			switch rule.Type {
-			case api.TransformFilterOperationName("RemoveField"):
+			case api.TransformFilterOperationName(f.enumCache, "RemoveField"):
 				delete(outputEntry, rule.Input)
-			case api.TransformFilterOperationName("RemoveEntryIfExists"):
+			case api.TransformFilterOperationName(f.enumCache, "RemoveEntryIfExists"):
 				if _, ok := entry[rule.Input]; ok {
 					addToOutput = false
 				}
-			case api.TransformFilterOperationName("RemoveEntryIfDoesntExist"):
+			case api.TransformFilterOperationName(f.enumCache, "RemoveEntryIfDoesntExist"):
 				if _, ok := entry[rule.Input]; !ok {
 					addToOutput = false
 				}
@@ -62,8 +63,10 @@ func (f *Filter) Transform(input []config.GenericMap) []config.GenericMap {
 // NewTransformFilter create a new filter transform
 func NewTransformFilter(params config.StageParam) (Transformer, error) {
 	log.Debugf("entering NewTransformFilter")
+	enumCache := api.InitEnumCache(3)
 	transformFilter := &Filter{
-		Rules: params.Transform.Filter.Rules,
+		Rules:     params.Transform.Filter.Rules,
+		enumCache: enumCache,
 	}
 	return transformFilter, nil
 }

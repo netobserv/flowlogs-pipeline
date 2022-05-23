@@ -30,8 +30,8 @@ type PromEncodeOperationEnum struct {
 	Histogram string `yaml:"histogram" doc:"counts samples in configurable buckets"`
 }
 
-func PromEncodeOperationName(operation string) string {
-	return GetEnumName(PromEncodeOperationEnum{}, operation)
+func PromEncodeOperationName(enumCache *EnumNamesCache, operation string) string {
+	return GetEnumName(PromEncodeOperationEnum{}, enumCache, operation)
 }
 
 type PromMetricsItem struct {

@@ -84,6 +84,7 @@ type EncodeProm struct {
 	mCache      metricCache
 	exitChan    <-chan struct{}
 	PrevRecords []config.GenericMap
+	enumCache   *api.EnumNamesCache
 }
 
 var metricsProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
@@ -139,7 +140,7 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 		cEntry.PromMetric.metricType = mInfo.PromMetric.metricType
 		// push the metric record to prometheus
 		switch mInfo.PromMetric.metricType {
-		case api.PromEncodeOperationName("Gauge"):
+		case api.PromEncodeOperationName(e.enumCache, "Gauge"):
 			metricValueFloat, err := utils.ConvertToFloat64(metricValue)
 			if err != nil {
 				log.Errorf("value cannot be converted to float64. err: %v, metric: %v, key: %v, value: %v", err, metricName, mInfo.input, metricValue)
@@ -147,7 +148,7 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 			}
 			mInfo.promGauge.With(entryLabels).Set(metricValueFloat)
 			cEntry.PromMetric.promGauge = mInfo.promGauge
-		case api.PromEncodeOperationName("Counter"):
+		case api.PromEncodeOperationName(e.enumCache, "Counter"):
 			metricValueFloat, err := utils.ConvertToFloat64(metricValue)
 			if err != nil {
 				log.Errorf("value cannot be converted to float64. err: %v, metric: %v, key: %v, value: %v", err, metricName, mInfo.input, metricValue)
@@ -155,7 +156,7 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 			}
 			mInfo.promCounter.With(entryLabels).Add(metricValueFloat)
 			cEntry.PromMetric.promCounter = mInfo.promCounter
-		case api.PromEncodeOperationName("Histogram"):
+		case api.PromEncodeOperationName(e.enumCache, "Histogram"):
 			metricValueSlice, ok := metricValue.([]float64)
 			if !ok {
 				log.Errorf("value is not []float64. metric: %v, key: %v, value: %v", metricName, mInfo.input, metricValue)
@@ -250,11 +251,11 @@ func (e *EncodeProm) cleanupExpiredEntries() {
 		// clean up the entry
 		log.Debugf("nowInSecs = %d, deleting %v", nowInSecs, c)
 		switch c.PromMetric.metricType {
-		case api.PromEncodeOperationName("Gauge"):
+		case api.PromEncodeOperationName(e.enumCache, "Gauge"):
 			c.PromMetric.promGauge.Delete(c.labels)
-		case api.PromEncodeOperationName("Counter"):
+		case api.PromEncodeOperationName(e.enumCache, "Counter"):
 			c.PromMetric.promCounter.Delete(c.labels)
-		case api.PromEncodeOperationName("Histogram"):
+		case api.PromEncodeOperationName(e.enumCache, "Histogram"):
 			c.PromMetric.promHist.Delete(c.labels)
 		}
 		delete(e.mCache, c.key)
@@ -288,6 +289,8 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 	}
 	log.Debugf("expiryTime = %d", expiryTime)
 
+	enumCache := api.InitEnumCache(3)
+
 	metrics := make(map[string]metricInfo)
 	for _, mInfo := range jsonEncodeProm.Metrics {
 		var pMetric PromMetric
@@ -297,7 +300,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 		log.Debugf("Labels = %v", labels)
 		pMetric.metricType = mInfo.Type
 		switch mInfo.Type {
-		case api.PromEncodeOperationName("Counter"):
+		case api.PromEncodeOperationName(enumCache, "Counter"):
 			counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: ""}, labels)
 			err := prometheus.Register(counter)
 			if err != nil {
@@ -305,7 +308,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 				return nil, err
 			}
 			pMetric.promCounter = counter
-		case api.PromEncodeOperationName("Gauge"):
+		case api.PromEncodeOperationName(enumCache, "Gauge"):
 			gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: ""}, labels)
 			err := prometheus.Register(gauge)
 			if err != nil {
@@ -313,7 +316,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 				return nil, err
 			}
 			pMetric.promGauge = gauge
-		case api.PromEncodeOperationName("Histogram"):
+		case api.PromEncodeOperationName(enumCache, "Histogram"):
 			log.Debugf("buckets = %v", mInfo.Buckets)
 			hist := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: "", Buckets: mInfo.Buckets}, labels)
 			err := prometheus.Register(hist)
@@ -347,6 +350,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 		mCache:      make(metricCache),
 		exitChan:    utils.ExitChannel(),
 		PrevRecords: make([]config.GenericMap, 0),
+		enumCache:   enumCache,
 	}
 	go startPrometheusInterface(w)
 	go w.cleanupExpiredEntriesLoop()

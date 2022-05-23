@@ -27,8 +27,8 @@ type TransformGenericOperationEnum struct {
 	ReplaceKeys          string `yaml:"replace_keys" doc:"removes all old keys and uses only the new keys"`
 }
 
-func TransformGenericOperationName(operation string) string {
-	return GetEnumName(TransformGenericOperationEnum{}, operation)
+func TransformGenericOperationName(enumCache *EnumNamesCache, operation string) string {
+	return GetEnumName(TransformGenericOperationEnum{}, enumCache, operation)
 }
 
 type GenericTransformRule struct {

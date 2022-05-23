@@ -41,6 +41,7 @@ type encodeKafka struct {
 	kafkaParams api.EncodeKafka
 	kafkaWriter kafkaWriteMessage
 	prevRecords []config.GenericMap
+	enumCache   *api.EnumNamesCache
 }
 
 // Encode writes entries to kafka topic
@@ -68,17 +69,19 @@ func NewEncodeKafka(params config.StageParam) (Encoder, error) {
 	log.Debugf("entering NewEncodeKafka")
 	jsonEncodeKafka := params.Encode.Kafka
 
+	enumCache := api.InitEnumCache(5)
+
 	var balancer kafkago.Balancer
 	switch jsonEncodeKafka.Balancer {
-	case api.KafkaEncodeBalancerName("RoundRobin"):
+	case api.KafkaEncodeBalancerName(enumCache, "RoundRobin"):
 		balancer = &kafkago.RoundRobin{}
-	case api.KafkaEncodeBalancerName("LeastBytes"):
+	case api.KafkaEncodeBalancerName(enumCache, "LeastBytes"):
 		balancer = &kafkago.LeastBytes{}
-	case api.KafkaEncodeBalancerName("Hash"):
+	case api.KafkaEncodeBalancerName(enumCache, "Hash"):
 		balancer = &kafkago.Hash{}
-	case api.KafkaEncodeBalancerName("Crc32"):
+	case api.KafkaEncodeBalancerName(enumCache, "Crc32"):
 		balancer = &kafkago.CRC32Balancer{}
-	case api.KafkaEncodeBalancerName("Murmur2"):
+	case api.KafkaEncodeBalancerName(enumCache, "Murmur2"):
 		balancer = &kafkago.Murmur2Balancer{}
 	default:
 		balancer = nil
@@ -108,5 +111,6 @@ func NewEncodeKafka(params config.StageParam) (Encoder, error) {
 	return &encodeKafka{
 		kafkaParams: jsonEncodeKafka,
 		kafkaWriter: &kafkaWriter,
+		enumCache:   enumCache,
 	}, nil
 }

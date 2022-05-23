@@ -27,8 +27,8 @@ type TransformFilterOperationEnum struct {
 	RemoveEntryIfDoesntExist string `yaml:"remove_entry_if_doesnt_exist" doc:"removes the entry if the field doesnt exist"`
 }
 
-func TransformFilterOperationName(operation string) string {
-	return GetEnumName(TransformFilterOperationEnum{}, operation)
+func TransformFilterOperationName(enumCache *EnumNamesCache, operation string) string {
+	return GetEnumName(TransformFilterOperationEnum{}, enumCache, operation)
 }
 
 type TransformFilterRule struct {

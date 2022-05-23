@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -170,8 +171,9 @@ func Test_EncodeAggregate(t *testing.T) {
 				labelNames: []string{"by", "aggregate"},
 			},
 		},
-		mList:  list.New(),
-		mCache: make(metricCache),
+		mList:     list.New(),
+		mCache:    make(metricCache),
+		enumCache: api.InitEnumCache(3),
 	}
 
 	newEncode.Encode(metrics)

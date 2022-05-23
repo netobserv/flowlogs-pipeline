@@ -35,6 +35,6 @@ type KafkaEncodeBalancerEnum struct {
 	Murmur2    string `yaml:"murmur2" doc:"Murmur2 balancer"`
 }
 
-func KafkaEncodeBalancerName(operation string) string {
-	return GetEnumName(KafkaEncodeBalancerEnum{}, operation)
+func KafkaEncodeBalancerName(enumCache *EnumNamesCache, operation string) string {
+	return GetEnumName(KafkaEncodeBalancerEnum{}, enumCache, operation)
 }

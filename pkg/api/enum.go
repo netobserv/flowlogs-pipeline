@@ -30,17 +30,19 @@ type enums struct {
 	KafkaEncodeBalancerEnum       KafkaEncodeBalancerEnum
 }
 
-type enumNameCacheKey struct {
-	enum      interface{}
-	operation string
+type EnumNamesCache struct {
+	namesCache map[string]string
 }
 
-var enumNamesCache = map[enumNameCacheKey]string{}
+func InitEnumCache(len int) *EnumNamesCache {
+	return &EnumNamesCache{
+		namesCache: make(map[string]string, len),
+	}
+}
 
 // GetEnumName gets the name of an enum value from the representing enum struct based on `TagYaml` tag.
-func GetEnumName(enum interface{}, operation string) string {
-	key := enumNameCacheKey{enum: enum, operation: operation}
-	cachedValue, found := enumNamesCache[key]
+func GetEnumName(enum interface{}, cache *EnumNamesCache, operation string) string {
+	cachedValue, found := cache.namesCache[operation]
 	if found {
 		return cachedValue
 	}
@@ -54,7 +56,7 @@ func GetEnumName(enum interface{}, operation string) string {
 	}
 	tag := field.Tag.Get(TagYaml)
 
-	enumNamesCache[key] = tag
+	cache.namesCache[operation] = tag
 	return tag
 }
 
