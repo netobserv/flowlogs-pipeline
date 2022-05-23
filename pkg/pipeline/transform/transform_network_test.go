@@ -128,9 +128,10 @@ func Test_Transform(t *testing.T) {
 	expectedOutput := getExpectedOutput()
 
 	var networkTransform = Network{
-		api.TransformNetwork{
+		networkRules: api.TransformNetwork{
 			Rules: rules,
 		},
+		enumCache: api.InitEnumCache(7),
 	}
 
 	err := location.InitLocationDB()
@@ -154,9 +155,10 @@ func Test_TransformAddSubnetParseCIDRFailure(t *testing.T) {
 	delete(expectedOutput, "subnet24SrcIP")
 
 	var networkTransform = Network{
-		api.TransformNetwork{
+		networkRules: api.TransformNetwork{
 			Rules: rules,
 		},
+		enumCache: api.InitEnumCache(7),
 	}
 
 	err := location.InitLocationDB()
@@ -183,10 +185,10 @@ parameters:
       type: network
       network:
         rules:
-        - input: srcIP
-          output: subnetSrcIP
-          type: add_subnet
-          parameters: /24
+          - input: srcIP
+            output: subnetSrcIP
+            type: add_subnet
+            parameters: /24
   - name: write1
     write:
       type: stdout
@@ -223,10 +225,10 @@ parameters:
       type: network
       network:
         rules:
-        - input: "{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.protocol}}"
-          output: isNewFlow
-          type: conn_tracking
-          parameters: "777"
+          - input: "{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.protocol}}"
+            output: isNewFlow
+            type: conn_tracking
+            parameters: "777"
   - name: write1
     write:
       type: stdout
@@ -258,18 +260,18 @@ parameters:
       type: network
       network:
         rules:
-        - input: srcIP
-          output: subnetSrcIP
-          type: add_subnet
-          parameters: /24
-        - input: subnetSrcIP
-          output: match-10.0.*
-          type: add_regex_if
-          parameters: 10.0.*
-        - input: subnetSrcIP
-          output: match-11.0.*
-          type: add_regex_if
-          parameters: 11.0.*
+          - input: srcIP
+            output: subnetSrcIP
+            type: add_subnet
+            parameters: /24
+          - input: subnetSrcIP
+            output: match-10.0.*
+            type: add_regex_if
+            parameters: 10.0.*
+          - input: subnetSrcIP
+            output: match-11.0.*
+            type: add_regex_if
+            parameters: 11.0.*
   - name: write1
     write:
       type: stdout
@@ -288,7 +290,8 @@ parameters:
 
 func Test_Transform_AddIfScientificNotation(t *testing.T) {
 	newNetworkTransform := Network{
-		api.TransformNetwork{
+		enumCache: api.InitEnumCache(7),
+		networkRules: api.TransformNetwork{
 			Rules: api.NetworkTransformRules{
 				api.NetworkTransformRule{
 					Input:      "value",
@@ -335,7 +338,8 @@ func Test_TransformNetworkOperationNameCustomServices(t *testing.T) {
 	entry := test.GetIngestMockEntry(false)
 
 	var networkTransform = Network{
-		api.TransformNetwork{
+		enumCache: api.InitEnumCache(7),
+		networkRules: api.TransformNetwork{
 			Rules: rules,
 		},
 	}
@@ -365,7 +369,8 @@ func Test_TransformNetworkOperationNameCustomServices(t *testing.T) {
 	}
 
 	networkTransform = Network{
-		api.TransformNetwork{
+		enumCache: api.InitEnumCache(7),
+		networkRules: api.TransformNetwork{
 			Rules: rules,
 		},
 	}

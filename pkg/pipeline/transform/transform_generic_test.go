@@ -36,18 +36,18 @@ parameters:
       generic:
         policy: replace_keys
         rules:
-        - input: srcIP
-          output: SrcAddr
-        - input: dstIP
-          output: DstAddr
-        - input: dstPort
-          output: DstPort
-        - input: srcPort
-          output: SrcPort
-        - input: protocol
-          output: Protocol
-        - input: srcIP
-          output: srcIP
+          - input: srcIP
+            output: SrcAddr
+          - input: dstIP
+            output: DstAddr
+          - input: dstPort
+            output: DstPort
+          - input: srcPort
+            output: SrcPort
+          - input: protocol
+            output: Protocol
+          - input: srcIP
+            output: srcIP
 `
 
 const testConfigTransformGenericMaintainTrue = `---
@@ -61,18 +61,18 @@ parameters:
       generic:
         policy: preserve_original_keys
         rules:
-        - input: srcIP
-          output: SrcAddr
-        - input: dstIP
-          output: DstAddr
-        - input: dstPort
-          output: DstPort
-        - input: srcPort
-          output: SrcPort
-        - input: protocol
-          output: Protocol
-        - input: srcIP
-          output: srcIP
+          - input: srcIP
+            output: SrcAddr
+          - input: dstIP
+            output: DstAddr
+          - input: dstPort
+            output: DstPort
+          - input: srcPort
+            output: SrcPort
+          - input: protocol
+            output: Protocol
+          - input: srcIP
+            output: srcIP
 `
 
 func getGenericExpectedOutputShort() config.GenericMap {

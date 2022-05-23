@@ -35,10 +35,10 @@ parameters:
       type: filter
       filter:
         rules:
-        - input: dstPort
-          type: remove_field
-        - input: srcPort
-          type: remove_field
+          - input: dstPort
+            type: remove_field
+          - input: srcPort
+            type: remove_field
 `
 
 const testConfigTransformFilterRemoveEntryIfExists = `---
@@ -51,8 +51,8 @@ parameters:
       type: filter
       filter:
         rules:
-        - input: srcPort
-          type: remove_entry_if_exists
+          - input: srcPort
+            type: remove_entry_if_exists
 `
 
 const testConfigTransformFilterRemoveEntryIfDoesntExists = `---
@@ -65,8 +65,8 @@ parameters:
       type: filter
       filter:
         rules:
-        - input: doesntSrcPort
-          type: remove_entry_if_doesnt_exist
+          - input: doesntSrcPort
+            type: remove_entry_if_doesnt_exist
 `
 
 func getFilterExpectedOutput() config.GenericMap {
