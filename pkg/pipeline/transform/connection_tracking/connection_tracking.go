@@ -15,6 +15,8 @@
  *
  */
 
+// TODO: Delete this package once the connection tracking module is done.
+
 package connection_tracking
 
 import (
