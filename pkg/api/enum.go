@@ -20,7 +20,6 @@ package api
 import (
 	"log"
 	"reflect"
-	"sync"
 )
 
 type enums struct {
@@ -37,30 +36,38 @@ type enumNameCacheKey struct {
 }
 
 var enumNamesCache = map[enumNameCacheKey]string{}
-var enumMutex = &sync.Mutex{}
+
+func init() {
+	populateEnumCache()
+}
+
+func populateEnumCache() {
+	enumStruct := enums{}
+	e := reflect.ValueOf(&enumStruct).Elem()
+	for i := 0; i < e.NumField(); i++ {
+		eType := e.Type().Field(i).Type
+		eValue := e.Field(i).Interface()
+		for j := 0; j < eType.NumField(); j++ {
+			fName := eType.Field(j).Name
+			key := enumNameCacheKey{enum: eValue, operation: fName}
+			d := reflect.ValueOf(eValue)
+			field, _ := d.Type().FieldByName(fName)
+			tag := field.Tag.Get(TagYaml)
+			enumNamesCache[key] = tag
+		}
+	}
+}
 
 // GetEnumName gets the name of an enum value from the representing enum struct based on `TagYaml` tag.
 func GetEnumName(enum interface{}, operation string) string {
-	enumMutex.Lock()
-	defer enumMutex.Unlock()
-
 	key := enumNameCacheKey{enum: enum, operation: operation}
 	cachedValue, found := enumNamesCache[key]
 	if found {
 		return cachedValue
-	}
-
-	peoEnum := enum
-	d := reflect.ValueOf(peoEnum)
-	field, found := d.Type().FieldByName(operation)
-	if !found {
+	} else {
 		log.Panicf("can't find operation %s in enum %v", operation, enum)
 		return ""
 	}
-	tag := field.Tag.Get(TagYaml)
-
-	enumNamesCache[key] = tag
-	return tag
 }
 
 // GetEnumReflectionTypeByFieldName gets the enum struct `reflection Type` from the name of the struct (using fields from `enums{}` struct).
