@@ -128,9 +128,9 @@ func NewConnectionTrack(config api.ConnTrack) (ConnectionTracker, error) {
 	shouldOutputNewConnection := false
 	for _, option := range config.OutputRecordTypes {
 		switch option {
-		case "flowLog":
+		case api.ConnTrackOutputRecordTypeName("FlowLog"):
 			shouldOutputFlowLogs = true
-		case "newConnection":
+		case api.ConnTrackOutputRecordTypeName("NewConnection"):
 			shouldOutputNewConnection = true
 		default:
 			return nil, fmt.Errorf("unknown OutputRecordTypes: %v", option)

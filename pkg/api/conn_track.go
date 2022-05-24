@@ -20,8 +20,17 @@ package api
 type ConnTrack struct {
 	// TODO: should by a pointer instead?
 	KeyDefinition     KeyDefinition `yaml:"keyDefinition" doc:"fields that are used to identify the connection"`
-	OutputRecordTypes []string      `yaml:"outputRecordTypes" doc:"output record types to emit"`
+	OutputRecordTypes []string      `yaml:"outputRecordTypes" enum:"ConnTrackOutputRecordTypeEnum" doc:"output record types to emit"`
 	OutputFields      []OutputField `yaml:"outputFields" doc:"list of output fields"`
+}
+
+type ConnTrackOutputRecordTypeEnum struct {
+	NewConnection string `yaml:"newConnection" doc:"New connection"`
+	FlowLog       string `yaml:"flowLog" doc:"Flow log"`
+}
+
+func ConnTrackOutputRecordTypeName(operation string) string {
+	return GetEnumName(ConnTrackOutputRecordTypeEnum{}, operation)
 }
 
 type KeyDefinition struct {
