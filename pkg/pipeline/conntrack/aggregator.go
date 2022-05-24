@@ -64,16 +64,16 @@ func newAggregator(of api.OutputField) (aggregator, error) {
 	aggBase := aggregateBase{inputField: inputField, outputField: of.Name, splitAB: of.SplitAB}
 	var agg aggregator
 	switch of.Operation {
-	case "sum":
+	case api.ConnTrackOperationName("Sum"):
 		aggBase.initVal = 0
 		agg = &aggregateSum{aggBase}
-	case "count":
+	case api.ConnTrackOperationName("Count"):
 		aggBase.initVal = 0
 		agg = &aggregateCount{aggBase}
-	case "min":
+	case api.ConnTrackOperationName("Min"):
 		aggBase.initVal = math.MaxFloat64
 		agg = &aggregateMin{aggBase}
-	case "max":
+	case api.ConnTrackOperationName("Max"):
 		aggBase.initVal = -math.MaxFloat64
 		agg = &aggregateMax{aggBase}
 	default:
