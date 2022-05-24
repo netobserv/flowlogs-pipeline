@@ -44,6 +44,7 @@ func TestNewAggregator_Invalid(t *testing.T) {
 		SplitAB:   true,
 		Input:     "Input",
 	})
+	require.NotNil(t, err)
 }
 
 func TestNewAggregator_Valid(t *testing.T) {

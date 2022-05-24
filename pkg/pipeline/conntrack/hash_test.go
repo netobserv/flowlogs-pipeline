@@ -18,8 +18,6 @@
 package conntrack
 
 import (
-	"encoding/hex"
-	"fmt"
 	"hash/fnv"
 	"testing"
 
@@ -240,8 +238,7 @@ func TestComputeHash_MissingField(t *testing.T) {
 
 	fl := NewFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22)
 
-	h, err := ComputeHash(fl, keyDefinition, hasher)
+	h, err := ComputeHash(fl, keyDefinition, testHasher)
 	require.NoError(t, err)
 	require.NotNil(t, h)
 }
-
