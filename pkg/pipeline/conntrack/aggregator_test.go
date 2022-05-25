@@ -69,6 +69,11 @@ func TestNewAggregator_Valid(t *testing.T) {
 			expected:    &aggregateSum{aggregateBase{"MyInput", "MyAgg", false, 0}},
 		},
 		{
+			name:        "Operation sum",
+			outputField: api.OutputField{Name: "MyAgg", Operation: "sum"},
+			expected:    &aggregateSum{aggregateBase{"MyAgg", "MyAgg", false, 0}},
+		},
+		{
 			name:        "Operation count",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "count"},
 			expected:    &aggregateCount{aggregateBase{"MyAgg", "MyAgg", false, 0}},
