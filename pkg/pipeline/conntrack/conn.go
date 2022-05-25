@@ -18,6 +18,8 @@
 package conntrack
 
 import (
+	"time"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -28,14 +30,17 @@ type connection interface {
 	addAgg(fieldName string, initValue float64)
 	getAggValue(fieldName string) (float64, bool)
 	updateAggValue(fieldName string, newValueFn func(curr float64) float64)
+	setLastUpdateTime(t time.Time)
+	getLastUpdateTime() time.Time
 	toGenericMap() config.GenericMap
 	getHash() totalHashType
 }
 
 type connType struct {
-	hash      totalHashType
-	keys      config.GenericMap
-	aggFields map[string]float64
+	hash           totalHashType
+	keys           config.GenericMap
+	aggFields      map[string]float64
+	lastUpdateTime time.Time
 }
 
 func (c *connType) addAgg(fieldName string, initValue float64) {
@@ -55,6 +60,14 @@ func (c *connType) updateAggValue(fieldName string, newValueFn func(curr float64
 	c.aggFields[fieldName] = newValueFn(v)
 }
 
+func (c *connType) setLastUpdateTime(t time.Time) {
+	c.lastUpdateTime = t
+}
+
+func (c *connType) getLastUpdateTime() time.Time {
+	return c.lastUpdateTime
+}
+
 func (c *connType) toGenericMap() config.GenericMap {
 	gm := config.GenericMap{}
 	for k, v := range c.aggFields {
@@ -64,6 +77,8 @@ func (c *connType) toGenericMap() config.GenericMap {
 	for k, v := range c.keys {
 		gm[k] = v
 	}
+	// TODO: Add hash field
+	// TODO: Should this method add recordTypeField?
 	return gm
 }
 

@@ -37,6 +37,18 @@ type totalHashType struct {
 	hashTotal hashType
 }
 
+func areHashEqual(h1, h2 hashType) bool {
+	if len(h1) != len(h2) {
+		return false
+	}
+	for i := range h1 {
+		if h1[i] != h2[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func copyTotalHash(h totalHashType) totalHashType {
 	newHashA := make([]byte, len(h.hashA))
 	newHashB := make([]byte, len(h.hashB))
