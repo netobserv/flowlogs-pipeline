@@ -26,20 +26,20 @@ import (
 )
 
 // Functions to manage an LRU cache with an expiry
-// When an item expires, allow a callback to allow the specific implementatoin to perform its particular cleanup
+// When an item expires, allow a callback to allow the specific implementation to perform its particular cleanup
 
 type CacheCallback interface {
 	Cleanup(entry interface{})
 }
 
-type CacheEntry struct {
+type cacheEntry struct {
 	key             string
 	lastUpdatedTime int64
 	e               *list.Element
 	SourceEntry     interface{}
 }
 
-type TimedCacheMap map[string]*CacheEntry
+type TimedCacheMap map[string]*cacheEntry
 
 type TimedCache struct {
 	Mu        sync.Mutex
@@ -58,8 +58,7 @@ func (l *TimedCache) GetCacheEntry(key string) (interface{}, bool) {
 	}
 }
 
-func (l *TimedCache) UpdateCacheEntry(key string, entry interface{}) *CacheEntry {
-	var cEntry *CacheEntry
+func (l *TimedCache) UpdateCacheEntry(key string, entry interface{}) *cacheEntry {
 	nowInSecs := time.Now().Unix()
 	l.Mu.Lock()
 	defer l.Mu.Unlock()
@@ -71,7 +70,7 @@ func (l *TimedCache) UpdateCacheEntry(key string, entry interface{}) *CacheEntry
 		l.CacheList.MoveToBack(cEntry.e)
 	} else {
 		// create new entry for cache
-		cEntry = &CacheEntry{
+		cEntry = &cacheEntry{
 			lastUpdatedTime: nowInSecs,
 			key:             key,
 			SourceEntry:     entry,
@@ -100,7 +99,7 @@ func (l *TimedCache) CleanupExpiredEntries(expiryTime int64, callback CacheCallb
 		if listEntry == nil {
 			return
 		}
-		pCacheInfo := listEntry.Value.(*CacheEntry)
+		pCacheInfo := listEntry.Value.(*cacheEntry)
 		log.Debugf("lastUpdatedTime = %d, expireTime = %d", pCacheInfo.lastUpdatedTime, expireTime)
 		log.Debugf("pCacheInfo = %v", pCacheInfo)
 		if pCacheInfo.lastUpdatedTime > expireTime {
