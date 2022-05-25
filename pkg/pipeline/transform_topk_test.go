@@ -27,7 +27,6 @@ import (
 )
 
 const testConfigAggregateTopK = `---
-log-level: debug
 pipeline:
   - name: ingest_file
   - follows: ingest_file
@@ -119,4 +118,8 @@ func TestAggregateTopk(t *testing.T) {
 	writer := mainPipeline.pipelineStages[5].Writer.(*write.WriteNone)
 	require.Equal(t, 4, extractor.Aggregates.Aggregates[0].Definition.TopK)
 	require.Equal(t, 4, len(writer.PrevRecords))
+	require.Equal(t, float64(545), writer.PrevRecords[0]["total_value"])
+	require.Equal(t, float64(491), writer.PrevRecords[1]["total_value"])
+	require.Equal(t, float64(357), writer.PrevRecords[2]["total_value"])
+	require.Equal(t, float64(299), writer.PrevRecords[3]["total_value"])
 }
