@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func buildConnTrackConfig(isBidirectional bool, outputRecordType []string) *api.ConnTrack {
+func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *api.ConnTrack {
 	splitAB := isBidirectional
 	var h api.ConnTrackHash
 	if isBidirectional {
@@ -122,7 +122,7 @@ func TestTrack(t *testing.T) {
 	}{
 		{
 			"bidirectional, output new connection",
-			buildConnTrackConfig(true, []string{"newConnection"}),
+			buildMockConnTrackConfig(true, []string{"newConnection"}),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1),
@@ -130,7 +130,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"bidirectional, output new connection and flow log",
-			buildConnTrackConfig(true, []string{"newConnection", "flowLog"}),
+			buildMockConnTrackConfig(true, []string{"newConnection", "flowLog"}),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1),
@@ -142,7 +142,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"unidirectional, output new connection",
-			buildConnTrackConfig(false, []string{"newConnection"}),
+			buildMockConnTrackConfig(false, []string{"newConnection"}),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordConn(ipA, portA, ipB, portB, protocol, 111, 11, 1),
@@ -151,7 +151,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"unidirectional, output new connection and flow log",
-			buildConnTrackConfig(false, []string{"newConnection", "flowLog"}),
+			buildMockConnTrackConfig(false, []string{"newConnection", "flowLog"}),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordConn(ipA, portA, ipB, portB, protocol, 111, 11, 1),
