@@ -21,11 +21,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/mariomac/pipes/pkg/graph/stage"
 	promConfig "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 )
 
 type WriteLoki struct {
+	stage.Instance
 	URL            string                      `yaml:"url,omitempty" doc:"the address of an existing Loki service to push the flows to"`
 	TenantID       string                      `yaml:"tenantID,omitempty" doc:"identifies the tenant for the request"`
 	BatchWait      string                      `yaml:"batchWait,omitempty" doc:"maximum amount of time to wait before sending a batch"`

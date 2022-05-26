@@ -17,7 +17,10 @@
 
 package api
 
+import "github.com/mariomac/pipes/pkg/graph/stage"
+
 type TransformGeneric struct {
+	stage.Instance
 	Policy string                 `yaml:"policy" enum:"TransformGenericOperationEnum" doc:"key replacement policy; may be one of the following:"`
 	Rules  []GenericTransformRule `yaml:"rules" doc:"list of transform rules, each includes:"`
 }

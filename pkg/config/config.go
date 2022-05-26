@@ -19,106 +19,68 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 
+	"github.com/mariomac/pipes/pkg/graph"
+	"github.com/mariomac/pipes/pkg/graph/stage"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	"github.com/sirupsen/logrus"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 type GenericMap map[string]interface{}
 
-var (
-	Opt        = Options{}
-	PipeLine   []Stage
-	Parameters []StageParam
-)
-
 type Options struct {
-	PipeLine   string
-	Parameters string
-	Health     Health
+	PipeLine PipelineDefinition
+	Health   Health
 }
 
 type Health struct {
 	Port string
 }
 
-type Stage struct {
-	Name    string
-	Follows string
-}
-
-type StageParam struct {
-	Name      string
-	Ingest    Ingest
-	Decode    Decode
-	Transform Transform
-	Extract   Extract
-	Encode    Encode
-	Write     Write
-}
-
-type Ingest struct {
-	Type      string
-	File      File
-	Collector api.IngestCollector
-	Kafka     api.IngestKafka
-	GRPC      api.IngestGRPCProto
+type PipelineDefinition struct {
+	graph.Connector
+	// Ingesters
+	File        []File
+	Collector   []api.IngestCollector
+	KafkaIngest []api.IngestKafka
+	GRPC        []api.IngestGRPCProto
+	// Decoders
+	Json     []json.Decoder
+	Protobuf []decode.ProtobufConfig
+	Aws      []api.DecodeAws
+	// Transformers
+	Generic []api.TransformGeneric
+	Filter  []api.TransformFilter
+	Network []api.TransformNetwork
+	// Extractors
+	Aggregates []api.AggregateDefinition
+	// Encoders
+	Prom        []api.PromEncode
+	KafkaEncode []api.EncodeKafka
+	// Writers
+	Loki   []api.WriteLoki
+	Stdout []api.WriteStdout
 }
 
 type File struct {
+	stage.Instance
+	Type     string // file or file_loop
 	Filename string
 	Loop     bool
 	Chunks   int
 }
 
 type Aws struct {
+	stage.Instance
 	Fields []string
 }
 
-type Decode struct {
-	Type string
-	Aws  api.DecodeAws
-}
-
-type Transform struct {
-	Type    string
-	Generic api.TransformGeneric
-	Filter  api.TransformFilter
-	Network api.TransformNetwork
-}
-
-type Extract struct {
-	Type       string
-	Aggregates []api.AggregateDefinition
-}
-
-type Encode struct {
-	Type  string
-	Prom  api.PromEncode
-	Kafka api.EncodeKafka
-}
-
-type Write struct {
-	Type   string
-	Loki   api.WriteLoki
-	Stdout api.WriteStdout
-}
-
-// ParseConfig creates the internal unmarshalled representation from the Pipeline and Parameters json
-func ParseConfig() error {
-	logrus.Debugf("config.Opt.PipeLine = %v ", Opt.PipeLine)
-	err := json.Unmarshal([]byte(Opt.PipeLine), &PipeLine)
-	if err != nil {
-		logrus.Errorf("error when reading config file: %v", err)
-		return err
+func Parse(yamlText []byte) (Options, error) {
+	opt := Options{}
+	if err := yaml.Unmarshal(yamlText, &opt); err != nil {
+		return opt, fmt.Errorf("reading yaml : %w", err)
 	}
-	logrus.Debugf("stages = %v ", PipeLine)
-
-	err = json.Unmarshal([]byte(Opt.Parameters), &Parameters)
-	if err != nil {
-		logrus.Errorf("error when reading config file: %v", err)
-		return err
-	}
-	logrus.Debugf("params = %v ", Parameters)
-	return nil
+	return opt, nil
 }

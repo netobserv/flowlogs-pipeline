@@ -1,6 +1,6 @@
 module github.com/netobserv/flowlogs-pipeline
 
-go 1.17
+go 1.18
 
 require (
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
@@ -10,6 +10,7 @@ require (
 	github.com/ip2location/ip2location-go/v9 v9.2.0
 	github.com/json-iterator/go v1.1.12
 	github.com/mariomac/guara v0.0.0-20220321135847-54b7fb6a8657
+	github.com/mariomac/pipes v0.5.0
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/netobserv/gopipes v0.1.1
 	github.com/netobserv/loki-client-go v0.0.0-20211018150932-cb17208397a9

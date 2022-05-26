@@ -5,6 +5,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/mariomac/pipes/pkg/graph/stage"
+	"github.com/mariomac/pipes/pkg/node"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/netobserv-agent/pkg/pbflow"
 	"github.com/sirupsen/logrus"
@@ -18,8 +20,17 @@ var pflog = logrus.WithField("component", "Protobuf")
 type Protobuf struct {
 }
 
-func NewProtobuf() (Decoder, error) {
-	return &Protobuf{}, nil
+type ProtobufConfig struct {
+	stage.Instance
+}
+
+func ProtobufProvider(_ ProtobufConfig) node.MiddleFunc[[]interface{}, []config.GenericMap] {
+	pb := Protobuf{}
+	return func(in <-chan []interface{}, out chan<- []config.GenericMap) {
+		for i := range in {
+			out <- pb.Decode(i)
+		}
+	}
 }
 
 // Decode decodes input strings to a list of flow entries

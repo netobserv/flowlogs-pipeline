@@ -17,6 +17,9 @@
 
 package api
 
+import "github.com/mariomac/pipes/pkg/graph/stage"
+
 type DecodeAws struct {
+	stage.Instance
 	Fields []string `yaml:"fields" doc:"list of aws flow log fields"`
 }

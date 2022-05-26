@@ -21,8 +21,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/mariomac/pipes/pkg/node"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
@@ -101,10 +101,8 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []interface{}) {
 	}
 }
 
-// NewIngestKafka create a new ingester
-func NewIngestKafka(params config.StageParam) (Ingester, error) {
-	log.Debugf("entering NewIngestKafka")
-	jsonIngestKafka := params.Ingest.Kafka
+func IngestKafkaProvider(jsonIngestKafka api.IngestKafka) node.StartFunc[[]interface{}] {
+	log.Debugf("entering IngestKafkaProvider")
 
 	// connect to the kafka server
 	startOffsetString := jsonIngestKafka.StartOffset
@@ -149,15 +147,15 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 	if kafkaReader == nil {
 		errMsg := "NewIngestKafka: failed to create kafka-go reader"
 		log.Errorf("%s", errMsg)
-		return nil, errors.New(errMsg)
+		panic(errors.New(errMsg))
 	}
 	log.Debugf("kafkaReader = %v", kafkaReader)
 
-	return &ingestKafka{
+	return ingestKafka{
 		kafkaParams: jsonIngestKafka,
 		kafkaReader: kafkaReader,
 		exitChan:    utils.ExitChannel(),
 		in:          make(chan string, channelSizeKafka),
 		prevRecords: make([]interface{}, 0),
-	}, nil
+	}.Ingest
 }

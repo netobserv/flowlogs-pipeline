@@ -19,17 +19,17 @@ package ingest
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"time"
 
+	"github.com/mariomac/pipes/pkg/node"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 type IngestFile struct {
-	params       config.Ingest
+	params       config.File
 	exitChan     <-chan struct{}
 	PrevRecords  []interface{}
 	TotalRecords int
@@ -43,7 +43,7 @@ const (
 // Ingest ingests entries from a file and resends the same data every delaySeconds seconds
 func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 	lines := make([]interface{}, 0)
-	file, err := os.Open(ingestF.params.File.Filename)
+	file, err := os.Open(ingestF.params.Filename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 		lines = append(lines, text)
 	}
 
-	log.Debugf("Ingesting %d log lines from %s", len(lines), ingestF.params.File.Filename)
+	log.Debugf("Ingesting %d log lines from %s", len(lines), ingestF.params.Filename)
 	switch ingestF.params.Type {
 	case "file":
 		ingestF.PrevRecords = lines
@@ -95,17 +95,9 @@ func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 	}
 }
 
-// NewIngestFile create a new ingester
-func NewIngestFile(params config.StageParam) (Ingester, error) {
-	log.Debugf("entering NewIngestFile")
-	if params.Ingest.File.Filename == "" {
-		return nil, fmt.Errorf("ingest filename not specified")
-	}
-
-	log.Debugf("input file name = %s", params.Ingest.File.Filename)
-
-	return &IngestFile{
-		params:   params.Ingest,
+func FileProvider(cfg config.File) node.StartFunc[[]interface{}] {
+	return IngestFile{
 		exitChan: utils.ExitChannel(),
-	}, nil
+		params:   cfg,
+	}.Ingest
 }

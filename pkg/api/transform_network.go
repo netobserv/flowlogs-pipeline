@@ -17,7 +17,10 @@
 
 package api
 
+import "github.com/mariomac/pipes/pkg/graph/stage"
+
 type TransformNetwork struct {
+	stage.Instance
 	Rules          NetworkTransformRules `yaml:"rules" doc:"list of transform rules, each includes:"`
 	KubeConfigPath string                `yaml:"kubeconfigpath" doc:"path to kubeconfig file (optional)"`
 	ServicesFile   string                `yaml:"servicesfile" doc:"path to services file (optional, default: /etc/services)"`

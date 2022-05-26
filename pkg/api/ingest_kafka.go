@@ -17,7 +17,10 @@
 
 package api
 
+import "github.com/mariomac/pipes/pkg/graph/stage"
+
 type IngestKafka struct {
+	stage.Instance
 	Brokers          []string `yaml:"brokers" doc:"list of kafka broker addresses"`
 	Topic            string   `yaml:"topic" doc:"kafka topic to listen on"`
 	GroupId          string   `yaml:"groupid" doc:"separate groupid for each consumer on specified topic"`

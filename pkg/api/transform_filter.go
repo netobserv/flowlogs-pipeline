@@ -17,7 +17,10 @@
 
 package api
 
+import "github.com/mariomac/pipes/pkg/graph/stage"
+
 type TransformFilter struct {
+	stage.Instance
 	Rules []TransformFilterRule `yaml:"rules" doc:"list of filter rules, each includes:"`
 }
 
