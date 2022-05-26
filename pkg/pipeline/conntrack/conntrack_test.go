@@ -110,10 +110,10 @@ func TestTrack(t *testing.T) {
 	portB := 9002
 	protocol := 6
 
-	flAB1 := NewFlowLog(ipA, portA, ipB, portB, protocol, 111, 11)
-	flAB2 := NewFlowLog(ipA, portA, ipB, portB, protocol, 222, 22)
-	flBA3 := NewFlowLog(ipB, portB, ipA, portA, protocol, 333, 33)
-	flBA4 := NewFlowLog(ipB, portB, ipA, portA, protocol, 444, 44)
+	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 111, 11)
+	flAB2 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 222, 22)
+	flBA3 := newMockFlowLog(ipB, portB, ipA, portA, protocol, 333, 33)
+	flBA4 := newMockFlowLog(ipB, portB, ipA, portA, protocol, 444, 44)
 	table := []struct {
 		name          string
 		conf          *api.ConnTrack
