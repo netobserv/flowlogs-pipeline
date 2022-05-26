@@ -43,10 +43,10 @@ type aggregateBase struct {
 	initVal     float64
 }
 
-type aggregateSum struct{ aggregateBase }
-type aggregateCount struct{ aggregateBase }
-type aggregateMin struct{ aggregateBase }
-type aggregateMax struct{ aggregateBase }
+type aSum struct{ aggregateBase }
+type aCount struct{ aggregateBase }
+type aMin struct{ aggregateBase }
+type aMax struct{ aggregateBase }
 
 // TODO: think of adding a more complex operation such as Average Packet Size which involves 2 input fields: Bytes/Packets
 
@@ -66,16 +66,16 @@ func newAggregator(of api.OutputField) (aggregator, error) {
 	switch of.Operation {
 	case api.ConnTrackOperationName("Sum"):
 		aggBase.initVal = 0
-		agg = &aggregateSum{aggBase}
+		agg = &aSum{aggBase}
 	case api.ConnTrackOperationName("Count"):
 		aggBase.initVal = 0
-		agg = &aggregateCount{aggBase}
+		agg = &aCount{aggBase}
 	case api.ConnTrackOperationName("Min"):
 		aggBase.initVal = math.MaxFloat64
-		agg = &aggregateMin{aggBase}
+		agg = &aMin{aggBase}
 	case api.ConnTrackOperationName("Max"):
 		aggBase.initVal = -math.MaxFloat64
-		agg = &aggregateMax{aggBase}
+		agg = &aMax{aggBase}
 	default:
 		return nil, fmt.Errorf("unknown operation: %q", of.Operation)
 	}
@@ -118,7 +118,7 @@ func (agg *aggregateBase) addField(conn connection) {
 	}
 }
 
-func (agg *aggregateSum) update(conn connection, flowLog config.GenericMap, d direction) {
+func (agg *aSum) update(conn connection, flowLog config.GenericMap, d direction) {
 	outputField := agg.getOutputField(d)
 	v, err := agg.getInputFieldValue(flowLog)
 	if err != nil {
@@ -130,14 +130,14 @@ func (agg *aggregateSum) update(conn connection, flowLog config.GenericMap, d di
 	})
 }
 
-func (agg *aggregateCount) update(conn connection, flowLog config.GenericMap, d direction) {
+func (agg *aCount) update(conn connection, flowLog config.GenericMap, d direction) {
 	outputField := agg.getOutputField(d)
 	conn.updateAggValue(outputField, func(curr float64) float64 {
 		return curr + 1
 	})
 }
 
-func (agg *aggregateMin) update(conn connection, flowLog config.GenericMap, d direction) {
+func (agg *aMin) update(conn connection, flowLog config.GenericMap, d direction) {
 	outputField := agg.getOutputField(d)
 	v, err := agg.getInputFieldValue(flowLog)
 	if err != nil {
@@ -150,7 +150,7 @@ func (agg *aggregateMin) update(conn connection, flowLog config.GenericMap, d di
 	})
 }
 
-func (agg *aggregateMax) update(conn connection, flowLog config.GenericMap, d direction) {
+func (agg *aMax) update(conn connection, flowLog config.GenericMap, d direction) {
 	outputField := agg.getOutputField(d)
 	v, err := agg.getInputFieldValue(flowLog)
 	if err != nil {

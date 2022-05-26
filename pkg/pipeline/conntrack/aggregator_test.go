@@ -56,37 +56,37 @@ func TestNewAggregator_Valid(t *testing.T) {
 		{
 			name:        "Default SplitAB",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "sum"},
-			expected:    &aggregateSum{aggregateBase{"MyAgg", "MyAgg", false, 0}},
+			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", false, 0}},
 		},
 		{
 			name:        "Default input",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "sum", SplitAB: true},
-			expected:    &aggregateSum{aggregateBase{"MyAgg", "MyAgg", true, 0}},
+			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", true, 0}},
 		},
 		{
 			name:        "Custom input",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "sum", Input: "MyInput"},
-			expected:    &aggregateSum{aggregateBase{"MyInput", "MyAgg", false, 0}},
+			expected:    &aSum{aggregateBase{"MyInput", "MyAgg", false, 0}},
 		},
 		{
 			name:        "Operation sum",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "sum"},
-			expected:    &aggregateSum{aggregateBase{"MyAgg", "MyAgg", false, 0}},
+			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", false, 0}},
 		},
 		{
 			name:        "Operation count",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "count"},
-			expected:    &aggregateCount{aggregateBase{"MyAgg", "MyAgg", false, 0}},
+			expected:    &aCount{aggregateBase{"MyAgg", "MyAgg", false, 0}},
 		},
 		{
 			name:        "Operation max",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "max"},
-			expected:    &aggregateMax{aggregateBase{"MyAgg", "MyAgg", false, -math.MaxFloat64}},
+			expected:    &aMax{aggregateBase{"MyAgg", "MyAgg", false, -math.MaxFloat64}},
 		},
 		{
 			name:        "Operation min",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "min"},
-			expected:    &aggregateMin{aggregateBase{"MyAgg", "MyAgg", false, math.MaxFloat64}},
+			expected:    &aMin{aggregateBase{"MyAgg", "MyAgg", false, math.MaxFloat64}},
 		},
 	}
 
