@@ -27,15 +27,15 @@ import (
 
 func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *api.ConnTrack {
 	splitAB := isBidirectional
-	var h api.ConnTrackHash
+	var hash api.ConnTrackHash
 	if isBidirectional {
-		h = api.ConnTrackHash{
+		hash = api.ConnTrackHash{
 			FieldGroupRefs: []string{"protocol"},
 			FieldGroupARef: "src",
 			FieldGroupBRef: "dst",
 		}
 	} else {
-		h = api.ConnTrackHash{
+		hash = api.ConnTrackHash{
 			FieldGroupRefs: []string{"protocol", "src", "dst"},
 		}
 	}
@@ -63,7 +63,7 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *
 					},
 				},
 			},
-			Hash: h,
+			Hash: hash,
 		},
 		OutputFields: []api.OutputField{
 			{Name: "Bytes", Operation: "sum", SplitAB: splitAB},
