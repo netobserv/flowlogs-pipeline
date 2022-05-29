@@ -61,8 +61,7 @@ func (aggregates *Aggregates) GetMetrics() []config.GenericMap {
 func (aggregates *Aggregates) AddAggregate(aggregateDefinition api.AggregateDefinition) []Aggregate {
 	aggregate := Aggregate{
 		Definition: aggregateDefinition,
-		GroupsMap:  map[NormalizedValues]*GroupState{},
-		Cache:      utils.NewTimedCache(),
+		cache:      utils.NewTimedCache(),
 		mutex:      &sync.Mutex{},
 		expiryTime: aggregates.expiryTime,
 	}
@@ -90,7 +89,7 @@ func (aggregates *Aggregates) cleanupExpiredEntries() {
 
 	for _, aggregate := range aggregates.Aggregates {
 		aggregate.mutex.Lock()
-		aggregate.Cache.CleanupExpiredEntries(aggregate.expiryTime, aggregate)
+		aggregate.cache.CleanupExpiredEntries(aggregate.expiryTime, aggregate)
 		aggregate.mutex.Unlock()
 	}
 

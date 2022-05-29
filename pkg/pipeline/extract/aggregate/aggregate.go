@@ -47,8 +47,7 @@ type NormalizedValues string
 
 type Aggregate struct {
 	Definition api.AggregateDefinition
-	GroupsMap  map[NormalizedValues]*GroupState
-	Cache      *utils.TimedCache
+	cache      *utils.TimedCache
 	mutex      *sync.Mutex
 	expiryTime int64
 }
@@ -128,7 +127,7 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	defer aggregate.mutex.Unlock()
 
 	var groupState *GroupState
-	oldEntry, ok := aggregate.Cache.GetCacheEntry(string(normalizedValues))
+	oldEntry, ok := aggregate.cache.GetCacheEntry(string(normalizedValues))
 	if !ok {
 		groupState = &GroupState{normalizedValues: normalizedValues}
 		initVal := getInitValue(string(aggregate.Definition.Operation))
@@ -137,11 +136,10 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 		if aggregate.Definition.Operation == OperationRawValues {
 			groupState.recentRawValues = make([]float64, 0)
 		}
-		aggregate.GroupsMap[normalizedValues] = groupState
 	} else {
 		groupState = oldEntry.(*GroupState)
 	}
-	aggregate.Cache.UpdateCacheEntry(string(normalizedValues), groupState)
+	aggregate.cache.UpdateCacheEntry(string(normalizedValues), groupState)
 
 	// update value
 	recordKey := aggregate.Definition.RecordKey
@@ -207,7 +205,10 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 	defer aggregate.mutex.Unlock()
 
 	var metrics []config.GenericMap
-	for _, group := range aggregate.GroupsMap {
+
+	// iterate over the items in the cache
+	aggregate.cache.Iterate(func(key string, value interface{}) {
+		group := value.(*GroupState)
 		metrics = append(metrics, config.GenericMap{
 			"name":              aggregate.Definition.Name,
 			"operation":         aggregate.Definition.Operation,
@@ -227,7 +228,7 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 		}
 		group.recentCount = 0
 		group.recentOpValue = getInitValue(string(aggregate.Definition.Operation))
-	}
+	})
 
 	if aggregate.Definition.TopK > 0 {
 		metrics = aggregate.computeTopK(metrics)
@@ -237,8 +238,7 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 }
 
 func (aggregate Aggregate) Cleanup(entry interface{}) {
-	groupState := entry.(*GroupState)
-	delete(aggregate.GroupsMap, groupState.normalizedValues)
+	// nothing special to do in this callback function
 }
 
 // functions to manipulate a heap to generate TopK entries

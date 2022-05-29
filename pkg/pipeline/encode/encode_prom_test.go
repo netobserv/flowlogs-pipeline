@@ -18,7 +18,6 @@
 package encode
 
 import (
-	"container/list"
 	"testing"
 	"time"
 
@@ -171,10 +170,7 @@ func Test_EncodeAggregate(t *testing.T) {
 				labelNames: []string{"by", "aggregate"},
 			},
 		},
-		mCache: &utils.TimedCache{
-			CacheList: list.New(),
-			CacheMap:  make(utils.TimedCacheMap),
-		},
+		mCache: utils.NewTimedCache(),
 	}
 
 	newEncode.Encode(metrics)
