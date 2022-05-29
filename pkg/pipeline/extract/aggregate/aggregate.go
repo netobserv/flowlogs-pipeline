@@ -293,16 +293,23 @@ func (h *topkHeap) Pop() interface{} {
 func (aggregate Aggregate) computeTopK(inputMetrics []config.GenericMap) []config.GenericMap {
 	// maintain a heap with k items, always dropping the lowest
 	// we will be left with the TopK items
+	var prevMin float64
+	prevMin = -math.MaxFloat64
 	topk := aggregate.Definition.TopK
 	h := &topkHeap{}
 	for index, metricMap := range inputMetrics {
+		val := metricMap["total_value"].(float64)
+		if val < prevMin {
+			continue
+		}
 		item := heapItem{
 			metrics: &inputMetrics[index],
-			value:   metricMap["total_value"].(float64),
+			value:   val,
 		}
 		heap.Push(h, item)
 		if h.Len() > topk {
-			heap.Pop(h)
+			x := heap.Pop(h)
+			prevMin = x.(heapItem).value
 		}
 	}
 	log.Debugf("heap: %v", h)
