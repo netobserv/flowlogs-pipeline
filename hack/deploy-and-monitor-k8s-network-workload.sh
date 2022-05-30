@@ -29,6 +29,7 @@ pipeline:
     collector:
       hostname: 0.0.0.0
       port: 2055
+      portLegacy: 2056
     type: collector
   decode:
     type: json

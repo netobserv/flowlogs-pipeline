@@ -53,8 +53,9 @@ func (cg *ConfGen) generateFlowlogs2PipelineConfig(fileName string) error {
 				"ingest": map[string]interface{}{
 					"type": "collector",
 					"collector": map[string]interface{}{
-						"port":     cg.config.Ingest.Collector.Port,
-						"hostname": cg.config.Ingest.Collector.HostName,
+						"port":       cg.config.Ingest.Collector.Port,
+						"portLegacy": cg.config.Ingest.Collector.PortLegacy,
+						"hostname":   cg.config.Ingest.Collector.HostName,
 					},
 				},
 			},
