@@ -10,6 +10,7 @@ data:
           collector:
             hostname: 0.0.0.0
             port: 2055
+            portLegacy: 2056
           type: collector
         name: ingest_collector
       - decode:

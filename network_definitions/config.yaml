@@ -6,6 +6,7 @@ description:
 ingest:
   collector:
     port: 2055
+    portLegacy: 2056
     hostName: 0.0.0.0
 transform:
   generic:

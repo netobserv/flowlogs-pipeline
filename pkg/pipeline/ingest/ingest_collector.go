@@ -48,6 +48,7 @@ const (
 type ingestCollector struct {
 	hostname       string
 	port           int
+	portLegacy     int
 	in             chan map[string]interface{}
 	batchFlushTime time.Duration
 	batchMaxLength int
@@ -124,31 +125,33 @@ func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	go func() {
-		sNF := &utils.StateNetFlow{
-			Format:    formatter,
-			Transport: transporter,
-			Logger:    log.StandardLogger(),
-		}
+	if ingestC.port > 0 {
+		go func() {
+			sNF := &utils.StateNetFlow{
+				Format:    formatter,
+				Transport: transporter,
+				Logger:    log.StandardLogger(),
+			}
 
-		log.Infof("listening for netflow on host %s, port = %d", ingestC.hostname, ingestC.port)
-		err = sNF.FlowRoutine(1, ingestC.hostname, ingestC.port, false)
-		log.Fatal(err)
+			log.Infof("listening for netflow on host %s, port = %d", ingestC.hostname, ingestC.port)
+			err = sNF.FlowRoutine(1, ingestC.hostname, ingestC.port, false)
+			log.Fatal(err)
+		}()
+	}
 
-	}()
+	if ingestC.portLegacy > 0 {
+		go func() {
+			sLegacyNF := &utils.StateNFLegacy{
+				Format:    formatter,
+				Transport: transporter,
+				Logger:    log.StandardLogger(),
+			}
 
-	go func() {
-		sLegacyNF := &utils.StateNFLegacy{
-			Format:    formatter,
-			Transport: transporter,
-			Logger:    log.StandardLogger(),
-		}
-
-		log.Infof("listening for legacy netflow on host %s, port = %d", ingestC.hostname, ingestC.port+1)
-		err = sLegacyNF.FlowRoutine(1, ingestC.hostname, ingestC.port+1, false)
-		log.Fatal(err)
-	}()
-
+			log.Infof("listening for legacy netflow on host %s, port = %d", ingestC.hostname, ingestC.portLegacy)
+			err = sLegacyNF.FlowRoutine(1, ingestC.hostname, ingestC.portLegacy, false)
+			log.Fatal(err)
+		}()
+	}
 }
 
 func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
@@ -193,12 +196,13 @@ func NewIngestCollector(params config.StageParam) (Ingester, error) {
 	if jsonIngestCollector.HostName == "" {
 		return nil, fmt.Errorf("ingest hostname not specified")
 	}
-	if jsonIngestCollector.Port == 0 {
-		return nil, fmt.Errorf("ingest port not specified")
+	if jsonIngestCollector.Port == 0 && jsonIngestCollector.PortLegacy == 0 {
+		return nil, fmt.Errorf("no ingest port specified")
 	}
 
 	log.Infof("hostname = %s", jsonIngestCollector.HostName)
 	log.Infof("port = %d", jsonIngestCollector.Port)
+	log.Infof("portLegacy = %d", jsonIngestCollector.PortLegacy)
 
 	bml := defaultBatchMaxLength
 	if jsonIngestCollector.BatchMaxLen != 0 {
@@ -208,6 +212,7 @@ func NewIngestCollector(params config.StageParam) (Ingester, error) {
 	return &ingestCollector{
 		hostname:       jsonIngestCollector.HostName,
 		port:           jsonIngestCollector.Port,
+		portLegacy:     jsonIngestCollector.PortLegacy,
 		exitChan:       pUtils.ExitChannel(),
 		batchFlushTime: defaultBatchFlushTime,
 		batchMaxLength: bml,
