@@ -83,6 +83,11 @@ func (b *PipelineBuilderStage) DecodeJSON(name string) PipelineBuilderStage {
 	return b.next(name, StageParam{Name: name, Decode: &Decode{Type: api.JSONType}})
 }
 
+// DecodeCast chains the current stage with a Cast decode stage and returns that new stage.
+func (b *PipelineBuilderStage) DecodeCast(name string) PipelineBuilderStage {
+	return b.next(name, StageParam{Name: name, Decode: &Decode{Type: api.CastType}})
+}
+
 // DecodeProtobuf chains the current stage with a protobuf decode stage and returns that new stage
 func (b *PipelineBuilderStage) DecodeProtobuf(name string) PipelineBuilderStage {
 	return b.next(name, StageParam{Name: name, Decode: &Decode{Type: api.PBType}})

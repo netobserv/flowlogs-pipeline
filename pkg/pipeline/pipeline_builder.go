@@ -288,6 +288,8 @@ func getDecoder(params config.StageParam) (decode.Decoder, error) {
 	var decoder decode.Decoder
 	var err error
 	switch params.Decode.Type {
+	case api.CastType:
+		decoder, err = decode.NewDecodeCast()
 	case api.JSONType:
 		decoder, err = decode.NewDecodeJson()
 	case api.AWSType:

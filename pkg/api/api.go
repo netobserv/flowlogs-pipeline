@@ -25,6 +25,7 @@ const (
 	GRPCType              = "grpc"
 	KafkaType             = "kafka"
 	JSONType              = "json"
+	CastType              = "cast"
 	PBType                = "protobuf"
 	AWSType               = "aws"
 	StdoutType            = "stdout"
