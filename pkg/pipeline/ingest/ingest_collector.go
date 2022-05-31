@@ -20,7 +20,6 @@ package ingest
 import (
 	"context"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"net"
 	"time"
@@ -166,10 +165,7 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 			log.Debugf("exiting ingestCollector because of signal")
 			return
 		case record := <-ingestC.in:
-			// TODO: for efficiency, consider forwarding directly as map,
-			// as this is reverted back from string to map in later pipeline stages
-			recordAsBytes, _ := json.Marshal(record)
-			records = append(records, string(recordAsBytes))
+			records = append(records, record)
 			if len(records) >= ingestC.batchMaxLength {
 				log.Debugf("ingestCollector sending %d entries", len(records))
 				linesProcessed.Add(float64(len(records)))

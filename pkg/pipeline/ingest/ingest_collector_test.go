@@ -1,7 +1,6 @@
 package ingest
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -32,9 +31,9 @@ func TestIngest(t *testing.T) {
 
 	received := waitForFlows(t, client, forwarded)
 	require.NotEmpty(t, received)
-	require.IsType(t, "string", received[0])
 	flow := map[string]interface{}{}
-	require.NoError(t, json.Unmarshal([]byte(received[0].(string)), &flow))
+	require.IsType(t, flow, received[0])
+	flow = received[0].(map[string]interface{})
 	assert.EqualValues(t, 12345678, flow["TimeFlowStart"])
 	assert.EqualValues(t, 12345678, flow["TimeFlowEnd"])
 	assert.Equal(t, "1.2.3.4", flow["SrcAddr"])
