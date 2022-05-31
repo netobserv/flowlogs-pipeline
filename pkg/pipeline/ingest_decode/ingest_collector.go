@@ -15,7 +15,7 @@
  *
  */
 
-package ingest
+package ingest_decode
 
 import (
 	"context"
@@ -108,7 +108,7 @@ func (w *TransportWrapper) Send(_, data []byte) error {
 }
 
 // Ingest ingests entries from a network collector using goflow2 library (https://github.com/netsampler/goflow2)
-func (ingestC *ingestCollector) Ingest(out chan<- []interface{}) {
+func (ingestC *ingestCollector) Ingest(out chan<- []config.GenericMap) {
 	ctx := context.Background()
 	ingestC.in = make(chan map[string]interface{}, channelSize)
 
@@ -154,8 +154,8 @@ func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
 	}
 }
 
-func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
-	var records []interface{}
+func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) {
+	var records []config.GenericMap
 	// Maximum batch time for each batch
 	flushRecords := time.NewTicker(ingestC.batchFlushTime)
 	defer flushRecords.Stop()
@@ -171,7 +171,7 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 				linesProcessed.Add(float64(len(records)))
 				queueLength.Set(float64(len(out)))
 				out <- records
-				records = []interface{}{}
+				records = []config.GenericMap{}
 			}
 		case <-flushRecords.C:
 			// Process batch of records (if not empty)
@@ -180,14 +180,14 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 				linesProcessed.Add(float64(len(records)))
 				queueLength.Set(float64(len(out)))
 				out <- records
-				records = []interface{}{}
+				records = []config.GenericMap{}
 			}
 		}
 	}
 }
 
 // NewIngestCollector create a new ingester
-func NewIngestCollector(params config.StageParam) (Ingester, error) {
+func NewIngestCollector(params config.StageParam) (IngesterDecoder, error) {
 	jsonIngestCollector := api.IngestCollector{}
 	if params.Ingest != nil && params.Ingest.Collector != nil {
 		jsonIngestCollector = *params.Ingest.Collector

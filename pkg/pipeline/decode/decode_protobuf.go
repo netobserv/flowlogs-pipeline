@@ -18,7 +18,7 @@ var pflog = logrus.WithField("component", "Protobuf")
 type Protobuf struct {
 }
 
-func NewProtobuf() (Decoder, error) {
+func NewProtobuf() (*Protobuf, error) {
 	return &Protobuf{}, nil
 }
 

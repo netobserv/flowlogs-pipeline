@@ -147,19 +147,14 @@ func TestGRPCProtobuf(t *testing.T) {
 log-level: debug
 pipeline:
   - name: ingest1
-  - name: decode1
-    follows: ingest1
   - name: writer1
-    follows: decode1
+    follows: ingest1
 parameters:
   - name: ingest1
     ingest:
       type: grpc
       grpc:
         port: %d
-  - name: decode1
-    decode:
-      type: protobuf
   - name: writer1
     write:
       type: stdout

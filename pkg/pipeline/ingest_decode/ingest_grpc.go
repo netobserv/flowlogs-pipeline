@@ -1,10 +1,11 @@
-package ingest
+package ingest_decode
 
 import (
 	"fmt"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/netobserv-agent/pkg/grpc"
 	"github.com/netobserv/netobserv-agent/pkg/pbflow"
@@ -16,6 +17,7 @@ const defaultBufferLen = 100
 type GRPCProtobuf struct {
 	collector   *grpc.CollectorServer
 	flowPackets chan *pbflow.Records
+	decoder     *decode.Protobuf
 }
 
 func NewGRPCProtobuf(params config.StageParam) (*GRPCProtobuf, error) {
@@ -35,20 +37,25 @@ func NewGRPCProtobuf(params config.StageParam) (*GRPCProtobuf, error) {
 	if err != nil {
 		return nil, err
 	}
+	decoder, err := decode.NewProtobuf()
+	if err != nil {
+		return nil, err
+	}
 	return &GRPCProtobuf{
 		collector:   collector,
 		flowPackets: flowPackets,
+		decoder:     decoder,
 	}, nil
 }
 
-func (no *GRPCProtobuf) Ingest(out chan<- []interface{}) {
+func (no *GRPCProtobuf) Ingest(out chan<- []config.GenericMap) {
 	go func() {
 		<-utils.ExitChannel()
 		close(no.flowPackets)
 		no.collector.Close()
 	}()
 	for fp := range no.flowPackets {
-		out <- []interface{}{fp}
+		out <- no.decoder.Decode([]interface{}{fp})
 	}
 }
 

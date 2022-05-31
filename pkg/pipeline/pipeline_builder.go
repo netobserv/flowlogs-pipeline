@@ -10,6 +10,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest_decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
 	"github.com/netobserv/gopipes/pkg/node"
@@ -42,14 +43,15 @@ type builder struct {
 }
 
 type pipelineEntry struct {
-	stageName   string
-	stageType   string
-	Ingester    ingest.Ingester
-	Decoder     decode.Decoder
-	Transformer transform.Transformer
-	Extractor   extract.Extractor
-	Encoder     encode.Encoder
-	Writer      write.Writer
+	stageName       string
+	stageType       string
+	Ingester        ingest.Ingester
+	IngesterDecoder ingest_decode.IngesterDecoder
+	Decoder         decode.Decoder
+	Transformer     transform.Transformer
+	Extractor       extract.Extractor
+	Encoder         encode.Encoder
+	Writer          write.Writer
 }
 
 func newBuilder(params []config.StageParam, stages []config.Stage) *builder {
@@ -72,7 +74,7 @@ func (b *builder) readStages() error {
 		var err error
 		switch pEntry.stageType {
 		case StageIngest:
-			pEntry.Ingester, err = getIngester(param)
+			pEntry.Ingester, pEntry.IngesterDecoder, err = getIngester(param)
 		case StageDecode:
 			pEntry.Decoder, err = getDecoder(param)
 		case StageTransform:
@@ -219,7 +221,12 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 	// as we do with Ingest
 	switch pe.stageType {
 	case StageIngest:
-		init := node.AsInit(pe.Ingester.Ingest)
+		var init *node.Init
+		if pe.IngesterDecoder != nil {
+			init = node.AsInit(pe.IngesterDecoder.Ingest)
+		} else {
+			init = node.AsInit(pe.Ingester.Ingest)
+		}
 		b.startNodes = append(b.startNodes, init)
 		stage = init
 	case StageWrite:
@@ -266,22 +273,23 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 	return stage, nil
 }
 
-func getIngester(params config.StageParam) (ingest.Ingester, error) {
+func getIngester(params config.StageParam) (ingest.Ingester, ingest_decode.IngesterDecoder, error) {
 	var ingester ingest.Ingester
+	var ingesterDecoder ingest_decode.IngesterDecoder
 	var err error
 	switch params.Ingest.Type {
 	case api.FileType, api.FileLoopType, api.FileChunksType:
 		ingester, err = ingest.NewIngestFile(params)
 	case api.CollectorType:
-		ingester, err = ingest.NewIngestCollector(params)
+		ingesterDecoder, err = ingest_decode.NewIngestCollector(params)
 	case api.KafkaType:
 		ingester, err = ingest.NewIngestKafka(params)
 	case api.GRPCType:
-		ingester, err = ingest.NewGRPCProtobuf(params)
+		ingesterDecoder, err = ingest_decode.NewGRPCProtobuf(params)
 	default:
 		panic(fmt.Sprintf("`ingest` type %s not defined", params.Ingest.Type))
 	}
-	return ingester, err
+	return ingester, ingesterDecoder, err
 }
 
 func getDecoder(params config.StageParam) (decode.Decoder, error) {
