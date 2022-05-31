@@ -87,13 +87,13 @@ parameters:
       type: network
   - extract:
       aggregates:
-      - Name: count_source_destination_subnet
-        By:
+      - name: count_source_destination_subnet
+        by:
         - dstSubnet24
         - srcSubnet24
-        Operation: count
-        RecordKey: ""
-        TopK: 4
+        operation: count
+        recordKey: ""
+        topK: 4
       type: aggregates
     name: extract_aggregate
   - name: write_none

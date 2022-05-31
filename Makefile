@@ -98,13 +98,14 @@ clean: ## Clean
 	go clean ./...
 
 # note: to review coverage execute: go tool cover -html=/tmp/coverage.out
+TEST_OPTS := -race -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out
 .PHONY: tests-unit
 tests-unit: validate_go ## Unit tests
-	go test -p 1 -race -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out $$(go list ./... | grep -v /e2e)
+	go test -p 1 $(TEST_OPTS) $$(go list ./... | grep -v /e2e)
 
 .PHONY: tests-fast
-tests-fast: validate_go ## Fast unit tests (no race test / coverage)
-	go test -p 1 $$(go list ./... | grep -v /e2e)
+tests-fast: TEST_OPTS=
+tests-fast: tests-unit
 
 .PHONY: tests-e2e
 tests-e2e: validate_go $(KIND)  ## End-to-end tests

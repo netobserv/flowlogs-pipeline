@@ -112,7 +112,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"aggregate","extract":{"type":"aggregates","aggregates":[{"name":"src_as_connection_count","by":["srcAS"],"operation":"count","recordKey":""}]}}`, string(b))
+	require.Equal(t, `{"name":"aggregate","extract":{"type":"aggregates","aggregates":[{"name":"src_as_connection_count","by":["srcAS"],"operation":"count","recordKey":"","topK":0}]}}`, string(b))
 
 	b, err = json.Marshal(params[3])
 	require.NoError(t, err)
