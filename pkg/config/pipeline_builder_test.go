@@ -57,7 +57,7 @@ func TestLokiPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/","batchWait":"1s","batchSize":102400,"timeout":"10s","minBackoff":"1s","maxBackoff":"5m","maxRetries":10,"clientConfig":{"proxy_url":null,"tls_config":{"insecure_skip_verify":false},"follow_redirects":false},"timestampLabel":"TimeReceived","timestampScale":"1s"}}}`, string(b))
+	require.Equal(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/","batchWait":"1s","batchSize":102400,"timeout":"10s","minBackoff":"1s","maxBackoff":"5m","maxRetries":10,"timestampLabel":"TimeReceived","timestampScale":"1s"}}}`, string(b))
 }
 
 func TestKafkaPromPipeline(t *testing.T) {
@@ -139,7 +139,7 @@ func TestForkPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/","batchWait":"1s","batchSize":102400,"timeout":"10s","minBackoff":"1s","maxBackoff":"5m","maxRetries":10,"clientConfig":{"proxy_url":null,"tls_config":{"insecure_skip_verify":false},"follow_redirects":false},"timestampLabel":"TimeReceived","timestampScale":"1s"}}}`, string(b))
+	require.Equal(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/","batchWait":"1s","batchSize":102400,"timeout":"10s","minBackoff":"1s","maxBackoff":"5m","maxRetries":10,"timestampLabel":"TimeReceived","timestampScale":"1s"}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)

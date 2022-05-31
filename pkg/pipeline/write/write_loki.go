@@ -95,7 +95,9 @@ func buildLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 			MaxBackoff: maxBackoff,
 			MaxRetries: c.MaxRetries,
 		},
-		Client: c.ClientConfig,
+	}
+	if c.ClientConfig != nil {
+		cfg.Client = *c.ClientConfig
 	}
 	var clientURL urlutil.URLValue
 	err = clientURL.Set(strings.TrimSuffix(c.URL, "/") + "/loki/api/v1/push")
