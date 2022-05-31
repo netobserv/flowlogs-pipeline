@@ -18,6 +18,7 @@
 package aggregate
 
 import (
+	"container/heap"
 	"container/list"
 	"fmt"
 	"math"
@@ -215,8 +216,8 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 			"record_key":        aggregate.Definition.RecordKey,
 			"by":                strings.Join(aggregate.Definition.By, ","),
 			"aggregate":         string(group.normalizedValues),
-			"total_value":       fmt.Sprintf("%f", group.totalValue),
-			"total_count":       fmt.Sprintf("%d", group.totalCount),
+			"total_value":       group.totalValue,
+			"total_count":       group.totalCount,
 			"recent_raw_values": group.recentRawValues,
 			"recent_op_value":   group.recentOpValue,
 			"recent_count":      group.recentCount,
@@ -228,6 +229,10 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 		}
 		group.recentCount = 0
 		group.recentOpValue = getInitValue(string(aggregate.Definition.Operation))
+	}
+
+	if aggregate.Definition.TopK > 0 {
+		metrics = aggregate.computeTopK(metrics)
 	}
 
 	return metrics
@@ -249,4 +254,74 @@ func (aggregate Aggregate) cleanupExpiredEntries() {
 		delete(aggregate.GroupsMap, pCacheInfo.normalizedValues)
 		aggregate.GroupsList.Remove(listEntry)
 	}
+}
+
+// functions to manipulate a heap to generate TopK entries
+// We need to implement the heap interface: Len(), Less(), Swap(), Push(), Pop()
+
+type heapItem struct {
+	value   float64
+	metrics *config.GenericMap
+}
+
+type topkHeap []heapItem
+
+func (h topkHeap) Len() int {
+	return len(h)
+}
+
+func (h topkHeap) Less(i, j int) bool {
+	return h[i].value < h[j].value
+}
+
+func (h topkHeap) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+}
+
+func (h *topkHeap) Push(x interface{}) {
+	*h = append(*h, x.(heapItem))
+}
+
+func (h *topkHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
+}
+
+func (aggregate Aggregate) computeTopK(inputMetrics []config.GenericMap) []config.GenericMap {
+	// maintain a heap with k items, always dropping the lowest
+	// we will be left with the TopK items
+	var prevMin float64
+	prevMin = -math.MaxFloat64
+	topk := aggregate.Definition.TopK
+	h := &topkHeap{}
+	for index, metricMap := range inputMetrics {
+		val := metricMap["total_value"].(float64)
+		if val < prevMin {
+			continue
+		}
+		item := heapItem{
+			metrics: &inputMetrics[index],
+			value:   val,
+		}
+		heap.Push(h, item)
+		if h.Len() > topk {
+			x := heap.Pop(h)
+			prevMin = x.(heapItem).value
+		}
+	}
+	log.Debugf("heap: %v", h)
+
+	// convert the remaining heap to a sorted array
+	result := make([]config.GenericMap, h.Len())
+	heapLen := h.Len()
+	for i := heapLen; i > 0; i-- {
+		poppedItem := heap.Pop(h).(heapItem)
+		log.Debugf("poppedItem: %v", poppedItem)
+		result[i-1] = *poppedItem.metrics
+	}
+	log.Debugf("topk items: %v", result)
+	return result
 }

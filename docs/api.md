@@ -156,4 +156,5 @@ Following is the supported API format for specifying metrics aggregations:
          By: list of fields on which to aggregate
          Operation: sum, min, max, avg or raw_values
          RecordKey: internal field on which to perform the operation
+         TopK: number of highest incidence to report (default - report all)
 </pre>
