@@ -62,8 +62,12 @@ func (f *Filter) Transform(input []config.GenericMap) []config.GenericMap {
 // NewTransformFilter create a new filter transform
 func NewTransformFilter(params config.StageParam) (Transformer, error) {
 	log.Debugf("entering NewTransformFilter")
+	rules := []api.TransformFilterRule{}
+	if params.Transform != nil && params.Transform.Filter != nil {
+		rules = params.Transform.Filter.Rules
+	}
 	transformFilter := &Filter{
-		Rules: params.Transform.Filter.Rules,
+		Rules: rules,
 	}
 	return transformFilter, nil
 }

@@ -74,83 +74,82 @@ parameters:
       - input: dstIP
         output: dstLocation
         type: add_location
-        parameters: ""
     type: network
 - extract:
     aggregates:
-    - Name: bandwidth_network_service
-      By:
+    - name: bandwidth_network_service
+      by:
       - service
-      Operation: sum
-      RecordKey: bytes
-    - Name: bandwidth_source_destination_subnet
-      By:
+      operation: sum
+      recordKey: bytes
+    - name: bandwidth_source_destination_subnet
+      by:
       - dstSubnet24
       - srcSubnet24
-      Operation: sum
-      RecordKey: bytes
-    - Name: bandwidth_source_subnet
-      By:
+      operation: sum
+      recordKey: bytes
+    - name: bandwidth_source_subnet
+      by:
       - srcSubnet
-      Operation: sum
-      RecordKey: bytes
-    - Name: dest_connection_subnet_count
-      By:
+      operation: sum
+      recordKey: bytes
+    - name: dest_connection_subnet_count
+      by:
       - dstSubnet
-      Operation: sum
-      RecordKey: isNewFlow
-    - Name: src_connection_count
-      By:
+      operation: sum
+      recordKey: isNewFlow
+    - name: src_connection_count
+      by:
       - srcSubnet
-      Operation: count
-      RecordKey: ""
-    - Name: TCPFlags_count
-      By:
+      operation: count
+      recordKey: ""
+    - name: TCPFlags_count
+      by:
       - TCPFlags
-      Operation: count
-      RecordKey: ""
-    - Name: dst_as_connection_count
-      By:
+      operation: count
+      recordKey: ""
+    - name: dst_as_connection_count
+      by:
       - dstAS
-      Operation: count
-      RecordKey: ""
-    - Name: src_as_connection_count
-      By:
+      operation: count
+      recordKey: ""
+    - name: src_as_connection_count
+      by:
       - srcAS
-      Operation: count
-      RecordKey: ""
-    - Name: count_source_destination_subnet
-      By:
+      operation: count
+      recordKey: ""
+    - name: count_source_destination_subnet
+      by:
       - dstSubnet24
       - srcSubnet24
-      Operation: count
-      RecordKey: ""
-    - Name: bandwidth_destination_subnet
-      By:
+      operation: count
+      recordKey: ""
+    - name: bandwidth_destination_subnet
+      by:
       - dstSubnet
-      Operation: sum
-      RecordKey: bytes
-    - Name: bandwidth_namespace
-      By:
+      operation: sum
+      recordKey: bytes
+    - name: bandwidth_namespace
+      by:
       - srcK8S_Namespace
       - srcK8S_Type
-      Operation: sum
-      RecordKey: bytes
-    - Name: flows_bytes_hist
-      By:
+      operation: sum
+      recordKey: bytes
+    - name: flows_bytes_hist
+      by:
       - all_Evaluate
-      Operation: raw_values
-      RecordKey: bytes
-    - Name: dest_connection_location_count
-      By:
+      operation: raw_values
+      recordKey: bytes
+    - name: dest_connection_location_count
+      by:
       - dstLocation_CountryName
-      Operation: count
-      RecordKey: ""
-    - Name: dest_service_count
-      By:
+      operation: count
+      recordKey: ""
+    - name: dest_service_count
+      by:
       - service
-      Operation: count
-      RecordKey: ""
+      operation: count
+      recordKey: ""
     type: aggregates
   name: extract_aggregate
 - encode:
@@ -161,7 +160,7 @@ parameters:
         filter:
           key: name
           value: bandwidth_network_service
-        valuekey: recent_op_value
+        valueKey: recent_op_value
         labels:
         - by
         - aggregate
@@ -171,7 +170,7 @@ parameters:
         filter:
           key: name
           value: bandwidth_source_destination_subnet
-        valuekey: recent_op_value
+        valueKey: recent_op_value
         labels:
         - by
         - aggregate
@@ -181,7 +180,7 @@ parameters:
         filter:
           key: name
           value: bandwidth_source_subnet
-        valuekey: recent_op_value
+        valueKey: recent_op_value
         labels:
         - by
         - aggregate
@@ -191,7 +190,7 @@ parameters:
         filter:
           key: name
           value: dest_connection_subnet_count
-        valuekey: recent_count
+        valueKey: recent_count
         labels:
         - by
         - aggregate
@@ -201,7 +200,7 @@ parameters:
         filter:
           key: name
           value: src_connection_count
-        valuekey: recent_count
+        valueKey: recent_count
         labels:
         - by
         - aggregate
@@ -211,7 +210,7 @@ parameters:
         filter:
           key: name
           value: TCPFlags_count
-        valuekey: recent_count
+        valueKey: recent_count
         labels:
         - by
         - aggregate
@@ -221,7 +220,7 @@ parameters:
         filter:
           key: name
           value: dst_as_connection_count
-        valuekey: recent_count
+        valueKey: recent_count
         labels:
         - by
         - aggregate
@@ -231,7 +230,7 @@ parameters:
         filter:
           key: name
           value: src_as_connection_count
-        valuekey: recent_count
+        valueKey: recent_count
         labels:
         - by
         - aggregate
@@ -241,7 +240,7 @@ parameters:
         filter:
           key: name
           value: count_source_destination_subnet
-        valuekey: recent_count
+        valueKey: recent_count
         labels:
         - by
         - aggregate
@@ -251,7 +250,7 @@ parameters:
         filter:
           key: name
           value: bandwidth_destination_subnet
-        valuekey: recent_op_value
+        valueKey: recent_op_value
         labels:
         - by
         - aggregate
@@ -261,7 +260,7 @@ parameters:
         filter:
           key: name
           value: bandwidth_namespace
-        valuekey: recent_op_value
+        valueKey: recent_op_value
         labels:
         - by
         - aggregate
@@ -271,7 +270,7 @@ parameters:
         filter:
           key: name
           value: flows_bytes_hist
-        valuekey: recent_raw_values
+        valueKey: recent_raw_values
         labels:
         - by
         - aggregate
@@ -286,7 +285,7 @@ parameters:
         filter:
           key: name
           value: dest_connection_location_count
-        valuekey: recent_count
+        valueKey: recent_count
         labels:
         - by
         - aggregate
@@ -296,7 +295,7 @@ parameters:
         filter:
           key: name
           value: dest_service_count
-        valuekey: recent_count
+        valueKey: recent_count
         labels:
         - by
         - aggregate

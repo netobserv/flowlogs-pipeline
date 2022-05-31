@@ -54,9 +54,13 @@ func (g *Generic) Transform(input []config.GenericMap) []config.GenericMap {
 // NewTransformGeneric create a new transform
 func NewTransformGeneric(params config.StageParam) (Transformer, error) {
 	log.Debugf("entering NewTransformGeneric")
-	log.Debugf("params.Transform.Generic = %v", params.Transform.Generic)
-	rules := params.Transform.Generic.Rules
-	policy := params.Transform.Generic.Policy
+	genConfig := api.TransformGeneric{}
+	if params.Transform != nil && params.Transform.Generic != nil {
+		genConfig = *params.Transform.Generic
+	}
+	log.Debugf("params.Transform.Generic = %v", genConfig)
+	rules := genConfig.Rules
+	policy := genConfig.Policy
 	switch policy {
 	case "replace_keys", "preserve_original_keys", "":
 		// valid; nothing to do

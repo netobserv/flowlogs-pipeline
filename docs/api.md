@@ -13,19 +13,19 @@ Following is the supported API format for prometheus encode:
                  filter: the criterion to filter entries by
                      key: the key to match and filter by
                      value: the value to match and filter by
-                 valuekey: entry key from which to resolve metric value
+                 valueKey: entry key from which to resolve metric value
                  labels: labels to be associated with the metric
                  buckets: histogram buckets
          port: port number to expose "/metrics" endpoint
          prefix: prefix added to each metric name
-         expirytime: seconds of no-flow to wait before deleting prometheus data item
+         expiryTime: seconds of no-flow to wait before deleting prometheus data item
 </pre>
 ## Kafka encode API
 Following is the supported API format for kafka encode:
 
 <pre>
  kafka:
-         addr: address of kafka server
+         address: address of kafka server
          topic: kafka topic to write to
          balancer: (enum) one of the following:
              roundRobin: RoundRobin balancer
@@ -56,9 +56,9 @@ Following is the supported API format for the kafka ingest:
          brokers: list of kafka broker addresses
          topic: kafka topic to listen on
          groupid: separate groupid for each consumer on specified topic
-         groupbalancers: list of balancing strategies (range, roundRobin, rackAffinity)
-         startoffset: FirstOffset (least recent - default) or LastOffset (most recent) offset available for a partition
-         batchreadtimeout: how often (in milliseconds) to process input
+         groupBalancers: list of balancing strategies (range, roundRobin, rackAffinity)
+         startOffset: FirstOffset (least recent - default) or LastOffset (most recent) offset available for a partition
+         batchReadTimeout: how often (in milliseconds) to process input
 </pre>
 ## Ingest GRPC from Network Observability eBPF Agent
 Following is the supported API format for the Network Observability eBPF ingest:
@@ -66,7 +66,7 @@ Following is the supported API format for the Network Observability eBPF ingest:
 <pre>
  grpc:
          port: the port number to listen on
-         buffer_length: the length of the ingest channel buffer, in groups of flows, containing each group hundreds of flows (default: 100)
+         bufferLength: the length of the ingest channel buffer, in groups of flows, containing each group hundreds of flows (default: 100)
 </pre>
 ## Aws ingest API
 Following is the supported API format for Aws flow entries:
@@ -95,7 +95,6 @@ Following is the supported API format for filter transformations:
          rules: list of filter rules, each includes:
                  input: entry input field
                  type: (enum) one of the following:
-                     remove_field: removes the field from the entry
                      remove_entry_if_exists: removes the entry if the field exists
                      remove_entry_if_doesnt_exist: removes the entry if the field doesnt exist
 </pre>
@@ -116,9 +115,9 @@ Following is the supported API format for network transformations:
                      add_service: add output network service field from input port and parameters protocol field
                      add_kubernetes: add output kubernetes fields from input
                  parameters: parameters specific to type
-         kubeconfigpath: path to kubeconfig file (optional)
-         servicesfile: path to services file (optional, default: /etc/services)
-         protocolsfile: path to protocols file (optional, default: /etc/protocols)
+         kubeConfigPath: path to kubeconfig file (optional)
+         servicesFile: path to services file (optional, default: /etc/services)
+         protocolsFile: path to protocols file (optional, default: /etc/protocols)
 </pre>
 ## Write Loki API
 Following is the supported API format for writing to loki:
@@ -152,9 +151,9 @@ Following is the supported API format for specifying metrics aggregations:
 
 <pre>
  aggregates:
-         Name: description of aggregation result
-         By: list of fields on which to aggregate
-         Operation: sum, min, max, avg or raw_values
-         RecordKey: internal field on which to perform the operation
-         TopK: number of highest incidence to report (default - report all)
+         name: description of aggregation result
+         by: list of fields on which to aggregate
+         operation: sum, min, max, avg or raw_values
+         recordKey: internal field on which to perform the operation
+         topK: number of highest incidence to report (default - report all)
 </pre>

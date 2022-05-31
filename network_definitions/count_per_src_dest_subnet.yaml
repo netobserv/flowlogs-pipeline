@@ -34,7 +34,7 @@ encode:
       - name: count_per_source_destination_subnet
         type: counter
         filter: { key: name, value: count_source_destination_subnet }
-        valuekey: recent_count
+        valueKey: recent_count
         labels:
           - by
           - aggregate

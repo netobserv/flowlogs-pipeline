@@ -48,10 +48,3 @@ type Definition struct {
 }
 
 type Definitions []Definition
-
-const (
-	OperationGeneric = "generic"
-	OperationNetwork = "network"
-	OperationFilter  = "filter"
-	OperationNone    = "none"
-)

@@ -47,25 +47,25 @@ parameters:
       prom:
         port: 9102
         prefix: fl2m_
-        expirytime: 15
+        expiryTime: 15
         metrics:
           - name: totalBytes
             type: gauge
-            valuekey: bytes
+            valueKey: bytes
             labels:
               - srcAddr
               - dstAddr
               - srcPort
           - name: totalPackets
             type: gauge
-            valuekey: packets
+            valueKey: packets
             labels:
               - srcAddr
               - dstAddr
               - dstPort
           - name: subnetHistogram
             type: histogram
-            valuekey: aggregate
+            valueKey: aggregate
             labels:
   - name: write1
     write:

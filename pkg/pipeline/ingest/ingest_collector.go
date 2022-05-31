@@ -26,6 +26,7 @@ import (
 	"time"
 
 	ms "github.com/mitchellh/mapstructure"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
@@ -191,8 +192,10 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 
 // NewIngestCollector create a new ingester
 func NewIngestCollector(params config.StageParam) (Ingester, error) {
-	jsonIngestCollector := params.Ingest.Collector
-
+	jsonIngestCollector := api.IngestCollector{}
+	if params.Ingest != nil && params.Ingest.Collector != nil {
+		jsonIngestCollector = *params.Ingest.Collector
+	}
 	if jsonIngestCollector.HostName == "" {
 		return nil, fmt.Errorf("ingest hostname not specified")
 	}

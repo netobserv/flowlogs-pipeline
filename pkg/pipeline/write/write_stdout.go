@@ -49,7 +49,9 @@ func (t *writeStdout) Write(in []config.GenericMap) {
 // NewWriteStdout create a new write
 func NewWriteStdout(params config.StageParam) (Writer, error) {
 	log.Debugf("entering NewWriteStdout")
-	return &writeStdout{
-		format: params.Write.Stdout.Format,
-	}, nil
+	writeStdout := &writeStdout{}
+	if params.Write != nil && params.Write.Stdout != nil {
+		writeStdout.format = params.Write.Stdout.Format
+	}
+	return writeStdout, nil
 }

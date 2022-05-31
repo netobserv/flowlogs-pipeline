@@ -42,8 +42,12 @@ const (
 
 // Ingest ingests entries from a file and resends the same data every delaySeconds seconds
 func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
+	var filename string
+	if ingestF.params.File != nil {
+		filename = ingestF.params.File.Filename
+	}
 	lines := make([]interface{}, 0)
-	file, err := os.Open(ingestF.params.File.Filename)
+	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -58,7 +62,7 @@ func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 		lines = append(lines, text)
 	}
 
-	log.Debugf("Ingesting %d log lines from %s", len(lines), ingestF.params.File.Filename)
+	log.Debugf("Ingesting %d log lines from %s", len(lines), filename)
 	switch ingestF.params.Type {
 	case "file":
 		ingestF.PrevRecords = lines
@@ -98,14 +102,14 @@ func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 // NewIngestFile create a new ingester
 func NewIngestFile(params config.StageParam) (Ingester, error) {
 	log.Debugf("entering NewIngestFile")
-	if params.Ingest.File.Filename == "" {
+	if params.Ingest == nil || params.Ingest.File == nil || params.Ingest.File.Filename == "" {
 		return nil, fmt.Errorf("ingest filename not specified")
 	}
 
 	log.Debugf("input file name = %s", params.Ingest.File.Filename)
 
 	return &IngestFile{
-		params:   params.Ingest,
+		params:   *params.Ingest,
 		exitChan: utils.ExitChannel(),
 	}, nil
 }

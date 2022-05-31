@@ -43,65 +43,61 @@ type Health struct {
 }
 
 type Stage struct {
-	Name    string
-	Follows string
+	Name    string `json:"name"`
+	Follows string `json:"follows,omitempty"`
 }
 
 type StageParam struct {
-	Name      string
-	Ingest    Ingest
-	Decode    Decode
-	Transform Transform
-	Extract   Extract
-	Encode    Encode
-	Write     Write
+	Name      string     `json:"name"`
+	Ingest    *Ingest    `json:"ingest,omitempty"`
+	Decode    *Decode    `json:"decode,omitempty"`
+	Transform *Transform `json:"transform,omitempty"`
+	Extract   *Extract   `json:"extract,omitempty"`
+	Encode    *Encode    `json:"encode,omitempty"`
+	Write     *Write     `json:"write,omitempty"`
 }
 
 type Ingest struct {
-	Type      string
-	File      File
-	Collector api.IngestCollector
-	Kafka     api.IngestKafka
-	GRPC      api.IngestGRPCProto
+	Type      string               `json:"type"`
+	File      *File                `json:"file,omitempty"`
+	Collector *api.IngestCollector `json:"collector,omitempty"`
+	Kafka     *api.IngestKafka     `json:"kafka,omitempty"`
+	GRPC      *api.IngestGRPCProto `json:"grpc,omitempty"`
 }
 
 type File struct {
-	Filename string
-	Loop     bool
-	Chunks   int
-}
-
-type Aws struct {
-	Fields []string
+	Filename string `json:"filename"`
+	Loop     bool   `json:"loop"`
+	Chunks   int    `json:"chunks"`
 }
 
 type Decode struct {
-	Type string
-	Aws  api.DecodeAws
+	Type string         `json:"type"`
+	Aws  *api.DecodeAws `json:"aws,omitempty"`
 }
 
 type Transform struct {
-	Type    string
-	Generic api.TransformGeneric
-	Filter  api.TransformFilter
-	Network api.TransformNetwork
+	Type    string                `json:"type"`
+	Generic *api.TransformGeneric `json:"generic,omitempty"`
+	Filter  *api.TransformFilter  `json:"filter,omitempty"`
+	Network *api.TransformNetwork `json:"network,omitempty"`
 }
 
 type Extract struct {
-	Type       string
-	Aggregates []api.AggregateDefinition
+	Type       string                    `json:"type"`
+	Aggregates []api.AggregateDefinition `json:"aggregates,omitempty"`
 }
 
 type Encode struct {
-	Type  string
-	Prom  api.PromEncode
-	Kafka api.EncodeKafka
+	Type  string           `json:"type"`
+	Prom  *api.PromEncode  `json:"prom,omitempty"`
+	Kafka *api.EncodeKafka `json:"kafka,omitempty"`
 }
 
 type Write struct {
-	Type   string
-	Loki   api.WriteLoki
-	Stdout api.WriteStdout
+	Type   string           `json:"type"`
+	Loki   *api.WriteLoki   `json:"loki,omitempty"`
+	Stdout *api.WriteStdout `json:"stdout,omitempty"`
 }
 
 // ParseConfig creates the internal unmarshalled representation from the Pipeline and Parameters json

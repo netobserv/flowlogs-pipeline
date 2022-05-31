@@ -86,84 +86,84 @@ data:
           type: network
       - extract:
           aggregates:
-            - Name: bandwidth_network_service
-              By:
+            - name: bandwidth_network_service
+              by:
                 - service
-              Operation: sum
-              RecordKey: bytes
-            - Name: bandwidth_source_destination_subnet
-              By:
+              operation: sum
+              recordKey: bytes
+            - name: bandwidth_source_destination_subnet
+              by:
                 - dstSubnet24
                 - srcSubnet24
-              Operation: sum
-              RecordKey: bytes
-            - Name: bandwidth_source_subnet
-              By:
+              operation: sum
+              recordKey: bytes
+            - name: bandwidth_source_subnet
+              by:
                 - srcSubnet
-              Operation: sum
-              RecordKey: bytes
-            - Name: dest_connection_subnet_count
-              By:
+              operation: sum
+              recordKey: bytes
+            - name: dest_connection_subnet_count
+              by:
                 - dstSubnet
-              Operation: sum
-              RecordKey: isNewFlow
-            - Name: src_connection_count
-              By:
+              operation: sum
+              recordKey: isNewFlow
+            - name: src_connection_count
+              by:
                 - srcSubnet
-              Operation: count
-              RecordKey: ""
-            - Name: TCPFlags_count
-              By:
+              operation: count
+              recordKey: ""
+            - name: TCPFlags_count
+              by:
                 - TCPFlags
-              Operation: count
-              RecordKey: ""
-            - Name: dst_as_connection_count
-              By:
+              operation: count
+              recordKey: ""
+            - name: dst_as_connection_count
+              by:
                 - dstAS
-              Operation: count
-              RecordKey: ""
-            - Name: src_as_connection_count
-              By:
+              operation: count
+              recordKey: ""
+            - name: src_as_connection_count
+              by:
                 - srcAS
-              Operation: count
-              RecordKey: ""
-            - Name: count_source_destination_subnet
-              By:
+              operation: count
+              recordKey: ""
+            - name: count_source_destination_subnet
+              by:
                 - dstSubnet24
                 - srcSubnet24
-              Operation: count
-              RecordKey: ""
-            - Name: bandwidth_destination_subnet
-              By:
+              operation: count
+              recordKey: ""
+            - name: bandwidth_destination_subnet
+              by:
                 - dstSubnet
-              Operation: sum
-              RecordKey: bytes
-            - Name: bandwidth_namespace
-              By:
+              operation: sum
+              recordKey: bytes
+            - name: bandwidth_namespace
+              by:
                 - srcK8S_Namespace
                 - srcK8S_Type
-              Operation: sum
-              RecordKey: bytes
-            - Name: dest_connection_location_count
-              By:
+              operation: sum
+              recordKey: bytes
+            - name: dest_connection_location_count
+              by:
                 - dstLocation_CountryName
-              Operation: count
-              RecordKey: ""
-            - Name: mice_count
-              By:
+              operation: count
+              recordKey: ""
+            - name: mice_count
+              by:
                 - mice_Evaluate
-              Operation: count
-              RecordKey: ""
-            - Name: elephant_count
-              By:
+              operation: count
+              recordKey: ""
+            - name: elephant_count
+              by:
                 - elephant_Evaluate
-              Operation: count
-              RecordKey: ""
-            - Name: dest_service_count
-              By:
+              operation: count
+              recordKey: ""
+            - name: dest_service_count
+              by:
                 - service
-              Operation: count
-              RecordKey: ""
+              operation: count
+              recordKey: ""
           type: aggregates
         name: extract_aggregate
       - encode:
@@ -171,105 +171,105 @@ data:
             metrics:
               - name: bandwidth_per_network_service
                 type: counter
-                valuekey: bandwidth_network_service_value
+                valueKey: bandwidth_network_service_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: bandwidth_per_source_destination_subnet
                 type: counter
-                valuekey: bandwidth_source_destination_subnet_value
+                valueKey: bandwidth_source_destination_subnet_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: bandwidth_per_source_subnet
                 type: counter
-                valuekey: bandwidth_source_subnet_value
+                valueKey: bandwidth_source_subnet_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: connections_per_destination_subnet
                 type: counter
-                valuekey: dest_connection_subnet_count_value
+                valueKey: dest_connection_subnet_count_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: connections_per_source_subnet
                 type: counter
-                valuekey: src_connection_count_value
+                valueKey: src_connection_count_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: connections_per_tcp_flags
                 type: counter
-                valuekey: TCPFlags_count_value
+                valueKey: TCPFlags_count_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: connections_per_destination_as
                 type: counter
-                valuekey: dst_as_connection_count_value
+                valueKey: dst_as_connection_count_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: connections_per_source_as
                 type: counter
-                valuekey: src_as_connection_count_value
+                valueKey: src_as_connection_count_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: count_per_source_destination_subnet
                 type: counter
-                valuekey: count_source_destination_subnet_value
+                valueKey: count_source_destination_subnet_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: egress_per_destination_subnet
                 type: counter
-                valuekey: bandwidth_destination_subnet_value
+                valueKey: bandwidth_destination_subnet_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: egress_per_namespace
                 type: counter
-                valuekey: bandwidth_namespace_value
+                valueKey: bandwidth_namespace_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: connections_per_destination_location
                 type: counter
-                valuekey: dest_connection_location_count_value
+                valueKey: dest_connection_location_count_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: mice_count
                 type: counter
-                valuekey: mice_count_value
+                valueKey: mice_count_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: elephant_count
                 type: counter
-                valuekey: elephant_count_value
+                valueKey: elephant_count_value
                 labels:
                   - by
                   - aggregate
                 buckets: []
               - name: service_count
                 type: counter
-                valuekey: dest_service_count_value
+                valueKey: dest_service_count_value
                 labels:
                   - by
                   - aggregate

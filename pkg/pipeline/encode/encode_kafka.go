@@ -66,7 +66,10 @@ func (r *encodeKafka) Encode(in []config.GenericMap) {
 // NewEncodeKafka create a new writer to kafka
 func NewEncodeKafka(params config.StageParam) (Encoder, error) {
 	log.Debugf("entering NewEncodeKafka")
-	jsonEncodeKafka := params.Encode.Kafka
+	jsonEncodeKafka := api.EncodeKafka{}
+	if params.Encode != nil && params.Encode.Kafka != nil {
+		jsonEncodeKafka = *params.Encode.Kafka
+	}
 
 	var balancer kafkago.Balancer
 	switch jsonEncodeKafka.Balancer {

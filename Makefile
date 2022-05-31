@@ -102,6 +102,10 @@ clean: ## Clean
 tests-unit: validate_go ## Unit tests
 	go test -p 1 -race -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out $$(go list ./... | grep -v /e2e)
 
+.PHONY: tests-fast
+tests-fast: validate_go ## Fast unit tests (no race test / coverage)
+	go test -p 1 $$(go list ./... | grep -v /e2e)
+
 .PHONY: tests-e2e
 tests-e2e: validate_go $(KIND)  ## End-to-end tests
 	go test -p 1 -v -timeout 20m -race $$(go list ./... | grep  /e2e)

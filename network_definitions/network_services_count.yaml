@@ -30,7 +30,7 @@ encode:
       - name: service_count
         type: counter
         filter: { key: name, value: dest_service_count }
-        valuekey: recent_count
+        valueKey: recent_count
         labels:
           - by
           - aggregate

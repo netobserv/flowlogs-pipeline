@@ -30,7 +30,7 @@ encode:
       - name: bandwidth_per_source_subnet
         type: counter
         filter: {key: name, value: bandwidth_source_subnet}
-        valuekey: recent_op_value
+        valueKey: recent_op_value
         labels:
           - by
           - aggregate

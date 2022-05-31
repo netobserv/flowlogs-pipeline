@@ -78,7 +78,7 @@ encode:
     metrics:
       - name: test_metric
         type: gauge
-        valuekey: test_aggregates_value
+        valueKey: test_aggregates_value
         labels:
           - by
           - aggregate

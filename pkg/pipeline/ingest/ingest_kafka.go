@@ -104,7 +104,10 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []interface{}) {
 // NewIngestKafka create a new ingester
 func NewIngestKafka(params config.StageParam) (Ingester, error) {
 	log.Debugf("entering NewIngestKafka")
-	jsonIngestKafka := params.Ingest.Kafka
+	jsonIngestKafka := api.IngestKafka{}
+	if params.Ingest != nil && params.Ingest.Kafka != nil {
+		jsonIngestKafka = *params.Ingest.Kafka
+	}
 
 	// connect to the kafka server
 	startOffsetString := jsonIngestKafka.StartOffset
