@@ -632,7 +632,7 @@ Develop
   docs                  Update flowlogs-pipeline documentation  
   clean                 Clean  
   tests-unit            Unit tests  
-  tests-fast            Fast unit tests (no race test)  
+  tests-fast            Fast unit tests (no race tests / coverage)  
   tests-e2e             End-to-end tests  
   tests-all             All tests  
   benchmarks            Benchmark  

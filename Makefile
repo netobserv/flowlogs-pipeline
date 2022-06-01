@@ -105,7 +105,7 @@ tests-unit: validate_go ## Unit tests
 
 .PHONY: tests-fast
 tests-fast: TEST_OPTS=
-tests-fast: tests-unit
+tests-fast: tests-unit ## Fast unit tests (no race tests / coverage)
 
 .PHONY: tests-e2e
 tests-e2e: validate_go $(KIND)  ## End-to-end tests
