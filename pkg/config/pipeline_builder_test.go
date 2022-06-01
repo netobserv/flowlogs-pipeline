@@ -60,6 +60,38 @@ func TestLokiPipeline(t *testing.T) {
 	require.Equal(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/","batchWait":"1s","batchSize":102400,"timeout":"10s","minBackoff":"1s","maxBackoff":"5m","maxRetries":10,"timestampLabel":"TimeReceived","timestampScale":"1s"}}}`, string(b))
 }
 
+func TestGRPCPipeline(t *testing.T) {
+	pl := NewGRPCPipeline("grpc", api.IngestGRPCProto{Port: 9050, BufferLen: 50})
+	pl = pl.TransformFilter("filter", api.TransformFilter{
+		Rules: []api.TransformFilterRule{{
+			Type:  "remove_entry_if_doesnt_exist",
+			Input: "doesnt_exist",
+		}},
+	})
+	pl = pl.WriteStdout("stdout", api.WriteStdout{Format: "json"})
+	stages := pl.GetStages()
+	require.Len(t, stages, 3)
+
+	b, err := json.Marshal(stages)
+	require.NoError(t, err)
+	require.Equal(t, `[{"name":"grpc"},{"name":"filter","follows":"grpc"},{"name":"stdout","follows":"filter"}]`, string(b))
+
+	params := pl.GetStageParams()
+	require.Len(t, params, 3)
+
+	b, err = json.Marshal(params[0])
+	require.NoError(t, err)
+	require.Equal(t, `{"name":"grpc","ingest":{"type":"grpc","grpc":{"port":9050,"bufferLength":50}}}`, string(b))
+
+	b, err = json.Marshal(params[1])
+	require.NoError(t, err)
+	require.Equal(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"input":"doesnt_exist","type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
+
+	b, err = json.Marshal(params[2])
+	require.NoError(t, err)
+	require.Equal(t, `{"name":"stdout","write":{"type":"stdout","stdout":{"format":"json"}}}`, string(b))
+}
+
 func TestKafkaPromPipeline(t *testing.T) {
 	pl := NewKafkaPipeline("ingest", api.IngestKafka{
 		Brokers: []string{"http://kafka"},
