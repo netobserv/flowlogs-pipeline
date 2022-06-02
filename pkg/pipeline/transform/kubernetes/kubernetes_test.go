@@ -89,3 +89,33 @@ func TestKubeData_getInfo(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, info, expectedInfo)
 }
+
+func TestFindOvnMp0IP(t *testing.T) {
+	// Annotation not found => no error, no ip
+	ip, err := findOvnMp0IP(map[string]string{})
+	require.NoError(t, err)
+	require.Empty(t, ip)
+
+	// Annotation malformed => error, no ip
+	ip, err = findOvnMp0IP(map[string]string{
+		ovnSubnetAnnotation: "whatever",
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "cannot read annotation")
+	require.Empty(t, ip)
+
+	// IP malformed => error, no ip
+	ip, err = findOvnMp0IP(map[string]string{
+		ovnSubnetAnnotation: `{"default":"10.129/23"}`,
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid CIDR address")
+	require.Empty(t, ip)
+
+	// Valid annotation => no error, ip
+	ip, err = findOvnMp0IP(map[string]string{
+		ovnSubnetAnnotation: `{"default":"10.129.0.0/23"}`,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "10.129.0.2", ip)
+}
