@@ -139,7 +139,7 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 			var kubeInfo *kubernetes.Info
 			kubeInfo, err := kubernetes.Data.GetInfo(fmt.Sprintf("%s", outputEntries[rule.Input]))
 			if err != nil {
-				log.Infof("Can't find kubernetes info for IP %v err %v", outputEntries[rule.Input], err)
+				log.Debugf("Can't find kubernetes info for IP %v err %v", outputEntries[rule.Input], err)
 				continue
 			}
 			outputEntries[rule.Output+"_Namespace"] = kubeInfo.Namespace
