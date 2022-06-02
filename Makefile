@@ -129,6 +129,10 @@ run: build ## Run
 build-image:
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build -t $(DOCKER_IMG):$(DOCKER_TAG) -f contrib/docker/Dockerfile .
 
+.PHONY: build-image-custom
+build-image-custom:
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build -t $(DOCKER_IMG):$(DOCKER_TAG) -f contrib/docker/custom.Dockerfile .
+
 .PHONY: build-ci-images
 build-ci-images:
 ifeq ($(DOCKER_TAG), main)
@@ -243,6 +247,14 @@ endif
 generate-configuration: $(KIND) ## Generate metrics configuration
 	go build "${CMD_DIR}${CG_BIN_FILE}"
 	./${CG_BIN_FILE} --log-level debug --srcFolder network_definitions \
+					--destConfFile $(FLP_CONF_FILE) \
+					--destDocFile docs/metrics.md \
+					--destGrafanaJsonnetFolder contrib/dashboards/jsonnet/
+
+.PHONY: generate-configuration-custom
+generate-configuration-custom: $(KIND)
+	go build "${CMD_DIR}${CG_BIN_FILE}"
+	./${CG_BIN_FILE} --log-level debug --srcFolder network_definitions_custom \
 					--destConfFile $(FLP_CONF_FILE) \
 					--destDocFile docs/metrics.md \
 					--destGrafanaJsonnetFolder contrib/dashboards/jsonnet/
