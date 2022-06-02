@@ -28,6 +28,8 @@ type enums struct {
 	TransformFilterOperationEnum  TransformFilterOperationEnum
 	TransformGenericOperationEnum TransformGenericOperationEnum
 	KafkaEncodeBalancerEnum       KafkaEncodeBalancerEnum
+	ConnTrackOperationEnum        ConnTrackOperationEnum
+	ConnTrackOutputRecordTypeEnum ConnTrackOutputRecordTypeEnum
 }
 
 type enumNameCacheKey struct {
