@@ -18,13 +18,13 @@
 package kubernetes
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"os"
 	"path"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/cni"
 	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -45,7 +45,6 @@ const (
 	typeNode              = "Node"
 	typePod               = "Pod"
 	typeService           = "Service"
-	ovnSubnetAnnotation   = "k8s.ovn.org/node-subnets"
 )
 
 type KubeData struct {
@@ -166,14 +165,9 @@ func (k *KubeData) NewNodeInformer(informerFactory informers.SharedInformerFacto
 					ips = append(ips, ip.String())
 				}
 			}
-			// Add IP that is used in OVN for some traffic on mp0 interface
-			ip, err := findOvnMp0IP(node.Annotations)
-			if err != nil {
-				// Log the error as Info, do not block other ips indexing
-				log.Infof("failed to index OVN mp0 IP: %v", err)
-			} else if ip != "" {
-				ips = append(ips, ip)
-			}
+			// CNI-dependent logic (must work regardless of whether the CNI is installed)
+			ips = cni.AddOvnIPs(ips, node)
+
 			return ips, nil
 		},
 	})
@@ -299,29 +293,4 @@ func (k *KubeData) initInformers(client kubernetes.Interface) error {
 	log.Debugf("kubernetes informers started")
 
 	return nil
-}
-
-func findOvnMp0IP(annotations map[string]string) (string, error) {
-	if subnetsJSON, ok := annotations[ovnSubnetAnnotation]; ok {
-		var subnets map[string]string
-		err := json.Unmarshal([]byte(subnetsJSON), &subnets)
-		if err != nil {
-			return "", fmt.Errorf("cannot read annotation %s: %v", ovnSubnetAnnotation, err)
-		}
-		if subnet, ok := subnets["default"]; ok {
-			// From subnet like 10.128.0.0/23, we want to index IP 10.128.0.2
-			ip0, _, err := net.ParseCIDR(subnet)
-			if err != nil {
-				return "", err
-			}
-			ip4 := ip0.To4()
-			if ip4 == nil {
-				// TODO: what's the rule with ipv6?
-				return "", nil
-			}
-			return fmt.Sprintf("%d.%d.%d.2", ip4[0], ip4[1], ip4[2]), nil
-		}
-		return "", fmt.Errorf("unexpected content for annotation %s: %s", ovnSubnetAnnotation, subnetsJSON)
-	}
-	return "", nil
 }
