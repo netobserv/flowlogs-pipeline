@@ -279,7 +279,11 @@ func startPrometheusInterface(w *EncodeProm) {
 }
 
 func NewEncodeProm(params config.StageParam) (Encoder, error) {
-	jsonEncodeProm := params.Encode.Prom
+	jsonEncodeProm := api.PromEncode{}
+	if params.Encode != nil && params.Encode.Prom != nil {
+		jsonEncodeProm = *params.Encode.Prom
+	}
+
 	portNum := jsonEncodeProm.Port
 	promPrefix := jsonEncodeProm.Prefix
 	expiryTime := int64(jsonEncodeProm.ExpiryTime)

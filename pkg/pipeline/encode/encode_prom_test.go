@@ -40,12 +40,12 @@ parameters:
       prom:
         port: 9103
         prefix: test_
-        expirytime: 1
+        expiryTime: 1
         metrics:
           - name: Bytes
             type: gauge
             filter: {key: dstAddr, value: 10.1.2.4}
-            valuekey: bytes
+            valueKey: bytes
             labels:
               - srcAddr
               - dstAddr
@@ -53,14 +53,14 @@ parameters:
           - name: Packets
             type: counter
             filter: {key: dstAddr, value: 10.1.2.4}
-            valuekey: packets
+            valueKey: packets
             labels:
               - srcAddr
               - dstAddr
               - dstPort
           - name: subnetHistogram
             type: histogram
-            valuekey: aggregate
+            valueKey: aggregate
             labels:
 `
 

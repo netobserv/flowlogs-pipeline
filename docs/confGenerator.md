@@ -105,7 +105,7 @@ encode: (9)
       - name: metricName (9.2)
         type: metricType (9.3)
         filter: {key: myKey, value: myValue} (9.4)
-        valuekey: value (9.5)
+        valueKey: value (9.5)
         labels: (9.6)
           - by
           - aggregate

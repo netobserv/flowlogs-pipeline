@@ -18,10 +18,10 @@
 package api
 
 type IngestKafka struct {
-	Brokers          []string `yaml:"brokers" doc:"list of kafka broker addresses"`
-	Topic            string   `yaml:"topic" doc:"kafka topic to listen on"`
-	GroupId          string   `yaml:"groupid" doc:"separate groupid for each consumer on specified topic"`
-	GroupBalancers   []string `yaml:"groupbalancers" doc:"list of balancing strategies (range, roundRobin, rackAffinity)"`
-	StartOffset      string   `yaml:"startoffset" doc:"FirstOffset (least recent - default) or LastOffset (most recent) offset available for a partition"`
-	BatchReadTimeout int64    `yaml:"batchreadtimeout" doc:"how often (in milliseconds) to process input"`
+	Brokers          []string `yaml:"brokers" json:"brokers" doc:"list of kafka broker addresses"`
+	Topic            string   `yaml:"topic" json:"topic" doc:"kafka topic to listen on"`
+	GroupId          string   `yaml:"groupid" json:"groupid" doc:"separate groupid for each consumer on specified topic"`
+	GroupBalancers   []string `yaml:"groupBalancers" json:"groupBalancers" doc:"list of balancing strategies (range, roundRobin, rackAffinity)"`
+	StartOffset      string   `yaml:"startOffset" json:"startOffset" doc:"FirstOffset (least recent - default) or LastOffset (most recent) offset available for a partition"`
+	BatchReadTimeout int64    `yaml:"batchReadTimeout" json:"batchReadTimeout" doc:"how often (in milliseconds) to process input"`
 }

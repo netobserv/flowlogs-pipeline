@@ -173,7 +173,10 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	var needToInitConnectionTracking = false
 	var needToInitNetworkServices = false
 
-	jsonNetworkTransform := params.Transform.Network
+	jsonNetworkTransform := api.TransformNetwork{}
+	if params.Transform != nil && params.Transform.Network != nil {
+		jsonNetworkTransform = *params.Transform.Network
+	}
 	for _, rule := range jsonNetworkTransform.Rules {
 		switch rule.Type {
 		case api.TransformNetworkOperationName("AddLocation"):

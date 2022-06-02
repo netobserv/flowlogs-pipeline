@@ -23,7 +23,7 @@ encode:
       - name: connections_per_destination_as
         type: counter
         filter: { key: name, value: dst_as_connection_count }
-        valuekey: recent_count
+        valueKey: recent_count
         labels:
           - by
           - aggregate

@@ -17,9 +17,36 @@
 
 package api
 
-const TagYaml = "yaml"
-const TagDoc = "doc"
-const TagEnum = "enum"
+const (
+	FileType              = "file"
+	FileLoopType          = "file_loop"
+	FileChunksType        = "file_chunks"
+	CollectorType         = "collector"
+	GRPCType              = "grpc"
+	KafkaType             = "kafka"
+	JSONType              = "json"
+	PBType                = "protobuf"
+	AWSType               = "aws"
+	StdoutType            = "stdout"
+	LokiType              = "loki"
+	AggregateType         = "aggregates"
+	PromType              = "prom"
+	GenericType           = "generic"
+	NetworkType           = "network"
+	FilterType            = "filter"
+	NoneType              = "none"
+	ConnTrackingRuleType  = "conn_tracking"
+	AddRegExIfRuleType    = "add_regex_if"
+	AddIfRuleType         = "add_if"
+	AddSubnetRuleType     = "add_subnet"
+	AddLocationRuleType   = "add_location"
+	AddServiceRuleType    = "add_service"
+	AddKubernetesRuleType = "add_kubernetes"
+
+	TagYaml = "yaml"
+	TagDoc  = "doc"
+	TagEnum = "enum"
+)
 
 // Note: items beginning with doc: "## title" are top level items that get divided into sections inside api.md.
 

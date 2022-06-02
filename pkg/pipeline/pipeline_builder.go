@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
@@ -269,13 +270,13 @@ func getIngester(params config.StageParam) (ingest.Ingester, error) {
 	var ingester ingest.Ingester
 	var err error
 	switch params.Ingest.Type {
-	case "file", "file_loop", "file_chunks":
+	case api.FileType, api.FileLoopType, api.FileChunksType:
 		ingester, err = ingest.NewIngestFile(params)
-	case "collector":
+	case api.CollectorType:
 		ingester, err = ingest.NewIngestCollector(params)
-	case "kafka":
+	case api.KafkaType:
 		ingester, err = ingest.NewIngestKafka(params)
-	case "grpc":
+	case api.GRPCType:
 		ingester, err = ingest.NewGRPCProtobuf(params)
 	default:
 		panic(fmt.Sprintf("`ingest` type %s not defined", params.Ingest.Type))
@@ -287,13 +288,13 @@ func getDecoder(params config.StageParam) (decode.Decoder, error) {
 	var decoder decode.Decoder
 	var err error
 	switch params.Decode.Type {
-	case "json":
+	case api.JSONType:
 		decoder, err = decode.NewDecodeJson()
-	case "aws":
+	case api.AWSType:
 		decoder, err = decode.NewDecodeAws(params)
-	case "protobuf":
+	case api.PBType:
 		decoder, err = decode.NewProtobuf()
-	case "none":
+	case api.NoneType:
 		decoder, err = decode.NewDecodeNone()
 	default:
 		panic(fmt.Sprintf("`decode` type %s not defined; if no decoder needed, specify `none`", params.Decode.Type))
@@ -305,11 +306,11 @@ func getWriter(params config.StageParam) (write.Writer, error) {
 	var writer write.Writer
 	var err error
 	switch params.Write.Type {
-	case "stdout":
+	case api.StdoutType:
 		writer, err = write.NewWriteStdout(params)
-	case "none":
+	case api.NoneType:
 		writer, err = write.NewWriteNone()
-	case "loki":
+	case api.LokiType:
 		writer, err = write.NewWriteLoki(params)
 	default:
 		panic(fmt.Sprintf("`write` type %s not defined; if no writer needed, specify `none`", params.Write.Type))
@@ -321,13 +322,13 @@ func getTransformer(params config.StageParam) (transform.Transformer, error) {
 	var transformer transform.Transformer
 	var err error
 	switch params.Transform.Type {
-	case transform.OperationGeneric:
+	case api.GenericType:
 		transformer, err = transform.NewTransformGeneric(params)
-	case transform.OperationFilter:
+	case api.FilterType:
 		transformer, err = transform.NewTransformFilter(params)
-	case transform.OperationNetwork:
+	case api.NetworkType:
 		transformer, err = transform.NewTransformNetwork(params)
-	case transform.OperationNone:
+	case api.NoneType:
 		transformer, err = transform.NewTransformNone()
 	default:
 		panic(fmt.Sprintf("`transform` type %s not defined; if no transformer needed, specify `none`", params.Transform.Type))
@@ -368,22 +369,22 @@ func getEncoder(params config.StageParam) (encode.Encoder, error) {
 // findStageParameters finds the matching config.param structure and identifies the stage type
 func findStageType(param *config.StageParam) string {
 	log.Debugf("findStageType: stage = %v", param.Name)
-	if param.Ingest.Type != "" {
+	if param.Ingest != nil && param.Ingest.Type != "" {
 		return StageIngest
 	}
-	if param.Decode.Type != "" {
+	if param.Decode != nil && param.Decode.Type != "" {
 		return StageDecode
 	}
-	if param.Transform.Type != "" {
+	if param.Transform != nil && param.Transform.Type != "" {
 		return StageTransform
 	}
-	if param.Extract.Type != "" {
+	if param.Extract != nil && param.Extract.Type != "" {
 		return StageExtract
 	}
-	if param.Encode.Type != "" {
+	if param.Encode != nil && param.Encode.Type != "" {
 		return StageEncode
 	}
-	if param.Write.Type != "" {
+	if param.Write != nil && param.Write.Type != "" {
 		return StageWrite
 	}
 	return "unknown"

@@ -41,8 +41,8 @@ parameters:
         brokers: ["1.1.1.1:9092"]
         topic: topic1
         groupid: group1
-        startoffset: FirstOffset
-        groupbalancers: ["range", "roundRobin"]
+        startOffset: FirstOffset
+        groupBalancers: ["range", "roundRobin"]
         batchReadTimeout: 300
 `
 
@@ -58,8 +58,8 @@ parameters:
         brokers: ["1.1.1.2:9092"]
         topic: topic2
         groupid: group2
-        startoffset: LastOffset
-        groupbalancers: ["rackAffinity"]
+        startOffset: LastOffset
+        groupBalancers: ["rackAffinity"]
 `
 
 func initNewIngestKafka(t *testing.T, configTemplate string) Ingester {

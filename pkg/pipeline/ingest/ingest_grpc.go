@@ -3,6 +3,7 @@ package ingest
 import (
 	"fmt"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/netobserv-agent/pkg/grpc"
@@ -18,7 +19,10 @@ type GRPCProtobuf struct {
 }
 
 func NewGRPCProtobuf(params config.StageParam) (*GRPCProtobuf, error) {
-	netObserv := params.Ingest.GRPC
+	netObserv := api.IngestGRPCProto{}
+	if params.Ingest != nil && params.Ingest.GRPC != nil {
+		netObserv = *params.Ingest.GRPC
+	}
 	if netObserv.Port == 0 {
 		return nil, fmt.Errorf("ingest port not specified")
 	}

@@ -74,26 +74,26 @@ parameters:
      prom:
        port: 9103
        prefix: test_
-       expirytime: 1
+       expiryTime: 1
        metrics:
          - name: flow_count
            type: counter
            filter: {key: name, value: bandwidth_count}
-           valuekey: recent_count
+           valueKey: recent_count
            labels:
              - service
 
          - name: bytes_sum
            type: counter
            filter: {key: name, value: bandwidth_sum}
-           valuekey: recent_op_value
+           valueKey: recent_op_value
            labels:
              - service
 
          - name: bytes_histogram
            type: histogram
            filter: {key: name, value: bandwidth_raw_values}
-           valuekey: recent_raw_values
+           valueKey: recent_raw_values
            labels:
              - service
 `

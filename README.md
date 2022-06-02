@@ -433,7 +433,7 @@ service name of `dstPort` port and `protocol` protocol. Unrecognized ports are i
 > Note: `protocol` can be either network protocol name or number  
 >   
 > Note: optionally supports custom network services resolution by defining configuration parameters 
-> `servicesfile` and `protocolsfile` with paths to custom services/protocols files respectively  
+> `servicesFile` and `protocolsFile` with paths to custom services/protocols files respectively  
 
 The fourth rule `add_location` generates new fields with the geo-location information retrieved 
 from DB [ip2location](https://lite.ip2location.com/) based on `dstIP` IP. 
@@ -501,12 +501,12 @@ parameters:
     extract:
       type: aggregates
       aggregates:
-        - Name: "Average key=value for (srcIP, dstIP) pairs"
-          By:
+        - name: "Average key=value for (srcIP, dstIP) pairs"
+          by:
             - "dstIP"
             - "srcIP"
-          Operation: "avg"
-          RecordKey: "value"
+          operation: "avg"
+          recordKey: "value"
 ```
 
 The output fields of the aggregates stage are:
@@ -526,10 +526,10 @@ The pipeline processes flowlogs in batches.
 The output fields with `recent_` prefix are related to the recent batch.
 They are needed when exposing metrics in Prometheus using Counters and Histograms.
 Prometheus Counters API accepts the delta amount to be added to the counter and not the total value as in Gauges.
-In this case, `recent_op_value` and `recent_count` should be used as the `valuekey`.
+In this case, `recent_op_value` and `recent_count` should be used as the `valueKey`.
 The API of Histograms accepts the sample value, so it could be added to the appropriate bucket.
 In this case, we are interested in the raw values of the records in the aggregation group.
-No aggregate operation is needed and it should be set `raw_values`. The `valuekey` should be set to `recent_raw_values`.
+No aggregate operation is needed and it should be set `raw_values`. The `valueKey` should be set to `recent_raw_values`.
 
 **Note**: `recent_raw_values` is filled only when the operation is `raw_values`.
 
@@ -540,7 +540,7 @@ The prometheus encoder specifies which metrics to export to prometheus and which
 For example, we may want to report the number of bytes and packets for the reported flows.
 For each reported metric, we may specify a different set of labels.
 Each metric may be renamed from its internal name.
-The internal metric name is specified as `valuekey` and the exported name is specified as `name`.
+The internal metric name is specified as `valueKey` and the exported name is specified as `name`.
 A prefix for all exported metrics may be specified, and this prefix is prepended to the `name` of each specified metric.
 
 ```yaml
@@ -554,14 +554,14 @@ parameters:
         metrics:
           - name: Bytes
             type: gauge
-            valuekey: bytes
+            valueKey: bytes
             labels:
               - srcAddr
               - dstAddr
               - srcPort
           - name: Packets
             type: counter
-            valuekey: packets
+            valueKey: packets
             labels:
               - srcAddr
               - dstAddr
@@ -632,6 +632,7 @@ Develop
   docs                  Update flowlogs-pipeline documentation  
   clean                 Clean  
   tests-unit            Unit tests  
+  tests-fast            Fast unit tests (no race tests / coverage)  
   tests-e2e             End-to-end tests  
   tests-all             All tests  
   benchmarks            Benchmark  

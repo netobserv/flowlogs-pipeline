@@ -73,9 +73,9 @@ func (c *decodeAws) Decode(in []interface{}) []config.GenericMap {
 // NewDecodeAws create a new decode
 func NewDecodeAws(params config.StageParam) (Decoder, error) {
 	log.Debugf("entering NewDecodeAws")
-	recordKeys := params.Decode.Aws.Fields
-	if len(recordKeys) == 0 {
-		recordKeys = defaultKeys
+	recordKeys := defaultKeys
+	if params.Decode != nil && params.Decode.Aws != nil && len(params.Decode.Aws.Fields) > 0 {
+		recordKeys = params.Decode.Aws.Fields
 	}
 	log.Debugf("recordKeys = %v", recordKeys)
 	return &decodeAws{
