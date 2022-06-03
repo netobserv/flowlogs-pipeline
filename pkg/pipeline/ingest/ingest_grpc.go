@@ -27,8 +27,8 @@ var (
 		prometheus.Labels{"worker": "", "name": "protobuf"})
 	processDelaySummary = flow.NetFlowTimeStatsSum.With(
 		prometheus.Labels{"version": "protobuf1.0", "router": ""})
-	flowTrafficBytes    = flow.MetricTrafficBytes
 	flowTrafficBytesSum = flow.MetricPacketSizeSum
+	flowErrors          = flow.NetFlowErrors
 )
 
 // GRPCProtobuf ingests data from the NetObserv eBPF Agent, using Protocol Buffers over gRPC
@@ -123,10 +123,12 @@ func instrumentGRPC(port int) grpc2.UnaryServerInterceptor {
 		}
 
 		// instrument message bytes
-		msgBytes := float64(proto.Size(flowRecords))
-		flowTrafficBytes.With(trafficLabels).Add(msgBytes)
-		flowTrafficBytesSum.With(trafficLabels).Observe(msgBytes)
+		flowTrafficBytesSum.With(trafficLabels).Observe(float64(proto.Size(flowRecords)))
 
-		return handler(ctx, req)
+		resp, err = handler(ctx, req)
+		if err != nil {
+			flowErrors.With(prometheus.Labels{"router": "", "error": err.Error()}).Inc()
+		}
+		return resp, err
 	}
 }
