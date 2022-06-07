@@ -30,6 +30,7 @@ type enums struct {
 	KafkaEncodeBalancerEnum       KafkaEncodeBalancerEnum
 	ConnTrackOperationEnum        ConnTrackOperationEnum
 	ConnTrackOutputRecordTypeEnum ConnTrackOutputRecordTypeEnum
+	DecoderEnum                   DecoderEnum
 }
 
 type enumNameCacheKey struct {
@@ -67,7 +68,7 @@ func GetEnumName(enum interface{}, operation string) string {
 	if found {
 		return cachedValue
 	} else {
-		log.Panicf("can't find operation %s in enum %v", operation, enum)
+		log.Panicf("can't find name '%s' in enum %v", operation, enum)
 		return ""
 	}
 }

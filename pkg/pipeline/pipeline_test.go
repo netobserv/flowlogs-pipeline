@@ -29,7 +29,6 @@ import (
 
 	test2 "github.com/mariomac/guara/pkg/test"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
@@ -71,10 +70,8 @@ const configTemplate = `---
 log-level: debug
 pipeline:
   - name: ingest1
-  - name: decode1
-    follows: ingest1
   - name: transform1
-    follows: decode1
+    follows: ingest1
   - name: writer1
     follows: transform1
 parameters:
@@ -83,9 +80,8 @@ parameters:
       type: file
       file:
         filename: ../../hack/examples/ocp-ipfix-flowlogs.json
-  - name: decode1
-    decode:
-      type: json
+        decoder:
+          type: json
   - name: transform1
     transform:
       type: generic
@@ -122,13 +118,9 @@ func Test_SimplePipeline(t *testing.T) {
 	mainPipeline.Run()
 	// What is there left to check? Check length of saved data of each stage in private structure.
 	ingester := mainPipeline.pipelineStages[0].Ingester.(*ingest.IngestFile)
-	decoder := mainPipeline.pipelineStages[1].Decoder.(*decode.DecodeJson)
-	writer := mainPipeline.pipelineStages[3].Writer.(*write.WriteNone)
-	require.Equal(t, len(ingester.PrevRecords), len(decoder.PrevRecords))
+	writer := mainPipeline.pipelineStages[2].Writer.(*write.WriteNone)
 	require.Equal(t, len(ingester.PrevRecords), len(writer.PrevRecords))
 
-	// checking that the processing is done for at least the first line of the logs
-	require.Equal(t, ingester.PrevRecords[0], decoder.PrevRecords[0])
 	// values checked from the first line of the ../../hack/examples/ocp-ipfix-flowlogs.json file
 	require.Equal(t, config.GenericMap{
 		"flp_bytes":   float64(20800),
@@ -147,19 +139,14 @@ func TestGRPCProtobuf(t *testing.T) {
 log-level: debug
 pipeline:
   - name: ingest1
-  - name: decode1
-    follows: ingest1
   - name: writer1
-    follows: decode1
+    follows: ingest1
 parameters:
   - name: ingest1
     ingest:
       type: grpc
       grpc:
         port: %d
-  - name: decode1
-    decode:
-      type: protobuf
   - name: writer1
     write:
       type: stdout

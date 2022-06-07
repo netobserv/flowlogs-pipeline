@@ -24,14 +24,16 @@ import (
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 type IngestFile struct {
 	params       config.Ingest
+	decoder      decode.Decoder
 	exitChan     <-chan struct{}
-	PrevRecords  []interface{}
+	PrevRecords  []config.GenericMap
 	TotalRecords int
 }
 
@@ -41,7 +43,7 @@ const (
 )
 
 // Ingest ingests entries from a file and resends the same data every delaySeconds seconds
-func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
+func (ingestF *IngestFile) Ingest(out chan<- []config.GenericMap) {
 	var filename string
 	if ingestF.params.File != nil {
 		filename = ingestF.params.File.Filename
@@ -61,14 +63,15 @@ func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 		log.Debugf("%s", text)
 		lines = append(lines, text)
 	}
+	decoded := ingestF.decoder.Decode(lines)
 
 	log.Debugf("Ingesting %d log lines from %s", len(lines), filename)
 	switch ingestF.params.Type {
 	case "file":
-		ingestF.PrevRecords = lines
+		ingestF.PrevRecords = decoded
 		ingestF.TotalRecords = len(lines)
 		log.Debugf("ingestFile sending %d lines", len(lines))
-		out <- lines
+		out <- decoded
 	case "file_loop":
 		// loop forever
 		ticker := time.NewTicker(time.Duration(delaySeconds) * time.Second)
@@ -78,10 +81,10 @@ func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 				log.Debugf("exiting ingestFile because of signal")
 				return
 			case <-ticker.C:
-				ingestF.PrevRecords = lines
+				ingestF.PrevRecords = decoded
 				ingestF.TotalRecords += len(lines)
 				log.Debugf("ingestFile sending %d lines", len(lines))
-				out <- lines
+				out <- decoded
 			}
 		}
 	case "file_chunks":
@@ -89,10 +92,10 @@ func (ingestF *IngestFile) Ingest(out chan<- []interface{}) {
 		ingestF.TotalRecords = len(lines)
 		for len(lines) > 0 {
 			if len(lines) > chunkLines {
-				out <- lines[:chunkLines]
+				out <- decoded[:chunkLines]
 				lines = lines[chunkLines:]
 			} else {
-				out <- lines
+				out <- decoded
 				lines = nil
 			}
 		}
@@ -107,9 +110,14 @@ func NewIngestFile(params config.StageParam) (Ingester, error) {
 	}
 
 	log.Debugf("input file name = %s", params.Ingest.File.Filename)
+	decoder, err := decode.GetDecoder(params.Ingest.File.Decoder)
+	if err != nil {
+		return nil, err
+	}
 
 	return &IngestFile{
 		params:   *params.Ingest,
 		exitChan: utils.ExitChannel(),
+		decoder:  decoder,
 	}, nil
 }

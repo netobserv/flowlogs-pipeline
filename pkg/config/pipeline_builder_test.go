@@ -97,6 +97,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 		Brokers: []string{"http://kafka"},
 		Topic:   "netflows",
 		GroupId: "my-group",
+		Decoder: api.Decoder{Type: "json"},
 	})
 	pl = pl.TransformFilter("filter", api.TransformFilter{
 		Rules: []api.TransformFilterRule{{

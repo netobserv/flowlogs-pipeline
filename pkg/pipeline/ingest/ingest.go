@@ -17,8 +17,10 @@
 
 package ingest
 
+import "github.com/netobserv/flowlogs-pipeline/pkg/config"
+
 type Ingester interface {
-	Ingest(out chan<- []interface{})
+	Ingest(out chan<- []config.GenericMap)
 }
 type IngesterNone struct {
 }

@@ -23,6 +23,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
@@ -37,16 +38,17 @@ type kafkaReadMessage interface {
 type ingestKafka struct {
 	kafkaParams api.IngestKafka
 	kafkaReader kafkaReadMessage
+	decoder     decode.Decoder
 	in          chan string
 	exitChan    <-chan struct{}
-	prevRecords []interface{} // copy of most recently sent records; for testing and debugging
+	prevRecords []config.GenericMap // copy of most recently sent records; for testing and debugging
 }
 
 const channelSizeKafka = 1000
 const defaultBatchReadTimeout = int64(100)
 
 // Ingest ingests entries from kafka topic
-func (ingestK *ingestKafka) Ingest(out chan<- []interface{}) {
+func (ingestK *ingestKafka) Ingest(out chan<- []config.GenericMap) {
 	log.Debugf("entering  ingestKafka.Ingest")
 
 	// initialize background listener
@@ -78,7 +80,7 @@ func (ingestK *ingestKafka) kafkaListener() {
 }
 
 // read items from ingestKafka input channel, pool them, and send down the pipeline
-func (ingestK *ingestKafka) processLogLines(out chan<- []interface{}) {
+func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 	var records []interface{}
 	duration := time.Duration(ingestK.kafkaParams.BatchReadTimeout) * time.Millisecond
 	for {
@@ -92,8 +94,9 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []interface{}) {
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
 				log.Debugf("ingestKafka sending %d records", len(records))
-				out <- records
-				ingestK.prevRecords = records
+				decoded := ingestK.decoder.Decode(records)
+				out <- decoded
+				ingestK.prevRecords = decoded
 				log.Debugf("prevRecords = %v", ingestK.prevRecords)
 			}
 			records = []interface{}{}
@@ -156,11 +159,17 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 	}
 	log.Debugf("kafkaReader = %v", kafkaReader)
 
+	decoder, err := decode.GetDecoder(jsonIngestKafka.Decoder)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ingestKafka{
 		kafkaParams: jsonIngestKafka,
 		kafkaReader: kafkaReader,
+		decoder:     decoder,
 		exitChan:    utils.ExitChannel(),
 		in:          make(chan string, channelSizeKafka),
-		prevRecords: make([]interface{}, 0),
+		prevRecords: make([]config.GenericMap, 0),
 	}, nil
 }

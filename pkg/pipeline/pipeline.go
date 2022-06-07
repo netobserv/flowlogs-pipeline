@@ -29,7 +29,6 @@ import (
 // interface definitions of pipeline components
 const (
 	StageIngest    = "ingest"
-	StageDecode    = "decode"
 	StageTransform = "transform"
 	StageExtract   = "extract"
 	StageEncode    = "encode"
