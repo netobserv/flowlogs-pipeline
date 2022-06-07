@@ -223,7 +223,7 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 	case StageIngest:
 		var init *node.Init
 		if pe.IngesterDecoder != nil {
-			init = node.AsInit(pe.IngesterDecoder.Ingest)
+			init = node.AsInit(pe.IngesterDecoder.IngestDecode)
 		} else {
 			init = node.AsInit(pe.Ingester.Ingest)
 		}

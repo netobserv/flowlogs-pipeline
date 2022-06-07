@@ -20,5 +20,5 @@ package ingest_decode
 import "github.com/netobserv/flowlogs-pipeline/pkg/config"
 
 type IngesterDecoder interface {
-	Ingest(out chan<- []config.GenericMap)
+	IngestDecode(out chan<- []config.GenericMap)
 }

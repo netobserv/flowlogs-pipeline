@@ -107,8 +107,8 @@ func (w *TransportWrapper) Send(_, data []byte) error {
 	return err
 }
 
-// Ingest ingests entries from a network collector using goflow2 library (https://github.com/netsampler/goflow2)
-func (ingestC *ingestCollector) Ingest(out chan<- []config.GenericMap) {
+// IngestDecode ingests entries from a network collector using goflow2 library (https://github.com/netsampler/goflow2)
+func (ingestC *ingestCollector) IngestDecode(out chan<- []config.GenericMap) {
 	ctx := context.Background()
 	ingestC.in = make(chan map[string]interface{}, channelSize)
 

@@ -48,7 +48,7 @@ func NewGRPCProtobuf(params config.StageParam) (*GRPCProtobuf, error) {
 	}, nil
 }
 
-func (no *GRPCProtobuf) Ingest(out chan<- []config.GenericMap) {
+func (no *GRPCProtobuf) IngestDecode(out chan<- []config.GenericMap) {
 	go func() {
 		<-utils.ExitChannel()
 		close(no.flowPackets)

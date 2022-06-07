@@ -12,7 +12,7 @@ import (
 
 const timeout = 5 * time.Second
 
-func TestIngest(t *testing.T) {
+func TestIngestDecode(t *testing.T) {
 	collectorPort, err := test.UDPPort()
 	require.NoError(t, err)
 	ic := &ingestCollector{
@@ -25,7 +25,7 @@ func TestIngest(t *testing.T) {
 	//defer close(forwarded)
 
 	// GIVEN an IPFIX collector Ingester
-	go ic.Ingest(forwarded)
+	go ic.IngestDecode(forwarded)
 
 	client, err := test.NewIPFIXClient(collectorPort)
 	require.NoError(t, err)
