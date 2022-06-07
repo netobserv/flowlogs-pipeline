@@ -24,6 +24,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/cni"
 	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -164,6 +165,9 @@ func (k *KubeData) NewNodeInformer(informerFactory informers.SharedInformerFacto
 					ips = append(ips, ip.String())
 				}
 			}
+			// CNI-dependent logic (must work regardless of whether the CNI is installed)
+			ips = cni.AddOvnIPs(ips, node)
+
 			return ips, nil
 		},
 	})
