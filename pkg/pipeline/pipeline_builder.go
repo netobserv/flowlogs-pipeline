@@ -6,7 +6,6 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
@@ -45,7 +44,6 @@ type pipelineEntry struct {
 	stageName   string
 	stageType   string
 	Ingester    ingest.Ingester
-	Decoder     decode.Decoder
 	Transformer transform.Transformer
 	Extractor   extract.Extractor
 	Encoder     encode.Encoder

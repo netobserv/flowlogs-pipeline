@@ -4,8 +4,8 @@ pipeline:
     type: file
     file:
       filename: ../../contrib/benchmarks/baseline/log-lines.json
-  decode:
-    type: json
+      decoder:
+        type: json
   encode:
     type: none
   extract:

@@ -11,11 +11,10 @@ data:
             hostname: 0.0.0.0
             port: 2055
             portLegacy: 2056
+            decoder:
+              type: json
           type: collector
         name: ingest_collector
-      - decode:
-          type: json
-        name: decode_json
       - name: transform_generic
         transform:
           generic:
@@ -288,8 +287,6 @@ data:
     pipeline:
       - name: ingest_collector
       - follows: ingest_collector
-        name: decode_json
-      - follows: decode_json
         name: transform_generic
       - follows: transform_generic
         name: transform_network

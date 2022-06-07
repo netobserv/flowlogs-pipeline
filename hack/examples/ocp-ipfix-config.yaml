@@ -3,7 +3,7 @@ pipeline:
     type: file
     file:
       filename: hack/examples/ocp-ipfix-flowlogs.json
-  decode:
-    type: json
+      decoder:
+        type: json
   transform:
     type: generic

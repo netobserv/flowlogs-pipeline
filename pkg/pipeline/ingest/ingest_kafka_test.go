@@ -18,7 +18,6 @@
 package ingest
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -126,16 +125,9 @@ func Test_IngestKafka(t *testing.T) {
 	receivedEntries := <-ingestOutput
 
 	require.Equal(t, 3, len(receivedEntries))
-	require.Equal(t, toMap(t, record1), receivedEntries[0])
-	require.Equal(t, toMap(t, record2), receivedEntries[1])
-	require.Equal(t, toMap(t, record3), receivedEntries[2])
-}
-
-func toMap(t *testing.T, in string) config.GenericMap {
-	var m config.GenericMap
-	err := json.Unmarshal([]byte(in), &m)
-	require.NoError(t, err)
-	return m
+	require.Equal(t, test.DeserializeJSONToMap(t, record1), receivedEntries[0])
+	require.Equal(t, test.DeserializeJSONToMap(t, record2), receivedEntries[1])
+	require.Equal(t, test.DeserializeJSONToMap(t, record3), receivedEntries[2])
 }
 
 type fakeKafkaReader struct {
@@ -184,5 +176,5 @@ func Test_KafkaListener(t *testing.T) {
 	receivedEntries := <-ingestOutput
 
 	require.Equal(t, 1, len(receivedEntries))
-	require.Equal(t, toMap(t, string(fakeRecord)), receivedEntries[0])
+	require.Equal(t, test.DeserializeJSONToMap(t, string(fakeRecord)), receivedEntries[0])
 }

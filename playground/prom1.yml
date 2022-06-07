@@ -1,10 +1,8 @@
 log-level: debug
 pipeline:
   - name: ingest1
-  - name: decode1
-    follows: ingest1
   - name: transform1
-    follows: decode1
+    follows: ingest1
   - name: encode1
     follows: transform1
   - name: write1
@@ -15,9 +13,8 @@ parameters:
       type: file_loop
       file:
         filename: playground/goflow2_input.txt
-  - name: decode1
-    decode:
-      type: json
+        decoder:
+          type: json
   - name: transform1
     transform:
       type: generic

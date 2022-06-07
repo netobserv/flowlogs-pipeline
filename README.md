@@ -112,14 +112,12 @@ FLP is a framework. The main FLP object is the **pipeline**. FLP **pipeline** ca
 
 The pipeline is constructed of a sequence of stages. Each stage is classified into one of the following types:
 - **ingest** - obtain flows from some source, one entry per line
-- **decode** - parse input lines into a known format, e.g., dictionary (map) of AWS or goflow data
 - **transform** - convert entries into a standard format; can include multiple transform stages
 - **write** - provide the means to write the data to some target, e.g. loki, standard output, etc
 - **extract** - derive a set of metrics from the imported flows
 - **encode** - make the data available in appropriate format (e.g. prometheus)
 
 The first stage in a pipeline must be an **ingest** stage.
-The **ingest** stage is typically followed by a **decode** stage, unless the **ingest** stage also performs the decoding.
 Each stage (other than an **ingest** stage) specifies the stage it follows.
 Multiple stages may follow from a particular stage, thus allowing the same data to be consumed by multiple parallel pipelines.
 For example, multiple **transform** stages may be performed and the results may be output to different targets.
@@ -132,14 +130,12 @@ A full configuration file with the data consumed by  two different transforms mi
 ```yaml
 pipeline:
   - name: ingest1
-  - name: decode1
-    follows: ingest1
   - name: generic1
-    follows: decode1
+    follows: ingest1
   - name: write1
     follows: generic1
   - name: generic2
-    follows: decode1
+    follows: ingest1
   - name: write2
     follows: generic2
 parameters:
@@ -148,9 +144,8 @@ parameters:
       type: file_loop
       file:
         filename: hack/examples/ocp-ipfix-flowlogs.json
-  - name: decode1
-    decode:
-      type: json
+        decoder:
+          type: json
   - name: generic1
     transform:
       type: generic
@@ -200,19 +195,16 @@ For example:
 log-level: info
 pipeline:
   - name: ingest_file
-  - name: decode_json
-    follows: ingest_file
   - name: write_stdout
-    follows: write_stdout
-parameters
-  - name ingest_file
+    follows: ingest_file
+parameters:
+  - name: ingest_file
     ingest:
       type: file
       file:
         filename: hack/examples/ocp-ipfix-flowlogs.json
-  - name: decode_json
-    decode:
-      type: json
+        decoder:
+          type: json
   - name: write_stdout
     write:
       type: stdout
@@ -224,11 +216,11 @@ parameters
 
 2. Using command line parameters:
  
-`./flowlogs-pipeline --pipeline "[{\"name\":\"ingest1\"},{\"follows\":\"ingest1\",\"name\":\"decode1\"},{\"follows\":\"decode1\",\"name\":\"write1\"}]" --parameters "[{\"ingest\":{\"file\":{\"filename\":\"hack/examples/ocp-ipfix-flowlogs.json\"},\"type\":\"file\"},\"name\":\"ingest1\"},{\"decode\":{\"type\":\"json\"},\"name\":\"decode1\"},{\"name\":\"write1\",\"write\":{\"type\":\"stdout\"}}]"`
+`./flowlogs-pipeline --pipeline "[{\"name\":\"ingest1\"},{\"follows\":\"ingest1\",\"name\":\"write1\"}]" --parameters "[{\"ingest\":{\"file\":{\"filename\":\"hack/examples/ocp-ipfix-flowlogs.json\"},\"decoder\":{\"type\":\"json\"},\"type\":\"file\"},\"name\":\"ingest1\"},{\"name\":\"write1\",\"write\":{\"type\":\"stdout\"}}]"`
 
 Options included in the command line override the options specified in the config file.
 
-`flowlogs-pipeline --log-level debug --pipeline "[{\"name\":\"ingest1\"},{\"follows\":\"ingest1\",\"name\":\"decode1\"},{\"follows\":\"decode1\",\"name\":\"write1\"}]" --config <configFile>`
+`flowlogs-pipeline --log-level debug --pipeline "[{\"name\":\"ingest1\"},{\"follows\":\"ingest1\",\"name\":\"write1\"}]" --config <configFile>`
 
 3. TODO: environment variables
 
