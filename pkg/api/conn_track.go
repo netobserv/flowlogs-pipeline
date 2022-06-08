@@ -19,6 +19,8 @@ package api
 
 import "time"
 
+const HashIdFieldName = "HashId"
+
 type ConnTrack struct {
 	// TODO: should by a pointer instead?
 	KeyDefinition        KeyDefinition `yaml:"keyDefinition" doc:"fields that are used to identify the connection"`
