@@ -631,8 +631,6 @@ github.com/mailru/easyjson v0.7.6 h1:8yTIVnZgCoiM1TgqoeTl+LfU5Jg6/xL3QhGQnimLYnA
 github.com/mailru/easyjson v0.7.6/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/mariomac/guara v0.0.0-20220523124851-5fc279816f1f h1:mjj2aCHv9orQy7Y0OGs03wZNtuQHfNgCKY44eOIloe0=
 github.com/mariomac/guara v0.0.0-20220523124851-5fc279816f1f/go.mod h1:Ec37gLe3vH+cnOp7x3qfd+0sz0pnP3CyIXKmQJ2ZOXU=
-github.com/mariomac/netobserv-agent v0.0.0-20220602132418-53e4a4d79cd6 h1:owouoIluazaiz+5GUcPJoHhb3MLDL29YhRW+Sn02umk=
-github.com/mariomac/netobserv-agent v0.0.0-20220602132418-53e4a4d79cd6/go.mod h1:996FEHp8Xj+AKCkiN4eH3dl/yF2DzuYM0kchWZOrapM=
 github.com/markbates/oncer v0.0.0-20181203154359-bf2de49a0be2/go.mod h1:Ld9puTsIW75CHf65OeIOkyKbteujpZVXDpWK6YGZbxE=
 github.com/markbates/safe v1.0.1/go.mod h1:nAqgmRi7cY2nqMc92/bSEeQA+R4OheNU2T1kNSCBdG0=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
@@ -701,6 +699,8 @@ github.com/netobserv/gopipes v0.1.1 h1:f8zJsvnMgRFRa2B+1siwRtW0Y4dqeBROmkcI/HgT1
 github.com/netobserv/gopipes v0.1.1/go.mod h1:eGoHZW1ON8Dx/zmDXUhsbVNqatPjtpdO0UZBmGZGmVI=
 github.com/netobserv/loki-client-go v0.0.0-20211018150932-cb17208397a9 h1:c2swm3EamzgjBq9idNbEs5bNz20FJo/HK6uxyigXekQ=
 github.com/netobserv/loki-client-go v0.0.0-20211018150932-cb17208397a9/go.mod h1:LHXpc5tjKvsfZn0pwLKrvlgEhZcCaw3Di9mUEZGAI4E=
+github.com/netobserv/netobserv-ebpf-agent v0.1.1-0.20220608092850-3fd4695b7cc2 h1:K7SjoqEfzpMfIjHV85Lg8UDMvZu8rPfrsgKRoo7W30o=
+github.com/netobserv/netobserv-ebpf-agent v0.1.1-0.20220608092850-3fd4695b7cc2/go.mod h1:996FEHp8Xj+AKCkiN4eH3dl/yF2DzuYM0kchWZOrapM=
 github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785 h1:qhDrIMXlk8YV7BxwA6UR/dQVdUzohjLlmrUXymsBx6g=
 github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785/go.mod h1:yqw2cLe+lbnDN1+JKBqxoj2FKOA83iB8wV0aCKnlesg=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
