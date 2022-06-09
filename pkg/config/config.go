@@ -118,3 +118,14 @@ func ParseConfig() error {
 	logrus.Debugf("params = %v ", Parameters)
 	return nil
 }
+
+// Copy will create a flat copy of GenericMap
+func (m GenericMap) Copy() map[string]interface{} {
+	result := map[string]interface{}{}
+
+	for k, v := range m {
+		result[k] = v
+	}
+
+	return result
+}

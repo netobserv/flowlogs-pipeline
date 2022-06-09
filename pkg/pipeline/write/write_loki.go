@@ -231,7 +231,8 @@ func (l *Loki) processRecords() {
 			log.Debugf("exiting writeLoki because of signal")
 			return
 		case record := <-l.in:
-			err := l.ProcessRecord(record)
+			// copy record before process to avoid alteration on parallel stages
+			err := l.ProcessRecord(record.Copy())
 			if err != nil {
 				log.Errorf("Write (Loki) error %v", err)
 			}
