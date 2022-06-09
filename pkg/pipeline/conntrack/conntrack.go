@@ -82,7 +82,7 @@ func (ct *connectionStore) updateConnectionTime(hashStr string, t time.Time) {
 	if !ok {
 		log.Errorf("BUG. connection hash %v doesn't exist", hashStr)
 	}
-	elem.Value.(connection).setLastUpdateTime(t)
+	elem.Value.(connection).setLastUpdate(t)
 	// move to end of list
 	ct.connList.MoveToBack(elem)
 }
@@ -167,8 +167,8 @@ func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 	var outputRecords []config.GenericMap
 	ct.connStore.iterateOldToNew(func(conn connection) (shouldDelete, shouldStop bool) {
 		expireTime := ct.clock.Now().Add(-ct.config.EndConnectionTimeout)
-		lastUpdateTime := conn.getLastUpdateTime()
-		if lastUpdateTime.Before(expireTime) {
+		lastUpdate := conn.getLastUpdate()
+		if lastUpdate.Before(expireTime) {
 			// The last update time of this connection is too old. We want to pop it.
 			outputRecords = append(outputRecords, conn.toGenericMap())
 			shouldDelete, shouldStop = true, false
