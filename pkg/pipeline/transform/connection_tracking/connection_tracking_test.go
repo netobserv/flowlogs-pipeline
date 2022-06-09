@@ -33,11 +33,17 @@ func Test_AddFlow(t *testing.T) {
 	InitConnectionTracking()
 	isNew := CT.AddFlow("test")
 	require.Equal(t, true, isNew)
-	require.Equal(t, CT.mCache.CacheMap["test"].SourceEntry.(cacheInfo).flowlogsCount, 1)
+	cacheEntry, found := CT.mCache.GetCacheEntry("test")
+	cInfo := cacheEntry.(cacheInfo)
+	require.Equal(t, true, found)
+	require.Equal(t, cInfo.flowlogsCount, 1)
 
 	isNew = CT.AddFlow("test")
 	require.Equal(t, false, isNew)
-	require.Equal(t, CT.mCache.CacheMap["test"].SourceEntry.(cacheInfo).flowlogsCount, 1)
+	cacheEntry, _ = CT.mCache.GetCacheEntry("test")
+	cInfo = cacheEntry.(cacheInfo)
+	require.Equal(t, cInfo.flowlogsCount, 1)
+
 }
 
 func Test_IsFlowKnown(t *testing.T) {
@@ -55,10 +61,12 @@ func Test_cleanupExpiredEntries(t *testing.T) {
 
 	_ = CT.AddFlow("test")
 	CT.mCache.CleanupExpiredEntries(CT.expiryTime, CT)
-	require.Contains(t, CT.mCache.CacheMap, "test")
+	_, found := CT.mCache.GetCacheEntry("test")
+	require.Equal(t, true, found)
 	time.Sleep(2 * time.Second)
 	CT.mCache.CleanupExpiredEntries(CT.expiryTime, CT)
-	require.NotContains(t, CT.mCache.CacheMap, "test")
+	_, found = CT.mCache.GetCacheEntry("test")
+	require.Equal(t, false, found)
 }
 
 func Test_cleanupExpiredEntriesLoop(t *testing.T) {

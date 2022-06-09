@@ -119,8 +119,11 @@ func Test_Evaluate(t *testing.T) {
 
 	require.Equal(t, nil, err)
 	require.Equal(t, 1, aggregate.cache.GetCacheLen())
-	require.Equal(t, 2, aggregate.cache.CacheMap[string(normalizedValues)].SourceEntry.(*GroupState).totalCount)
-	require.Equal(t, float64(7), aggregate.cache.CacheMap[string(normalizedValues)].SourceEntry.(*GroupState).totalValue)
+	cacheEntry, found := aggregate.cache.GetCacheEntry(string(normalizedValues))
+	gState := cacheEntry.(*GroupState)
+	require.Equal(t, true, found)
+	require.Equal(t, 2, gState.totalCount)
+	require.Equal(t, float64(7), gState.totalValue)
 }
 
 func Test_GetMetrics(t *testing.T) {

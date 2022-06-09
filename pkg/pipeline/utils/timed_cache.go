@@ -42,15 +42,15 @@ type cacheEntry struct {
 type TimedCacheMap map[string]*cacheEntry
 
 type TimedCache struct {
-	Mu        sync.RWMutex
+	mu        sync.RWMutex
 	cacheList *list.List
-	CacheMap  TimedCacheMap
+	cacheMap  TimedCacheMap
 }
 
 func (tc *TimedCache) GetCacheEntry(key string) (interface{}, bool) {
-	tc.Mu.RLock()
-	defer tc.Mu.RUnlock()
-	cEntry, ok := tc.CacheMap[key]
+	tc.mu.RLock()
+	defer tc.mu.RUnlock()
+	cEntry, ok := tc.cacheMap[key]
 	if ok {
 		return cEntry.SourceEntry, ok
 	} else {
@@ -60,9 +60,9 @@ func (tc *TimedCache) GetCacheEntry(key string) (interface{}, bool) {
 
 func (tc *TimedCache) UpdateCacheEntry(key string, entry interface{}) *cacheEntry {
 	nowInSecs := time.Now().Unix()
-	tc.Mu.Lock()
-	defer tc.Mu.Unlock()
-	cEntry, ok := tc.CacheMap[key]
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+	cEntry, ok := tc.cacheMap[key]
 	if ok {
 		// item already exists in cache; update the element and move to end of list
 		cEntry.lastUpdatedTime = nowInSecs
@@ -78,7 +78,7 @@ func (tc *TimedCache) UpdateCacheEntry(key string, entry interface{}) *cacheEntr
 		// place at end of list
 		log.Debugf("adding entry = %v", cEntry)
 		cEntry.e = tc.cacheList.PushBack(cEntry)
-		tc.CacheMap[key] = cEntry
+		tc.cacheMap[key] = cEntry
 		log.Debugf("cacheList = %v", tc.cacheList)
 	}
 	return cEntry
@@ -90,9 +90,11 @@ func (tc *TimedCache) GetCacheLen() int {
 
 // We expect that the function calling Iterate might make updates to the entries by calling UpdateCacheEntry()
 // We therefore cannot take the lock at this point since it will conflict with the call in UpdateCacheEntry()
-// TODO: Question: Do we need to make a copy of the map so that we are unaffected by changes to the original map while we iterate?
+// TODO: If the callback needs to update the cache, then we need a method to perform it without taking the lock again.
 func (tc *TimedCache) Iterate(f func(key string, value interface{})) {
-	for k, v := range tc.CacheMap {
+	tc.mu.RLock()
+	defer tc.mu.RUnlock()
+	for k, v := range tc.cacheMap {
 		f(k, v.SourceEntry)
 	}
 }
@@ -100,9 +102,9 @@ func (tc *TimedCache) Iterate(f func(key string, value interface{})) {
 // CleanupExpiredEntries removes items from cache that were last touched more than expiryTime seconds ago
 func (tc *TimedCache) CleanupExpiredEntries(expiryTime int64, callback CacheCallback) {
 	log.Debugf("entering cleanupExpiredEntries")
-	tc.Mu.Lock()
-	defer tc.Mu.Unlock()
-	log.Debugf("cache = %v", tc.CacheMap)
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+	log.Debugf("cache = %v", tc.cacheMap)
 	log.Debugf("list = %v", tc.cacheList)
 	nowInSecs := time.Now().Unix()
 	expireTime := nowInSecs - expiryTime
@@ -120,7 +122,7 @@ func (tc *TimedCache) CleanupExpiredEntries(expiryTime int64, callback CacheCall
 			return
 		}
 		callback.Cleanup(pCacheInfo.SourceEntry)
-		delete(tc.CacheMap, pCacheInfo.key)
+		delete(tc.cacheMap, pCacheInfo.key)
 		tc.cacheList.Remove(listEntry)
 	}
 }
@@ -128,7 +130,7 @@ func (tc *TimedCache) CleanupExpiredEntries(expiryTime int64, callback CacheCall
 func NewTimedCache() *TimedCache {
 	l := &TimedCache{
 		cacheList: list.New(),
-		CacheMap:  make(TimedCacheMap),
+		cacheMap:  make(TimedCacheMap),
 	}
 	return l
 }
