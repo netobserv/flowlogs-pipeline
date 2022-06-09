@@ -18,7 +18,6 @@
 package aggregate
 
 import (
-	"container/list"
 	"sync"
 	"time"
 
@@ -62,8 +61,7 @@ func (aggregates *Aggregates) GetMetrics() []config.GenericMap {
 func (aggregates *Aggregates) AddAggregate(aggregateDefinition api.AggregateDefinition) []Aggregate {
 	aggregate := Aggregate{
 		Definition: aggregateDefinition,
-		GroupsMap:  map[NormalizedValues]*GroupState{},
-		GroupsList: list.New(),
+		cache:      utils.NewTimedCache(),
 		mutex:      &sync.Mutex{},
 		expiryTime: aggregates.expiryTime,
 	}
@@ -91,7 +89,7 @@ func (aggregates *Aggregates) cleanupExpiredEntries() {
 
 	for _, aggregate := range aggregates.Aggregates {
 		aggregate.mutex.Lock()
-		aggregate.cleanupExpiredEntries()
+		aggregate.cache.CleanupExpiredEntries(aggregate.expiryTime, aggregate)
 		aggregate.mutex.Unlock()
 	}
 

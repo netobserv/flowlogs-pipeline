@@ -8,7 +8,7 @@ pipeline:
   - name: encode1
     follows: transform1
   - name: write1
-    follows: encode1
+    follows: transform1
 parameters:
   - name: ingest1
     ingest:

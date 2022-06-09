@@ -18,11 +18,9 @@
 package encode
 
 import (
-	"container/list"
 	"fmt"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -62,26 +60,15 @@ type entrySignature struct {
 
 type entryInfo struct {
 	eInfo entrySignature
-}
-
-type metricCacheEntry struct {
-	labels    prometheus.Labels
-	timeStamp int64
-	e         *list.Element
-	key       string
 	PromMetric
 }
 
-type metricCache map[string]*metricCacheEntry
-
 type EncodeProm struct {
-	mu          sync.Mutex
 	port        string
 	prefix      string
 	metrics     map[string]metricInfo
 	expiryTime  int64
-	mList       *list.List
-	mCache      metricCache
+	mCache      *utils.TimedCache
 	exitChan    <-chan struct{}
 	PrevRecords []config.GenericMap
 }
@@ -94,8 +81,6 @@ var metricsProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
 // Encode encodes a metric before being stored
 func (e *EncodeProm) Encode(metrics []config.GenericMap) {
 	log.Debugf("entering EncodeProm Encode")
-	e.mu.Lock()
-	defer e.mu.Unlock()
 	out := make([]config.GenericMap, 0)
 	for _, metric := range metrics {
 		// TODO: We may need different handling for histograms
@@ -106,7 +91,6 @@ func (e *EncodeProm) Encode(metrics []config.GenericMap) {
 	e.PrevRecords = out
 	log.Debugf("out = %v", out)
 	log.Debugf("cache = %v", e.mCache)
-	log.Debugf("list = %v", e.mList)
 }
 
 func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) []config.GenericMap {
@@ -134,9 +118,9 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 				Labels: entryLabels,
 			},
 		}
-
-		cEntry := e.saveEntryInCache(entry, entryLabels)
-		cEntry.PromMetric.metricType = mInfo.PromMetric.metricType
+		key := generateCacheKey(&entry.eInfo)
+		e.mCache.UpdateCacheEntry(key, entry)
+		entry.PromMetric.metricType = mInfo.PromMetric.metricType
 		// push the metric record to prometheus
 		switch mInfo.PromMetric.metricType {
 		case api.PromEncodeOperationName("Gauge"):
@@ -146,7 +130,7 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 				continue
 			}
 			mInfo.promGauge.With(entryLabels).Set(metricValueFloat)
-			cEntry.PromMetric.promGauge = mInfo.promGauge
+			entry.PromMetric.promGauge = mInfo.promGauge
 		case api.PromEncodeOperationName("Counter"):
 			metricValueFloat, err := utils.ConvertToFloat64(metricValue)
 			if err != nil {
@@ -154,7 +138,7 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 				continue
 			}
 			mInfo.promCounter.With(entryLabels).Add(metricValueFloat)
-			cEntry.PromMetric.promCounter = mInfo.promCounter
+			entry.PromMetric.promCounter = mInfo.promCounter
 		case api.PromEncodeOperationName("Histogram"):
 			metricValueSlice, ok := metricValue.([]float64)
 			if !ok {
@@ -164,7 +148,7 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) []config.Gener
 			for _, v := range metricValueSlice {
 				mInfo.promHist.With(entryLabels).Observe(v)
 			}
-			cEntry.PromMetric.promHist = mInfo.promHist
+			entry.PromMetric.promHist = mInfo.promHist
 		}
 
 		entryMap := map[string]interface{}{
@@ -184,31 +168,19 @@ func generateCacheKey(sig *entrySignature) string {
 	return eInfoString
 }
 
-func (e *EncodeProm) saveEntryInCache(entry entryInfo, entryLabels map[string]string) *metricCacheEntry {
-	// save item in cache; use eInfo as key to the cache
-	var cEntry *metricCacheEntry
-	nowInSecs := time.Now().Unix()
-	eInfoString := generateCacheKey(&entry.eInfo)
-	cEntry, ok := e.mCache[eInfoString]
-	if ok {
-		// item already exists in cache; update the element and move to end of list
-		cEntry.timeStamp = nowInSecs
-		// move to end of list
-		e.mList.MoveToBack(cEntry.e)
-	} else {
-		// create new entry for cache
-		cEntry = &metricCacheEntry{
-			labels:    entryLabels,
-			timeStamp: nowInSecs,
-			key:       eInfoString,
-		}
-		// place at end of list
-		log.Debugf("adding entry = %v", cEntry)
-		cEntry.e = e.mList.PushBack(cEntry)
-		e.mCache[eInfoString] = cEntry
-		log.Debugf("mlist = %v", e.mList)
+// callback function from lru cleanup
+func (e *EncodeProm) Cleanup(sourceEntry interface{}) {
+	entry := sourceEntry.(entryInfo)
+	// clean up the entry
+	log.Debugf("deleting %v", entry)
+	switch entry.PromMetric.metricType {
+	case api.PromEncodeOperationName("Gauge"):
+		entry.PromMetric.promGauge.Delete(entry.eInfo.Labels)
+	case api.PromEncodeOperationName("Counter"):
+		entry.PromMetric.promCounter.Delete(entry.eInfo.Labels)
+	case api.PromEncodeOperationName("Histogram"):
+		entry.PromMetric.promHist.Delete(entry.eInfo.Labels)
 	}
-	return cEntry
 }
 
 func (e *EncodeProm) cleanupExpiredEntriesLoop() {
@@ -219,46 +191,8 @@ func (e *EncodeProm) cleanupExpiredEntriesLoop() {
 			log.Debugf("exiting cleanupExpiredEntriesLoop because of signal")
 			return
 		case <-ticker.C:
-			e.cleanupExpiredEntries()
+			e.mCache.CleanupExpiredEntries(e.expiryTime, e)
 		}
-	}
-}
-
-// cleanupExpiredEntries - any entry that has expired should be removed from the prometheus reporting and cache
-func (e *EncodeProm) cleanupExpiredEntries() {
-	log.Debugf("entering cleanupExpiredEntries")
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	log.Debugf("cache = %v", e.mCache)
-	log.Debugf("list = %v", e.mList)
-	nowInSecs := time.Now().Unix()
-	expireTime := nowInSecs - e.expiryTime
-	// go through the list until we reach recently used entries
-	for {
-		entry := e.mList.Front()
-		if entry == nil {
-			return
-		}
-		c := entry.Value.(*metricCacheEntry)
-		log.Debugf("timeStamp = %d, expireTime = %d", c.timeStamp, expireTime)
-		log.Debugf("c = %v", c)
-		if c.timeStamp > expireTime {
-			// no more expired items
-			return
-		}
-
-		// clean up the entry
-		log.Debugf("nowInSecs = %d, deleting %v", nowInSecs, c)
-		switch c.PromMetric.metricType {
-		case api.PromEncodeOperationName("Gauge"):
-			c.PromMetric.promGauge.Delete(c.labels)
-		case api.PromEncodeOperationName("Counter"):
-			c.PromMetric.promCounter.Delete(c.labels)
-		case api.PromEncodeOperationName("Histogram"):
-			c.PromMetric.promHist.Delete(c.labels)
-		}
-		delete(e.mCache, c.key)
-		e.mList.Remove(entry)
 	}
 }
 
@@ -347,8 +281,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 		prefix:      promPrefix,
 		metrics:     metrics,
 		expiryTime:  expiryTime,
-		mList:       list.New(),
-		mCache:      make(metricCache),
+		mCache:      utils.NewTimedCache(),
 		exitChan:    utils.ExitChannel(),
 		PrevRecords: make([]config.GenericMap, 0),
 	}

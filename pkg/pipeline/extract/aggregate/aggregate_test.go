@@ -18,12 +18,12 @@
 package aggregate
 
 import (
-	"container/list"
 	"sync"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
@@ -36,8 +36,7 @@ func GetMockAggregate() Aggregate {
 			Operation: "avg",
 			RecordKey: "value",
 		},
-		GroupsMap:  map[NormalizedValues]*GroupState{},
-		GroupsList: list.New(),
+		cache:      utils.NewTimedCache(),
 		mutex:      &sync.Mutex{},
 		expiryTime: 30,
 	}
@@ -119,9 +118,12 @@ func Test_Evaluate(t *testing.T) {
 	err := aggregate.Evaluate(entries)
 
 	require.Equal(t, nil, err)
-	require.Equal(t, 1, aggregate.GroupsList.Len())
-	require.Equal(t, 2, aggregate.GroupsMap[normalizedValues].totalCount)
-	require.Equal(t, float64(7), aggregate.GroupsMap[normalizedValues].totalValue)
+	require.Equal(t, 1, aggregate.cache.GetCacheLen())
+	cacheEntry, found := aggregate.cache.GetCacheEntry(string(normalizedValues))
+	gState := cacheEntry.(*GroupState)
+	require.Equal(t, true, found)
+	require.Equal(t, 2, gState.totalCount)
+	require.Equal(t, float64(7), gState.totalValue)
 }
 
 func Test_GetMetrics(t *testing.T) {
