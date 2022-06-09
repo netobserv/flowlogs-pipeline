@@ -113,7 +113,7 @@ func newConnectionStore() *connectionStore {
 type conntrackImpl struct {
 	clock                     clock.Clock
 	config                    api.ConnTrack
-	hasher                    hash.Hash
+	hashProvider              func() hash.Hash32
 	connStore                 *connectionStore
 	aggregators               []aggregator
 	shouldOutputFlowLogs      bool
@@ -127,7 +127,7 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 
 	var outputRecords []config.GenericMap
 	for _, fl := range flowLogs {
-		computedHash, err := ComputeHash(fl, ct.config.KeyDefinition, ct.hasher)
+		computedHash, err := ComputeHash(fl, ct.config.KeyDefinition, ct.hashProvider())
 		if err != nil {
 			log.Warningf("skipping flow log %v: %v", fl, err)
 			continue
@@ -233,7 +233,7 @@ func NewConnectionTrack(config api.ConnTrack, clock clock.Clock) (ConnectionTrac
 		clock:                     clock,
 		connStore:                 newConnectionStore(),
 		config:                    config,
-		hasher:                    fnv.New32a(),
+		hashProvider:              fnv.New32a,
 		aggregators:               aggregators,
 		shouldOutputFlowLogs:      shouldOutputFlowLogs,
 		shouldOutputNewConnection: shouldOutputNewConnection,
