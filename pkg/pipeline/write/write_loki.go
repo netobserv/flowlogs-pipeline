@@ -109,8 +109,11 @@ func buildLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 }
 
 func (l *Loki) ProcessRecord(record config.GenericMap) error {
+	// copy record before process to avoid alteration on parallel stages
+	recordCopy := record.Copy()
+
 	// Get timestamp from record (default: TimeFlowStart)
-	timestamp := l.extractTimestamp(record)
+	timestamp := l.extractTimestamp(recordCopy)
 
 	labels := model.LabelSet{}
 
@@ -119,15 +122,15 @@ func (l *Loki) ProcessRecord(record config.GenericMap) error {
 		labels[k] = v
 	}
 
-	l.addNonStaticLabels(record, labels)
+	l.addNonStaticLabels(recordCopy, labels)
 
 	// Remove labels and configured ignore list from record
 	ignoreList := append(l.apiConfig.IgnoreList, l.apiConfig.Labels...)
 	for _, label := range ignoreList {
-		delete(record, label)
+		delete(recordCopy, label)
 	}
 
-	js, err := jsonIter.ConfigCompatibleWithStandardLibrary.Marshal(record)
+	js, err := jsonIter.ConfigCompatibleWithStandardLibrary.Marshal(recordCopy)
 	if err != nil {
 		return err
 	}
@@ -231,8 +234,7 @@ func (l *Loki) processRecords() {
 			log.Debugf("exiting writeLoki because of signal")
 			return
 		case record := <-l.in:
-			// copy record before process to avoid alteration on parallel stages
-			err := l.ProcessRecord(record.Copy())
+			err := l.ProcessRecord(record)
 			if err != nil {
 				log.Errorf("Write (Loki) error %v", err)
 			}
