@@ -19,7 +19,6 @@ package aggregate
 
 import (
 	"container/heap"
-	"container/list"
 	"fmt"
 	"math"
 	"sort"
