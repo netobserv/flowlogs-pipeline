@@ -19,14 +19,18 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const defaultBufferLen = 100
+const (
+	defaultBufferLen = 100
+	decoderName      = "protobuf"
+	decoderVersion   = "protobuf1.0"
+)
 
 // Prometheus metrics describing the performance of the eBPF ingest
 var (
 	flowDecoderCount = flow.DecoderStats.With(
-		prometheus.Labels{"worker": "", "name": "protobuf"})
+		prometheus.Labels{"worker": "", "name": decoderName})
 	processDelaySummary = flow.NetFlowTimeStatsSum.With(
-		prometheus.Labels{"version": "protobuf1.0", "router": ""})
+		prometheus.Labels{"version": decoderVersion, "router": ""})
 	flowTrafficBytesSum = flow.MetricPacketSizeSum
 	flowErrors          = flow.NetFlowErrors
 )
