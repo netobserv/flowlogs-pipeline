@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/netobserv-agent/pkg/pbflow"
+	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 	"github.com/sirupsen/logrus"
 )
 

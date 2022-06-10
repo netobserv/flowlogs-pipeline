@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/netobserv-agent/pkg/pbflow"
+	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
