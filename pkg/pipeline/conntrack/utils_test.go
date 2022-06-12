@@ -28,6 +28,7 @@ func newMockRecordFromFlowLog(fl config.GenericMap) *mockRecord {
 	for k, v := range fl {
 		mock.record[k] = v
 	}
+	mock.withType("flowLog")
 	return mock
 }
 
@@ -49,6 +50,18 @@ func newMockRecordConnAB(srcIP string, srcPort int, dstIP string, dstPort int, p
 	return mock
 }
 
+func newMockRecordNewConnAB(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytesAB, bytesBA, packetsAB, packetsBA, numFlowLogs float64) *mockRecord {
+	return newMockRecordConnAB(srcIP, srcPort, dstIP, dstPort, protocol, bytesAB, bytesBA, packetsAB, packetsBA, numFlowLogs).
+		withType("newConnection")
+
+}
+
+func newMockRecordEndConnAB(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytesAB, bytesBA, packetsAB, packetsBA, numFlowLogs float64) *mockRecord {
+	return newMockRecordConnAB(srcIP, srcPort, dstIP, dstPort, protocol, bytesAB, bytesBA, packetsAB, packetsBA, numFlowLogs).
+		withType("endConnection")
+
+}
+
 func newMockRecordConn(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytes, packets, numFlowLogs float64) *mockRecord {
 	mock := &mockRecord{
 		record: config.GenericMap{
@@ -65,8 +78,23 @@ func newMockRecordConn(srcIP string, srcPort int, dstIP string, dstPort int, pro
 	return mock
 }
 
+func newMockRecordNewConn(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytes, packets, numFlowLogs float64) *mockRecord {
+	return newMockRecordConn(srcIP, srcPort, dstIP, dstPort, protocol, bytes, packets, numFlowLogs).
+		withType("newConnection")
+}
+
+func newMockRecordEndConn(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytes, packets, numFlowLogs float64) *mockRecord {
+	return newMockRecordConn(srcIP, srcPort, dstIP, dstPort, protocol, bytes, packets, numFlowLogs).
+		withType("endConnection")
+}
+
 func (m *mockRecord) withHash(hashStr string) *mockRecord {
 	m.record[api.HashIdFieldName] = hashStr
+	return m
+}
+
+func (m *mockRecord) withType(recordType string) *mockRecord {
+	m.record[api.RecordTypeFieldName] = recordType
 	return m
 }
 

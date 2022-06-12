@@ -19,7 +19,10 @@ package api
 
 import "time"
 
-const HashIdFieldName = "HashId"
+const (
+	HashIdFieldName     = "HashId"
+	RecordTypeFieldName = "RecordType"
+)
 
 type ConnTrack struct {
 	// TODO: should by a pointer instead?

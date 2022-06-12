@@ -144,6 +144,7 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 			if ct.shouldOutputNewConnection {
 				record := conn.toGenericMap()
 				addHashField(record, computedHash.hashTotal)
+				addTypeField(record, api.ConnTrackOutputRecordTypeName("NewConnection"))
 				outputRecords = append(outputRecords, record)
 			}
 		} else {
@@ -153,6 +154,7 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 		if ct.shouldOutputFlowLogs {
 			record := fl.Copy()
 			addHashField(record, computedHash.hashTotal)
+			addTypeField(record, api.ConnTrackOutputRecordTypeName("FlowLog"))
 			outputRecords = append(outputRecords, record)
 		}
 	}
@@ -174,6 +176,7 @@ func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 			// The last update time of this connection is too old. We want to pop it.
 			record := conn.toGenericMap()
 			addHashField(record, conn.getHash().hashTotal)
+			addTypeField(record, api.ConnTrackOutputRecordTypeName("EndConnection"))
 			outputRecords = append(outputRecords, record)
 			shouldDelete, shouldStop = true, false
 		} else {
@@ -248,4 +251,8 @@ func NewConnectionTrack(config api.ConnTrack, clock clock.Clock) (ConnectionTrac
 
 func addHashField(record config.GenericMap, hashId uint64) {
 	record[api.HashIdFieldName] = strconv.FormatUint(hashId, 16)
+}
+
+func addTypeField(record config.GenericMap, recordType string) {
+	record[api.RecordTypeFieldName] = recordType
 }

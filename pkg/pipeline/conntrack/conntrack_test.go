@@ -102,7 +102,7 @@ func TestTrack(t *testing.T) {
 			buildMockConnTrackConfig(true, []string{"newConnection"}),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
-				newMockRecordConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
+				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
 			},
 		},
 		{
@@ -110,7 +110,7 @@ func TestTrack(t *testing.T) {
 			buildMockConnTrackConfig(true, []string{"newConnection", "flowLog"}),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
-				newMockRecordConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
+				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
 				newMockRecordFromFlowLog(flAB1).withHash(hashId).get(),
 				newMockRecordFromFlowLog(flAB2).withHash(hashId).get(),
 				newMockRecordFromFlowLog(flBA3).withHash(hashId).get(),
@@ -122,8 +122,8 @@ func TestTrack(t *testing.T) {
 			buildMockConnTrackConfig(false, []string{"newConnection"}),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
-				newMockRecordConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
-				newMockRecordConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
+				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
+				newMockRecordNewConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
 			},
 		},
 		{
@@ -131,10 +131,10 @@ func TestTrack(t *testing.T) {
 			buildMockConnTrackConfig(false, []string{"newConnection", "flowLog"}),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
-				newMockRecordConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
+				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
 				newMockRecordFromFlowLog(flAB1).withHash(hashIdAB).get(),
 				newMockRecordFromFlowLog(flAB2).withHash(hashIdAB).get(),
-				newMockRecordConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
+				newMockRecordNewConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
 				newMockRecordFromFlowLog(flBA3).withHash(hashIdBA).get(),
 				newMockRecordFromFlowLog(flBA4).withHash(hashIdBA).get(),
 			},
@@ -184,7 +184,7 @@ func TestEndConn_Bidirectional(t *testing.T) {
 			startTime.Add(0 * time.Second),
 			[]config.GenericMap{flAB1},
 			[]config.GenericMap{
-				newMockRecordConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
+				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
 				newMockRecordFromFlowLog(flAB1).withHash(hashId).get(),
 			},
 		},
@@ -216,7 +216,7 @@ func TestEndConn_Bidirectional(t *testing.T) {
 			startTime.Add(51 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordConnAB(ipA, portA, ipB, portB, protocol, 333, 777, 33, 77, 4).withHash(hashId).get(),
+				newMockRecordEndConnAB(ipA, portA, ipB, portB, protocol, 333, 777, 33, 77, 4).withHash(hashId).get(),
 			},
 		},
 	}
@@ -267,7 +267,7 @@ func TestEndConn_Unidirectional(t *testing.T) {
 			startTime.Add(0 * time.Second),
 			[]config.GenericMap{flAB1},
 			[]config.GenericMap{
-				newMockRecordConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
+				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
 				newMockRecordFromFlowLog(flAB1).withHash(hashIdAB).get(),
 			},
 		},
@@ -277,7 +277,7 @@ func TestEndConn_Unidirectional(t *testing.T) {
 			[]config.GenericMap{flAB2, flBA3},
 			[]config.GenericMap{
 				newMockRecordFromFlowLog(flAB2).withHash(hashIdAB).get(),
-				newMockRecordConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
+				newMockRecordNewConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
 				newMockRecordFromFlowLog(flBA3).withHash(hashIdBA).get(),
 			},
 		},
@@ -300,7 +300,7 @@ func TestEndConn_Unidirectional(t *testing.T) {
 			startTime.Add(41 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
+				newMockRecordEndConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
 			},
 		},
 		{
@@ -314,7 +314,7 @@ func TestEndConn_Unidirectional(t *testing.T) {
 			startTime.Add(51 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordConn(ipB, portB, ipA, portA, protocol, 777, 77, 2).withHash(hashIdBA).get(),
+				newMockRecordEndConn(ipB, portB, ipA, portA, protocol, 777, 77, 2).withHash(hashIdBA).get(),
 			},
 		},
 	}
