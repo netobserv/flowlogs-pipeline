@@ -24,8 +24,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type GenericMap map[string]interface{}
-
 var (
 	Opt        = Options{}
 	PipeLine   []Stage
