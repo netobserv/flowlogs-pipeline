@@ -99,6 +99,10 @@ func (w *TransportWrapper) Send(_, data []byte) error {
 	message := goflowpb.FlowMessage{}
 	err := proto.Unmarshal(data, &message)
 	if err != nil {
+		// temporary fix
+		// A PR was submitted to log this error from goflow2:
+		// https://github.com/netsampler/goflow2/pull/86
+		log.Error(err)
 		return err
 	}
 	renderedMsg, err := RenderMessage(&message)
