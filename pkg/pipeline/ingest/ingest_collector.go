@@ -175,7 +175,7 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 			recordAsBytes, _ := json.Marshal(record)
 			records = append(records, string(recordAsBytes))
 			if len(records) >= ingestC.batchMaxLength {
-				log.Debugf("ingestCollector sending %d entries", len(records))
+				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
 				linesProcessed.Add(float64(len(records)))
 				queueLength.Set(float64(len(out)))
 				out <- records
@@ -184,7 +184,14 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 		case <-flushRecords.C:
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
-				log.Debugf("ingestCollector sending %d entries", len(records))
+				if len(ingestC.in) > 0 {
+					for len(records) < ingestC.batchMaxLength && len(ingestC.in) > 0 {
+						record := <-ingestC.in
+						recordAsBytes, _ := json.Marshal(record)
+						records = append(records, string(recordAsBytes))
+					}
+				}
+				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
 				linesProcessed.Add(float64(len(records)))
 				queueLength.Set(float64(len(out)))
 				out <- records
