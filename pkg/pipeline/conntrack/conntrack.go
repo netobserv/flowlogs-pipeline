@@ -19,7 +19,6 @@ package conntrack
 
 import (
 	"container/list"
-	"encoding/hex"
 	"fmt"
 	"hash"
 	"hash/fnv"
@@ -52,24 +51,23 @@ type ConnectionTracker interface {
 // connectionStore provides both retrieving a connection by its hash and iterating connections sorted by their last
 // update time.
 type connectionStore struct {
-	// TODO: should the key of the map be a custom hashStrType instead of string?
-	hash2conn map[string]*list.Element
+	hash2conn map[uint64]*list.Element
 	connList  *list.List
 }
 
 type processConnF func(connection) (shouldDelete, shouldStop bool)
 
-func (ct *connectionStore) addConnection(hashStr string, conn connection) {
-	_, ok := ct.getConnection(hashStr)
+func (ct *connectionStore) addConnection(hashId uint64, conn connection) {
+	_, ok := ct.getConnection(hashId)
 	if ok {
-		log.Errorf("BUG. connection with hash %v already exists in store. %v", hashStr, conn)
+		log.Errorf("BUG. connection with hash %x already exists in store. %v", hashId, conn)
 	}
 	e := ct.connList.PushBack(conn)
-	ct.hash2conn[hashStr] = e
+	ct.hash2conn[hashId] = e
 }
 
-func (ct *connectionStore) getConnection(hashStr string) (connection, bool) {
-	elem, ok := ct.hash2conn[hashStr]
+func (ct *connectionStore) getConnection(hashId uint64) (connection, bool) {
+	elem, ok := ct.hash2conn[hashId]
 	if ok {
 		conn := elem.Value.(connection)
 		return conn, ok
@@ -77,10 +75,10 @@ func (ct *connectionStore) getConnection(hashStr string) (connection, bool) {
 	return nil, ok
 }
 
-func (ct *connectionStore) updateConnectionTime(hashStr string, t time.Time) {
-	elem, ok := ct.hash2conn[hashStr]
+func (ct *connectionStore) updateConnectionTime(hashId uint64, t time.Time) {
+	elem, ok := ct.hash2conn[hashId]
 	if !ok {
-		log.Errorf("BUG. connection hash %v doesn't exist", hashStr)
+		log.Errorf("BUG. connection hash %x doesn't exist", hashId)
 	}
 	elem.Value.(connection).setLastUpdate(t)
 	// move to end of list
@@ -92,7 +90,7 @@ func (ct *connectionStore) iterateOldToNew(f processConnF) {
 		conn := e.Value.(connection)
 		shouldDelete, shouldStop := f(conn)
 		if shouldDelete {
-			delete(ct.hash2conn, hex.EncodeToString(conn.getHash().hashTotal))
+			delete(ct.hash2conn, conn.getHash().hashTotal)
 			ct.connList.Remove(e)
 		}
 		if shouldStop {
@@ -103,7 +101,7 @@ func (ct *connectionStore) iterateOldToNew(f processConnF) {
 
 func newConnectionStore() *connectionStore {
 	return &connectionStore{
-		hash2conn: make(map[string]*list.Element),
+		hash2conn: make(map[uint64]*list.Element),
 		connList:  list.New(),
 	}
 }
@@ -113,7 +111,7 @@ func newConnectionStore() *connectionStore {
 type conntrackImpl struct {
 	clock                     clock.Clock
 	config                    api.ConnTrack
-	hashProvider              func() hash.Hash32
+	hashProvider              func() hash.Hash64
 	connStore                 *connectionStore
 	aggregators               []aggregator
 	shouldOutputFlowLogs      bool
@@ -132,8 +130,7 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 			log.Warningf("skipping flow log %v: %v", fl, err)
 			continue
 		}
-		hashStr := hex.EncodeToString(computedHash.hashTotal)
-		conn, exists := ct.connStore.getConnection(hashStr)
+		conn, exists := ct.connStore.getConnection(computedHash.hashTotal)
 		if !exists {
 			builder := NewConnBuilder()
 			conn = builder.
@@ -141,7 +138,7 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 				KeysFrom(fl, ct.config.KeyDefinition).
 				Aggregators(ct.aggregators).
 				Build()
-			ct.connStore.addConnection(hashStr, conn)
+			ct.connStore.addConnection(computedHash.hashTotal, conn)
 			ct.updateConnection(conn, fl, computedHash)
 			if ct.shouldOutputNewConnection {
 				outputRecords = append(outputRecords, conn.toGenericMap())
@@ -181,18 +178,18 @@ func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 	return outputRecords
 }
 
-func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.GenericMap, flowLogHash *totalHashType) {
+func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.GenericMap, flowLogHash totalHashType) {
 	d := ct.getFlowLogDirection(conn, flowLogHash)
 	for _, agg := range ct.aggregators {
 		agg.update(conn, flowLog, d)
 	}
-	ct.connStore.updateConnectionTime(hex.EncodeToString(flowLogHash.hashTotal), ct.clock.Now())
+	ct.connStore.updateConnectionTime(flowLogHash.hashTotal, ct.clock.Now())
 }
 
-func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash *totalHashType) direction {
+func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalHashType) direction {
 	d := dirNA
 	if ct.config.KeyDefinition.Hash.FieldGroupARef != "" {
-		if areHashEqual(conn.getHash().hashA, flowLogHash.hashA) {
+		if conn.getHash().hashA == flowLogHash.hashA {
 			// A -> B
 			d = dirAB
 		} else {
@@ -233,7 +230,7 @@ func NewConnectionTrack(config api.ConnTrack, clock clock.Clock) (ConnectionTrac
 		clock:                     clock,
 		connStore:                 newConnectionStore(),
 		config:                    config,
-		hashProvider:              fnv.New32a,
+		hashProvider:              fnv.New64a,
 		aggregators:               aggregators,
 		shouldOutputFlowLogs:      shouldOutputFlowLogs,
 		shouldOutputNewConnection: shouldOutputNewConnection,

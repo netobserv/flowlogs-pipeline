@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testHasher = fnv.New32a()
+var testHasher = fnv.New64a()
 
 func TestComputeHash_Unidirectional(t *testing.T) {
 	keyDefinition := api.KeyDefinition{

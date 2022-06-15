@@ -83,7 +83,7 @@ func (c *connType) toGenericMap() config.GenericMap {
 }
 
 func (c *connType) getHash() totalHashType {
-	return copyTotalHash(c.hash)
+	return c.hash
 }
 
 // TODO: Should connBuilder get a file of its own?
@@ -100,8 +100,8 @@ func NewConnBuilder() *connBuilder {
 	}
 }
 
-func (cb *connBuilder) Hash(h *totalHashType) *connBuilder {
-	cb.conn.hash = copyTotalHash(*h)
+func (cb *connBuilder) Hash(h totalHashType) *connBuilder {
+	cb.conn.hash = h
 	return cb
 }
 
