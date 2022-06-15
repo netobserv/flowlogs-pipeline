@@ -18,5 +18,5 @@
 package api
 
 type DecodeAws struct {
-	Fields []string `yaml:"fields" json:"fields" doc:"list of aws flow log fields"`
+	Fields []string `yaml:"fields,omitempty" json:"fields" doc:"list of aws flow log fields"`
 }
