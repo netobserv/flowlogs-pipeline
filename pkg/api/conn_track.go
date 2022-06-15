@@ -17,15 +17,19 @@
 
 package api
 
+import "time"
+
 type ConnTrack struct {
 	// TODO: should by a pointer instead?
-	KeyDefinition     KeyDefinition `yaml:"keyDefinition" doc:"fields that are used to identify the connection"`
-	OutputRecordTypes []string      `yaml:"outputRecordTypes" enum:"ConnTrackOutputRecordTypeEnum" doc:"output record types to emit"`
-	OutputFields      []OutputField `yaml:"outputFields" doc:"list of output fields"`
+	KeyDefinition        KeyDefinition `yaml:"keyDefinition" doc:"fields that are used to identify the connection"`
+	OutputRecordTypes    []string      `yaml:"outputRecordTypes" enum:"ConnTrackOutputRecordTypeEnum" doc:"output record types to emit"`
+	OutputFields         []OutputField `yaml:"outputFields" doc:"list of output fields"`
+	EndConnectionTimeout time.Duration `yaml:"endConnectionTimeout" doc:"duration of time to wait from the last flow log to end a connection"`
 }
 
 type ConnTrackOutputRecordTypeEnum struct {
 	NewConnection string `yaml:"newConnection" doc:"New connection"`
+	EndConnection string `yaml:"endConnection" doc:"End connection"`
 	FlowLog       string `yaml:"flowLog" doc:"Flow log"`
 }
 
