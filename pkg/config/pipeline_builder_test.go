@@ -49,7 +49,7 @@ func TestLokiPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"ingest","ingest":{"type":"collector","collector":{"hostName":"127.0.0.1","port":9999,"portLegacy":0,"batchMaxLen":0}}}`, string(b))
+	require.Equal(t, `{"name":"ingest","ingest":{"type":"collector","collector":{"hostName":"127.0.0.1","port":9999}}}`, string(b))
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
@@ -136,7 +136,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"ingest","ingest":{"type":"kafka","kafka":{"brokers":["http://kafka"],"topic":"netflows","groupid":"my-group","groupBalancers":null,"startOffset":"","batchReadTimeout":0}}}`, string(b))
+	require.Equal(t, `{"name":"ingest","ingest":{"type":"kafka","kafka":{"brokers":["http://kafka"],"topic":"netflows","groupid":"my-group"}}}`, string(b))
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
@@ -144,11 +144,11 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"aggregate","extract":{"type":"aggregates","aggregates":[{"name":"src_as_connection_count","by":["srcAS"],"operation":"count","recordKey":"","topK":0}]}}`, string(b))
+	require.Equal(t, `{"name":"aggregate","extract":{"type":"aggregates","aggregates":[{"name":"src_as_connection_count","by":["srcAS"],"operation":"count"}]}}`, string(b))
 
 	b, err = json.Marshal(params[3])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"prom","encode":{"type":"prom","prom":{"metrics":[{"name":"connections_per_source_as","type":"counter","filter":{"key":"name","value":"src_as_connection_count"},"valueKey":"recent_count","labels":["by","aggregate"],"buckets":[]}],"port":9090,"prefix":"flp_","expiryTime":0}}}`, string(b))
+	require.Equal(t, `{"name":"prom","encode":{"type":"prom","prom":{"metrics":[{"name":"connections_per_source_as","type":"counter","filter":{"key":"name","value":"src_as_connection_count"},"valueKey":"recent_count","labels":["by","aggregate"],"buckets":[]}],"port":9090,"prefix":"flp_"}}}`, string(b))
 }
 
 func TestForkPipeline(t *testing.T) {
@@ -167,7 +167,7 @@ func TestForkPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"ingest","ingest":{"type":"collector","collector":{"hostName":"127.0.0.1","port":9999,"portLegacy":0,"batchMaxLen":0}}}`, string(b))
+	require.Equal(t, `{"name":"ingest","ingest":{"type":"collector","collector":{"hostName":"127.0.0.1","port":9999}}}`, string(b))
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
@@ -175,5 +175,5 @@ func TestForkPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"stdout","write":{"type":"stdout","stdout":{"format":""}}}`, string(b))
+	require.Equal(t, `{"name":"stdout","write":{"type":"stdout","stdout":{}}}`, string(b))
 }
