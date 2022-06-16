@@ -44,6 +44,8 @@ parameters:
         startOffset: FirstOffset
         groupBalancers: ["range", "roundRobin"]
         batchReadTimeout: 300
+        decoder:
+          type: json
 `
 
 const testConfig2 = `---
@@ -60,6 +62,8 @@ parameters:
         groupid: group2
         startOffset: LastOffset
         groupBalancers: ["rackAffinity"]
+        decoder:
+          type: json
 `
 
 func initNewIngestKafka(t *testing.T, configTemplate string) Ingester {
@@ -98,7 +102,7 @@ func Test_NewIngestKafka2(t *testing.T) {
 func Test_IngestKafka(t *testing.T) {
 	newIngest := initNewIngestKafka(t, testConfig1)
 	ingestKafka := newIngest.(*ingestKafka)
-	ingestOutput := make(chan []interface{})
+	ingestOutput := make(chan []config.GenericMap)
 
 	// run Ingest in a separate thread
 	go func() {
@@ -121,9 +125,9 @@ func Test_IngestKafka(t *testing.T) {
 	receivedEntries := <-ingestOutput
 
 	require.Equal(t, 3, len(receivedEntries))
-	require.Equal(t, record1, receivedEntries[0])
-	require.Equal(t, record2, receivedEntries[1])
-	require.Equal(t, record3, receivedEntries[2])
+	require.Equal(t, test.DeserializeJSONToMap(t, record1), receivedEntries[0])
+	require.Equal(t, test.DeserializeJSONToMap(t, record2), receivedEntries[1])
+	require.Equal(t, test.DeserializeJSONToMap(t, record3), receivedEntries[2])
 }
 
 type fakeKafkaReader struct {
@@ -155,7 +159,7 @@ func (f *fakeKafkaReader) Config() kafkago.ReaderConfig {
 }
 
 func Test_KafkaListener(t *testing.T) {
-	ingestOutput := make(chan []interface{})
+	ingestOutput := make(chan []config.GenericMap)
 	newIngest := initNewIngestKafka(t, testConfig1)
 	ingestKafka := newIngest.(*ingestKafka)
 
@@ -172,5 +176,5 @@ func Test_KafkaListener(t *testing.T) {
 	receivedEntries := <-ingestOutput
 
 	require.Equal(t, 1, len(receivedEntries))
-	require.Equal(t, string(fakeRecord), receivedEntries[0])
+	require.Equal(t, test.DeserializeJSONToMap(t, string(fakeRecord)), receivedEntries[0])
 }

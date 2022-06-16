@@ -14,9 +14,8 @@ const baseConfig = `parameters:
     type: file
     file:
       filename: ../../hack/examples/ocp-ipfix-flowlogs.json
-- decode:
-    type: none
-  name: decode1
+      decoder:
+        type: json
 - write:
     type: none
   name: write1
@@ -24,8 +23,7 @@ const baseConfig = `parameters:
 
 func TestConnectionVerification_Pass(t *testing.T) {
 	test.InitConfig(t, baseConfig+`pipeline:
-- { follows: ingest1, name: decode1 }
-- { follows: decode1, name: write1 }
+- { follows: ingest1, name: write1 }
 `)
 	_, err := NewPipeline()
 	assert.NoError(t, err)
@@ -47,42 +45,46 @@ func TestConnectionVerification(t *testing.T) {
   name: transform2
 pipeline:
 - name: ingest1
-- { follows: decode1, name: transform1 }
 - { follows: transform1, name: transform2 }
 - { follows: transform2, name: transform1 }
-- { follows: decode1, name: write1 }
+- { follows: transform1, name: write1 }
 `,
 		failingNodeName: "ingest1",
 	}, {
-		description: "middle node decode1 does not have inputs",
-		config: baseConfig + `- name: decode2
-  decode:
+		description: "middle node transform1 does not have inputs",
+		config: baseConfig + `- transform:
     type: none
+  name: transform2
+- transform:
+    type: none
+  name: transform1
 pipeline:
-- { follows: ingest1, name: decode2 }
-- { follows: decode1, name: write1 }
-- { follows: decode2, name: write1 }
+- { follows: ingest1, name: transform2 }
+- { follows: transform1, name: write1 }
+- { follows: transform2, name: write1 }
 `,
-		failingNodeName: "decode1",
+		failingNodeName: "transform1",
 	}, {
-		description: "middle node decode1 does not have outputs",
-		config: baseConfig + `- name: decode2
-  decode:
+		description: "middle node transform1 does not have outputs",
+		config: baseConfig + `- transform:
     type: none
+  name: transform2
+- transform:
+    type: none
+  name: transform1
 pipeline:
-- { follows: ingest1, name: decode1 }
-- { follows: ingest1, name: decode2 }
-- { follows: decode2, name: write1 }
+- { follows: ingest1, name: transform1 }
+- { follows: ingest1, name: transform2 }
+- { follows: transform2, name: write1 }
 `,
-		failingNodeName: "decode1",
+		failingNodeName: "transform1",
 	}, {
 		description: "terminal node write1 does not have inputs",
 		config: baseConfig + `- transform:
     type: none
   name: transform1
 pipeline:
-- { follows: ingest1, name: decode1 }
-- { follows: decode1, name: transform1 }
+- { follows: ingest1, name: transform1 }
 `,
 		failingNodeName: "write1",
 	}} {

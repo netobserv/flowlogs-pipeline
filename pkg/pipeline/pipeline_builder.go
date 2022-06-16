@@ -6,7 +6,6 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
@@ -45,7 +44,6 @@ type pipelineEntry struct {
 	stageName   string
 	stageType   string
 	Ingester    ingest.Ingester
-	Decoder     decode.Decoder
 	Transformer transform.Transformer
 	Extractor   extract.Extractor
 	Encoder     encode.Encoder
@@ -73,8 +71,6 @@ func (b *builder) readStages() error {
 		switch pEntry.stageType {
 		case StageIngest:
 			pEntry.Ingester, err = getIngester(param)
-		case StageDecode:
-			pEntry.Decoder, err = getDecoder(param)
 		case StageTransform:
 			pEntry.Transformer, err = getTransformer(param)
 		case StageExtract:
@@ -230,12 +226,6 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 		})
 		b.terminalNodes = append(b.terminalNodes, term)
 		stage = term
-	case StageDecode:
-		stage = node.AsMiddle(func(in <-chan []interface{}, out chan<- []config.GenericMap) {
-			for i := range in {
-				out <- pe.Decoder.Decode(i)
-			}
-		})
 	case StageEncode:
 		encode := node.AsTerminal(func(in <-chan []config.GenericMap) {
 			for i := range in {
@@ -282,24 +272,6 @@ func getIngester(params config.StageParam) (ingest.Ingester, error) {
 		panic(fmt.Sprintf("`ingest` type %s not defined", params.Ingest.Type))
 	}
 	return ingester, err
-}
-
-func getDecoder(params config.StageParam) (decode.Decoder, error) {
-	var decoder decode.Decoder
-	var err error
-	switch params.Decode.Type {
-	case api.JSONType:
-		decoder, err = decode.NewDecodeJson()
-	case api.AWSType:
-		decoder, err = decode.NewDecodeAws(params)
-	case api.PBType:
-		decoder, err = decode.NewProtobuf()
-	case api.NoneType:
-		decoder, err = decode.NewDecodeNone()
-	default:
-		panic(fmt.Sprintf("`decode` type %s not defined; if no decoder needed, specify `none`", params.Decode.Type))
-	}
-	return decoder, err
 }
 
 func getWriter(params config.StageParam) (write.Writer, error) {
@@ -371,9 +343,6 @@ func findStageType(param *config.StageParam) string {
 	log.Debugf("findStageType: stage = %v", param.Name)
 	if param.Ingest != nil && param.Ingest.Type != "" {
 		return StageIngest
-	}
-	if param.Decode != nil && param.Decode.Type != "" {
-		return StageDecode
 	}
 	if param.Transform != nil && param.Transform.Type != "" {
 		return StageTransform

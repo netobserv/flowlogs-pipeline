@@ -2,25 +2,19 @@ log-level: info
 pipeline:
   - stage: ingest
     name: ingest1
-  - stage: decode
-    name: decode1
-    follows: ingest1
   - stage: transform
     name: generic1
-    follows: decode1
+    follows: ingest1
   - stage: write
     name: write1
     follows: generic1
   - stage: transform
     name: generic2
-    follows: decode1
+    follows: ingest1
   - stage: write
     name: write2
     follows: generic2
 parameters:
-  - name: decode1
-    decode:
-      type: json
   - name: generic1
     transform:
       type: generic
@@ -55,6 +49,8 @@ parameters:
       type: file_loop
       file:
         filename: playground/goflow2_input.txt
+        decoder:
+          type: json
   - name: write2
     write:
       type: stdout

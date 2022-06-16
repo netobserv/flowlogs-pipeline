@@ -59,6 +59,10 @@ Following is the supported API format for the kafka ingest:
          groupBalancers: list of balancing strategies (range, roundRobin, rackAffinity)
          startOffset: FirstOffset (least recent - default) or LastOffset (most recent) offset available for a partition
          batchReadTimeout: how often (in milliseconds) to process input
+         decoder: decoder to use (E.g. json or protobuf)
+             type: (enum) one of the following:
+                 json: JSON decoder
+                 protobuf: Protobuf decoder
 </pre>
 ## Ingest GRPC from Network Observability eBPF Agent
 Following is the supported API format for the Network Observability eBPF ingest:
@@ -67,13 +71,6 @@ Following is the supported API format for the Network Observability eBPF ingest:
  grpc:
          port: the port number to listen on
          bufferLength: the length of the ingest channel buffer, in groups of flows, containing each group hundreds of flows (default: 100)
-</pre>
-## Aws ingest API
-Following is the supported API format for Aws flow entries:
-
-<pre>
- aws:
-         fields: list of aws flow log fields
 </pre>
 ## Transform Generic API
 Following is the supported API format for generic transformations:

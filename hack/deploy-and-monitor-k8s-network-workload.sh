@@ -31,8 +31,6 @@ pipeline:
       port: 2055
       portLegacy: 2056
     type: collector
-  decode:
-    type: json
   encode:
     type: none
   extract:

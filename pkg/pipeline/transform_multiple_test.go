@@ -28,10 +28,8 @@ const testConfigTransformMultiple = `---
 log-level: debug
 pipeline:
   - name: ingest1
-  - name: decode1
-    follows: ingest1
   - name: transform1
-    follows: decode1
+    follows: ingest1
   - name: transform2
     follows: transform1
   - name: transform3
@@ -44,9 +42,8 @@ parameters:
       type: file
       file:
         filename: ../../hack/examples/ocp-ipfix-flowlogs.json
-  - name: decode1
-    decode:
-      type: json
+        decoder:
+          type: json
   - name: transform1
     transform:
       type: generic

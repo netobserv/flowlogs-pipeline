@@ -20,7 +20,6 @@ package ingest
 import (
 	"context"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"net"
 	"time"
@@ -109,7 +108,7 @@ func (w *TransportWrapper) Send(_, data []byte) error {
 }
 
 // Ingest ingests entries from a network collector using goflow2 library (https://github.com/netsampler/goflow2)
-func (ingestC *ingestCollector) Ingest(out chan<- []interface{}) {
+func (ingestC *ingestCollector) Ingest(out chan<- []config.GenericMap) {
 	ctx := context.Background()
 	ingestC.in = make(chan map[string]interface{}, channelSize)
 
@@ -155,8 +154,8 @@ func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
 	}
 }
 
-func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
-	var records []interface{}
+func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) {
+	var records []config.GenericMap
 	// Maximum batch time for each batch
 	flushRecords := time.NewTicker(ingestC.batchFlushTime)
 	defer flushRecords.Stop()
@@ -166,16 +165,13 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 			log.Debugf("exiting ingestCollector because of signal")
 			return
 		case record := <-ingestC.in:
-			// TODO: for efficiency, consider forwarding directly as map,
-			// as this is reverted back from string to map in later pipeline stages
-			recordAsBytes, _ := json.Marshal(record)
-			records = append(records, string(recordAsBytes))
+			records = append(records, record)
 			if len(records) >= ingestC.batchMaxLength {
 				log.Debugf("ingestCollector sending %d entries", len(records))
 				linesProcessed.Add(float64(len(records)))
 				queueLength.Set(float64(len(out)))
 				out <- records
-				records = []interface{}{}
+				records = []config.GenericMap{}
 			}
 		case <-flushRecords.C:
 			// Process batch of records (if not empty)
@@ -184,7 +180,7 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []interface{}) {
 				linesProcessed.Add(float64(len(records)))
 				queueLength.Set(float64(len(out)))
 				out <- records
-				records = []interface{}{}
+				records = []config.GenericMap{}
 			}
 		}
 	}

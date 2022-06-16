@@ -18,26 +18,22 @@
 package decode
 
 import (
+	"fmt"
+
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	log "github.com/sirupsen/logrus"
 )
 
 type Decoder interface {
 	Decode(in []interface{}) []config.GenericMap
 }
 
-type decodeNone struct {
-}
-
-// Decode decodes input strings to a list of flow entries
-func (c *decodeNone) Decode(in []interface{}) []config.GenericMap {
-	log.Debugf("entering Decode none")
-	log.Debugf("Decode none, in = %v", in)
-	var f []config.GenericMap
-	return f
-}
-
-// NewDecodeNone create a new decode
-func NewDecodeNone() (Decoder, error) {
-	return &decodeNone{}, nil
+func GetDecoder(params api.Decoder) (Decoder, error) {
+	switch params.Type {
+	case api.DecoderName("JSON"):
+		return NewDecodeJson()
+	case api.DecoderName("Protobuf"):
+		return NewProtobuf()
+	}
+	panic(fmt.Sprintf("`decode` type %s not defined", params.Type))
 }

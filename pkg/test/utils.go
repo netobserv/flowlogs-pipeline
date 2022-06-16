@@ -19,6 +19,7 @@ package test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -154,4 +155,11 @@ func RunCommand(command string) string {
 	}
 	fmt.Printf("output = %s\n", string(output))
 	return string(output)
+}
+
+func DeserializeJSONToMap(t *testing.T, in string) config.GenericMap {
+	var m config.GenericMap
+	err := json.Unmarshal([]byte(in), &m)
+	require.NoError(t, err)
+	return m
 }

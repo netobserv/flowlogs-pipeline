@@ -30,8 +30,6 @@ const testConfigAggregateTopK = `---
 pipeline:
   - name: ingest_file
   - follows: ingest_file
-    name: decode_json
-  - follows: decode_json
     name: transform_generic
   - follows: transform_generic
     name: transform_network
@@ -44,10 +42,9 @@ parameters:
       type: file
       file:
         filename: ../../hack/examples/ocp-ipfix-flowlogs.json
+        decoder:
+          type: json
     name: ingest_file
-  - decode:
-      type: json
-    name: decode_json
   - name: transform_generic
     transform:
       generic:
@@ -114,8 +111,8 @@ func TestAggregateTopk(t *testing.T) {
 	// So we don't need to run it in a separate go-routine
 	mainPipeline.Run()
 	// Test the final outcome to see that it is reasonable
-	extractor := mainPipeline.pipelineStages[4].Extractor.(*extract.ExtractAggregate)
-	writer := mainPipeline.pipelineStages[5].Writer.(*write.WriteNone)
+	extractor := mainPipeline.pipelineStages[3].Extractor.(*extract.ExtractAggregate)
+	writer := mainPipeline.pipelineStages[4].Writer.(*write.WriteNone)
 	require.Equal(t, 4, extractor.Aggregates.Aggregates[0].Definition.TopK)
 	require.Equal(t, 4, len(writer.PrevRecords))
 	require.Equal(t, float64(545), writer.PrevRecords[0]["total_value"])

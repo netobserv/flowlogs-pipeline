@@ -1,10 +1,10 @@
 package ingest
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +21,7 @@ func TestIngest(t *testing.T) {
 		batchFlushTime: 10 * time.Millisecond,
 		exitChan:       make(chan struct{}),
 	}
-	forwarded := make(chan []interface{})
+	forwarded := make(chan []config.GenericMap)
 	//defer close(forwarded)
 
 	// GIVEN an IPFIX collector Ingester
@@ -32,9 +32,7 @@ func TestIngest(t *testing.T) {
 
 	received := waitForFlows(t, client, forwarded)
 	require.NotEmpty(t, received)
-	require.IsType(t, "string", received[0])
-	flow := map[string]interface{}{}
-	require.NoError(t, json.Unmarshal([]byte(received[0].(string)), &flow))
+	flow := received[0]
 	assert.EqualValues(t, 12345678, flow["TimeFlowStart"])
 	assert.EqualValues(t, 12345678, flow["TimeFlowEnd"])
 	assert.Equal(t, "1.2.3.4", flow["SrcAddr"])
@@ -42,7 +40,7 @@ func TestIngest(t *testing.T) {
 
 // The IPFIX client might send information before the Ingester is actually listening,
 // so we might need to repeat the submission until the ingest starts forwarding logs
-func waitForFlows(t *testing.T, client *test.IPFIXClient, forwarded chan []interface{}) []interface{} {
+func waitForFlows(t *testing.T, client *test.IPFIXClient, forwarded chan []config.GenericMap) []config.GenericMap {
 	var start = time.Now()
 	for {
 		if client.SendTemplate() == nil &&

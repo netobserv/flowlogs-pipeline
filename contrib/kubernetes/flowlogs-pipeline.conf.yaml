@@ -8,9 +8,6 @@ parameters:
       portLegacy: 2056
     type: collector
   name: ingest_collector
-- decode:
-    type: json
-  name: decode_json
 - name: transform_generic
   transform:
     generic:
@@ -328,8 +325,6 @@ parameters:
 pipeline:
 - name: ingest_collector
 - follows: ingest_collector
-  name: decode_json
-- follows: decode_json
   name: transform_generic
 - follows: transform_generic
   name: transform_network
