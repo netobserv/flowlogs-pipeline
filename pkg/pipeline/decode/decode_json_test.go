@@ -34,7 +34,7 @@ func TestDecodeJson(t *testing.T) {
 	newDecode := initNewDecodeJson(t)
 	decodeJson := newDecode.(*DecodeJson)
 	inputString1 := "{\"varInt\": 12, \"varString\":\"testString\", \"varBool\":false}"
-	inputString2 := "{\"varInt\": 14, \"varString\":\"testString2\", \"varBool\":true}"
+	inputString2 := "{\"varInt\": 14, \"varString\":\"testString2\", \"varBool\":true, \"TimeReceived\":12345}"
 	inputString3 := "{}"
 	inputStringErr := "{\"varInt\": 14, \"varString\",\"testString2\", \"varBool\":true}"
 	var in []interface{}
@@ -49,7 +49,11 @@ func TestDecodeJson(t *testing.T) {
 	require.Equal(t, len(out), 3)
 	require.Equal(t, float64(12), out[0]["varInt"])
 	require.Equal(t, "testString", out[0]["varString"])
-	require.Equal(t, bool(false), out[0]["varBool"])
+	require.Equal(t, false, out[0]["varBool"])
+	// TimeReceived is added if it does not exist
+	require.NotZero(t, out[0]["TimeReceived"])
+	// TimeReceived is kept if it already existed
+	require.EqualValues(t, 12345, out[1]["TimeReceived"])
 
 	// TODO: Check for more complicated json structures
 }

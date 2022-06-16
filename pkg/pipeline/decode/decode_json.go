@@ -19,6 +19,7 @@ package decode
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
@@ -42,6 +43,9 @@ func (c *DecodeJson) Decode(in []interface{}) []config.GenericMap {
 			continue
 		}
 		decodedLine2 := make(config.GenericMap, len(decodedLine))
+		// flows directly ingested by flp-transformer won't have this field, so we need to add it
+		// here. If the received line already contains the field, it will be overridden later
+		decodedLine2["TimeReceived"] = time.Now().Unix()
 		for k, v := range decodedLine {
 			if v == nil {
 				continue
