@@ -183,8 +183,7 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) 
 				if len(ingestC.in) > 0 {
 					for len(records) < ingestC.batchMaxLength && len(ingestC.in) > 0 {
 						record := <-ingestC.in
-						recordAsBytes, _ := json.Marshal(record)
-						records = append(records, string(recordAsBytes))
+						records = append(records, record)
 					}
 				}
 				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
