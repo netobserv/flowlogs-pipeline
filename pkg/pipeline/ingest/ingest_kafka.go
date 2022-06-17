@@ -36,16 +36,18 @@ type kafkaReadMessage interface {
 }
 
 type ingestKafka struct {
-	kafkaParams api.IngestKafka
-	kafkaReader kafkaReadMessage
-	decoder     decode.Decoder
-	in          chan string
-	exitChan    <-chan struct{}
-	prevRecords []config.GenericMap // copy of most recently sent records; for testing and debugging
+	kafkaParams    api.IngestKafka
+	kafkaReader    kafkaReadMessage
+	decoder        decode.Decoder
+	in             chan string
+	exitChan       <-chan struct{}
+	prevRecords    []config.GenericMap // copy of most recently sent records; for testing and debugging
+	batchMaxLength int
 }
 
 const channelSizeKafka = 1000
-const defaultBatchReadTimeout = int64(100)
+const defaultBatchReadTimeout = int64(1000)
+const defaultKafkaBatchMaxLength = 500
 
 // Ingest ingests entries from kafka topic
 func (ingestK *ingestKafka) Ingest(out chan<- []config.GenericMap) {
@@ -91,10 +93,24 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 			return
 		case record := <-ingestK.in:
 			records = append(records, record)
+			if len(records) >= ingestK.batchMaxLength {
+				log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
+				decoded := ingestK.decoder.Decode(records)
+				out <- decoded
+				ingestK.prevRecords = decoded
+				log.Debugf("prevRecords = %v", ingestK.prevRecords)
+				records = []interface{}{}
+			}
 		case <-flushRecords.C: // Maximum batch time for each batch
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
-				log.Debugf("ingestKafka sending %d records", len(records))
+				if len(ingestK.in) > 0 {
+					for len(records) < ingestK.batchMaxLength && len(ingestK.in) > 0 {
+						record := <-ingestK.in
+						records = append(records, record)
+					}
+				}
+				log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
 				decoded := ingestK.decoder.Decode(records)
 				out <- decoded
 				ingestK.prevRecords = decoded
@@ -165,12 +181,18 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		return nil, err
 	}
 
+	bml := defaultKafkaBatchMaxLength
+	if jsonIngestKafka.BatchMaxLen != 0 {
+		bml = jsonIngestKafka.BatchMaxLen
+	}
+
 	return &ingestKafka{
-		kafkaParams: jsonIngestKafka,
-		kafkaReader: kafkaReader,
-		decoder:     decoder,
-		exitChan:    utils.ExitChannel(),
-		in:          make(chan string, channelSizeKafka),
-		prevRecords: make([]config.GenericMap, 0),
+		kafkaParams:    jsonIngestKafka,
+		kafkaReader:    kafkaReader,
+		decoder:        decoder,
+		exitChan:       utils.ExitChannel(),
+		in:             make(chan string, channelSizeKafka),
+		prevRecords:    make([]config.GenericMap, 0),
+		batchMaxLength: bml,
 	}, nil
 }
