@@ -83,6 +83,7 @@ func (ingestK *ingestKafka) kafkaListener() {
 func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 	var records []interface{}
 	duration := time.Duration(ingestK.kafkaParams.BatchReadTimeout) * time.Millisecond
+	flushRecords := time.NewTicker(duration)
 	for {
 		select {
 		case <-ingestK.exitChan:
@@ -90,7 +91,7 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 			return
 		case record := <-ingestK.in:
 			records = append(records, record)
-		case <-time.After(duration): // Maximum batch time for each batch
+		case <-flushRecords.C: // Maximum batch time for each batch
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
 				log.Debugf("ingestKafka sending %d records", len(records))
