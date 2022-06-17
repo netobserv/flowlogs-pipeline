@@ -106,6 +106,9 @@ func NewEncodeKafka(params config.StageParam) (Encoder, error) {
 		WriteTimeout: time.Duration(writeTimeoutSecs) * time.Second,
 		BatchSize:    jsonEncodeKafka.BatchSize,
 		BatchBytes:   jsonEncodeKafka.BatchBytes,
+		// Temporary fix may be we should implement a batching systems
+		// https://github.com/segmentio/kafka-go/issues/326#issuecomment-519375403
+		BatchTimeout: time.Nanosecond,
 	}
 
 	return &encodeKafka{
