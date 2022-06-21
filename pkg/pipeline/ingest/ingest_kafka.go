@@ -112,9 +112,9 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 				}
 				log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
 				decoded := ingestK.decoder.Decode(records)
-				out <- decoded
 				ingestK.prevRecords = decoded
 				log.Debugf("prevRecords = %v", ingestK.prevRecords)
+				out <- decoded
 			}
 			records = []interface{}{}
 		}
