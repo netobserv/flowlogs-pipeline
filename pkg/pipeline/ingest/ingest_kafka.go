@@ -48,6 +48,7 @@ type ingestKafka struct {
 const channelSizeKafka = 1000
 const defaultBatchReadTimeout = int64(1000)
 const defaultKafkaBatchMaxLength = 500
+const defaultKafkaCommitInterval = 500
 
 // Ingest ingests entries from kafka topic
 func (ingestK *ingestKafka) Ingest(out chan<- []config.GenericMap) {
@@ -162,12 +163,18 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 	}
 	log.Infof("BatchReadTimeout = %d", jsonIngestKafka.BatchReadTimeout)
 
+	commitInterval := int64(defaultKafkaCommitInterval)
+	if jsonIngestKafka.CommitInterval != 0 {
+		commitInterval = jsonIngestKafka.CommitInterval
+	}
+
 	kafkaReader := kafkago.NewReader(kafkago.ReaderConfig{
 		Brokers:        jsonIngestKafka.Brokers,
 		Topic:          jsonIngestKafka.Topic,
 		GroupID:        jsonIngestKafka.GroupId,
 		GroupBalancers: groupBalancers,
 		StartOffset:    startOffset,
+		CommitInterval: time.Duration(commitInterval) * time.Millisecond,
 	})
 	if kafkaReader == nil {
 		errMsg := "NewIngestKafka: failed to create kafka-go reader"
