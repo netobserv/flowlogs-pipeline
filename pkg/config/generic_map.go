@@ -29,3 +29,12 @@ func (m GenericMap) Copy() GenericMap {
 
 	return result
 }
+
+// CopyMaps will copy a slice of GeneriMaps
+func CopyMaps(in []GenericMap) []GenericMap {
+	var result []GenericMap
+	for _, i := range in {
+		result = append(result, i.Copy())
+	}
+	return result
+}
