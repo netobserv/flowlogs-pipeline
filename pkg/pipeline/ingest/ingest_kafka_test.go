@@ -99,6 +99,12 @@ func Test_NewIngestKafka2(t *testing.T) {
 	require.Equal(t, defaultBatchReadTimeout, ingestKafka.kafkaParams.BatchReadTimeout)
 }
 
+func removeTimestamp(receivedEntries []config.GenericMap) {
+	for _, entry := range receivedEntries {
+		delete(entry, "TimeReceived")
+	}
+}
+
 func Test_IngestKafka(t *testing.T) {
 	newIngest := initNewIngestKafka(t, testConfig1)
 	ingestKafka := newIngest.(*ingestKafka)
@@ -123,6 +129,10 @@ func Test_IngestKafka(t *testing.T) {
 
 	// wait for the data to have been processed
 	receivedEntries := <-ingestOutput
+
+	// we remove timestamp for test stability
+	// Timereceived field is tested in the decodeJson tests
+	removeTimestamp(receivedEntries)
 
 	require.Equal(t, 3, len(receivedEntries))
 	require.Equal(t, test.DeserializeJSONToMap(t, record1), receivedEntries[0])
@@ -174,6 +184,10 @@ func Test_KafkaListener(t *testing.T) {
 
 	// wait for the data to have been processed
 	receivedEntries := <-ingestOutput
+
+	// we remove timestamp for test stability
+	// Timereceived field is tested in the decodeJson tests
+	removeTimestamp(receivedEntries)
 
 	require.Equal(t, 1, len(receivedEntries))
 	require.Equal(t, test.DeserializeJSONToMap(t, string(fakeRecord)), receivedEntries[0])
