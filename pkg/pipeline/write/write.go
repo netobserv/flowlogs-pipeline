@@ -27,12 +27,14 @@ type Writer interface {
 }
 type WriteNone struct {
 	PrevRecords []config.GenericMap
+	AllRecords  []config.GenericMap
 }
 
 // Write writes entries
 func (t *WriteNone) Write(in []config.GenericMap) {
 	log.Debugf("entering Write none, in = %v", in)
 	t.PrevRecords = in
+	t.AllRecords = append(t.AllRecords, in...)
 }
 
 // NewWriteNone create a new write

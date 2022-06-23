@@ -30,6 +30,7 @@ import (
 const (
 	StageIngest    = "ingest"
 	StageTransform = "transform"
+	StageConnTrack = "conntrack"
 	StageExtract   = "extract"
 	StageEncode    = "encode"
 	StageWrite     = "write"

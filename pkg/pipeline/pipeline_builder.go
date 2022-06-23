@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/benbjohnson/clock"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/conntrack"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
@@ -45,6 +47,7 @@ type pipelineEntry struct {
 	stageType   string
 	Ingester    ingest.Ingester
 	Transformer transform.Transformer
+	ConnTrack   conntrack.ConnectionTracker
 	Extractor   extract.Extractor
 	Encoder     encode.Encoder
 	Writer      write.Writer
@@ -73,6 +76,8 @@ func (b *builder) readStages() error {
 			pEntry.Ingester, err = getIngester(param)
 		case StageTransform:
 			pEntry.Transformer, err = getTransformer(param)
+		case StageConnTrack:
+			pEntry.ConnTrack, err = getConnTrack(param)
 		case StageExtract:
 			pEntry.Extractor, err = getExtractor(param)
 		case StageEncode:
@@ -240,6 +245,12 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 				out <- pe.Transformer.Transform(i)
 			}
 		})
+	case StageConnTrack:
+		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
+			for i := range in {
+				out <- pe.ConnTrack.Track(i)
+			}
+		})
 	case StageExtract:
 		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
 			for i := range in {
@@ -268,6 +279,8 @@ func getIngester(params config.StageParam) (ingest.Ingester, error) {
 		ingester, err = ingest.NewIngestKafka(params)
 	case api.GRPCType:
 		ingester, err = ingest.NewGRPCProtobuf(params)
+	case api.FakeType:
+		ingester, err = ingest.NewIngestFake(params)
 	default:
 		panic(fmt.Sprintf("`ingest` type %s not defined", params.Ingest.Type))
 	}
@@ -308,6 +321,26 @@ func getTransformer(params config.StageParam) (transform.Transformer, error) {
 	return transformer, err
 }
 
+func getConnTrack(params config.StageParam) (conntrack.ConnectionTracker, error) {
+	var conntrack_ conntrack.ConnectionTracker
+	var err error
+	conntrack_, err = conntrack.NewConnectionTrack(params, clock.New())
+	// TODO:
+	//switch params.ConnTrack.Type {
+	//case api.GenericType:
+	//	transformer, err = transform.NewTransformGeneric(params)
+	//case api.FilterType:
+	//	transformer, err = transform.NewTransformFilter(params)
+	//case api.NetworkType:
+	//	transformer, err = transform.NewTransformNetwork(params)
+	//case api.NoneType:
+	//	transformer, err = transform.NewTransformNone()
+	//default:
+	//	panic(fmt.Sprintf("`transform` type %s not defined; if no transformer needed, specify `none`", params.Transform.Type))
+	//}
+	return conntrack_, err
+}
+
 func getExtractor(params config.StageParam) (extract.Extractor, error) {
 	var extractor extract.Extractor
 	var err error
@@ -346,6 +379,9 @@ func findStageType(param *config.StageParam) string {
 	}
 	if param.Transform != nil && param.Transform.Type != "" {
 		return StageTransform
+	}
+	if param.ConnTrack != nil && param.ConnTrack.Type != "" {
+		return StageConnTrack
 	}
 	if param.Extract != nil && param.Extract.Type != "" {
 		return StageExtract

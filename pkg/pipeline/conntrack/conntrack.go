@@ -115,7 +115,7 @@ func newConnectionStore() *connectionStore {
 
 type conntrackImpl struct {
 	clock                     clock.Clock
-	config                    api.ConnTrack
+	config                    *api.ConnTrack
 	hashProvider              func() hash.Hash64
 	connStore                 *connectionStore
 	aggregators               []aggregator
@@ -215,7 +215,8 @@ func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalH
 }
 
 // NewConnectionTrack creates a new connection track instance
-func NewConnectionTrack(config api.ConnTrack, clock clock.Clock) (ConnectionTracker, error) {
+func NewConnectionTrack(params config.StageParam, clock clock.Clock) (ConnectionTracker, error) {
+	config := params.ConnTrack.ConnTrack
 	var aggregators []aggregator
 	for _, of := range config.OutputFields {
 		agg, err := newAggregator(of)

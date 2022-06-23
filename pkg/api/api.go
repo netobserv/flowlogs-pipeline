@@ -23,6 +23,7 @@ const (
 	FileChunksType        = "file_chunks"
 	CollectorType         = "collector"
 	GRPCType              = "grpc"
+	FakeType              = "fake"
 	KafkaType             = "kafka"
 	StdoutType            = "stdout"
 	LokiType              = "loki"
