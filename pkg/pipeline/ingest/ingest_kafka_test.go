@@ -147,17 +147,16 @@ func Test_IngestKafka(t *testing.T) {
 }
 
 type fakeKafkaReader struct {
+	readToDo int
 	mock.Mock
 }
 
 var fakeRecord = []byte(`{"Bytes":20801,"DstAddr":"10.130.2.1","DstPort":36936,"Packets":401,"SrcAddr":"10.130.2.13","SrcPort":3100}`)
 
-var performedRead = false
-
 // ReadMessage runs in the kafka client thread, which blocks until data is available.
-// If data is always available, we have an infinite loop. So we return data only once.
+// If data is always available, we have an infinite loop. So we return data only a specified number of time.
 func (f *fakeKafkaReader) ReadMessage(ctx context.Context) (kafkago.Message, error) {
-	if performedRead {
+	if f.readToDo == 0 {
 		// block indefinitely
 		c := make(chan struct{})
 		<-c
@@ -166,7 +165,7 @@ func (f *fakeKafkaReader) ReadMessage(ctx context.Context) (kafkago.Message, err
 		Topic: "topic1",
 		Value: fakeRecord,
 	}
-	performedRead = true
+	f.readToDo -= 1
 	return message, nil
 }
 
@@ -180,7 +179,7 @@ func Test_KafkaListener(t *testing.T) {
 	ingestKafka := newIngest.(*ingestKafka)
 
 	// change the ReadMessage function to the mock-up
-	fr := fakeKafkaReader{}
+	fr := fakeKafkaReader{readToDo: 1}
 	ingestKafka.kafkaReader = &fr
 
 	// run Ingest in a separate thread
@@ -197,4 +196,56 @@ func Test_KafkaListener(t *testing.T) {
 
 	require.Equal(t, 1, len(receivedEntries))
 	require.Equal(t, test.DeserializeJSONToMap(t, string(fakeRecord)), receivedEntries[0])
+}
+
+func Test_MaxBatchLength(t *testing.T) {
+	ingestOutput := make(chan []config.GenericMap)
+	newIngest := initNewIngestKafka(t, testConfig1)
+	ingestKafka := newIngest.(*ingestKafka)
+
+	// change the ReadMessage function to the mock-up
+	fr := fakeKafkaReader{readToDo: 15}
+	ingestKafka.kafkaReader = &fr
+	ingestKafka.batchMaxLength = 10
+	ingestKafka.kafkaParams.BatchReadTimeout = 10000
+
+	// run Ingest in a separate thread
+	go func() {
+		ingestKafka.Ingest(ingestOutput)
+	}()
+
+	// wait for the data to have been processed
+	receivedEntries := <-ingestOutput
+
+	require.Equal(t, 10, len(receivedEntries))
+}
+
+func Test_BatchTimeout(t *testing.T) {
+	ingestOutput := make(chan []config.GenericMap)
+	newIngest := initNewIngestKafka(t, testConfig1)
+	ingestKafka := newIngest.(*ingestKafka)
+
+	// change the ReadMessage function to the mock-up
+	fr := fakeKafkaReader{readToDo: 5}
+	ingestKafka.kafkaReader = &fr
+	ingestKafka.batchMaxLength = 1000
+	ingestKafka.kafkaParams.BatchReadTimeout = 100
+
+	beforeIngest := time.Now()
+	// run Ingest in a separate thread
+	go func() {
+		ingestKafka.Ingest(ingestOutput)
+	}()
+
+	require.Equal(t, 0, len(ingestOutput))
+	// wait for the data to have been processed
+	receivedEntries := <-ingestOutput
+	require.Equal(t, 5, len(receivedEntries))
+
+	afterIngest := time.Now()
+
+	// We check that we get entries because of the timer
+	// Time must be above timer value but not too much, 20ms is our margin here
+	require.LessOrEqual(t, int64(100), afterIngest.Sub(beforeIngest).Milliseconds())
+	require.Greater(t, int64(120), afterIngest.Sub(beforeIngest).Milliseconds())
 }
