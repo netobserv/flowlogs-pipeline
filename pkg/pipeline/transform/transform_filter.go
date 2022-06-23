@@ -32,7 +32,7 @@ func (f *Filter) Transform(input []config.GenericMap) []config.GenericMap {
 	log.Debugf("f = %v", f)
 	output := make([]config.GenericMap, 0)
 	for _, entry := range input {
-		outputEntry := entry
+		outputEntry := entry.Copy()
 		addToOutput := true
 		for _, rule := range f.Rules {
 			log.Debugf("rule = %v", rule)
