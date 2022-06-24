@@ -36,16 +36,19 @@ type kafkaReadMessage interface {
 }
 
 type ingestKafka struct {
-	kafkaParams api.IngestKafka
-	kafkaReader kafkaReadMessage
-	decoder     decode.Decoder
-	in          chan string
-	exitChan    <-chan struct{}
-	prevRecords []config.GenericMap // copy of most recently sent records; for testing and debugging
+	kafkaParams    api.IngestKafka
+	kafkaReader    kafkaReadMessage
+	decoder        decode.Decoder
+	in             chan string
+	exitChan       <-chan struct{}
+	prevRecords    []config.GenericMap // copy of most recently sent records; for testing and debugging
+	batchMaxLength int
 }
 
 const channelSizeKafka = 1000
-const defaultBatchReadTimeout = int64(100)
+const defaultBatchReadTimeout = int64(1000)
+const defaultKafkaBatchMaxLength = 500
+const defaultKafkaCommitInterval = 500
 
 // Ingest ingests entries from kafka topic
 func (ingestK *ingestKafka) Ingest(out chan<- []config.GenericMap) {
@@ -83,6 +86,7 @@ func (ingestK *ingestKafka) kafkaListener() {
 func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 	var records []interface{}
 	duration := time.Duration(ingestK.kafkaParams.BatchReadTimeout) * time.Millisecond
+	flushRecords := time.NewTicker(duration)
 	for {
 		select {
 		case <-ingestK.exitChan:
@@ -90,14 +94,28 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 			return
 		case record := <-ingestK.in:
 			records = append(records, record)
-		case <-time.After(duration): // Maximum batch time for each batch
-			// Process batch of records (if not empty)
-			if len(records) > 0 {
-				log.Debugf("ingestKafka sending %d records", len(records))
+			if len(records) >= ingestK.batchMaxLength {
+				log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
 				decoded := ingestK.decoder.Decode(records)
 				out <- decoded
 				ingestK.prevRecords = decoded
 				log.Debugf("prevRecords = %v", ingestK.prevRecords)
+				records = []interface{}{}
+			}
+		case <-flushRecords.C: // Maximum batch time for each batch
+			// Process batch of records (if not empty)
+			if len(records) > 0 {
+				if len(ingestK.in) > 0 {
+					for len(records) < ingestK.batchMaxLength && len(ingestK.in) > 0 {
+						record := <-ingestK.in
+						records = append(records, record)
+					}
+				}
+				log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
+				decoded := ingestK.decoder.Decode(records)
+				ingestK.prevRecords = decoded
+				log.Debugf("prevRecords = %v", ingestK.prevRecords)
+				out <- decoded
 			}
 			records = []interface{}{}
 		}
@@ -145,12 +163,18 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 	}
 	log.Infof("BatchReadTimeout = %d", jsonIngestKafka.BatchReadTimeout)
 
+	commitInterval := int64(defaultKafkaCommitInterval)
+	if jsonIngestKafka.CommitInterval != 0 {
+		commitInterval = jsonIngestKafka.CommitInterval
+	}
+
 	kafkaReader := kafkago.NewReader(kafkago.ReaderConfig{
 		Brokers:        jsonIngestKafka.Brokers,
 		Topic:          jsonIngestKafka.Topic,
 		GroupID:        jsonIngestKafka.GroupId,
 		GroupBalancers: groupBalancers,
 		StartOffset:    startOffset,
+		CommitInterval: time.Duration(commitInterval) * time.Millisecond,
 	})
 	if kafkaReader == nil {
 		errMsg := "NewIngestKafka: failed to create kafka-go reader"
@@ -164,12 +188,18 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		return nil, err
 	}
 
+	bml := defaultKafkaBatchMaxLength
+	if jsonIngestKafka.BatchMaxLen != 0 {
+		bml = jsonIngestKafka.BatchMaxLen
+	}
+
 	return &ingestKafka{
-		kafkaParams: jsonIngestKafka,
-		kafkaReader: kafkaReader,
-		decoder:     decoder,
-		exitChan:    utils.ExitChannel(),
-		in:          make(chan string, channelSizeKafka),
-		prevRecords: make([]config.GenericMap, 0),
+		kafkaParams:    jsonIngestKafka,
+		kafkaReader:    kafkaReader,
+		decoder:        decoder,
+		exitChan:       utils.ExitChannel(),
+		in:             make(chan string, channelSizeKafka),
+		prevRecords:    make([]config.GenericMap, 0),
+		batchMaxLength: bml,
 	}, nil
 }
