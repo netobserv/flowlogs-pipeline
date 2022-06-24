@@ -49,6 +49,7 @@ func (n *Network) Transform(input []config.GenericMap) []config.GenericMap {
 }
 
 func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap {
+	// copy input entry before transform to avoid alteration on parallel stages
 	outputEntry := inputEntry.Copy()
 
 	for _, rule := range n.Rules {
