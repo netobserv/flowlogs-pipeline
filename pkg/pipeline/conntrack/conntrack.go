@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"hash"
 	"hash/fnv"
+	"strconv"
 	"time"
 
 	"github.com/benbjohnson/clock"
@@ -141,14 +142,20 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 			ct.connStore.addConnection(computedHash.hashTotal, conn)
 			ct.updateConnection(conn, fl, computedHash)
 			if ct.shouldOutputNewConnection {
-				outputRecords = append(outputRecords, conn.toGenericMap())
+				record := conn.toGenericMap()
+				addHashField(record, computedHash.hashTotal)
+				addTypeField(record, api.ConnTrackOutputRecordTypeName("NewConnection"))
+				outputRecords = append(outputRecords, record)
 			}
 		} else {
 			ct.updateConnection(conn, fl, computedHash)
 		}
 
 		if ct.shouldOutputFlowLogs {
-			outputRecords = append(outputRecords, fl)
+			record := fl.Copy()
+			addHashField(record, computedHash.hashTotal)
+			addTypeField(record, api.ConnTrackOutputRecordTypeName("FlowLog"))
+			outputRecords = append(outputRecords, record)
 		}
 	}
 
@@ -167,7 +174,10 @@ func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 		lastUpdate := conn.getLastUpdate()
 		if lastUpdate.Before(expireTime) {
 			// The last update time of this connection is too old. We want to pop it.
-			outputRecords = append(outputRecords, conn.toGenericMap())
+			record := conn.toGenericMap()
+			addHashField(record, conn.getHash().hashTotal)
+			addTypeField(record, api.ConnTrackOutputRecordTypeName("EndConnection"))
+			outputRecords = append(outputRecords, record)
 			shouldDelete, shouldStop = true, false
 		} else {
 			// No more expired connections
@@ -237,4 +247,12 @@ func NewConnectionTrack(config api.ConnTrack, clock clock.Clock) (ConnectionTrac
 		shouldOutputEndConnection: shouldOutputEndConnection,
 	}
 	return conntrack, nil
+}
+
+func addHashField(record config.GenericMap, hashId uint64) {
+	record[api.HashIdFieldName] = strconv.FormatUint(hashId, 16)
+}
+
+func addTypeField(record config.GenericMap, recordType string) {
+	record[api.RecordTypeFieldName] = recordType
 }
