@@ -20,8 +20,8 @@ package api
 import "time"
 
 const (
-	HashIdFieldName     = "NetObs-HashId"
-	RecordTypeFieldName = "NetObs-RecordType"
+	HashIdFieldName     = "_HashId"
+	RecordTypeFieldName = "_RecordType"
 )
 
 type ConnTrack struct {
