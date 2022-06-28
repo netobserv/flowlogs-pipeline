@@ -3,6 +3,7 @@ package ingest
 import (
 	"context"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 	"time"
@@ -79,7 +80,9 @@ func (no *GRPCProtobuf) Ingest(out chan<- []config.GenericMap) {
 		no.collector.Close()
 	}()
 	for fp := range no.flowPackets {
-		out <- no.decoder.Decode([]interface{}{fp})
+		records := no.decoder.Decode([]interface{}{fp})
+		log.Debugf("GRPCProtobuf records = %v", records)
+		out <- records
 	}
 }
 
