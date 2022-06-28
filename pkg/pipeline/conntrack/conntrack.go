@@ -87,8 +87,12 @@ func (cs *connectionStore) updateConnectionTime(hashId uint64, t time.Time) {
 }
 
 func (cs *connectionStore) iterateOldToNew(f processConnF) {
-	for e := cs.connList.Front(); e != nil; e = e.Next() {
+	// How to remove element from list while iterating the same list in golang
+	// https://stackoverflow.com/a/27662823/2749989
+	var next *list.Element
+	for e := cs.connList.Front(); e != nil; e = next {
 		conn := e.Value.(connection)
+		next = e.Next()
 		shouldDelete, shouldStop := f(conn)
 		if shouldDelete {
 			delete(cs.hash2conn, conn.getHash().hashTotal)
