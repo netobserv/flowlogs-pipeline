@@ -3,7 +3,6 @@ package ingest
 import (
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 	flow "github.com/netsampler/goflow2/utils"
 	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
 	grpc2 "google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
