@@ -53,7 +53,7 @@ func NewIngestFake(params config.StageParam) (Ingester, error) {
 
 	return &IngestFake{
 		params:   *params.Ingest,
-		In:       make(chan []config.GenericMap), // TODO: should add size?
+		In:       make(chan []config.GenericMap),
 		exitChan: utils.ExitChannel(),
 	}, nil
 }
