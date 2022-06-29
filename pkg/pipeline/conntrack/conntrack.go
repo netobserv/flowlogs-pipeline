@@ -216,7 +216,7 @@ func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalH
 
 // NewConnectionTrack creates a new connection track instance
 func NewConnectionTrack(params config.StageParam, clock clock.Clock) (ConnectionTracker, error) {
-	config := params.ConnTrack.ConnTrack
+	config := params.ConnTrack
 	var aggregators []aggregator
 	for _, of := range config.OutputFields {
 		agg, err := newAggregator(of)

@@ -42,46 +42,44 @@ parameters:
   - ingest:
       type: fake
     name: ingest_fake
-  - name: conntrack 
+  - name: conntrack
     conntrack:
-      conntrack:
-        endConnectionTimeout: 100000000
-        outputRecordTypes:
-          - newConnection
-          - endConnection
-        keyDefinition:
-          fieldGroups:
-            - name: src
-              fields:
-                - SrcAddr
-                - SrcPort
-            - name: dst
-              fields:
-                - DstAddr
-                - DstPort
-            - name: protocol
-              fields:
-                - Proto
-          hash:
-            fieldGroupRefs: [protocol]
-            fieldGroupARef: src 
-            fieldGroupBRef: dst 
-        outputFields:
-          - name: Bytes
-            operation: sum
-            SplitAB: true
-          - name: Packets
-            operation: sum
-            SplitAB: true
-          - name: numFlowLogs
-            operation: count
-          - name: TimeFlowStart
-            operation: min
-            input: TimeReceived
-          - name: TimeFlowEnd
-            operation: max
-            input: TimeReceived
-      type: blabla 
+      endConnectionTimeout: 100000000
+      outputRecordTypes:
+        - newConnection
+        - endConnection
+      keyDefinition:
+        fieldGroups:
+          - name: src
+            fields:
+              - SrcAddr
+              - SrcPort
+          - name: dst
+            fields:
+              - DstAddr
+              - DstPort
+          - name: protocol
+            fields:
+              - Proto
+        hash:
+          fieldGroupRefs: [protocol]
+          fieldGroupARef: src 
+          fieldGroupBRef: dst 
+      outputFields:
+        - name: Bytes
+          operation: sum
+          SplitAB: true
+        - name: Packets
+          operation: sum
+          SplitAB: true
+        - name: numFlowLogs
+          operation: count
+        - name: TimeFlowStart
+          operation: min
+          input: TimeReceived
+        - name: TimeFlowEnd
+          operation: max
+          input: TimeReceived
   - name: write_none
     write:
       type: none

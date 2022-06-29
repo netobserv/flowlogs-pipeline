@@ -380,7 +380,7 @@ func findStageType(param *config.StageParam) string {
 	if param.Transform != nil && param.Transform.Type != "" {
 		return StageTransform
 	}
-	if param.ConnTrack != nil && param.ConnTrack.Type != "" {
+	if param.ConnTrack != nil {
 		return StageConnTrack
 	}
 	if param.Extract != nil && param.Extract.Type != "" {
