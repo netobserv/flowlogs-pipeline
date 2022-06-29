@@ -74,7 +74,7 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *
 				{Name: "numFlowLogs", Operation: "count", SplitAB: false},
 			},
 			OutputRecordTypes:    outputRecordType,
-			EndConnectionTimeout: 30 * time.Second,
+			EndConnectionTimeout: api.Duration{30 * time.Second},
 		}, // end of api.ConnTrack
 	} // end of config.StageParam
 }

@@ -174,7 +174,7 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 	var outputRecords []config.GenericMap
 	ct.connStore.iterateOldToNew(func(conn connection) (shouldDelete, shouldStop bool) {
-		expireTime := ct.clock.Now().Add(-ct.config.EndConnectionTimeout)
+		expireTime := ct.clock.Now().Add(-ct.config.EndConnectionTimeout.Duration)
 		lastUpdate := conn.getLastUpdate()
 		if lastUpdate.Before(expireTime) {
 			// The last update time of this connection is too old. We want to pop it.

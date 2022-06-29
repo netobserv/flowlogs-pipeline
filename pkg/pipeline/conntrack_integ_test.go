@@ -44,7 +44,7 @@ parameters:
     name: ingest_fake
   - name: conntrack
     conntrack:
-      endConnectionTimeout: 100000000
+      endConnectionTimeout: 1s
       outputRecordTypes:
         - newConnection
         - endConnection
