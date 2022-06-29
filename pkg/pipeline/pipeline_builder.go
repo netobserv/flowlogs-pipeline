@@ -322,23 +322,8 @@ func getTransformer(params config.StageParam) (transform.Transformer, error) {
 }
 
 func getConnTrack(params config.StageParam) (conntrack.ConnectionTracker, error) {
-	var conntrack_ conntrack.ConnectionTracker
-	var err error
-	conntrack_, err = conntrack.NewConnectionTrack(params, clock.New())
-	// TODO:
-	//switch params.ConnTrack.Type {
-	//case api.GenericType:
-	//	transformer, err = transform.NewTransformGeneric(params)
-	//case api.FilterType:
-	//	transformer, err = transform.NewTransformFilter(params)
-	//case api.NetworkType:
-	//	transformer, err = transform.NewTransformNetwork(params)
-	//case api.NoneType:
-	//	transformer, err = transform.NewTransformNone()
-	//default:
-	//	panic(fmt.Sprintf("`transform` type %s not defined; if no transformer needed, specify `none`", params.Transform.Type))
-	//}
-	return conntrack_, err
+	ct, err := conntrack.NewConnectionTrack(params, clock.New())
+	return ct, err
 }
 
 func getExtractor(params config.StageParam) (extract.Extractor, error) {
