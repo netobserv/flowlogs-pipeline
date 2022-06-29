@@ -37,7 +37,7 @@ func (t *transformNone) Transform(f []config.GenericMap) []config.GenericMap {
 
 // NewTransformNone create a new transform
 func NewTransformNone() (Transformer, error) {
-	log.Debugf("entering  NewTransformNone")
+	log.Debugf("entering NewTransformNone")
 	return &transformNone{}, nil
 }
 

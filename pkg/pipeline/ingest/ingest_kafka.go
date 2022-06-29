@@ -52,7 +52,7 @@ const defaultKafkaCommitInterval = 500
 
 // Ingest ingests entries from kafka topic
 func (ingestK *ingestKafka) Ingest(out chan<- []config.GenericMap) {
-	log.Debugf("entering  ingestKafka.Ingest")
+	log.Debugf("entering ingestKafka.Ingest")
 
 	// initialize background listener
 	ingestK.kafkaListener()
@@ -63,7 +63,7 @@ func (ingestK *ingestKafka) Ingest(out chan<- []config.GenericMap) {
 
 // background thread to read kafka messages; place received items into ingestKafka input channel
 func (ingestK *ingestKafka) kafkaListener() {
-	log.Debugf("entering  kafkaListener")
+	log.Debugf("entering kafkaListener")
 
 	go func() {
 		for {
