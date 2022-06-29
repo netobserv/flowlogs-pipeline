@@ -64,6 +64,7 @@ func (ingestF *IngestFile) Ingest(out chan<- []config.GenericMap) {
 		lines = append(lines, text)
 	}
 	decoded := ingestF.decoder.Decode(lines)
+	log.Debugf("IngestFile decoded = %v", decoded)
 
 	log.Debugf("Ingesting %d log lines from %s", len(lines), filename)
 	switch ingestF.params.Type {

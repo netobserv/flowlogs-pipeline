@@ -174,6 +174,7 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) 
 				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
 				linesProcessed.Add(float64(len(records)))
 				queueLength.Set(float64(len(out)))
+				log.Debugf("ingestCollector records = %v", records)
 				out <- records
 				records = []config.GenericMap{}
 			}
@@ -189,6 +190,7 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) 
 				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
 				linesProcessed.Add(float64(len(records)))
 				queueLength.Set(float64(len(out)))
+				log.Debugf("ingestCollector records = %v", records)
 				out <- records
 				records = []config.GenericMap{}
 			}

@@ -15,6 +15,7 @@ import (
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 	flow "github.com/netsampler/goflow2/utils"
 	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
 	grpc2 "google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
@@ -79,7 +80,9 @@ func (no *GRPCProtobuf) Ingest(out chan<- []config.GenericMap) {
 		no.collector.Close()
 	}()
 	for fp := range no.flowPackets {
-		out <- no.decoder.Decode([]interface{}{fp})
+		records := no.decoder.Decode([]interface{}{fp})
+		log.Debugf("GRPCProtobuf records = %v", records)
+		out <- records
 	}
 }
 

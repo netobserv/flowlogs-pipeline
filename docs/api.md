@@ -63,6 +63,8 @@ Following is the supported API format for the kafka ingest:
              type: (enum) one of the following:
                  json: JSON decoder
                  protobuf: Protobuf decoder
+         batchMaxLen: the number of accumulated flows before being forwarded for processing
+         commitInterval: the interval (in milliseconds) at which offsets are committed to the broker.  If 0, commits will be handled synchronously.
 </pre>
 ## Ingest GRPC from Network Observability eBPF Agent
 Following is the supported API format for the Network Observability eBPF ingest:

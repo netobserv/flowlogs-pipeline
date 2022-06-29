@@ -33,6 +33,7 @@ func (g *Generic) Transform(input []config.GenericMap) []config.GenericMap {
 	log.Debugf("entering Generic Transform g = %v", g)
 	output := make([]config.GenericMap, 0)
 	for _, entry := range input {
+		log.Debugf("entry.GenericMap = %v", entry)
 		outputEntry := make(config.GenericMap)
 		if g.policy != "replace_keys" {
 			// copy old map to new map
