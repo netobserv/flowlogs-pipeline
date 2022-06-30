@@ -58,17 +58,17 @@ type connectionStore struct {
 
 type processConnF func(connection) (shouldDelete, shouldStop bool)
 
-func (ct *connectionStore) addConnection(hashId uint64, conn connection) {
-	_, ok := ct.getConnection(hashId)
+func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
+	_, ok := cs.getConnection(hashId)
 	if ok {
 		log.Errorf("BUG. connection with hash %x already exists in store. %v", hashId, conn)
 	}
-	e := ct.connList.PushBack(conn)
-	ct.hash2conn[hashId] = e
+	e := cs.connList.PushBack(conn)
+	cs.hash2conn[hashId] = e
 }
 
-func (ct *connectionStore) getConnection(hashId uint64) (connection, bool) {
-	elem, ok := ct.hash2conn[hashId]
+func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
+	elem, ok := cs.hash2conn[hashId]
 	if ok {
 		conn := elem.Value.(connection)
 		return conn, ok
@@ -76,23 +76,27 @@ func (ct *connectionStore) getConnection(hashId uint64) (connection, bool) {
 	return nil, ok
 }
 
-func (ct *connectionStore) updateConnectionTime(hashId uint64, t time.Time) {
-	elem, ok := ct.hash2conn[hashId]
+func (cs *connectionStore) updateConnectionTime(hashId uint64, t time.Time) {
+	elem, ok := cs.hash2conn[hashId]
 	if !ok {
 		log.Errorf("BUG. connection hash %x doesn't exist", hashId)
 	}
 	elem.Value.(connection).setLastUpdate(t)
 	// move to end of list
-	ct.connList.MoveToBack(elem)
+	cs.connList.MoveToBack(elem)
 }
 
-func (ct *connectionStore) iterateOldToNew(f processConnF) {
-	for e := ct.connList.Front(); e != nil; e = e.Next() {
+func (cs *connectionStore) iterateOldToNew(f processConnF) {
+	// How to remove element from list while iterating the same list in golang
+	// https://stackoverflow.com/a/27662823/2749989
+	var next *list.Element
+	for e := cs.connList.Front(); e != nil; e = next {
 		conn := e.Value.(connection)
+		next = e.Next()
 		shouldDelete, shouldStop := f(conn)
 		if shouldDelete {
-			delete(ct.hash2conn, conn.getHash().hashTotal)
-			ct.connList.Remove(e)
+			delete(cs.hash2conn, conn.getHash().hashTotal)
+			cs.connList.Remove(e)
 		}
 		if shouldStop {
 			break
