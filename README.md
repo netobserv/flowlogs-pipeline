@@ -5,12 +5,13 @@
 
 # Overview
 
-**Flow-Logs Pipeline** (a.k.a. FLP) is an **observability tool** that consumes raw **network flow-logs** in
-their original format 
+**Flow-Logs Pipeline** (a.k.a. FLP) is an **observability tool** that consumes either:
+- raw **network flow-logs** in their original format 
 ([NetFlow v5,v9](https://en.wikipedia.org/wiki/NetFlow) or [IPFIX](https://en.wikipedia.org/wiki/IP_Flow_Information_Export)) 
-and uses a pipe-line to transform the logs into 
-time series metrics in **[prometheus](https://prometheus.io/)** format and in parallel
-transform and persist the logs also into **[loki](https://grafana.com/oss/loki/)**.
+- [eBPF agent](https://github.com/netobserv/netobserv-ebpf-agent) flows in binary format (protobuf+GRPC)
+- Kafka entries in JSON format
+and uses a pipe-line to transform the logs into time series metrics in **[prometheus](https://prometheus.io/)** format and in parallel transform and persist 
+the logs also into **[loki](https://grafana.com/oss/loki/)**.
 
 ![Animated gif](docs/images/animation.gif)
 
