@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"time"
 )
 
@@ -33,7 +33,7 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 		}
 		return nil
 	default:
-		return errors.New("invalid duration")
+		return fmt.Errorf("invalid duration %v", value)
 	}
 }
 
