@@ -339,9 +339,9 @@ func getExtractor(params config.StageParam) (extract.Extractor, error) {
 	var extractor extract.Extractor
 	var err error
 	switch params.Extract.Type {
-	case "none":
+	case api.NoneType:
 		extractor, _ = extract.NewExtractNone()
-	case "aggregates":
+	case api.AggregateType:
 		extractor, err = extract.NewExtractAggregate(params)
 	default:
 		panic(fmt.Sprintf("`extract` type %s not defined; if no extractor needed, specify `none`", params.Extract.Type))
@@ -353,11 +353,11 @@ func getEncoder(params config.StageParam) (encode.Encoder, error) {
 	var encoder encode.Encoder
 	var err error
 	switch params.Encode.Type {
-	case "prom":
+	case api.PromType:
 		encoder, err = encode.NewEncodeProm(params)
-	case "kafka":
+	case api.KafkaType:
 		encoder, err = encode.NewEncodeKafka(params)
-	case "none":
+	case api.NoneType:
 		encoder, _ = encode.NewEncodeNone()
 	default:
 		panic(fmt.Sprintf("`encode` type %s not defined; if no encoder needed, specify `none`", params.Encode.Type))
