@@ -98,6 +98,11 @@ func (b *PipelineBuilderStage) TransformNetwork(name string, nw api.TransformNet
 	return b.next(name, StageParam{Name: name, Transform: &Transform{Type: api.NetworkType, Network: &nw}})
 }
 
+// ConnTrack chains the current stage with a ConnTrack stage and returns that new stage
+func (b *PipelineBuilderStage) ConnTrack(name string, ct api.ConnTrack) PipelineBuilderStage {
+	return b.next(name, StageParam{Name: name, Track: &Track{Type: api.ConnTrackType, ConnTrack: &ct}})
+}
+
 // EncodePrometheus chains the current stage with a PromEncode stage (to expose metrics in Prometheus format) and returns that new stage
 func (b *PipelineBuilderStage) EncodePrometheus(name string, prom api.PromEncode) PipelineBuilderStage {
 	return b.next(name, StageParam{Name: name, Encode: &Encode{Type: api.PromType, Prom: &prom}})

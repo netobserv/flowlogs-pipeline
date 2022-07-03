@@ -42,40 +42,43 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *
 		}
 	}
 	return &config.StageParam{
-		ConnTrack: &api.ConnTrack{
-			KeyDefinition: api.KeyDefinition{
-				FieldGroups: []api.FieldGroup{
-					{
-						Name: "src",
-						Fields: []string{
-							"SrcAddr",
-							"SrcPort",
+		Track: &config.Track{
+			Type: api.ConnTrackType,
+			ConnTrack: &api.ConnTrack{
+				KeyDefinition: api.KeyDefinition{
+					FieldGroups: []api.FieldGroup{
+						{
+							Name: "src",
+							Fields: []string{
+								"SrcAddr",
+								"SrcPort",
+							},
+						},
+						{
+							Name: "dst",
+							Fields: []string{
+								"DstAddr",
+								"DstPort",
+							},
+						},
+						{
+							Name: "protocol",
+							Fields: []string{
+								"Proto",
+							},
 						},
 					},
-					{
-						Name: "dst",
-						Fields: []string{
-							"DstAddr",
-							"DstPort",
-						},
-					},
-					{
-						Name: "protocol",
-						Fields: []string{
-							"Proto",
-						},
-					},
+					Hash: hash,
 				},
-				Hash: hash,
-			},
-			OutputFields: []api.OutputField{
-				{Name: "Bytes", Operation: "sum", SplitAB: splitAB},
-				{Name: "Packets", Operation: "sum", SplitAB: splitAB},
-				{Name: "numFlowLogs", Operation: "count", SplitAB: false},
-			},
-			OutputRecordTypes:    outputRecordType,
-			EndConnectionTimeout: api.Duration{Duration: 30 * time.Second},
-		}, // end of api.ConnTrack
+				OutputFields: []api.OutputField{
+					{Name: "Bytes", Operation: "sum", SplitAB: splitAB},
+					{Name: "Packets", Operation: "sum", SplitAB: splitAB},
+					{Name: "numFlowLogs", Operation: "count", SplitAB: false},
+				},
+				OutputRecordTypes:    outputRecordType,
+				EndConnectionTimeout: api.Duration{Duration: 30 * time.Second},
+			}, // end of api.ConnTrack
+		}, // end of config.Track
 	} // end of config.StageParam
 }
 

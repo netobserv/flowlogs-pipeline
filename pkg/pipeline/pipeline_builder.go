@@ -47,7 +47,7 @@ type pipelineEntry struct {
 	stageType   string
 	Ingester    ingest.Ingester
 	Transformer transform.Transformer
-	ConnTrack   conntrack.ConnectionTracker
+	Tracker     conntrack.ConnectionTracker
 	Extractor   extract.Extractor
 	Encoder     encode.Encoder
 	Writer      write.Writer
@@ -76,8 +76,8 @@ func (b *builder) readStages() error {
 			pEntry.Ingester, err = getIngester(param)
 		case StageTransform:
 			pEntry.Transformer, err = getTransformer(param)
-		case StageConnTrack:
-			pEntry.ConnTrack, err = getConnTrack(param)
+		case StageTrack:
+			pEntry.Tracker, err = getTracker(param)
 		case StageExtract:
 			pEntry.Extractor, err = getExtractor(param)
 		case StageEncode:
@@ -245,10 +245,10 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 				out <- pe.Transformer.Transform(i)
 			}
 		})
-	case StageConnTrack:
+	case StageTrack:
 		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
 			for i := range in {
-				out <- pe.ConnTrack.Track(i)
+				out <- pe.Tracker.Track(i)
 			}
 		})
 	case StageExtract:
@@ -321,9 +321,18 @@ func getTransformer(params config.StageParam) (transform.Transformer, error) {
 	return transformer, err
 }
 
-func getConnTrack(params config.StageParam) (conntrack.ConnectionTracker, error) {
-	ct, err := conntrack.NewConnectionTrack(params, clock.New())
-	return ct, err
+func getTracker(params config.StageParam) (conntrack.ConnectionTracker, error) {
+	var tracker conntrack.ConnectionTracker
+	var err error
+	switch params.Track.Type {
+	case api.NoneType:
+		tracker, _ = conntrack.NewTrackNone()
+	case api.ConnTrackType:
+		tracker, err = conntrack.NewConnectionTrack(params, clock.New())
+	default:
+		panic(fmt.Sprintf("`tracker` type %s not defined; if no tracker needed, specify `none`", params.Track.Type))
+	}
+	return tracker, err
 }
 
 func getExtractor(params config.StageParam) (extract.Extractor, error) {
@@ -365,8 +374,8 @@ func findStageType(param *config.StageParam) string {
 	if param.Transform != nil && param.Transform.Type != "" {
 		return StageTransform
 	}
-	if param.ConnTrack != nil {
-		return StageConnTrack
+	if param.Track != nil && param.Track.Type != "" {
+		return StageTrack
 	}
 	if param.Extract != nil && param.Extract.Type != "" {
 		return StageExtract

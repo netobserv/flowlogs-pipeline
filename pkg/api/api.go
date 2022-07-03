@@ -32,6 +32,7 @@ const (
 	GenericType           = "generic"
 	NetworkType           = "network"
 	FilterType            = "filter"
+	ConnTrackType         = "conntrack"
 	NoneType              = "none"
 	ConnTrackingRuleType  = "conn_tracking"
 	AddRegExIfRuleType    = "add_regex_if"

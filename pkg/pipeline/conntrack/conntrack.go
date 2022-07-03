@@ -45,6 +45,20 @@ type ConnectionTracker interface {
 	Track(flowLogs []config.GenericMap) []config.GenericMap
 }
 
+type trackNone struct {
+}
+
+// Track tracks a connection
+func (t *trackNone) Track(flowLogs []config.GenericMap) []config.GenericMap {
+	return flowLogs
+}
+
+// NewTrackNone creates a new track
+func NewTrackNone() (ConnectionTracker, error) {
+	log.Debugf("entering NewTrackNone")
+	return &trackNone{}, nil
+}
+
 //////////////////////////
 
 // TODO: Does connectionStore deserve a file of its own?
@@ -216,7 +230,7 @@ func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalH
 
 // NewConnectionTrack creates a new connection track instance
 func NewConnectionTrack(params config.StageParam, clock clock.Clock) (ConnectionTracker, error) {
-	config := params.ConnTrack
+	config := params.Track.ConnTrack
 	var aggregators []aggregator
 	for _, of := range config.OutputFields {
 		agg, err := newAggregator(of)
