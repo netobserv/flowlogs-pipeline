@@ -97,10 +97,12 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 			if len(records) >= ingestK.batchMaxLength {
 				log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
 				decoded := ingestK.decoder.Decode(records)
-				out <- decoded
+				linesProcessed.Add(float64(len(records)))
+				queueLength.Set(float64(len(out)))
 				ingestK.prevRecords = decoded
 				log.Debugf("prevRecords = %v", ingestK.prevRecords)
 				records = []interface{}{}
+				out <- decoded
 			}
 		case <-flushRecords.C: // Maximum batch time for each batch
 			// Process batch of records (if not empty)
@@ -113,6 +115,8 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 				}
 				log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
 				decoded := ingestK.decoder.Decode(records)
+				linesProcessed.Add(float64(len(records)))
+				queueLength.Set(float64(len(out)))
 				ingestK.prevRecords = decoded
 				log.Debugf("prevRecords = %v", ingestK.prevRecords)
 				out <- decoded
