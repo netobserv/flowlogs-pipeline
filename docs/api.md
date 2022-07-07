@@ -204,3 +204,18 @@ Following is the supported API format for specifying connection tracking:
          endConnectionTimeout: duration of time to wait from the last flow log to end a connection
          updateConnectionInterval: duration of time to wait between update reports of a connection
 </pre>
+## Time-based Filters API
+Following is the supported API format for specifying metrics time-based filters:
+
+<pre>
+ timebased:
+         rules: list of filter rules, each includes:
+                 name: description of aggregation result
+                 recordKey: internal field to index TopK/BotK 
+                 operation: sum, min, max, avg, last or diff
+                 operationKey: internal field on which to perform the operation
+                 topK: number of highest incidence to report (default - report all)
+                 botK: number of lowest incidence to report (default - report all)
+                 timeInterval: seconds of data to use to compute the metric
+</pre>
+>>>>>>> added basic structures for timebased topk/botk
