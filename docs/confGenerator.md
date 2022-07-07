@@ -27,6 +27,7 @@ Flags:
       --log-level string                  Log level: debug, info, warning, error (default "error")
       --skipWithLabels strings            Skip definitions with Labels
       --srcFolder string                  source folder (default "network_definitions")
+      --truncatedOutput                   produce truncated config file (as for Operator)
 
 ```
 

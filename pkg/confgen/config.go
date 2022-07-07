@@ -31,6 +31,7 @@ type Options struct {
 	DestGrafanaJsonnetFolder string
 	SrcFolder                string
 	SkipWithLabels           []string
+	TruncatedOutput          bool
 }
 
 var (

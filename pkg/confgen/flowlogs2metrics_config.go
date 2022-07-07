@@ -111,3 +111,35 @@ func (cg *ConfGen) generateFlowlogs2PipelineConfig(fileName string) error {
 
 	return nil
 }
+
+func (cg *ConfGen) generateTruncatedConfig(fileName string) error {
+	config := map[string]interface{}{
+		"parameters": []map[string]interface{}{
+			{"extract": map[string]interface{}{
+				"type":       "aggregates",
+				"aggregates": cg.aggregateDefinitions,
+			},
+			},
+			{"encode": map[string]interface{}{
+				"type": "prom",
+				"prom": map[string]interface{}{
+					"metrics": cg.promMetrics,
+				},
+			},
+			},
+		},
+	}
+
+	configData, err := yaml.Marshal(&config)
+	if err != nil {
+		return err
+	}
+	header := "# This file was generated automatically by flowlogs-pipeline confgenerator"
+	data := fmt.Sprintf("%s\n%s\n", header, configData)
+	err = ioutil.WriteFile(fileName, []byte(data), 0664)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

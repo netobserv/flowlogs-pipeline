@@ -133,6 +133,7 @@ func initFlags() {
 	rootCmd.PersistentFlags().StringVar(&confgen.Opt.DestDocFile, "destDocFile", "/tmp/metrics.md", "destination documentation file (.md)")
 	rootCmd.PersistentFlags().StringVar(&confgen.Opt.DestGrafanaJsonnetFolder, "destGrafanaJsonnetFolder", "/tmp/jsonnet", "destination grafana jsonnet folder")
 	rootCmd.PersistentFlags().StringSliceVar(&confgen.Opt.SkipWithLabels, "skipWithLabels", nil, "Skip definitions with Labels")
+	rootCmd.PersistentFlags().BoolVar(&confgen.Opt.TruncatedOutput, "truncatedOutput", false, "produce truncated config file (as for Operator)")
 }
 
 func main() {

@@ -88,6 +88,15 @@ func (cg *ConfGen) Run() error {
 
 	cg.dedupe()
 
+	if Opt.TruncatedOutput {
+		err = cg.generateTruncatedConfig(Opt.DestConfFile)
+		if err != nil {
+			log.Debugf("cg.generateTruncatedConfig err: %v ", err)
+			return err
+		}
+		return nil
+	}
+
 	err = cg.generateFlowlogs2PipelineConfig(Opt.DestConfFile)
 	if err != nil {
 		log.Debugf("cg.generateFlowlogs2PipelineConfig err: %v ", err)
