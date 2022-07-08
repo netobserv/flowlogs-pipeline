@@ -168,6 +168,8 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		commitInterval = jsonIngestKafka.CommitInterval
 	}
 
+	// TODO: TLS
+
 	kafkaReader := kafkago.NewReader(kafkago.ReaderConfig{
 		Brokers:        jsonIngestKafka.Brokers,
 		Topic:          jsonIngestKafka.Topic,
