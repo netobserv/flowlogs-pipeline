@@ -37,6 +37,7 @@ Following is the supported API format for kafka encode:
          readTimeout: timeout (in seconds) for read operation performed by the Writer
          batchBytes: limit the maximum size of a request in bytes before being sent to a partition
          batchSize: limit on how many messages will be buffered before being sent to a partition
+         tls: TLS client configuration (optional)
 </pre>
 ## Ingest collector API
 Following is the supported API format for the NetFlow / IPFIX collector:
@@ -65,6 +66,7 @@ Following is the supported API format for the kafka ingest:
                  protobuf: Protobuf decoder
          batchMaxLen: the number of accumulated flows before being forwarded for processing
          commitInterval: the interval (in milliseconds) at which offsets are committed to the broker.  If 0, commits will be handled synchronously.
+         tls: TLS client configuration (optional)
 </pre>
 ## Ingest GRPC from Network Observability eBPF Agent
 Following is the supported API format for the Network Observability eBPF ingest:

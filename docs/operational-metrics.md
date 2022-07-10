@@ -16,6 +16,13 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Type** | counter | 
 
 
+### conntrack_memory_connections
+| **Name** | conntrack_memory_connections | 
+|:---|:---|
+| **Description** | The total number of tracked connections in memory. | 
+| **Type** | gauge | 
+
+
 ### ingest_collector_queue_length
 | **Name** | ingest_collector_queue_length | 
 |:---|:---|
