@@ -28,6 +28,8 @@ import (
 	"github.com/benbjohnson/clock"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -79,6 +81,7 @@ func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
 	}
 	e := cs.connList.PushBack(conn)
 	cs.hash2conn[hashId] = e
+	connStoreLength.Set(float64(cs.connList.Len()))
 }
 
 func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
@@ -111,6 +114,7 @@ func (cs *connectionStore) iterateOldToNew(f processConnF) {
 		if shouldDelete {
 			delete(cs.hash2conn, conn.getHash().hashTotal)
 			cs.connList.Remove(e)
+			connStoreLength.Set(float64(cs.connList.Len()))
 		}
 		if shouldStop {
 			break
@@ -137,6 +141,11 @@ type conntrackImpl struct {
 	shouldOutputNewConnection bool
 	shouldOutputEndConnection bool
 }
+
+var connStoreLength = operationalMetrics.NewGauge(prometheus.GaugeOpts{
+	Name: "conntrack_memory_connections",
+	Help: "The total number of tracked connections in memory.",
+})
 
 func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap {
 	log.Debugf("Entering Track")
