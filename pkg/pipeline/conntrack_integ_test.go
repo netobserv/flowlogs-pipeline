@@ -37,57 +37,60 @@ pipeline:
   - follows: ingest_fake
     name: conntrack
   - follows: conntrack
-    name: write_none
+    name: write_fake
 parameters:
   - ingest:
       type: fake
     name: ingest_fake
   - name: conntrack
-    conntrack:
-      endConnectionTimeout: 1s
-      outputRecordTypes:
-        - newConnection
-        - endConnection
-      keyDefinition:
-        fieldGroups:
-          - name: src
-            fields:
-              - SrcAddr
-              - SrcPort
-          - name: dst
-            fields:
-              - DstAddr
-              - DstPort
-          - name: protocol
-            fields:
-              - Proto
-        hash:
-          fieldGroupRefs: [protocol]
-          fieldGroupARef: src 
-          fieldGroupBRef: dst 
-      outputFields:
-        - name: Bytes
-          operation: sum
-          SplitAB: true
-        - name: Packets
-          operation: sum
-          SplitAB: true
-        - name: numFlowLogs
-          operation: count
-        - name: TimeFlowStart
-          operation: min
-          input: TimeReceived
-        - name: TimeFlowEnd
-          operation: max
-          input: TimeReceived
-  - name: write_none
+    track:
+      type: conntrack
+      conntrack:
+        endConnectionTimeout: 1s
+        outputRecordTypes:
+          - newConnection
+          - flowLog
+          - endConnection
+        keyDefinition:
+          fieldGroups:
+            - name: src
+              fields:
+                - SrcAddr
+                - SrcPort
+            - name: dst
+              fields:
+                - DstAddr
+                - DstPort
+            - name: protocol
+              fields:
+                - Proto
+          hash:
+            fieldGroupRefs: [protocol]
+            fieldGroupARef: src 
+            fieldGroupBRef: dst 
+        outputFields:
+          - name: Bytes
+            operation: sum
+            SplitAB: true
+          - name: Packets
+            operation: sum
+            SplitAB: true
+          - name: numFlowLogs
+            operation: count
+          - name: TimeFlowStart
+            operation: min
+            input: TimeReceived
+          - name: TimeFlowEnd
+            operation: max
+            input: TimeReceived
+  - name: write_fake
     write:
-      type: none
+      type: fake
 `
 
 func TestConnTrack(t *testing.T) {
 	// This test runs a 3 stage pipeline (Ingester -> ConnTrack -> Write), ingests a file and tests that an end
-	// connection record with specific values was outputted.
+	// connection record with specific values was written.
 	var mainPipeline *Pipeline
 	var err error
 	v := test.InitConfig(t, testConfigConntrack)
@@ -99,17 +102,19 @@ func TestConnTrack(t *testing.T) {
 	go mainPipeline.Run()
 
 	in := mainPipeline.pipelineStages[0].Ingester.(*ingest.IngestFake).In
+	writer := mainPipeline.pipelineStages[2].Writer.(*write.WriteFake)
 
 	ingestFile(t, in, "../../hack/examples/ocp-ipfix-flowlogs.json")
+	writer.Wait()
+	writer.ResetWait()
 
 	// Wait a moment to make the connections expired
 	time.Sleep(2 * time.Second)
-	// Trigger the ingester and wait awhile to allow the connection tracking output end connection records
+	// Send an empty list to the pipeline to allow the connection tracking output end connection records
 	in <- []config.GenericMap{}
-	time.Sleep(1 * time.Second)
+	writer.Wait()
 
 	// Verify that the output records contain an expected end connection record.
-	writer := mainPipeline.pipelineStages[2].Writer.(*write.WriteNone)
 	expected := config.GenericMap{
 		"Bytes_AB":      41_600.0,
 		"Bytes_BA":      5_004_000.0,

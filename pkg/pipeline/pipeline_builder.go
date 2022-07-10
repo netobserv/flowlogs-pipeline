@@ -297,6 +297,8 @@ func getWriter(params config.StageParam) (write.Writer, error) {
 		writer, err = write.NewWriteNone()
 	case api.LokiType:
 		writer, err = write.NewWriteLoki(params)
+	case api.FakeType:
+		writer, err = write.NewWriteFake(params)
 	default:
 		panic(fmt.Sprintf("`write` type %s not defined; if no writer needed, specify `none`", params.Write.Type))
 	}
