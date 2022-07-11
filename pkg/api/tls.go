@@ -36,19 +36,16 @@ type ServerTLS struct {
 }
 
 func (c *ClientTLS) Build() (*tls.Config, error) {
-	if c.InsecureSkipVerify {
-		return &tls.Config{
-			InsecureSkipVerify: true,
-		}, nil
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: c.InsecureSkipVerify,
 	}
 	if c.CACertPath != "" {
 		caCert, err := ioutil.ReadFile(c.CACertPath)
 		if err != nil {
 			return nil, err
 		}
-		pool := x509.NewCertPool()
-		pool.AppendCertsFromPEM(caCert)
-		tlsConfig := &tls.Config{RootCAs: pool}
+		tlsConfig.RootCAs = x509.NewCertPool()
+		tlsConfig.RootCAs.AppendCertsFromPEM(caCert)
 
 		if c.UserCertPath != "" && c.UserKeyPath != "" {
 			userCert, err := ioutil.ReadFile(c.UserCertPath)
@@ -64,8 +61,8 @@ func (c *ClientTLS) Build() (*tls.Config, error) {
 				return nil, err
 			}
 			tlsConfig.Certificates = []tls.Certificate{pair}
-			return tlsConfig, nil
 		}
+		return tlsConfig, nil
 	}
 	return nil, nil
 }

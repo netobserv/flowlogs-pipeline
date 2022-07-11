@@ -98,13 +98,14 @@ func NewEncodeKafka(params config.StageParam) (Encoder, error) {
 		writeTimeoutSecs = config.WriteTimeout
 	}
 
-	var transport *kafka.Transport
+	transport := kafka.Transport{}
 	if config.TLS != nil {
+		log.Infof("Using TLS configuration: %v", config.TLS)
 		tlsConfig, err := config.TLS.Build()
 		if err != nil {
 			return nil, err
 		}
-		transport = &kafka.Transport{TLS: tlsConfig}
+		transport.TLS = tlsConfig
 	}
 
 	// connect to the kafka server
@@ -119,7 +120,7 @@ func NewEncodeKafka(params config.StageParam) (Encoder, error) {
 		// Temporary fix may be we should implement a batching systems
 		// https://github.com/segmentio/kafka-go/issues/326#issuecomment-519375403
 		BatchTimeout: time.Nanosecond,
-		Transport:    transport,
+		Transport:    &transport,
 	}
 
 	return &encodeKafka{
