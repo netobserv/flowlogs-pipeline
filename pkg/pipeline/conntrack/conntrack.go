@@ -28,8 +28,6 @@ import (
 	"github.com/benbjohnson/clock"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -41,11 +39,6 @@ const (
 	dirNA direction = iota
 	dirAB
 	dirBA
-)
-
-const (
-	classificationLabel = "classification"
-	typeLabel           = "type"
 )
 
 type ConnectionTracker interface {
@@ -86,7 +79,7 @@ func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
 	}
 	e := cs.connList.PushBack(conn)
 	cs.hash2conn[hashId] = e
-	connStoreLength.Set(float64(cs.connList.Len()))
+	metrics.connStoreLength.Set(float64(cs.connList.Len()))
 }
 
 func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
@@ -119,7 +112,7 @@ func (cs *connectionStore) iterateOldToNew(f processConnF) {
 		if shouldDelete {
 			delete(cs.hash2conn, conn.getHash().hashTotal)
 			cs.connList.Remove(e)
-			connStoreLength.Set(float64(cs.connList.Len()))
+			metrics.connStoreLength.Set(float64(cs.connList.Len()))
 		}
 		if shouldStop {
 			break
@@ -147,21 +140,6 @@ type conntrackImpl struct {
 	shouldOutputEndConnection bool
 }
 
-var connStoreLength = operationalMetrics.NewGauge(prometheus.GaugeOpts{
-	Name: "conntrack_memory_connections",
-	Help: "The total number of tracked connections in memory.",
-})
-
-var inputRecords = operationalMetrics.NewCounterVec(prometheus.CounterOpts{
-	Name: "conntrack_input_records",
-	Help: "The total number of input records per classification.",
-}, []string{classificationLabel})
-
-var outputRecordsMetric = operationalMetrics.NewCounterVec(prometheus.CounterOpts{
-	Name: "conntrack_output_records",
-	Help: "The total number of output records.",
-}, []string{typeLabel})
-
 func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap {
 	log.Debugf("Entering Track")
 	log.Debugf("Track none, in = %v", flowLogs)
@@ -171,7 +149,7 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 		computedHash, err := ComputeHash(fl, ct.config.KeyDefinition, ct.hashProvider())
 		if err != nil {
 			log.Warningf("skipping flow log %v: %v", fl, err)
-			inputRecords.WithLabelValues("rejected").Inc()
+			metrics.inputRecords.WithLabelValues("rejected").Inc()
 			continue
 		}
 		conn, exists := ct.connStore.getConnection(computedHash.hashTotal)
@@ -184,17 +162,17 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 				Build()
 			ct.connStore.addConnection(computedHash.hashTotal, conn)
 			ct.updateConnection(conn, fl, computedHash)
-			inputRecords.WithLabelValues("newConnection").Inc()
+			metrics.inputRecords.WithLabelValues("newConnection").Inc()
 			if ct.shouldOutputNewConnection {
 				record := conn.toGenericMap()
 				addHashField(record, computedHash.hashTotal)
 				addTypeField(record, api.ConnTrackOutputRecordTypeName("NewConnection"))
 				outputRecords = append(outputRecords, record)
-				outputRecordsMetric.WithLabelValues("newConnection").Inc()
+				metrics.outputRecords.WithLabelValues("newConnection").Inc()
 			}
 		} else {
 			ct.updateConnection(conn, fl, computedHash)
-			inputRecords.WithLabelValues("update").Inc()
+			metrics.inputRecords.WithLabelValues("update").Inc()
 		}
 
 		if ct.shouldOutputFlowLogs {
@@ -202,14 +180,14 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 			addHashField(record, computedHash.hashTotal)
 			addTypeField(record, api.ConnTrackOutputRecordTypeName("FlowLog"))
 			outputRecords = append(outputRecords, record)
-			outputRecordsMetric.WithLabelValues("flowLog").Inc()
+			metrics.outputRecords.WithLabelValues("flowLog").Inc()
 		}
 	}
 
 	endConnectionRecords := ct.popEndConnections()
 	if ct.shouldOutputEndConnection {
 		outputRecords = append(outputRecords, endConnectionRecords...)
-		outputRecordsMetric.WithLabelValues("endConnection").Add(float64(len(endConnectionRecords)))
+		metrics.outputRecords.WithLabelValues("endConnection").Add(float64(len(endConnectionRecords)))
 	}
 
 	return outputRecords
