@@ -23,6 +23,13 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Type** | counter | 
 
 
+### conntrack_output_records
+| **Name** | conntrack_output_records | 
+|:---|:---|
+| **Description** | The total number of output records. | 
+| **Type** | counter | 
+
+
 ### encode_prom_metrics_processed
 | **Name** | encode_prom_metrics_processed | 
 |:---|:---|
