@@ -21,14 +21,14 @@ Usage:
 
 Flags:
       --config string                     config file (default is $HOME/.confgen)
-      --destConfFile string               destination configuration file (default "flowlogs-pipeline.conf.yaml")
-      --destGrafanaJsonnetFolder string   destination grafana jsonnet folder
+      --destConfFile string               destination configuration file (default "/tmp/flowlogs-pipeline.conf.yaml")
+      --destDocFile string                destination documentation file (.md) (default "/tmp/metrics.md")
+      --destGrafanaJsonnetFolder string   destination grafana jsonnet folder (default "/tmp/jsonnet")
+      --generateStages strings            Produce only specified stages (ingest, transform_generic, transform_network, extract_aggregate, encode_prom, write_loki
   -h, --help                              help for confgenerator
       --log-level string                  Log level: debug, info, warning, error (default "error")
-      --skipWithLabels strings            Skip definitions with Labels
+      --skipWithTags strings              Skip definitions with Tags
       --srcFolder string                  source folder (default "network_definitions")
-      --truncatedOutput                   produce truncated config file (as for Operator)
-
 ```
 
 > Note: confgenerator is available also from `netobserv/flowlogs-pipeline` quay image. To use execute:  
