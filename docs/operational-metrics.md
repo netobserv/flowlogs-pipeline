@@ -16,6 +16,13 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Type** | gauge | 
 
 
+### conntrack_input_records
+| **Name** | conntrack_input_records | 
+|:---|:---|
+| **Description** | The total number of input records per classification. | 
+| **Type** | counter | 
+
+
 ### encode_prom_metrics_processed
 | **Name** | encode_prom_metrics_processed | 
 |:---|:---|

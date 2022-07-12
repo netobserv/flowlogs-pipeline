@@ -41,6 +41,15 @@ func NewCounter(opts prometheus.CounterOpts) prometheus.Counter {
 	return promauto.NewCounter(opts)
 }
 
+func NewCounterVec(opts prometheus.CounterOpts, labelNames []string) *prometheus.CounterVec {
+	metricsOpts = append(metricsOpts, metricDefinition{
+		Name: opts.Name,
+		Help: opts.Help,
+		Type: "counter",
+	})
+	return promauto.NewCounterVec(opts, labelNames)
+}
+
 func NewGauge(opts prometheus.GaugeOpts) prometheus.Gauge {
 	metricsOpts = append(metricsOpts, metricDefinition{
 		Name: opts.Name,
