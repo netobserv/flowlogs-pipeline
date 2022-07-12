@@ -142,7 +142,8 @@ Following is the supported API format for writing to standard output:
 
 <pre>
  stdout:
-         format: the format of each line: printf (default), fields or json
+         format: the format of each line: printf (default - writes using golang's default map printing), fields (writes one key and value field per line) or json
+
 </pre>
 ## Aggregate metrics API
 Following is the supported API format for specifying metrics aggregations:
