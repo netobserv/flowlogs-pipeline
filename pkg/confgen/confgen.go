@@ -89,18 +89,18 @@ func (cg *ConfGen) Run() error {
 	cg.dedupe()
 
 	if len(Opt.GenerateStages) != 0 {
-		config := cg.generateTruncatedConfig(Opt.GenerateStages)
+		config := cg.GenerateTruncatedConfig(Opt.GenerateStages)
 		err = cg.writeConfigFile(Opt.DestConfFile, config)
 		if err != nil {
-			log.Debugf("cg.generateTruncatedConfig err: %v ", err)
+			log.Debugf("cg.GenerateTruncatedConfig err: %v ", err)
 			return err
 		}
 		return nil
 	} else {
-		config := cg.generateFlowlogs2PipelineConfig()
+		config := cg.GenerateFlowlogs2PipelineConfig()
 		err = cg.writeConfigFile(Opt.DestConfFile, config)
 		if err != nil {
-			log.Debugf("cg.generateFlowlogs2PipelineConfig err: %v ", err)
+			log.Debugf("cg.GenerateFlowlogs2PipelineConfig err: %v ", err)
 			return err
 		}
 	}

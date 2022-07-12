@@ -25,7 +25,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func (cg *ConfGen) generateFlowlogs2PipelineConfig() map[string]interface{} {
+func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() map[string]interface{} {
 	config := map[string]interface{}{
 		"log-level": "error",
 		"pipeline": []map[string]string{
@@ -101,7 +101,7 @@ func (cg *ConfGen) generateFlowlogs2PipelineConfig() map[string]interface{} {
 	return config
 }
 
-func (cg *ConfGen) generateTruncatedConfig(stages []string) map[string]interface{} {
+func (cg *ConfGen) GenerateTruncatedConfig(stages []string) map[string]interface{} {
 	parameters := make([]map[string]interface{}, len(stages))
 	for i, stage := range stages {
 		switch stage {
