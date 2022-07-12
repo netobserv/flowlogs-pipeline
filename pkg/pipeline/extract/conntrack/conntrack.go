@@ -46,6 +46,7 @@ const (
 
 const (
 	classificationLabel = "classification"
+	typeLabel           = "type"
 )
 
 //////////////////////////
@@ -139,6 +140,11 @@ var inputRecords = operationalMetrics.NewCounterVec(prometheus.CounterOpts{
 	Help: "The total number of input records per classification.",
 }, []string{classificationLabel})
 
+var outputRecordsMetric = operationalMetrics.NewCounterVec(prometheus.CounterOpts{
+	Name: "conntrack_output_records",
+	Help: "The total number of output records.",
+}, []string{typeLabel})
+
 func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericMap {
 	log.Debugf("Entering Track")
 	log.Debugf("Track none, in = %v", flowLogs)
@@ -167,6 +173,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				addHashField(record, computedHash.hashTotal)
 				addTypeField(record, api.ConnTrackOutputRecordTypeName("NewConnection"))
 				outputRecords = append(outputRecords, record)
+				outputRecordsMetric.WithLabelValues("newConnection").Inc()
 			}
 		} else {
 			ct.updateConnection(conn, fl, computedHash)
@@ -178,12 +185,14 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 			addHashField(record, computedHash.hashTotal)
 			addTypeField(record, api.ConnTrackOutputRecordTypeName("FlowLog"))
 			outputRecords = append(outputRecords, record)
+			outputRecordsMetric.WithLabelValues("flowLog").Inc()
 		}
 	}
 
 	endConnectionRecords := ct.popEndConnections()
 	if ct.shouldOutputEndConnection {
 		outputRecords = append(outputRecords, endConnectionRecords...)
+		outputRecordsMetric.WithLabelValues("endConnection").Add(float64(len(endConnectionRecords)))
 	}
 
 	return outputRecords
