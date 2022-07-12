@@ -44,6 +44,10 @@ const (
 	dirBA
 )
 
+const (
+	classificationLabel = "classification"
+)
+
 //////////////////////////
 
 // TODO: Does connectionStore deserve a file of its own?
@@ -130,6 +134,11 @@ var connStoreLength = operationalMetrics.NewGauge(prometheus.GaugeOpts{
 	Help: "The total number of tracked connections in memory.",
 })
 
+var inputRecords = operationalMetrics.NewCounterVec(prometheus.CounterOpts{
+	Name: "conntrack_input_records",
+	Help: "The total number of input records per classification.",
+}, []string{classificationLabel})
+
 func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericMap {
 	log.Debugf("Entering Track")
 	log.Debugf("Track none, in = %v", flowLogs)
@@ -139,6 +148,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 		computedHash, err := ComputeHash(fl, ct.config.KeyDefinition, ct.hashProvider())
 		if err != nil {
 			log.Warningf("skipping flow log %v: %v", fl, err)
+			inputRecords.WithLabelValues("rejected").Inc()
 			continue
 		}
 		conn, exists := ct.connStore.getConnection(computedHash.hashTotal)
@@ -151,6 +161,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				Build()
 			ct.connStore.addConnection(computedHash.hashTotal, conn)
 			ct.updateConnection(conn, fl, computedHash)
+			inputRecords.WithLabelValues("newConnection").Inc()
 			if ct.shouldOutputNewConnection {
 				record := conn.toGenericMap()
 				addHashField(record, computedHash.hashTotal)
@@ -159,6 +170,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 			}
 		} else {
 			ct.updateConnection(conn, fl, computedHash)
+			inputRecords.WithLabelValues("update").Inc()
 		}
 
 		if ct.shouldOutputFlowLogs {
