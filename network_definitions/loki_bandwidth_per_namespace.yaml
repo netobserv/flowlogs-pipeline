@@ -5,7 +5,7 @@ details:
   Sum bytes for all traffic per source namespace
 usage:
   Evaluate network usage breakdown per source namespace
-labels:
+tags:
   - loki
   - graph
   - rate

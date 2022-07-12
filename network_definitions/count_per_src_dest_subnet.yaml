@@ -5,7 +5,7 @@ details:
   Count the number of distinct source / destination subnet pairs
 usage:
   Evaluate network usage breakdown per source / destination subnet pair
-labels:
+tags:
   - count
   - graph
   - rate

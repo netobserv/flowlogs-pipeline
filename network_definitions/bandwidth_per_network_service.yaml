@@ -5,7 +5,7 @@ details:
   Sum bytes for all traffic per network service
 usage:
   Evaluate network usage breakdown per network service
-labels:
+tags:
   - bandwidth
   - graph
   - rate

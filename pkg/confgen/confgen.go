@@ -40,7 +40,7 @@ type Definition struct {
 	Description          string
 	Details              string
 	Usage                string
-	Labels               []string
+	Tags                 []string
 	TransformNetwork     *api.TransformNetwork
 	AggregateDefinitions *aggregate.Definitions
 	PromEncode           *api.PromEncode
@@ -62,7 +62,7 @@ type DefFile struct {
 	Description   string                 `yaml:"description"`
 	Details       string                 `yaml:"details"`
 	Usage         string                 `yaml:"usage"`
-	Labels        []string               `yaml:"labels"`
+	Tags          []string               `yaml:"tags"`
 	Transform     map[string]interface{} `yaml:"transform"`
 	Extract       map[string]interface{} `yaml:"extract"`
 	Encode        map[string]interface{} `yaml:"encode"`
@@ -88,19 +88,21 @@ func (cg *ConfGen) Run() error {
 
 	cg.dedupe()
 
-	if Opt.TruncatedOutput {
-		err = cg.generateTruncatedConfig(Opt.DestConfFile)
+	if len(Opt.GenerateStages) != 0 {
+		config := cg.generateTruncatedConfig(Opt.GenerateStages)
+		err = cg.writeConfigFile(Opt.DestConfFile, config)
 		if err != nil {
 			log.Debugf("cg.generateTruncatedConfig err: %v ", err)
 			return err
 		}
 		return nil
-	}
-
-	err = cg.generateFlowlogs2PipelineConfig(Opt.DestConfFile)
-	if err != nil {
-		log.Debugf("cg.generateFlowlogs2PipelineConfig err: %v ", err)
-		return err
+	} else {
+		config := cg.generateFlowlogs2PipelineConfig()
+		err = cg.writeConfigFile(Opt.DestConfFile, config)
+		if err != nil {
+			log.Debugf("cg.generateFlowlogs2PipelineConfig err: %v ", err)
+			return err
+		}
 	}
 
 	err = cg.generateDoc(Opt.DestDocFile)
@@ -162,11 +164,11 @@ func (cg *ConfGen) parseFile(fileName string) error {
 		return err
 	}
 
-	//skip if there skip label match
-	for _, skipLabel := range Opt.SkipWithLabels {
-		for _, label := range defFile.Labels {
-			if skipLabel == label {
-				return fmt.Errorf("skipping definition %s due to skip label %s", fileName, label)
+	//skip if their skip tag match
+	for _, skipTag := range Opt.SkipWithTags {
+		for _, tag := range defFile.Tags {
+			if skipTag == tag {
+				return fmt.Errorf("skipping definition %s due to skip tag %s", fileName, tag)
 			}
 		}
 	}
@@ -177,7 +179,7 @@ func (cg *ConfGen) parseFile(fileName string) error {
 		Description: defFile.Description,
 		Details:     defFile.Details,
 		Usage:       defFile.Usage,
-		Labels:      defFile.Labels,
+		Tags:        defFile.Tags,
 	}
 
 	// parse transport

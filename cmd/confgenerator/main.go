@@ -63,7 +63,7 @@ func initConfig() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		// Search config in home directory with name ".flpconfgen" (without extension).
+		// Search config in home directory with name ".confgen" (without extension).
 		v.AddConfigPath(home)
 		v.SetConfigName(defaultLogFileName)
 	}
@@ -132,8 +132,8 @@ func initFlags() {
 	rootCmd.PersistentFlags().StringVar(&confgen.Opt.DestConfFile, "destConfFile", "/tmp/flowlogs-pipeline.conf.yaml", "destination configuration file")
 	rootCmd.PersistentFlags().StringVar(&confgen.Opt.DestDocFile, "destDocFile", "/tmp/metrics.md", "destination documentation file (.md)")
 	rootCmd.PersistentFlags().StringVar(&confgen.Opt.DestGrafanaJsonnetFolder, "destGrafanaJsonnetFolder", "/tmp/jsonnet", "destination grafana jsonnet folder")
-	rootCmd.PersistentFlags().StringSliceVar(&confgen.Opt.SkipWithLabels, "skipWithLabels", nil, "Skip definitions with Labels")
-	rootCmd.PersistentFlags().BoolVar(&confgen.Opt.TruncatedOutput, "truncatedOutput", false, "produce truncated config file (as for Operator)")
+	rootCmd.PersistentFlags().StringSliceVar(&confgen.Opt.SkipWithTags, "skipWithTags", nil, "Skip definitions with Tags")
+	rootCmd.PersistentFlags().StringSliceVar(&confgen.Opt.GenerateStages, "generateStages", nil, "Produce only specified stages (ingest, transform_generic, transform_network, extract_aggregate, encode_prom, write_loki")
 }
 
 func main() {

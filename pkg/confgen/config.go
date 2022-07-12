@@ -30,8 +30,8 @@ type Options struct {
 	DestDocFile              string
 	DestGrafanaJsonnetFolder string
 	SrcFolder                string
-	SkipWithLabels           []string
-	TruncatedOutput          bool
+	SkipWithTags             []string
+	GenerateStages           []string
 }
 
 var (
