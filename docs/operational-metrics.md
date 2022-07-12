@@ -9,8 +9,13 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 
 	
 
-<<<<<<< HEAD
-=======
+### encode_prom_metrics_processed
+| **Name** | encode_prom_metrics_processed | 
+|:---|:---|
+| **Description** | Number of metrics processed | 
+| **Type** | counter | 
+
+
 ### conntrack_memory_connections
 | **Name** | conntrack_memory_connections | 
 |:---|:---|
@@ -25,29 +30,11 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Type** | counter | 
 
 
-<<<<<<< HEAD
->>>>>>> 75dc7aa... Add conntrack_input_records operational metric
-=======
 ### conntrack_output_records
 | **Name** | conntrack_output_records | 
 |:---|:---|
 | **Description** | The total number of output records. | 
 | **Type** | counter | 
-
-
->>>>>>> 2715b90... Add conntrack_output_records operational metric
-### encode_prom_metrics_processed
-| **Name** | encode_prom_metrics_processed | 
-|:---|:---|
-| **Description** | Number of metrics processed | 
-| **Type** | counter | 
-
-
-### conntrack_memory_connections
-| **Name** | conntrack_memory_connections | 
-|:---|:---|
-| **Description** | The total number of tracked connections in memory. | 
-| **Type** | gauge | 
 
 
 ### ingest_collector_queue_length
