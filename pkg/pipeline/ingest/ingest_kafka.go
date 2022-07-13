@@ -25,6 +25,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	"github.com/segmentio/kafka-go"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -168,7 +169,18 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		commitInterval = jsonIngestKafka.CommitInterval
 	}
 
-	// TODO: TLS
+	dialer := &kafka.Dialer{
+		Timeout:   10 * time.Second,
+		DualStack: true,
+	}
+	if jsonIngestKafka.TLS != nil {
+		log.Infof("Using TLS configuration: %v", jsonIngestKafka.TLS)
+		tlsConfig, err := jsonIngestKafka.TLS.Build()
+		if err != nil {
+			return nil, err
+		}
+		dialer.TLS = tlsConfig
+	}
 
 	kafkaReader := kafkago.NewReader(kafkago.ReaderConfig{
 		Brokers:        jsonIngestKafka.Brokers,
@@ -177,6 +189,7 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		GroupBalancers: groupBalancers,
 		StartOffset:    startOffset,
 		CommitInterval: time.Duration(commitInterval) * time.Millisecond,
+		Dialer:         dialer,
 	})
 	if kafkaReader == nil {
 		errMsg := "NewIngestKafka: failed to create kafka-go reader"
