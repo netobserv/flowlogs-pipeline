@@ -21,10 +21,11 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
-func (cg *ConfGen) generateFlowlogs2PipelineConfig(fileName string) error {
+func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() map[string]interface{} {
 	config := map[string]interface{}{
 		"log-level": "error",
 		"pipeline": []map[string]string{
@@ -97,7 +98,84 @@ func (cg *ConfGen) generateFlowlogs2PipelineConfig(fileName string) error {
 			},
 		},
 	}
+	return config
+}
 
+func (cg *ConfGen) GenerateTruncatedConfig(stages []string) map[string]interface{} {
+	parameters := make([]map[string]interface{}, len(stages))
+	for i, stage := range stages {
+		switch stage {
+		case "ingest":
+			parameters[i] = map[string]interface{}{
+				"name": "ingest_collector",
+				"ingest": map[string]interface{}{
+					"type": "collector",
+					"collector": map[string]interface{}{
+						"port":       cg.config.Ingest.Collector.Port,
+						"portLegacy": cg.config.Ingest.Collector.PortLegacy,
+						"hostname":   cg.config.Ingest.Collector.HostName,
+					},
+				},
+			}
+		case "transform_generic":
+			parameters[i] = map[string]interface{}{
+				"name": "transform_generic",
+				"transform": map[string]interface{}{
+					"type": "generic",
+					"generic": map[string]interface{}{
+						"policy": "replace_keys",
+						"rules":  cg.config.Transform.Generic.Rules,
+					},
+				},
+			}
+		case "transform_network":
+			parameters[i] = map[string]interface{}{
+				"name": "transform_network",
+				"transform": map[string]interface{}{
+					"type": "network",
+					"network": map[string]interface{}{
+						"rules": cg.transformRules,
+					},
+				},
+			}
+		case "extract_aggregate":
+			parameters[i] = map[string]interface{}{
+				"name": "extract_aggregate",
+				"extract": map[string]interface{}{
+					"type":       "aggregates",
+					"aggregates": cg.aggregateDefinitions,
+				},
+			}
+		case "encode_prom":
+			parameters[i] = map[string]interface{}{
+				"name": "encode_prom",
+				"encode": map[string]interface{}{
+					"type": "prom",
+					"prom": map[string]interface{}{
+						"port":    cg.config.Encode.Prom.Port,
+						"prefix":  cg.config.Encode.Prom.Prefix,
+						"metrics": cg.promMetrics,
+					},
+				},
+			}
+		case "write_loki":
+			parameters[i] = map[string]interface{}{
+				"name": "write_loki",
+				"write": map[string]interface{}{
+					"type": cg.config.Write.Type,
+					"loki": cg.config.Write.Loki,
+				},
+			}
+		}
+	}
+	log.Debugf("parameters = %v \n", parameters)
+	config := map[string]interface{}{
+		"parameters": parameters,
+	}
+	return config
+}
+
+func (cg *ConfGen) writeConfigFile(fileName string, config map[string]interface{}) error {
 	configData, err := yaml.Marshal(&config)
 	if err != nil {
 		return err

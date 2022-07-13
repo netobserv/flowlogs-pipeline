@@ -5,7 +5,7 @@ details:
   Counts the number of connections per network service based on destination port number and protocol
 usage:
   Evaluate network services
-labels:
+tags:
   - rate
   - network-services
   - destination-port

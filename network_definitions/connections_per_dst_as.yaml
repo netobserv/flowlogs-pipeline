@@ -5,7 +5,7 @@ details:
   Aggregates flow records by values of "DstAS" field and counts the number of entries in each aggregate with non zero value
 usage:
   Evaluate amount of connections targeted at different Autonomous Systems
-labels:
+tags:
   - rate
   - count
   - AS

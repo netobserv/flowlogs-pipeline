@@ -5,7 +5,7 @@ details:
   Rate of loki logs per sec
 usage:
   Evaluate loki service usage
-labels:
+tags:
   - loki
   - graph
   - rate

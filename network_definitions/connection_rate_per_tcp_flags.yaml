@@ -5,7 +5,7 @@ details:
   Counts the number of connections per tcp flags
 usage:
   Evaluate difference in connections rate of different TCP Flags. Can be used, for example, to identify syn-attacks.
-labels:
+tags:
   - rate
   - TCPFlags
 extract:

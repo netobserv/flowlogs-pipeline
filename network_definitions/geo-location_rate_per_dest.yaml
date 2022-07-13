@@ -5,7 +5,7 @@ details:
   Counts the number of connections per geo-location based on destination IP
 usage:
   Evaluate network connections geo-location
-labels:
+tags:
   - rate
   - connections-count
   - geo-location
