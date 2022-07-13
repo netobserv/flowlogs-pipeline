@@ -77,12 +77,16 @@ func initConfig() {
 	v.AutomaticEnv()
 
 	// If a config file is found, read it in.
-	_ = v.ReadInConfig()
+	cfgErr := v.ReadInConfig()
 
 	bindFlags(rootCmd, v)
 
 	// initialize logger
 	initLogger()
+
+	if cfgErr != nil {
+		log.Errorf("Read config error: %v", cfgErr)
+	}
 }
 
 func initLogger() {
