@@ -1,15 +1,30 @@
 # This file was generated automatically by flowlogs-pipeline confgenerator
 log-level: error
+pipeline:
+- name: ingest_collector
+- name: transform_generic
+  follows: ingest_collector
+- name: transform_network
+  follows: transform_generic
+- name: extract_conntrack
+  follows: transform_network
+- name: extract_aggregate
+  follows: extract_conntrack
+- name: encode_prom
+  follows: extract_aggregate
+- name: write_loki
+  follows: transform_network
 parameters:
-- ingest:
+- name: ingest_collector
+  ingest:
+    type: collector
     collector:
-      hostname: 0.0.0.0
+      hostName: 0.0.0.0
       port: 2055
       portLegacy: 2056
-    type: collector
-  name: ingest_collector
 - name: transform_generic
   transform:
+    type: generic
     generic:
       policy: replace_keys
       rules:
@@ -31,9 +46,9 @@ parameters:
         output: srcAS
       - input: DstAS
         output: dstAS
-    type: generic
 - name: transform_network
   transform:
+    type: network
     network:
       rules:
       - input: dstPort
@@ -71,8 +86,49 @@ parameters:
       - input: dstIP
         output: dstLocation
         type: add_location
-    type: network
-- extract:
+- name: extract_conntrack
+  extract:
+    type: conntrack
+    conntrack:
+      keyDefinition:
+        fieldGroups:
+        - name: src
+          fields:
+          - srcIP
+          - srcPort
+        - name: dst
+          fields:
+          - dstIP
+          - dstPort
+        - name: protocol
+          fields:
+          - proto
+        hash:
+          fieldGroupRefs:
+          - protocol
+          fieldGroupARef: src
+          fieldGroupBRef: dst
+      outputRecordTypes:
+      - newConnection
+      - flowLog
+      - endConnection
+      outputFields:
+      - name: bytes
+        operation: sum
+      - name: Packets
+        operation: sum
+      - name: numFlowLogs
+        operation: count
+      - name: TimeFlowStart
+        operation: min
+        input: TimeReceived
+      - name: TimeFlowEnd
+        operation: max
+        input: TimeReceived
+      endConnectionTimeout: 30s
+- name: extract_aggregate
+  extract:
+    type: aggregates
     aggregates:
     - name: bandwidth_network_service
       by:
@@ -140,9 +196,9 @@ parameters:
       by:
       - service
       operation: count
-    type: aggregates
-  name: extract_aggregate
-- encode:
+- name: encode_prom
+  encode:
+    type: prom
     prom:
       metrics:
       - name: bandwidth_per_network_service
@@ -292,25 +348,11 @@ parameters:
         buckets: []
       port: 9102
       prefix: flp_
-    type: prom
-  name: encode_prom
 - name: write_loki
   write:
+    type: loki
     loki:
       url: http://loki.default.svc.cluster.local:3100
       staticLabels:
         job: flowlogs-pipeline
-    type: loki
-pipeline:
-- name: ingest_collector
-- follows: ingest_collector
-  name: transform_generic
-- follows: transform_generic
-  name: transform_network
-- follows: transform_network
-  name: extract_aggregate
-- follows: extract_aggregate
-  name: encode_prom
-- follows: transform_network
-  name: write_loki
 

@@ -48,6 +48,10 @@ type ConfigTransform struct {
 	Generic api.TransformGeneric `yaml:"generic"`
 }
 
+type ConfigTrack struct {
+	ConnTrack api.ConnTrack `yaml:"conntrack"`
+}
+
 type ConfigEncode struct {
 	Prom api.PromEncode `yaml:"prom"`
 }
@@ -65,6 +69,7 @@ type Config struct {
 	Description   string              `yaml:"description"`
 	Ingest        ConfigIngest        `yaml:"ingest"`
 	Transform     ConfigTransform     `yaml:"transform"`
+	Track         ConfigTrack         `yaml:"track"`
 	Write         ConfigWrite         `yaml:"write"`
 	Encode        ConfigEncode        `yaml:"encode"`
 	Visualization ConfigVisualization `yaml:"visualization"`
