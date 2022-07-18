@@ -18,6 +18,7 @@
 package ingest
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -27,7 +28,6 @@ import (
 	kafkago "github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/context"
 )
 
 const testConfig1 = `---
@@ -189,7 +189,8 @@ func Test_KafkaListener(t *testing.T) {
 	}()
 
 	// wait for the data to have been processed
-	receivedEntries := <-ingestOutput
+	receivedEntries, err := test.WaitFromChannel(ingestOutput, 2000)
+	require.NoError(t, err)
 
 	// we remove timestamp for test stability
 	// Timereceived field is tested in the decodeJson tests
@@ -216,7 +217,8 @@ func Test_MaxBatchLength(t *testing.T) {
 	}()
 
 	// wait for the data to have been processed
-	receivedEntries := <-ingestOutput
+	receivedEntries, err := test.WaitFromChannel(ingestOutput, 2000)
+	require.NoError(t, err)
 
 	require.Equal(t, 10, len(receivedEntries))
 }
@@ -240,7 +242,8 @@ func Test_BatchTimeout(t *testing.T) {
 
 	require.Equal(t, 0, len(ingestOutput))
 	// wait for the data to have been processed
-	receivedEntries := <-ingestOutput
+	receivedEntries, err := test.WaitFromChannel(ingestOutput, 2000)
+	require.NoError(t, err)
 	require.Equal(t, 5, len(receivedEntries))
 
 	afterIngest := time.Now()

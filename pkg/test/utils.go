@@ -20,6 +20,7 @@ package test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -27,6 +28,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -177,5 +179,16 @@ func DumpToTemp(content string) (string, error, func()) {
 	}
 	return file.Name(), nil, func() {
 		os.Remove(file.Name())
+	}
+}
+
+func WaitFromChannel(in chan []config.GenericMap, timeout int64) ([]config.GenericMap, error) {
+	duration := time.Duration(timeout) * time.Millisecond
+	timeoutReached := time.NewTicker(duration)
+	select {
+	case record := <-in:
+		return record, nil
+	case <-timeoutReached.C:
+		return nil, errors.New("Timeout reached")
 	}
 }
