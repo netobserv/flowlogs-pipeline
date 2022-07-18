@@ -91,27 +91,18 @@ func e2eDeleteKindCluster(clusterName string) env.Func {
 	}
 }
 
-// NOTE: the e2e framework uses `kind load` command that forces usage of docker (and not podman)
-// ref: https://github.com/kubernetes-sigs/kind/issues/2027
 func e2eBuildAndLoadImageIntoKind(dockerImg, dockerTag, clusterName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		e := gexe.New()
 		fmt.Printf("====> building docker image - %s:%s\n", dockerImg, dockerTag)
-		p := e.RunProc(fmt.Sprintf(`/bin/sh -c "cd $(git rev-parse --show-toplevel); OCI_RUNTIME=docker DOCKER_IMG=%s DOCKER_TAG=%s make build-image"`,
-			dockerImg, dockerTag))
+		p := e.RunProc(fmt.Sprintf(`/bin/sh -c "cd $(git rev-parse --show-toplevel); DOCKER_IMG=%s DOCKER_TAG=%s KIND_CLUSTER_NAME=%s make build-image kind-load-image"`,
+			dockerImg, dockerTag, clusterName))
 		if p.Err() != nil || !p.IsSuccess() || p.ExitCode() != 0 {
-			return nil, fmt.Errorf("failed to building docker image err=%v result=%v", p.Err(), p.Result())
-		}
-		fmt.Printf("====> Done.\n")
-		fmt.Printf("====> Load image into kind \n")
-		p = e.RunProc(fmt.Sprintf("kind load --name %s docker-image %s:%s", clusterName, dockerImg, dockerTag))
-		if p.Err() != nil || !p.IsSuccess() || p.ExitCode() != 0 {
-			return nil, fmt.Errorf("failed to load image into kind err=%v result=%v", p.Err(), p.Result())
+			return nil, fmt.Errorf("failed to build or load docker image err=%v result=%v", p.Err(), p.Result())
 		}
 		fmt.Printf("====> Done.\n")
 		return ctx, nil
 	}
-
 }
 
 func e2eRecreateNamespace(name string) env.Func {
