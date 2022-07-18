@@ -19,13 +19,14 @@ package ingest
 
 import (
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
-	"github.com/segmentio/kafka-go"
+	"github.com/prometheus/client_golang/prometheus"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -75,12 +76,53 @@ func (ingestK *ingestKafka) kafkaListener() {
 				log.Errorln(err)
 			}
 			log.Debugf("string(kafkaMessage) = %s\n", string(kafkaMessage.Value))
-			if len(kafkaMessage.Value) > 0 {
+			messageLen := len(kafkaMessage.Value)
+			if messageLen > 0 {
+				trafficLabels := prometheus.Labels{
+					"type":       ingestK.kafkaParams.Decoder.Type,
+					"remote_ip":  ingestK.kafkaParams.Brokers[0],
+					"local_ip":   "0.0.0.0",
+					"local_port": "0",
+				}
+				flowTrafficBytesSum.With(trafficLabels).Observe(float64(messageLen))
 				ingestK.in <- string(kafkaMessage.Value)
 			}
 		}
 	}()
 
+}
+
+func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records []interface{}) {
+	log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
+
+	// Decode batch
+	decoded := ingestK.decoder.Decode(records)
+
+	// Update metrics
+	flowDecoderCount.With(
+		prometheus.Labels{"worker": "", "name": ingestK.kafkaParams.Decoder.Type}).Inc()
+	linesProcessed.Add(float64(len(records)))
+	queueLength.Set(float64(len(out)))
+	ingestK.prevRecords = decoded
+
+	for _, record := range decoded {
+		TimeFLowEndString, ok := record["TimeFlowEnd"].(string)
+		if ok {
+			TimeFlowEnd, err := strconv.ParseInt(TimeFLowEndString, 10, 64)
+			if err != nil {
+				log.Errorf("could not parse TimeFlowEnd")
+				flowErrors.With(prometheus.Labels{"router": "", "error": err.Error()}).Inc()
+			}
+			delay := time.Since(time.Unix(TimeFlowEnd, 0)).Seconds()
+			processDelaySummary.Observe(delay)
+		} else {
+			flowErrors.With(prometheus.Labels{"router": "", "error": "No TimeFlowEnd found"}).Inc()
+		}
+	}
+
+	// Send batch
+	log.Debugf("prevRecords = %v", ingestK.prevRecords)
+	out <- decoded
 }
 
 // read items from ingestKafka input channel, pool them, and send down the pipeline
@@ -96,14 +138,8 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 		case record := <-ingestK.in:
 			records = append(records, record)
 			if len(records) >= ingestK.batchMaxLength {
-				log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
-				decoded := ingestK.decoder.Decode(records)
-				linesProcessed.Add(float64(len(records)))
-				queueLength.Set(float64(len(out)))
-				ingestK.prevRecords = decoded
-				log.Debugf("prevRecords = %v", ingestK.prevRecords)
+				ingestK.processBatch(out, records)
 				records = []interface{}{}
-				out <- decoded
 			}
 		case <-flushRecords.C: // Maximum batch time for each batch
 			// Process batch of records (if not empty)
@@ -114,15 +150,9 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 						records = append(records, record)
 					}
 				}
-				log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
-				decoded := ingestK.decoder.Decode(records)
-				linesProcessed.Add(float64(len(records)))
-				queueLength.Set(float64(len(out)))
-				ingestK.prevRecords = decoded
-				log.Debugf("prevRecords = %v", ingestK.prevRecords)
-				out <- decoded
+				ingestK.processBatch(out, records)
+				records = []interface{}{}
 			}
-			records = []interface{}{}
 		}
 	}
 }
