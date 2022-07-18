@@ -30,11 +30,6 @@ type ClientTLS struct {
 	UserKeyPath        string `yaml:"userKeyPath,omitempty" json:"userKeyPath,omitempty" doc:"path to the user private key"`
 }
 
-type ServerTLS struct {
-	CertPath       string `yaml:"certPath,omitempty" json:"certPath,omitempty" doc:"path to the certificate to enable TLS"`
-	PrivateKeyPath string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty" doc:"path to the private key to enable TLS"`
-}
-
 func (c *ClientTLS) Build() (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: c.InsecureSkipVerify,
@@ -65,12 +60,4 @@ func (c *ClientTLS) Build() (*tls.Config, error) {
 		return tlsConfig, nil
 	}
 	return nil, nil
-}
-
-func (c *ServerTLS) Build() (*tls.Config, string, string) {
-	// Clients must use TLS 1.2 or higher
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-	return tlsConfig, c.PrivateKeyPath, c.CertPath
 }
