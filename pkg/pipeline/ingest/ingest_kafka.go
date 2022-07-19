@@ -170,8 +170,8 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 	}
 
 	dialer := &kafka.Dialer{
-		Timeout:   10 * time.Second,
-		DualStack: true,
+		Timeout:   kafka.DefaultDialer.Timeout,
+		DualStack: kafka.DefaultDialer.DualStack,
 	}
 	if jsonIngestKafka.TLS != nil {
 		log.Infof("Using TLS configuration: %v", jsonIngestKafka.TLS)
