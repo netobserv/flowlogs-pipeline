@@ -21,6 +21,7 @@ CG_BIN_FILE=confgenerator
 NETFLOW_GENERATOR=nflow-generator
 CMD_DIR=./cmd/
 FLP_CONF_FILE ?= contrib/kubernetes/flowlogs-pipeline.conf.yaml
+KIND_CLUSTER_NAME ?= kind
 
 BUILD_DATE := $(shell date +%Y-%m-%d\ %H:%M)
 TAG_COMMIT := $(shell git rev-list --abbrev-commit --tags --max-count=1)
@@ -221,24 +222,24 @@ undeploy-netflow-simulator: ## Undeploy netflow simulator
 
 .PHONY: create-kind-cluster
 create-kind-cluster: $(KIND) ## Create cluster
-	$(KIND) create cluster --config contrib/kubernetes/kind/kind.config.yaml
+	$(KIND) create cluster --name $(KIND_CLUSTER_NAME) --config contrib/kubernetes/kind/kind.config.yaml
 	kubectl cluster-info --context kind-kind
 
 .PHONY: delete-kind-cluster
 delete-kind-cluster: $(KIND) ## Delete cluster
-	$(KIND) delete cluster
+	$(KIND) delete cluster --name $(KIND_CLUSTER_NAME)
 
 .PHONY: kind-load-image
 kind-load-image: ## Load image to kind
 ifeq ($(OCI_RUNTIME),$(shell which docker))
 # This is an optimization for docker provider. "kind load docker-image" can load an image directly from docker's
 # local registry. For other providers (i.e. podman), we must use "kind load image-archive" instead.
-	$(KIND) load docker-image $(DOCKER_IMG):$(DOCKER_TAG)
+	$(KIND) load --name $(KIND_CLUSTER_NAME) docker-image $(DOCKER_IMG):$(DOCKER_TAG)
 else
 	$(eval tmpfile="/tmp/flp.tar")
 	-rm $(tmpfile)
 	$(OCI_RUNTIME) save $(DOCKER_IMG):$(DOCKER_TAG) -o $(tmpfile)
-	$(KIND) load image-archive $(tmpfile)
+	$(KIND) load --name $(KIND_CLUSTER_NAME) image-archive $(tmpfile)
 	-rm $(tmpfile)
 endif
 
