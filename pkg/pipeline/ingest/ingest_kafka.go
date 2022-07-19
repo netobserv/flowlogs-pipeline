@@ -19,7 +19,7 @@ package ingest
 
 import (
 	"errors"
-	"strconv"
+	"fmt"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -92,6 +92,23 @@ func (ingestK *ingestKafka) kafkaListener() {
 
 }
 
+func processRecordDelay(record config.GenericMap) {
+	TimeFlowEndInterface, ok := record["TimeFlowEnd"]
+	if !ok {
+		flowErrors.With(prometheus.Labels{"router": "", "error": "No TimeFlowEnd found"}).Inc()
+		return
+	} else {
+		fmt.Println(TimeFlowEndInterface)
+	}
+	TimeFlowEnd, ok := TimeFlowEndInterface.(float64)
+	if !ok {
+		flowErrors.With(prometheus.Labels{"router": "", "error": "Cannot parse TimeFlowEnd"}).Inc()
+		return
+	}
+	delay := time.Since(time.Unix(int64(TimeFlowEnd), 0)).Seconds()
+	processDelaySummary.Observe(delay)
+}
+
 func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records []interface{}) {
 	log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
 
@@ -106,18 +123,7 @@ func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records
 	ingestK.prevRecords = decoded
 
 	for _, record := range decoded {
-		TimeFLowEndString, ok := record["TimeFlowEnd"].(string)
-		if ok {
-			TimeFlowEnd, err := strconv.ParseInt(TimeFLowEndString, 10, 64)
-			if err != nil {
-				log.Errorf("could not parse TimeFlowEnd")
-				flowErrors.With(prometheus.Labels{"router": "", "error": err.Error()}).Inc()
-			}
-			delay := time.Since(time.Unix(TimeFlowEnd, 0)).Seconds()
-			processDelaySummary.Observe(delay)
-		} else {
-			flowErrors.With(prometheus.Labels{"router": "", "error": "No TimeFlowEnd found"}).Inc()
-		}
+		processRecordDelay(record)
 	}
 
 	// Send batch
