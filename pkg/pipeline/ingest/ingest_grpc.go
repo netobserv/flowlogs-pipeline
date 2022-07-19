@@ -28,7 +28,7 @@ const (
 )
 
 // Prometheus metrics describing the performance of the eBPF ingest
-// This metrics are internal to the goflow2 library, we update them here manually do align with the IPFIX ingester
+// This metrics are internal to the goflow2 library, we update them here manually to align with the IPFIX ingester
 var (
 	flowDecoderCount    = flow.DecoderStats
 	processDelaySummary = flow.NetFlowTimeStatsSum.With(
