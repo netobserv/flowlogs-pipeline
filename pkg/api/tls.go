@@ -20,6 +20,7 @@ package api
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"io/ioutil"
 )
 
@@ -56,6 +57,8 @@ func (c *ClientTLS) Build() (*tls.Config, error) {
 				return nil, err
 			}
 			tlsConfig.Certificates = []tls.Certificate{pair}
+		} else if c.UserCertPath != "" || c.UserKeyPath != "" {
+			return nil, errors.New("userCertPath and userKeyPath must be both present or both absent.")
 		}
 		return tlsConfig, nil
 	}
