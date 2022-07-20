@@ -20,6 +20,7 @@ package write
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"strings"
 	"time"
@@ -85,11 +86,21 @@ func buildLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 		return loki.Config{}, fmt.Errorf("failed in parsing MaxBackoff : %v", err)
 	}
 
+	authorization := ""
+	if c.BearerAuthTokenPath != "" {
+		bytes, err := ioutil.ReadFile(c.BearerAuthTokenPath)
+		if err != nil {
+			return loki.Config{}, fmt.Errorf("failed to parse authorization path: %s %w", c.BearerAuthTokenPath, err)
+		}
+		authorization = "Bearer " + string(bytes)
+	}
+
 	cfg := loki.Config{
-		TenantID:  c.TenantID,
-		BatchWait: batchWait,
-		BatchSize: c.BatchSize,
-		Timeout:   timeout,
+		TenantID:      c.TenantID,
+		Authorization: authorization,
+		BatchWait:     batchWait,
+		BatchSize:     c.BatchSize,
+		Timeout:       timeout,
 		BackoffConfig: backoff.BackoffConfig{
 			MinBackoff: minBackoff,
 			MaxBackoff: maxBackoff,

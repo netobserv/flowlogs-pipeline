@@ -126,6 +126,7 @@ Following is the supported API format for writing to loki:
  loki:
          url: the address of an existing Loki service to push the flows to
          tenantID: identifies the tenant for the request
+         authorizationTokenPath: authorization header path to parse and send to loki gateway
          batchWait: maximum amount of time to wait before sending a batch
          batchSize: maximum batch size (in bytes) of logs to accumulate before sending
          timeout: maximum time to wait for a server to respond to a request
