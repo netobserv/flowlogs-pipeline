@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	kafkago "github.com/segmentio/kafka-go"
@@ -248,4 +249,62 @@ func Test_BatchTimeout(t *testing.T) {
 	// Time must be above timer value but not too much, 20ms is our margin here
 	require.LessOrEqual(t, int64(100), afterIngest.Sub(beforeIngest).Milliseconds())
 	require.Greater(t, int64(120), afterIngest.Sub(beforeIngest).Milliseconds())
+}
+
+func Test_TLSConfigEmpty(t *testing.T) {
+	stage := config.NewKafkaPipeline("ingest-kafka", api.IngestKafka{
+		Brokers: []string{"any"},
+		Topic:   "topic",
+		Decoder: api.Decoder{Type: "json"},
+	})
+	newIngest, err := NewIngestKafka(stage.GetStageParams()[0])
+	require.NoError(t, err)
+	tlsConfig := newIngest.(*ingestKafka).kafkaReader.Config().Dialer.TLS
+	require.Nil(t, tlsConfig)
+}
+
+func Test_TLSConfigCA(t *testing.T) {
+	ca, cleanup := test.CreateCACert(t)
+	defer cleanup()
+	stage := config.NewKafkaPipeline("ingest-kafka", api.IngestKafka{
+		Brokers: []string{"any"},
+		Topic:   "topic",
+		Decoder: api.Decoder{Type: "json"},
+		TLS: &api.ClientTLS{
+			CACertPath: ca,
+		},
+	})
+	newIngest, err := NewIngestKafka(stage.GetStageParams()[0])
+	require.NoError(t, err)
+
+	tlsConfig := newIngest.(*ingestKafka).kafkaReader.Config().Dialer.TLS
+
+	require.Empty(t, tlsConfig.Certificates)
+	require.NotNil(t, tlsConfig.RootCAs)
+	require.Len(t, tlsConfig.RootCAs.Subjects(), 1)
+}
+
+func Test_MutualTLSConfig(t *testing.T) {
+	ca, user, userKey, cleanup := test.CreateAllCerts(t)
+	defer cleanup()
+	stage := config.NewKafkaPipeline("ingest-kafka", api.IngestKafka{
+		Brokers: []string{"any"},
+		Topic:   "topic",
+		Decoder: api.Decoder{Type: "json"},
+		TLS: &api.ClientTLS{
+			CACertPath:   ca,
+			UserCertPath: user,
+			UserKeyPath:  userKey,
+		},
+	})
+	newIngest, err := NewIngestKafka(stage.GetStageParams()[0])
+	require.NoError(t, err)
+
+	tlsConfig := newIngest.(*ingestKafka).kafkaReader.Config().Dialer.TLS
+
+	require.Len(t, tlsConfig.Certificates, 1)
+	require.NotEmpty(t, tlsConfig.Certificates[0].Certificate)
+	require.NotNil(t, tlsConfig.Certificates[0].PrivateKey)
+	require.NotNil(t, tlsConfig.RootCAs)
+	require.Len(t, tlsConfig.RootCAs.Subjects(), 1)
 }

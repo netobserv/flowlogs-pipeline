@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"reflect"
@@ -162,4 +163,19 @@ func DeserializeJSONToMap(t *testing.T, in string) config.GenericMap {
 	err := json.Unmarshal([]byte(in), &m)
 	require.NoError(t, err)
 	return m
+}
+
+func DumpToTemp(content string) (string, error, func()) {
+	file, err := ioutil.TempFile("", "flp-tests-")
+	if err != nil {
+		return "", err, nil
+	}
+	err = ioutil.WriteFile(file.Name(), []byte(content), 0644)
+	if err != nil {
+		defer os.Remove(file.Name())
+		return "", err, nil
+	}
+	return file.Name(), nil, func() {
+		os.Remove(file.Name())
+	}
 }
