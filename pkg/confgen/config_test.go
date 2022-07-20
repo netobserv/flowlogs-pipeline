@@ -62,7 +62,7 @@ func Test_parseConfigFile(t *testing.T) {
 	cg := getConfGen()
 	err := os.WriteFile(filename, []byte(testConfig), 0644)
 	require.Equal(t, err, nil)
-	config, err := cg.parseConfigFile(filename)
+	config, err := cg.ParseConfigFile(filename)
 	require.NoError(t, err)
 	require.Equal(t, config, expectedConfig())
 }

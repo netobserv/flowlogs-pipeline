@@ -68,7 +68,7 @@ type Config struct {
 	Visualization ConfigVisualization `yaml:"visualization"`
 }
 
-func (cg *ConfGen) parseConfigFile(fileName string) (*Config, error) {
+func (cg *ConfGen) ParseConfigFile(fileName string) (*Config, error) {
 	// parse config file yaml
 	var config Config
 	yamlFile, err := ioutil.ReadFile(fileName)
