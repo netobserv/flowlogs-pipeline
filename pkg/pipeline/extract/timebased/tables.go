@@ -34,11 +34,11 @@ func AddEntryToTables(recordKeyStructs map[string]*RecordKeyTable, entry config.
 				entry:     entry,
 			}
 			// allocate list if it does not yet exist
-			if recordTable.dataTable[val.(string)] == nil {
-				recordTable.dataTable[val.(string)] = list.New()
+			if recordTable.dataTableMap[val.(string)] == nil {
+				recordTable.dataTableMap[val.(string)] = list.New()
 			}
 			log.Debugf("ExtractTimebased addEntryToTables: adding to table %s", val)
-			AddEntryToTable(cEntry, recordTable.dataTable[val.(string)])
+			AddEntryToTable(cEntry, recordTable.dataTableMap[val.(string)])
 		}
 	}
 }

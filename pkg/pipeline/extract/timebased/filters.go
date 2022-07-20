@@ -30,7 +30,7 @@ import (
 func (fs FilterStruct) CalculateResults(nowInSecs int64) {
 	log.Debugf("CalculateResults nowInSecs = %d", nowInSecs)
 	oldestValidTime := nowInSecs - int64(fs.rule.TimeInterval)
-	for key, l := range fs.recordKeyDataTable.dataTable {
+	for key, l := range fs.recordKeyDataTable.dataTableMap {
 		var valueFloat64 = float64(0)
 		switch fs.rule.Operation {
 		case OperationLast:

@@ -47,9 +47,11 @@ type filterOperationResult struct {
 	operationResult float64
 }
 
+type DataTableMap map[string]*list.List
+
 type RecordKeyTable struct {
 	maxTimeInterval int
-	dataTable       map[string]*list.List
+	dataTableMap    DataTableMap
 }
 
 type TableEntry struct {
@@ -74,7 +76,7 @@ func CreateRecordKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*Re
 		if !ok {
 			rStruct = &RecordKeyTable{
 				maxTimeInterval: filterRule.TimeInterval,
-				dataTable:       make(map[string]*list.List),
+				dataTableMap:    make(DataTableMap),
 			}
 			tmpRecordKeyStructs[filterRule.RecordKey] = rStruct
 			log.Debugf("new RecordKeyTable: name = %s = %v", filterRule.RecordKey, *rStruct)

@@ -35,15 +35,20 @@ type ExtractTimebased struct {
 func (et *ExtractTimebased) Extract(entries []config.GenericMap) []config.GenericMap {
 	log.Debugf("entering ExtractTimebased Extract")
 	nowInSecs := time.Now().Unix()
+	// Populate the Table with the current entries
 	for _, entry := range entries {
 		log.Debugf("ExtractTimebased Extract, entry = %v", entry)
 		timebased.AddEntryToTables(et.recordKeyStructs, entry, nowInSecs)
 	}
 
-	// TODO: calculate filters and build return []config.GenericMap
+	// Calculate filters based on time windows
 	for _, filter := range et.filters {
 		filter.CalculateResults(nowInSecs)
 	}
+
+	// TODO extract topk/botk and build return []config.GenericMap
+
+	// TODO: delete entries from tables that are outside time window
 	return nil
 }
 
