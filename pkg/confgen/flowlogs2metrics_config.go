@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	config2 "github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -28,72 +30,72 @@ import (
 func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() map[string]interface{} {
 	config := map[string]interface{}{
 		"log-level": "error",
-		"pipeline": []map[string]string{
-			{"name": "ingest_collector"},
-			{"name": "transform_generic",
-				"follows": "ingest_collector",
+		"pipeline": []config2.Stage{
+			{Name: "ingest_collector"},
+			{Name: "transform_generic",
+				Follows: "ingest_collector",
 			},
-			{"name": "transform_network",
-				"follows": "transform_generic",
+			{Name: "transform_network",
+				Follows: "transform_generic",
 			},
-			{"name": "extract_aggregate",
-				"follows": "transform_network",
+			{Name: "extract_aggregate",
+				Follows: "transform_network",
 			},
-			{"name": "encode_prom",
-				"follows": "extract_aggregate",
+			{Name: "encode_prom",
+				Follows: "extract_aggregate",
 			},
-			{"name": "write_loki",
-				"follows": "transform_network",
+			{Name: "write_loki",
+				Follows: "transform_network",
 			},
 		},
-		"parameters": []map[string]interface{}{
-			{"name": "ingest_collector",
-				"ingest": map[string]interface{}{
-					"type": "collector",
-					"collector": map[string]interface{}{
-						"port":       cg.config.Ingest.Collector.Port,
-						"portLegacy": cg.config.Ingest.Collector.PortLegacy,
-						"hostname":   cg.config.Ingest.Collector.HostName,
+		"parameters": []config2.StageParam{
+			{Name: "ingest_collector",
+				Ingest: &config2.Ingest{
+					Type: "collector",
+					Collector: &api.IngestCollector{
+						Port:       cg.config.Ingest.Collector.Port,
+						PortLegacy: cg.config.Ingest.Collector.PortLegacy,
+						HostName:   cg.config.Ingest.Collector.HostName,
 					},
 				},
 			},
-			{"name": "transform_generic",
-				"transform": map[string]interface{}{
-					"type": "generic",
-					"generic": map[string]interface{}{
-						"policy": "replace_keys",
-						"rules":  cg.config.Transform.Generic.Rules,
+			{Name: "transform_generic",
+				Transform: &config2.Transform{
+					Type: "generic",
+					Generic: &api.TransformGeneric{
+						Policy: "replace_keys",
+						Rules:  cg.config.Transform.Generic.Rules,
 					},
 				},
 			},
-			{"name": "transform_network",
-				"transform": map[string]interface{}{
-					"type": "network",
-					"network": map[string]interface{}{
-						"rules": cg.transformRules,
+			{Name: "transform_network",
+				Transform: &config2.Transform{
+					Type: "network",
+					Network: &api.TransformNetwork{
+						Rules: cg.transformRules,
 					},
 				},
 			},
-			{"name": "extract_aggregate",
-				"extract": map[string]interface{}{
-					"type":       "aggregates",
-					"aggregates": cg.aggregateDefinitions,
+			{Name: "extract_aggregate",
+				Extract: &config2.Extract{
+					Type:       "aggregates",
+					Aggregates: cg.aggregateDefinitions,
 				},
 			},
-			{"name": "encode_prom",
-				"encode": map[string]interface{}{
-					"type": "prom",
-					"prom": map[string]interface{}{
-						"port":    cg.config.Encode.Prom.Port,
-						"prefix":  cg.config.Encode.Prom.Prefix,
-						"metrics": cg.promMetrics,
+			{Name: "encode_prom",
+				Encode: &config2.Encode{
+					Type: "prom",
+					Prom: &api.PromEncode{
+						Port:    cg.config.Encode.Prom.Port,
+						Prefix:  cg.config.Encode.Prom.Prefix,
+						Metrics: cg.promMetrics,
 					},
 				},
 			},
-			{"name": "write_loki",
-				"write": map[string]interface{}{
-					"type": cg.config.Write.Type,
-					"loki": cg.config.Write.Loki,
+			{Name: "write_loki",
+				Write: &config2.Write{
+					Type: cg.config.Write.Type,
+					Loki: &cg.config.Write.Loki,
 				},
 			},
 		},
@@ -102,68 +104,68 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() map[string]interface{} {
 }
 
 func (cg *ConfGen) GenerateTruncatedConfig(stages []string) map[string]interface{} {
-	parameters := make([]map[string]interface{}, len(stages))
+	parameters := make([]config2.StageParam, len(stages))
 	for i, stage := range stages {
 		switch stage {
 		case "ingest":
-			parameters[i] = map[string]interface{}{
-				"name": "ingest_collector",
-				"ingest": map[string]interface{}{
-					"type": "collector",
-					"collector": map[string]interface{}{
-						"port":       cg.config.Ingest.Collector.Port,
-						"portLegacy": cg.config.Ingest.Collector.PortLegacy,
-						"hostname":   cg.config.Ingest.Collector.HostName,
+			parameters[i] = config2.StageParam{
+				Name: "ingest_collector",
+				Ingest: &config2.Ingest{
+					Type: "collector",
+					Collector: &api.IngestCollector{
+						Port:       cg.config.Ingest.Collector.Port,
+						PortLegacy: cg.config.Ingest.Collector.PortLegacy,
+						HostName:   cg.config.Ingest.Collector.HostName,
 					},
 				},
 			}
 		case "transform_generic":
-			parameters[i] = map[string]interface{}{
-				"name": "transform_generic",
-				"transform": map[string]interface{}{
-					"type": "generic",
-					"generic": map[string]interface{}{
-						"policy": "replace_keys",
-						"rules":  cg.config.Transform.Generic.Rules,
+			parameters[i] = config2.StageParam{
+				Name: "transform_generic",
+				Transform: &config2.Transform{
+					Type: "generic",
+					Generic: &api.TransformGeneric{
+						Policy: "replace_keys",
+						Rules:  cg.config.Transform.Generic.Rules,
 					},
 				},
 			}
 		case "transform_network":
-			parameters[i] = map[string]interface{}{
-				"name": "transform_network",
-				"transform": map[string]interface{}{
-					"type": "network",
-					"network": map[string]interface{}{
-						"rules": cg.transformRules,
+			parameters[i] = config2.StageParam{
+				Name: "transform_network",
+				Transform: &config2.Transform{
+					Type: "network",
+					Network: &api.TransformNetwork{
+						Rules: cg.transformRules,
 					},
 				},
 			}
 		case "extract_aggregate":
-			parameters[i] = map[string]interface{}{
-				"name": "extract_aggregate",
-				"extract": map[string]interface{}{
-					"type":       "aggregates",
-					"aggregates": cg.aggregateDefinitions,
+			parameters[i] = config2.StageParam{
+				Name: "extract_aggregate",
+				Extract: &config2.Extract{
+					Type:       "aggregates",
+					Aggregates: cg.aggregateDefinitions,
 				},
 			}
 		case "encode_prom":
-			parameters[i] = map[string]interface{}{
-				"name": "encode_prom",
-				"encode": map[string]interface{}{
-					"type": "prom",
-					"prom": map[string]interface{}{
-						"port":    cg.config.Encode.Prom.Port,
-						"prefix":  cg.config.Encode.Prom.Prefix,
-						"metrics": cg.promMetrics,
+			parameters[i] = config2.StageParam{
+				Name: "encode_prom",
+				Encode: &config2.Encode{
+					Type: "prom",
+					Prom: &api.PromEncode{
+						Port:    cg.config.Encode.Prom.Port,
+						Prefix:  cg.config.Encode.Prom.Prefix,
+						Metrics: cg.promMetrics,
 					},
 				},
 			}
 		case "write_loki":
-			parameters[i] = map[string]interface{}{
-				"name": "write_loki",
-				"write": map[string]interface{}{
-					"type": cg.config.Write.Type,
-					"loki": cg.config.Write.Loki,
+			parameters[i] = config2.StageParam{
+				Name: "write_loki",
+				Write: &config2.Write{
+					Type: cg.config.Write.Type,
+					Loki: &cg.config.Write.Loki,
 				},
 			}
 		}
