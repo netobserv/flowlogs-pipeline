@@ -75,7 +75,10 @@ func (cg *ConfGen) ParseConfigFile(fileName string) (*Config, error) {
 	// provide a minimal config for when config file is missing (as for Netobserv Openshift Operator)
 	var config Config
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
-		log.Errorf("config file %s does not exist", fileName)
+		if len(Opt.GenerateStages) == 0 {
+			log.Errorf("config file %s does not exist", fileName)
+			return nil, err
+		}
 		return &Config{}, nil
 	}
 	yamlFile, err := ioutil.ReadFile(fileName)

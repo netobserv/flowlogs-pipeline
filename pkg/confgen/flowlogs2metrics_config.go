@@ -27,10 +27,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() map[string]interface{} {
-	config := map[string]interface{}{
-		"log-level": "error",
-		"pipeline": []config2.Stage{
+func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() config2.ConfigFileStruct {
+	config := config2.ConfigFileStruct{
+		LogLevel: "error",
+		Pipeline: []config2.Stage{
 			{Name: "ingest_collector"},
 			{Name: "transform_generic",
 				Follows: "ingest_collector",
@@ -48,7 +48,7 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() map[string]interface{} {
 				Follows: "transform_network",
 			},
 		},
-		"parameters": []config2.StageParam{
+		Parameters: []config2.StageParam{
 			{Name: "ingest_collector",
 				Ingest: &config2.Ingest{
 					Type: "collector",
@@ -103,7 +103,7 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() map[string]interface{} {
 	return config
 }
 
-func (cg *ConfGen) GenerateTruncatedConfig(stages []string) map[string]interface{} {
+func (cg *ConfGen) GenerateTruncatedConfig(stages []string) config2.ConfigFileStruct {
 	parameters := make([]config2.StageParam, len(stages))
 	for i, stage := range stages {
 		switch stage {
@@ -171,13 +171,13 @@ func (cg *ConfGen) GenerateTruncatedConfig(stages []string) map[string]interface
 		}
 	}
 	log.Debugf("parameters = %v \n", parameters)
-	config := map[string]interface{}{
-		"parameters": parameters,
+	config := config2.ConfigFileStruct{
+		Parameters: parameters,
 	}
 	return config
 }
 
-func (cg *ConfGen) writeConfigFile(fileName string, config map[string]interface{}) error {
+func (cg *ConfGen) writeConfigFile(fileName string, config config2.ConfigFileStruct) error {
 	configData, err := yaml.Marshal(&config)
 	if err != nil {
 		return err

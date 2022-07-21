@@ -18,10 +18,10 @@
 package api
 
 type PromEncode struct {
-	Metrics    PromMetricsItems `yaml:"metrics" json:"metrics,omitempty" doc:"list of prometheus metric definitions, each includes:"`
-	Port       int              `yaml:"port" json:"port,omitempty" doc:"port number to expose \"/metrics\" endpoint"`
-	Prefix     string           `yaml:"prefix" json:"prefix,omitempty" doc:"prefix added to each metric name"`
-	ExpiryTime int              `yaml:"expiryTime" json:"expiryTime,omitempty" doc:"seconds of no-flow to wait before deleting prometheus data item"`
+	Metrics    PromMetricsItems `yaml:"metrics,omitempty" json:"metrics,omitempty" doc:"list of prometheus metric definitions, each includes:"`
+	Port       int              `yaml:"port,omitempty" json:"port,omitempty" doc:"port number to expose \"/metrics\" endpoint"`
+	Prefix     string           `yaml:"prefix,omitempty" json:"prefix,omitempty" doc:"prefix added to each metric name"`
+	ExpiryTime int              `yaml:"expiryTime,omitempty" json:"expiryTime,omitempty" doc:"seconds of no-flow to wait before deleting prometheus data item"`
 }
 
 type PromEncodeOperationEnum struct {
@@ -40,7 +40,7 @@ type PromMetricsItem struct {
 	Filter   PromMetricsFilter `yaml:"filter" json:"filter" doc:"the criterion to filter entries by"`
 	ValueKey string            `yaml:"valueKey" json:"valueKey" doc:"entry key from which to resolve metric value"`
 	Labels   []string          `yaml:"labels" json:"labels" doc:"labels to be associated with the metric"`
-	Buckets  []float64         `yaml:"buckets" json:"buckets" doc:"histogram buckets"`
+	Buckets  []float64         `yaml:"buckets,omitempty" json:"buckets,omitempty" doc:"histogram buckets"`
 }
 
 type PromMetricsItems []PromMetricsItem
