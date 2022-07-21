@@ -40,7 +40,7 @@ type PromMetricsItem struct {
 	Filter   PromMetricsFilter `yaml:"filter" json:"filter" doc:"the criterion to filter entries by"`
 	ValueKey string            `yaml:"valueKey" json:"valueKey" doc:"entry key from which to resolve metric value"`
 	Labels   []string          `yaml:"labels" json:"labels" doc:"labels to be associated with the metric"`
-	Buckets  []float64         `yaml:"buckets,omitempty" json:"buckets,omitempty" doc:"histogram buckets"`
+	Buckets  []float64         `yaml:"buckets" json:"buckets" doc:"histogram buckets"`
 }
 
 type PromMetricsItems []PromMetricsItem
