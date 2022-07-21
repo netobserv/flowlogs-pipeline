@@ -19,8 +19,10 @@ package confgen
 
 import (
 	"io/ioutil"
+	"os"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -70,7 +72,12 @@ type Config struct {
 
 func (cg *ConfGen) ParseConfigFile(fileName string) (*Config, error) {
 	// parse config file yaml
+	// provide a minimal config for when config file is missing (as for Netobserv Openshift Operator)
 	var config Config
+	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
+		log.Errorf("config file %s does not exist", fileName)
+		return &Config{}, nil
+	}
 	yamlFile, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		log.Debugf("ioutil.ReadFile err: %v ", err)
