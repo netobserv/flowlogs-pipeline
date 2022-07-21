@@ -19,7 +19,6 @@ package ingest
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -97,8 +96,6 @@ func processRecordDelay(record config.GenericMap) {
 	if !ok {
 		flowErrors.With(prometheus.Labels{"router": "", "error": "No TimeFlowEnd found"}).Inc()
 		return
-	} else {
-		fmt.Println(TimeFlowEndInterface)
 	}
 	TimeFlowEnd, ok := TimeFlowEndInterface.(float64)
 	if !ok {
