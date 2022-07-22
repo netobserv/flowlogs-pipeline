@@ -45,6 +45,20 @@ type ConnectionTracker interface {
 	Track(flowLogs []config.GenericMap) []config.GenericMap
 }
 
+type trackNone struct {
+}
+
+// Track tracks a connection
+func (t *trackNone) Track(flowLogs []config.GenericMap) []config.GenericMap {
+	return flowLogs
+}
+
+// NewTrackNone creates a new track
+func NewTrackNone() (ConnectionTracker, error) {
+	log.Debugf("entering NewTrackNone")
+	return &trackNone{}, nil
+}
+
 //////////////////////////
 
 // TODO: Does connectionStore deserve a file of its own?
@@ -65,6 +79,7 @@ func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
 	}
 	e := cs.connList.PushBack(conn)
 	cs.hash2conn[hashId] = e
+	metrics.connStoreLength.Set(float64(cs.connList.Len()))
 }
 
 func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
@@ -97,6 +112,7 @@ func (cs *connectionStore) iterateOldToNew(f processConnF) {
 		if shouldDelete {
 			delete(cs.hash2conn, conn.getHash().hashTotal)
 			cs.connList.Remove(e)
+			metrics.connStoreLength.Set(float64(cs.connList.Len()))
 		}
 		if shouldStop {
 			break
@@ -115,7 +131,7 @@ func newConnectionStore() *connectionStore {
 
 type conntrackImpl struct {
 	clock                     clock.Clock
-	config                    api.ConnTrack
+	config                    *api.ConnTrack
 	hashProvider              func() hash.Hash64
 	connStore                 *connectionStore
 	aggregators               []aggregator
@@ -133,6 +149,7 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 		computedHash, err := ComputeHash(fl, ct.config.KeyDefinition, ct.hashProvider())
 		if err != nil {
 			log.Warningf("skipping flow log %v: %v", fl, err)
+			metrics.inputRecords.WithLabelValues("rejected").Inc()
 			continue
 		}
 		conn, exists := ct.connStore.getConnection(computedHash.hashTotal)
@@ -145,14 +162,17 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 				Build()
 			ct.connStore.addConnection(computedHash.hashTotal, conn)
 			ct.updateConnection(conn, fl, computedHash)
+			metrics.inputRecords.WithLabelValues("newConnection").Inc()
 			if ct.shouldOutputNewConnection {
 				record := conn.toGenericMap()
 				addHashField(record, computedHash.hashTotal)
 				addTypeField(record, api.ConnTrackOutputRecordTypeName("NewConnection"))
 				outputRecords = append(outputRecords, record)
+				metrics.outputRecords.WithLabelValues("newConnection").Inc()
 			}
 		} else {
 			ct.updateConnection(conn, fl, computedHash)
+			metrics.inputRecords.WithLabelValues("update").Inc()
 		}
 
 		if ct.shouldOutputFlowLogs {
@@ -160,12 +180,14 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 			addHashField(record, computedHash.hashTotal)
 			addTypeField(record, api.ConnTrackOutputRecordTypeName("FlowLog"))
 			outputRecords = append(outputRecords, record)
+			metrics.outputRecords.WithLabelValues("flowLog").Inc()
 		}
 	}
 
 	endConnectionRecords := ct.popEndConnections()
 	if ct.shouldOutputEndConnection {
 		outputRecords = append(outputRecords, endConnectionRecords...)
+		metrics.outputRecords.WithLabelValues("endConnection").Add(float64(len(endConnectionRecords)))
 	}
 
 	return outputRecords
@@ -174,7 +196,7 @@ func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap
 func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 	var outputRecords []config.GenericMap
 	ct.connStore.iterateOldToNew(func(conn connection) (shouldDelete, shouldStop bool) {
-		expireTime := ct.clock.Now().Add(-ct.config.EndConnectionTimeout)
+		expireTime := ct.clock.Now().Add(-ct.config.EndConnectionTimeout.Duration)
 		lastUpdate := conn.getLastUpdate()
 		if lastUpdate.Before(expireTime) {
 			// The last update time of this connection is too old. We want to pop it.
@@ -215,7 +237,8 @@ func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalH
 }
 
 // NewConnectionTrack creates a new connection track instance
-func NewConnectionTrack(config api.ConnTrack, clock clock.Clock) (ConnectionTracker, error) {
+func NewConnectionTrack(params config.StageParam, clock clock.Clock) (ConnectionTracker, error) {
+	config := params.Track.ConnTrack
 	var aggregators []aggregator
 	for _, of := range config.OutputFields {
 		agg, err := newAggregator(of)

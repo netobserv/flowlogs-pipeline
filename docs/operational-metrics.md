@@ -9,6 +9,27 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 
 	
 
+### conntrack_memory_connections
+| **Name** | conntrack_memory_connections | 
+|:---|:---|
+| **Description** | The total number of tracked connections in memory. | 
+| **Type** | gauge | 
+
+
+### conntrack_input_records
+| **Name** | conntrack_input_records | 
+|:---|:---|
+| **Description** | The total number of input records per classification. | 
+| **Type** | counter | 
+
+
+### conntrack_output_records
+| **Name** | conntrack_output_records | 
+|:---|:---|
+| **Description** | The total number of output records. | 
+| **Type** | counter | 
+
+
 ### encode_prom_metrics_processed
 | **Name** | encode_prom_metrics_processed | 
 |:---|:---|

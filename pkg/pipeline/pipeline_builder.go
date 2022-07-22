@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/benbjohnson/clock"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/conntrack"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
@@ -45,6 +47,7 @@ type pipelineEntry struct {
 	stageType   string
 	Ingester    ingest.Ingester
 	Transformer transform.Transformer
+	Tracker     conntrack.ConnectionTracker
 	Extractor   extract.Extractor
 	Encoder     encode.Encoder
 	Writer      write.Writer
@@ -73,6 +76,8 @@ func (b *builder) readStages() error {
 			pEntry.Ingester, err = getIngester(param)
 		case StageTransform:
 			pEntry.Transformer, err = getTransformer(param)
+		case StageTrack:
+			pEntry.Tracker, err = getTracker(param)
 		case StageExtract:
 			pEntry.Extractor, err = getExtractor(param)
 		case StageEncode:
@@ -240,6 +245,12 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 				out <- pe.Transformer.Transform(i)
 			}
 		})
+	case StageTrack:
+		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
+			for i := range in {
+				out <- pe.Tracker.Track(i)
+			}
+		})
 	case StageExtract:
 		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
 			for i := range in {
@@ -268,6 +279,8 @@ func getIngester(params config.StageParam) (ingest.Ingester, error) {
 		ingester, err = ingest.NewIngestKafka(params)
 	case api.GRPCType:
 		ingester, err = ingest.NewGRPCProtobuf(params)
+	case api.FakeType:
+		ingester, err = ingest.NewIngestFake(params)
 	default:
 		panic(fmt.Sprintf("`ingest` type %s not defined", params.Ingest.Type))
 	}
@@ -284,6 +297,8 @@ func getWriter(params config.StageParam) (write.Writer, error) {
 		writer, err = write.NewWriteNone()
 	case api.LokiType:
 		writer, err = write.NewWriteLoki(params)
+	case api.FakeType:
+		writer, err = write.NewWriteFake(params)
 	default:
 		panic(fmt.Sprintf("`write` type %s not defined; if no writer needed, specify `none`", params.Write.Type))
 	}
@@ -308,13 +323,27 @@ func getTransformer(params config.StageParam) (transform.Transformer, error) {
 	return transformer, err
 }
 
+func getTracker(params config.StageParam) (conntrack.ConnectionTracker, error) {
+	var tracker conntrack.ConnectionTracker
+	var err error
+	switch params.Track.Type {
+	case api.NoneType:
+		tracker, _ = conntrack.NewTrackNone()
+	case api.ConnTrackType:
+		tracker, err = conntrack.NewConnectionTrack(params, clock.New())
+	default:
+		panic(fmt.Sprintf("`tracker` type %s not defined; if no tracker needed, specify `none`", params.Track.Type))
+	}
+	return tracker, err
+}
+
 func getExtractor(params config.StageParam) (extract.Extractor, error) {
 	var extractor extract.Extractor
 	var err error
 	switch params.Extract.Type {
-	case "none":
+	case api.NoneType:
 		extractor, _ = extract.NewExtractNone()
-	case "aggregates":
+	case api.AggregateType:
 		extractor, err = extract.NewExtractAggregate(params)
 	default:
 		panic(fmt.Sprintf("`extract` type %s not defined; if no extractor needed, specify `none`", params.Extract.Type))
@@ -326,11 +355,11 @@ func getEncoder(params config.StageParam) (encode.Encoder, error) {
 	var encoder encode.Encoder
 	var err error
 	switch params.Encode.Type {
-	case "prom":
+	case api.PromType:
 		encoder, err = encode.NewEncodeProm(params)
-	case "kafka":
+	case api.KafkaType:
 		encoder, err = encode.NewEncodeKafka(params)
-	case "none":
+	case api.NoneType:
 		encoder, _ = encode.NewEncodeNone()
 	default:
 		panic(fmt.Sprintf("`encode` type %s not defined; if no encoder needed, specify `none`", params.Encode.Type))
@@ -346,6 +375,9 @@ func findStageType(param *config.StageParam) string {
 	}
 	if param.Transform != nil && param.Transform.Type != "" {
 		return StageTransform
+	}
+	if param.Track != nil && param.Track.Type != "" {
+		return StageTrack
 	}
 	if param.Extract != nil && param.Extract.Type != "" {
 		return StageExtract
