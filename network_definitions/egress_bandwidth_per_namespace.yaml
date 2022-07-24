@@ -5,7 +5,7 @@ details:
   Sum egress bytes for all traffic per namespace
 usage:
   Evaluate network usage breakdown per namespace
-labels:
+tags:
   - kubernetes
   - bandwidth
   - graph

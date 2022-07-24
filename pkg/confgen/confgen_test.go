@@ -113,7 +113,7 @@ func Test_getDefinitionFiles(t *testing.T) {
 	require.NoError(t, err)
 	err = os.WriteFile(filepath.Join(dirPath, filename), []byte(networkDefinitionConfiguration), 0644)
 	require.NoError(t, err)
-	files := cg.getDefinitionFiles(dirPath)
+	files := cg.GetDefinitionFiles(dirPath)
 	require.Equal(t, 1, len(files))
 	expected := []string{path.Join(dirPath, filename)}
 	require.ElementsMatch(t, expected, files)

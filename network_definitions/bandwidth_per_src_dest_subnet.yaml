@@ -5,7 +5,7 @@ details:
   Sum bandwidth bytes for all traffic per source / destination subnet pair
 usage:
   Evaluate network usage breakdown per source / destination subnet pair
-labels:
+tags:
   - bandwidth
   - graph
   - rate

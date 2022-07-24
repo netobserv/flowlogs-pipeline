@@ -25,7 +25,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (cg *ConfGen) dedupe() {
+func (cg *ConfGen) Dedupe() {
 	cg.transformRules = dedupeNetworkTransformRules(cg.transformRules)
 	cg.aggregateDefinitions = dedupeAggregateDefinitions(cg.aggregateDefinitions)
 }
@@ -54,16 +54,16 @@ func dedupeNetworkTransformRules(rules api.NetworkTransformRules) api.NetworkTra
 // dedupeAggregateDefinitions is inefficient because we can't use a map to look for duplicates.
 // The reason is that aggregate.AggregateDefinition is not hashable due to its AggregateBy field which is a slice.
 func dedupeAggregateDefinitions(aggregateDefinitions aggregate.Definitions) aggregate.Definitions {
-	var dedpueSlice []api.AggregateDefinition
+	var dedupeSlice []api.AggregateDefinition
 	for i, aggregateDefinition := range aggregateDefinitions {
-		if containsAggregateDefinitions(dedpueSlice, aggregateDefinition) {
+		if containsAggregateDefinitions(dedupeSlice, aggregateDefinition) {
 			// duplicate aggregateDefinition
 			log.Debugf("Remove duplicate AggregateDefinitions %v at index %v", aggregateDefinition, i)
 			continue
 		}
-		dedpueSlice = append(dedpueSlice, aggregateDefinition)
+		dedupeSlice = append(dedupeSlice, aggregateDefinition)
 	}
-	return dedpueSlice
+	return dedupeSlice
 }
 
 func containsAggregateDefinitions(slice []api.AggregateDefinition, searchItem api.AggregateDefinition) bool {

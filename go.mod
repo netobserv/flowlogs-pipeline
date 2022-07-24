@@ -16,6 +16,7 @@ require (
 	github.com/netobserv/loki-client-go v0.0.0-20211018150932-cb17208397a9
 	github.com/netobserv/netobserv-ebpf-agent v0.1.1-0.20220608092850-3fd4695b7cc2
 	github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.32.1
 	github.com/segmentio/kafka-go v0.4.28
@@ -72,7 +73,6 @@ require (
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
@@ -103,3 +103,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
+
+replace github.com/prometheus/common v0.32.1 => github.com/netobserv/prometheus-common v0.31.2-0.20220720134304-43e74fd22881

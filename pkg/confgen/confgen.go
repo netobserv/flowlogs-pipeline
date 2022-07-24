@@ -40,7 +40,7 @@ type Definition struct {
 	Description          string
 	Details              string
 	Usage                string
-	Labels               []string
+	Tags                 []string
 	TransformNetwork     *api.TransformNetwork
 	AggregateDefinitions *aggregate.Definitions
 	PromEncode           *api.PromEncode
@@ -62,7 +62,7 @@ type DefFile struct {
 	Description   string                 `yaml:"description"`
 	Details       string                 `yaml:"details"`
 	Usage         string                 `yaml:"usage"`
-	Labels        []string               `yaml:"labels"`
+	Tags          []string               `yaml:"tags"`
 	Transform     map[string]interface{} `yaml:"transform"`
 	Extract       map[string]interface{} `yaml:"extract"`
 	Encode        map[string]interface{} `yaml:"encode"`
@@ -71,13 +71,13 @@ type DefFile struct {
 
 func (cg *ConfGen) Run() error {
 	var err error
-	cg.config, err = cg.parseConfigFile(Opt.SrcFolder + "/" + configFileName)
+	cg.config, err = cg.ParseConfigFile(Opt.SrcFolder + "/" + configFileName)
 	if err != nil {
-		log.Debugf("cg.parseConfigFile err: %v ", err)
+		log.Debugf("cg.ParseConfigFile err: %v ", err)
 		return err
 	}
 
-	definitionFiles := cg.getDefinitionFiles(Opt.SrcFolder)
+	definitionFiles := cg.GetDefinitionFiles(Opt.SrcFolder)
 	for _, definitionFile := range definitionFiles {
 		err := cg.parseFile(definitionFile)
 		if err != nil {
@@ -86,12 +86,23 @@ func (cg *ConfGen) Run() error {
 		}
 	}
 
-	cg.dedupe()
+	cg.Dedupe()
 
-	err = cg.generateFlowlogs2PipelineConfig(Opt.DestConfFile)
-	if err != nil {
-		log.Debugf("cg.generateFlowlogs2PipelineConfig err: %v ", err)
-		return err
+	if len(Opt.GenerateStages) != 0 {
+		config := cg.GenerateTruncatedConfig(Opt.GenerateStages)
+		err = cg.writeConfigFile(Opt.DestConfFile, config)
+		if err != nil {
+			log.Debugf("cg.GenerateTruncatedConfig err: %v ", err)
+			return err
+		}
+		return nil
+	} else {
+		config := cg.GenerateFlowlogs2PipelineConfig()
+		err = cg.writeConfigFile(Opt.DestConfFile, config)
+		if err != nil {
+			log.Debugf("cg.GenerateFlowlogs2PipelineConfig err: %v ", err)
+			return err
+		}
 	}
 
 	err = cg.generateDoc(Opt.DestDocFile)
@@ -153,11 +164,11 @@ func (cg *ConfGen) parseFile(fileName string) error {
 		return err
 	}
 
-	//skip if there skip label match
-	for _, skipLabel := range Opt.SkipWithLabels {
-		for _, label := range defFile.Labels {
-			if skipLabel == label {
-				return fmt.Errorf("skipping definition %s due to skip label %s", fileName, label)
+	//skip if their skip tag match
+	for _, skipTag := range Opt.SkipWithTags {
+		for _, tag := range defFile.Tags {
+			if skipTag == tag {
+				return fmt.Errorf("skipping definition %s due to skip tag %s", fileName, tag)
 			}
 		}
 	}
@@ -168,7 +179,7 @@ func (cg *ConfGen) parseFile(fileName string) error {
 		Description: defFile.Description,
 		Details:     defFile.Details,
 		Usage:       defFile.Usage,
-		Labels:      defFile.Labels,
+		Tags:        defFile.Tags,
 	}
 
 	// parse transport
@@ -204,7 +215,7 @@ func (cg *ConfGen) parseFile(fileName string) error {
 	return nil
 }
 
-func (*ConfGen) getDefinitionFiles(rootPath string) []string {
+func (*ConfGen) GetDefinitionFiles(rootPath string) []string {
 
 	var files []string
 

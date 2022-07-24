@@ -70,7 +70,7 @@ func (cg *ConfGen) generateDoc(fileName string) error {
 		replacer := strings.NewReplacer("-", " ", "_", " ")
 		name := replacer.Replace(filepath.Base(metric.FileName[:len(metric.FileName)-len(filepath.Ext(metric.FileName))]))
 
-		labels := strings.Join(metric.Labels[:], ", ")
+		labels := strings.Join(metric.Tags[:], ", ")
 		// TODO: add support for multiple operations
 		operation := cg.generateOperationText(*metric.AggregateDefinitions)
 		expose := cg.generatePromEncodeText(metric.PromEncode.Metrics)
@@ -82,7 +82,7 @@ func (cg *ConfGen) generateDoc(fileName string) error {
 |:---|:---|
 | **Details** | %s | 
 | **Usage** | %s | 
-| **Labels** | %s |
+| **Tags** | %s |
 %s%s%s|||  
 
 `,

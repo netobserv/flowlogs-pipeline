@@ -5,7 +5,7 @@ details:
   Sum egress bytes for all traffic per destination subnet
 usage:
   Evaluate network usage breakdown per destination subnet
-labels:
+tags:
   - bandwidth
   - graph
   - rate

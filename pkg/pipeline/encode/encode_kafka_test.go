@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	kafkago "github.com/segmentio/kafka-go"
@@ -89,4 +90,61 @@ func Test_EncodeKafka(t *testing.T) {
 		},
 	}
 	require.Equal(t, expectedOutput, receivedData[0])
+}
+
+func Test_TLSConfigEmpty(t *testing.T) {
+	pipeline := config.NewCollectorPipeline("ingest", api.IngestCollector{})
+	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
+		Address: "any",
+		Topic:   "topic",
+	})
+	newEncode, err := NewEncodeKafka(pipeline.GetStageParams()[1])
+	require.NoError(t, err)
+	tlsConfig := newEncode.(*encodeKafka).kafkaWriter.(*kafkago.Writer).Transport.(*kafkago.Transport).TLS
+	require.Nil(t, tlsConfig)
+}
+
+func Test_TLSConfigCA(t *testing.T) {
+	ca, cleanup := test.CreateCACert(t)
+	defer cleanup()
+	pipeline := config.NewCollectorPipeline("ingest", api.IngestCollector{})
+	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
+		Address: "any",
+		Topic:   "topic",
+		TLS: &api.ClientTLS{
+			CACertPath: ca,
+		},
+	})
+	newEncode, err := NewEncodeKafka(pipeline.GetStageParams()[1])
+	require.NoError(t, err)
+	tlsConfig := newEncode.(*encodeKafka).kafkaWriter.(*kafkago.Writer).Transport.(*kafkago.Transport).TLS
+
+	require.Empty(t, tlsConfig.Certificates)
+	require.NotNil(t, tlsConfig.RootCAs)
+	require.Len(t, tlsConfig.RootCAs.Subjects(), 1)
+}
+
+func Test_MutualTLSConfig(t *testing.T) {
+	ca, user, userKey, cleanup := test.CreateAllCerts(t)
+	defer cleanup()
+	pipeline := config.NewCollectorPipeline("ingest", api.IngestCollector{})
+	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
+		Address: "any",
+		Topic:   "topic",
+		TLS: &api.ClientTLS{
+			CACertPath:   ca,
+			UserCertPath: user,
+			UserKeyPath:  userKey,
+		},
+	})
+	newEncode, err := NewEncodeKafka(pipeline.GetStageParams()[1])
+	require.NoError(t, err)
+
+	tlsConfig := newEncode.(*encodeKafka).kafkaWriter.(*kafkago.Writer).Transport.(*kafkago.Transport).TLS
+
+	require.Len(t, tlsConfig.Certificates, 1)
+	require.NotEmpty(t, tlsConfig.Certificates[0].Certificate)
+	require.NotNil(t, tlsConfig.Certificates[0].PrivateKey)
+	require.NotNil(t, tlsConfig.RootCAs)
+	require.Len(t, tlsConfig.RootCAs.Subjects(), 1)
 }

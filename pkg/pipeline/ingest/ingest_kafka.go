@@ -25,6 +25,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	"github.com/segmentio/kafka-go"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -97,10 +98,12 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 			if len(records) >= ingestK.batchMaxLength {
 				log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
 				decoded := ingestK.decoder.Decode(records)
-				out <- decoded
+				linesProcessed.Add(float64(len(records)))
+				queueLength.Set(float64(len(out)))
 				ingestK.prevRecords = decoded
 				log.Debugf("prevRecords = %v", ingestK.prevRecords)
 				records = []interface{}{}
+				out <- decoded
 			}
 		case <-flushRecords.C: // Maximum batch time for each batch
 			// Process batch of records (if not empty)
@@ -113,6 +116,8 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 				}
 				log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
 				decoded := ingestK.decoder.Decode(records)
+				linesProcessed.Add(float64(len(records)))
+				queueLength.Set(float64(len(out)))
 				ingestK.prevRecords = decoded
 				log.Debugf("prevRecords = %v", ingestK.prevRecords)
 				out <- decoded
@@ -168,6 +173,19 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		commitInterval = jsonIngestKafka.CommitInterval
 	}
 
+	dialer := &kafka.Dialer{
+		Timeout:   kafka.DefaultDialer.Timeout,
+		DualStack: kafka.DefaultDialer.DualStack,
+	}
+	if jsonIngestKafka.TLS != nil {
+		log.Infof("Using TLS configuration: %v", jsonIngestKafka.TLS)
+		tlsConfig, err := jsonIngestKafka.TLS.Build()
+		if err != nil {
+			return nil, err
+		}
+		dialer.TLS = tlsConfig
+	}
+
 	kafkaReader := kafkago.NewReader(kafkago.ReaderConfig{
 		Brokers:        jsonIngestKafka.Brokers,
 		Topic:          jsonIngestKafka.Topic,
@@ -175,6 +193,7 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		GroupBalancers: groupBalancers,
 		StartOffset:    startOffset,
 		CommitInterval: time.Duration(commitInterval) * time.Millisecond,
+		Dialer:         dialer,
 	})
 	if kafkaReader == nil {
 		errMsg := "NewIngestKafka: failed to create kafka-go reader"

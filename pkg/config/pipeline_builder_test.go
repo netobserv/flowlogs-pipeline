@@ -98,6 +98,10 @@ func TestKafkaPromPipeline(t *testing.T) {
 		Topic:   "netflows",
 		GroupId: "my-group",
 		Decoder: api.Decoder{Type: "json"},
+		TLS: &api.ClientTLS{
+			InsecureSkipVerify: true,
+			CACertPath:         "/ca.crt",
+		},
 	})
 	pl = pl.TransformFilter("filter", api.TransformFilter{
 		Rules: []api.TransformFilterRule{{
@@ -140,7 +144,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"ingest","ingest":{"type":"kafka","kafka":{"brokers":["http://kafka"],"topic":"netflows","groupid":"my-group","decoder":{"type":"json"}}}}`, string(b))
+	require.Equal(t, `{"name":"ingest","ingest":{"type":"kafka","kafka":{"brokers":["http://kafka"],"topic":"netflows","groupid":"my-group","decoder":{"type":"json"},"tls":{"insecureSkipVerify":true,"caCertPath":"/ca.crt"}}}}`, string(b))
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)

@@ -5,7 +5,7 @@ details:
   Counts the number of connections per subnet with network prefix length /16 (using conn_tracking sum isNewFlow field)
 usage:
   Evaluate network connections per subnet
-labels:
+tags:
   - rate
   - subnet
 transform:

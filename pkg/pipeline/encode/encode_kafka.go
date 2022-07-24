@@ -23,6 +23,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/segmentio/kafka-go"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -66,13 +67,13 @@ func (r *encodeKafka) Encode(in []config.GenericMap) {
 // NewEncodeKafka create a new writer to kafka
 func NewEncodeKafka(params config.StageParam) (Encoder, error) {
 	log.Debugf("entering NewEncodeKafka")
-	jsonEncodeKafka := api.EncodeKafka{}
+	config := api.EncodeKafka{}
 	if params.Encode != nil && params.Encode.Kafka != nil {
-		jsonEncodeKafka = *params.Encode.Kafka
+		config = *params.Encode.Kafka
 	}
 
 	var balancer kafkago.Balancer
-	switch jsonEncodeKafka.Balancer {
+	switch config.Balancer {
 	case api.KafkaEncodeBalancerName("RoundRobin"):
 		balancer = &kafkago.RoundRobin{}
 	case api.KafkaEncodeBalancerName("LeastBytes"):
@@ -88,31 +89,42 @@ func NewEncodeKafka(params config.StageParam) (Encoder, error) {
 	}
 
 	readTimeoutSecs := defaultReadTimeoutSeconds
-	if jsonEncodeKafka.ReadTimeout != 0 {
-		readTimeoutSecs = jsonEncodeKafka.ReadTimeout
+	if config.ReadTimeout != 0 {
+		readTimeoutSecs = config.ReadTimeout
 	}
 
 	writeTimeoutSecs := defaultWriteTimeoutSeconds
-	if jsonEncodeKafka.WriteTimeout != 0 {
-		writeTimeoutSecs = jsonEncodeKafka.WriteTimeout
+	if config.WriteTimeout != 0 {
+		writeTimeoutSecs = config.WriteTimeout
+	}
+
+	transport := kafka.Transport{}
+	if config.TLS != nil {
+		log.Infof("Using TLS configuration: %v", config.TLS)
+		tlsConfig, err := config.TLS.Build()
+		if err != nil {
+			return nil, err
+		}
+		transport.TLS = tlsConfig
 	}
 
 	// connect to the kafka server
 	kafkaWriter := kafkago.Writer{
-		Addr:         kafkago.TCP(jsonEncodeKafka.Address),
-		Topic:        jsonEncodeKafka.Topic,
+		Addr:         kafkago.TCP(config.Address),
+		Topic:        config.Topic,
 		Balancer:     balancer,
 		ReadTimeout:  time.Duration(readTimeoutSecs) * time.Second,
 		WriteTimeout: time.Duration(writeTimeoutSecs) * time.Second,
-		BatchSize:    jsonEncodeKafka.BatchSize,
-		BatchBytes:   jsonEncodeKafka.BatchBytes,
+		BatchSize:    config.BatchSize,
+		BatchBytes:   config.BatchBytes,
 		// Temporary fix may be we should implement a batching systems
 		// https://github.com/segmentio/kafka-go/issues/326#issuecomment-519375403
 		BatchTimeout: time.Nanosecond,
+		Transport:    &transport,
 	}
 
 	return &encodeKafka{
-		kafkaParams: jsonEncodeKafka,
+		kafkaParams: config,
 		kafkaWriter: &kafkaWriter,
 	}, nil
 }

@@ -20,6 +20,9 @@ package write
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"sort"
+	"text/tabwriter"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -38,6 +41,20 @@ func (t *writeStdout) Write(in []config.GenericMap) {
 		for _, v := range in {
 			txt, _ := json.Marshal(v)
 			fmt.Println(string(txt))
+		}
+	} else if t.format == "fields" {
+		for _, v := range in {
+			var order sort.StringSlice
+			for fieldName := range v {
+				order = append(order, fieldName)
+			}
+			order.Sort()
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+			fmt.Fprintf(w, "\n\nFlow record at %s:\n", time.Now().Format(time.StampMilli))
+			for _, field := range order {
+				fmt.Fprintf(w, "%v\t=\t%v\n", field, v[field])
+			}
+			w.Flush()
 		}
 	} else {
 		for _, v := range in {
