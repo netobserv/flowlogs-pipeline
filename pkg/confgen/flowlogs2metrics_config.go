@@ -22,15 +22,15 @@ import (
 	"io/ioutil"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	config2 "github.com/netobserv/flowlogs-pipeline/pkg/config"
+	config "github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
-func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() config2.ConfigFileStruct {
-	config := config2.ConfigFileStruct{
+func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() config.ConfigFileStruct {
+	configStruct := config.ConfigFileStruct{
 		LogLevel: "error",
-		Pipeline: []config2.Stage{
+		Pipeline: []config.Stage{
 			{Name: "ingest_collector"},
 			{Name: "transform_generic",
 				Follows: "ingest_collector",
@@ -48,9 +48,9 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() config2.ConfigFileStruct {
 				Follows: "transform_network",
 			},
 		},
-		Parameters: []config2.StageParam{
+		Parameters: []config.StageParam{
 			{Name: "ingest_collector",
-				Ingest: &config2.Ingest{
+				Ingest: &config.Ingest{
 					Type: "collector",
 					Collector: &api.IngestCollector{
 						Port:       cg.config.Ingest.Collector.Port,
@@ -60,7 +60,7 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() config2.ConfigFileStruct {
 				},
 			},
 			{Name: "transform_generic",
-				Transform: &config2.Transform{
+				Transform: &config.Transform{
 					Type: "generic",
 					Generic: &api.TransformGeneric{
 						Policy: "replace_keys",
@@ -69,7 +69,7 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() config2.ConfigFileStruct {
 				},
 			},
 			{Name: "transform_network",
-				Transform: &config2.Transform{
+				Transform: &config.Transform{
 					Type: "network",
 					Network: &api.TransformNetwork{
 						Rules: cg.transformRules,
@@ -77,13 +77,13 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() config2.ConfigFileStruct {
 				},
 			},
 			{Name: "extract_aggregate",
-				Extract: &config2.Extract{
+				Extract: &config.Extract{
 					Type:       "aggregates",
 					Aggregates: cg.aggregateDefinitions,
 				},
 			},
 			{Name: "encode_prom",
-				Encode: &config2.Encode{
+				Encode: &config.Encode{
 					Type: "prom",
 					Prom: &api.PromEncode{
 						Port:    cg.config.Encode.Prom.Port,
@@ -93,24 +93,24 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() config2.ConfigFileStruct {
 				},
 			},
 			{Name: "write_loki",
-				Write: &config2.Write{
+				Write: &config.Write{
 					Type: cg.config.Write.Type,
 					Loki: &cg.config.Write.Loki,
 				},
 			},
 		},
 	}
-	return config
+	return configStruct
 }
 
-func (cg *ConfGen) GenerateTruncatedConfig(stages []string) config2.ConfigFileStruct {
-	parameters := make([]config2.StageParam, len(stages))
+func (cg *ConfGen) GenerateTruncatedConfig(stages []string) config.ConfigFileStruct {
+	parameters := make([]config.StageParam, len(stages))
 	for i, stage := range stages {
 		switch stage {
 		case "ingest":
-			parameters[i] = config2.StageParam{
+			parameters[i] = config.StageParam{
 				Name: "ingest_collector",
-				Ingest: &config2.Ingest{
+				Ingest: &config.Ingest{
 					Type: "collector",
 					Collector: &api.IngestCollector{
 						Port:       cg.config.Ingest.Collector.Port,
@@ -120,9 +120,9 @@ func (cg *ConfGen) GenerateTruncatedConfig(stages []string) config2.ConfigFileSt
 				},
 			}
 		case "transform_generic":
-			parameters[i] = config2.StageParam{
+			parameters[i] = config.StageParam{
 				Name: "transform_generic",
-				Transform: &config2.Transform{
+				Transform: &config.Transform{
 					Type: "generic",
 					Generic: &api.TransformGeneric{
 						Policy: "replace_keys",
@@ -131,9 +131,9 @@ func (cg *ConfGen) GenerateTruncatedConfig(stages []string) config2.ConfigFileSt
 				},
 			}
 		case "transform_network":
-			parameters[i] = config2.StageParam{
+			parameters[i] = config.StageParam{
 				Name: "transform_network",
-				Transform: &config2.Transform{
+				Transform: &config.Transform{
 					Type: "network",
 					Network: &api.TransformNetwork{
 						Rules: cg.transformRules,
@@ -141,17 +141,17 @@ func (cg *ConfGen) GenerateTruncatedConfig(stages []string) config2.ConfigFileSt
 				},
 			}
 		case "extract_aggregate":
-			parameters[i] = config2.StageParam{
+			parameters[i] = config.StageParam{
 				Name: "extract_aggregate",
-				Extract: &config2.Extract{
+				Extract: &config.Extract{
 					Type:       "aggregates",
 					Aggregates: cg.aggregateDefinitions,
 				},
 			}
 		case "encode_prom":
-			parameters[i] = config2.StageParam{
+			parameters[i] = config.StageParam{
 				Name: "encode_prom",
-				Encode: &config2.Encode{
+				Encode: &config.Encode{
 					Type: "prom",
 					Prom: &api.PromEncode{
 						Port:    cg.config.Encode.Prom.Port,
@@ -161,9 +161,9 @@ func (cg *ConfGen) GenerateTruncatedConfig(stages []string) config2.ConfigFileSt
 				},
 			}
 		case "write_loki":
-			parameters[i] = config2.StageParam{
+			parameters[i] = config.StageParam{
 				Name: "write_loki",
-				Write: &config2.Write{
+				Write: &config.Write{
 					Type: cg.config.Write.Type,
 					Loki: &cg.config.Write.Loki,
 				},
@@ -171,13 +171,13 @@ func (cg *ConfGen) GenerateTruncatedConfig(stages []string) config2.ConfigFileSt
 		}
 	}
 	log.Debugf("parameters = %v \n", parameters)
-	config := config2.ConfigFileStruct{
+	configStruct := config.ConfigFileStruct{
 		Parameters: parameters,
 	}
-	return config
+	return configStruct
 }
 
-func (cg *ConfGen) writeConfigFile(fileName string, config config2.ConfigFileStruct) error {
+func (cg *ConfGen) writeConfigFile(fileName string, config config.ConfigFileStruct) error {
 	configData, err := yaml.Marshal(&config)
 	if err != nil {
 		return err
