@@ -49,7 +49,6 @@ type StageParam struct {
 	Name      string     `json:"name"`
 	Ingest    *Ingest    `json:"ingest,omitempty"`
 	Transform *Transform `json:"transform,omitempty"`
-	Track     *Track     `json:"track,omitempty"`
 	Extract   *Extract   `json:"extract,omitempty"`
 	Encode    *Encode    `json:"encode,omitempty"`
 	Write     *Write     `json:"write,omitempty"`
@@ -77,14 +76,10 @@ type Transform struct {
 	Network *api.TransformNetwork `json:"network,omitempty"`
 }
 
-type Track struct {
-	Type      string         `json:"type"`
-	ConnTrack *api.ConnTrack `json:"conntrack,omitempty"`
-}
-
 type Extract struct {
 	Type       string                    `json:"type"`
 	Aggregates []api.AggregateDefinition `json:"aggregates,omitempty"`
+	ConnTrack  *api.ConnTrack            `json:"conntrack,omitempty"`
 }
 
 type Encode struct {

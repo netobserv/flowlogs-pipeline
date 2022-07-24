@@ -42,7 +42,7 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *
 		}
 	}
 	return &config.StageParam{
-		Track: &config.Track{
+		Extract: &config.Extract{
 			Type: api.ConnTrackType,
 			ConnTrack: &api.ConnTrack{
 				KeyDefinition: api.KeyDefinition{
@@ -150,7 +150,7 @@ func TestTrack(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			ct, err := NewConnectionTrack(*test.conf, clock.NewMock())
 			require.NoError(t, err)
-			actual := ct.Track(test.inputFlowLogs)
+			actual := ct.Extract(test.inputFlowLogs)
 			require.Equal(t, test.expected, actual)
 		})
 	}
@@ -232,7 +232,7 @@ func TestEndConn_Bidirectional(t *testing.T) {
 			require.Less(t, prevTime, test.time)
 			prevTime = test.time
 			clk.Set(test.time)
-			actual := ct.Track(test.inputFlowLogs)
+			actual := ct.Extract(test.inputFlowLogs)
 			require.Equal(t, test.expected, actual)
 		})
 	}
@@ -330,7 +330,7 @@ func TestEndConn_Unidirectional(t *testing.T) {
 			require.Less(t, prevTime, test.time)
 			prevTime = test.time
 			clk.Set(test.time)
-			actual := ct.Track(test.inputFlowLogs)
+			actual := ct.Extract(test.inputFlowLogs)
 			require.Equal(t, test.expected, actual)
 		})
 	}

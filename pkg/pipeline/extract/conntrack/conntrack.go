@@ -28,6 +28,7 @@ import (
 	"github.com/benbjohnson/clock"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -40,24 +41,6 @@ const (
 	dirAB
 	dirBA
 )
-
-type ConnectionTracker interface {
-	Track(flowLogs []config.GenericMap) []config.GenericMap
-}
-
-type trackNone struct {
-}
-
-// Track tracks a connection
-func (t *trackNone) Track(flowLogs []config.GenericMap) []config.GenericMap {
-	return flowLogs
-}
-
-// NewTrackNone creates a new track
-func NewTrackNone() (ConnectionTracker, error) {
-	log.Debugf("entering NewTrackNone")
-	return &trackNone{}, nil
-}
 
 //////////////////////////
 
@@ -138,7 +121,7 @@ type conntrackImpl struct {
 	shouldOutputEndConnection bool
 }
 
-func (ct *conntrackImpl) Track(flowLogs []config.GenericMap) []config.GenericMap {
+func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericMap {
 	log.Debugf("Entering Track")
 	log.Debugf("Track none, in = %v", flowLogs)
 
@@ -229,8 +212,8 @@ func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalH
 }
 
 // NewConnectionTrack creates a new connection track instance
-func NewConnectionTrack(params config.StageParam, clock clock.Clock) (ConnectionTracker, error) {
-	config := params.Track.ConnTrack
+func NewConnectionTrack(params config.StageParam, clock clock.Clock) (extract.Extractor, error) {
+	config := params.Extract.ConnTrack
 	var aggregators []aggregator
 	for _, of := range config.OutputFields {
 		agg, err := newAggregator(of)

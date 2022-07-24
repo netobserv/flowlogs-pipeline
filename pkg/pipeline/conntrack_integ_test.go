@@ -43,7 +43,7 @@ parameters:
       type: fake
     name: ingest_fake
   - name: conntrack
-    track:
+    extract:
       type: conntrack
       conntrack:
         endConnectionTimeout: 1s
