@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *api.ConnTrack {
+func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *config.StageParam {
 	splitAB := isBidirectional
 	var hash api.ConnTrackHash
 	if isBidirectional {
@@ -41,40 +41,45 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *
 			FieldGroupRefs: []string{"protocol", "src", "dst"},
 		}
 	}
-	return &api.ConnTrack{
-		KeyDefinition: api.KeyDefinition{
-			FieldGroups: []api.FieldGroup{
-				{
-					Name: "src",
-					Fields: []string{
-						"SrcAddr",
-						"SrcPort",
+	return &config.StageParam{
+		Extract: &config.Extract{
+			Type: api.ConnTrackType,
+			ConnTrack: &api.ConnTrack{
+				KeyDefinition: api.KeyDefinition{
+					FieldGroups: []api.FieldGroup{
+						{
+							Name: "src",
+							Fields: []string{
+								"SrcAddr",
+								"SrcPort",
+							},
+						},
+						{
+							Name: "dst",
+							Fields: []string{
+								"DstAddr",
+								"DstPort",
+							},
+						},
+						{
+							Name: "protocol",
+							Fields: []string{
+								"Proto",
+							},
+						},
 					},
+					Hash: hash,
 				},
-				{
-					Name: "dst",
-					Fields: []string{
-						"DstAddr",
-						"DstPort",
-					},
+				OutputFields: []api.OutputField{
+					{Name: "Bytes", Operation: "sum", SplitAB: splitAB},
+					{Name: "Packets", Operation: "sum", SplitAB: splitAB},
+					{Name: "numFlowLogs", Operation: "count", SplitAB: false},
 				},
-				{
-					Name: "protocol",
-					Fields: []string{
-						"Proto",
-					},
-				},
-			},
-			Hash: hash,
-		},
-		OutputFields: []api.OutputField{
-			{Name: "Bytes", Operation: "sum", SplitAB: splitAB},
-			{Name: "Packets", Operation: "sum", SplitAB: splitAB},
-			{Name: "numFlowLogs", Operation: "count", SplitAB: false},
-		},
-		OutputRecordTypes:    outputRecordType,
-		EndConnectionTimeout: 30 * time.Second,
-	}
+				OutputRecordTypes:    outputRecordType,
+				EndConnectionTimeout: api.Duration{Duration: 30 * time.Second},
+			}, // end of api.ConnTrack
+		}, // end of config.Track
+	} // end of config.StageParam
 }
 
 func TestTrack(t *testing.T) {
@@ -93,7 +98,7 @@ func TestTrack(t *testing.T) {
 	flBA4 := newMockFlowLog(ipB, portB, ipA, portA, protocol, 444, 44)
 	table := []struct {
 		name          string
-		conf          *api.ConnTrack
+		conf          *config.StageParam
 		inputFlowLogs []config.GenericMap
 		expected      []config.GenericMap
 	}{
@@ -145,7 +150,7 @@ func TestTrack(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			ct, err := NewConnectionTrack(*test.conf, clock.NewMock())
 			require.NoError(t, err)
-			actual := ct.Track(test.inputFlowLogs)
+			actual := ct.Extract(test.inputFlowLogs)
 			require.Equal(t, test.expected, actual)
 		})
 	}
@@ -227,7 +232,7 @@ func TestEndConn_Bidirectional(t *testing.T) {
 			require.Less(t, prevTime, test.time)
 			prevTime = test.time
 			clk.Set(test.time)
-			actual := ct.Track(test.inputFlowLogs)
+			actual := ct.Extract(test.inputFlowLogs)
 			require.Equal(t, test.expected, actual)
 		})
 	}
@@ -325,7 +330,7 @@ func TestEndConn_Unidirectional(t *testing.T) {
 			require.Less(t, prevTime, test.time)
 			prevTime = test.time
 			clk.Set(test.time)
-			actual := ct.Track(test.inputFlowLogs)
+			actual := ct.Extract(test.inputFlowLogs)
 			require.Equal(t, test.expected, actual)
 		})
 	}

@@ -157,3 +157,31 @@ Following is the supported API format for specifying metrics aggregations:
          recordKey: internal field on which to perform the operation
          topK: number of highest incidence to report (default - report all)
 </pre>
+## Connection tracking API
+Following is the supported API format for specifying connection tracking:
+
+<pre>
+ conntrack:
+         keyDefinition: fields that are used to identify the connection
+             fieldGroups: list of field group definitions
+                     name: field group name
+                     fields: list of fields in the group
+             hash: how to build the connection hash
+                 fieldGroupRefs: list of field group names to build the hash
+                 fieldGroupARef: field group name of endpoint A
+                 fieldGroupBRef: field group name of endpoint B
+         outputRecordTypes: (enum) output record types to emit
+             newConnection: New connection
+             endConnection: End connection
+             flowLog: Flow log
+         outputFields: list of output fields
+                 name: output field name
+                 operation: (enum) aggregate operation on the field value
+                     sum: sum
+                     count: count
+                     min: min
+                     max: max
+                 splitAB: When true, 2 output fields will be created. One for A->B and one for B->A flows.
+                 input: The input field to base the operation on. When omitted, 'name' is used
+         endConnectionTimeout: duration of time to wait from the last flow log to end a connection
+</pre>

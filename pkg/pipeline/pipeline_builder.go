@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/benbjohnson/clock"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/conntrack"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
@@ -268,6 +270,8 @@ func getIngester(params config.StageParam) (ingest.Ingester, error) {
 		ingester, err = ingest.NewIngestKafka(params)
 	case api.GRPCType:
 		ingester, err = ingest.NewGRPCProtobuf(params)
+	case api.FakeType:
+		ingester, err = ingest.NewIngestFake(params)
 	default:
 		panic(fmt.Sprintf("`ingest` type %s not defined", params.Ingest.Type))
 	}
@@ -284,6 +288,8 @@ func getWriter(params config.StageParam) (write.Writer, error) {
 		writer, err = write.NewWriteNone()
 	case api.LokiType:
 		writer, err = write.NewWriteLoki(params)
+	case api.FakeType:
+		writer, err = write.NewWriteFake(params)
 	default:
 		panic(fmt.Sprintf("`write` type %s not defined; if no writer needed, specify `none`", params.Write.Type))
 	}
@@ -312,10 +318,12 @@ func getExtractor(params config.StageParam) (extract.Extractor, error) {
 	var extractor extract.Extractor
 	var err error
 	switch params.Extract.Type {
-	case "none":
+	case api.NoneType:
 		extractor, _ = extract.NewExtractNone()
-	case "aggregates":
+	case api.AggregateType:
 		extractor, err = extract.NewExtractAggregate(params)
+	case api.ConnTrackType:
+		extractor, err = conntrack.NewConnectionTrack(params, clock.New())
 	default:
 		panic(fmt.Sprintf("`extract` type %s not defined; if no extractor needed, specify `none`", params.Extract.Type))
 	}
@@ -326,11 +334,11 @@ func getEncoder(params config.StageParam) (encode.Encoder, error) {
 	var encoder encode.Encoder
 	var err error
 	switch params.Encode.Type {
-	case "prom":
+	case api.PromType:
 		encoder, err = encode.NewEncodeProm(params)
-	case "kafka":
+	case api.KafkaType:
 		encoder, err = encode.NewEncodeKafka(params)
-	case "none":
+	case api.NoneType:
 		encoder, _ = encode.NewEncodeNone()
 	default:
 		panic(fmt.Sprintf("`encode` type %s not defined; if no encoder needed, specify `none`", params.Encode.Type))
