@@ -66,7 +66,6 @@ validate_go:
 
 .PHONY: validate_go lint
 lint: $(GOLANGCI_LINT) ## Lint the code
-	@go mod vendor
 	@current_ver=$$(go version | { read _ _ v _; echo $${v#go}; }); \
 	if [[ "$$current_ver" == *"1.18"* ]]; then echo "Linting is not fully supported for golang 1.18. Consider using golang 1.17";\
 		$(GOLANGCI_LINT) run --disable-all --enable goimports --enable gofmt --enable ineffassign --timeout 5m; else \
@@ -74,13 +73,12 @@ lint: $(GOLANGCI_LINT) ## Lint the code
 	fi
 
 .PHONY: build_code
-build_code: validate_go lint
-	@go mod vendor
+build_code:
 	go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${FLP_BIN_FILE}"
 	go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${CG_BIN_FILE}"
 
 .PHONY: build
-build: build_code docs ## Build flowlogs-pipeline executable and update the docs
+build: validate_go lint build_code docs ## Build flowlogs-pipeline executable and update the docs
 
 # Note: To change dashboards, change `dashboards.jsonnet`. Do not change manually `dashboards.json`
 .PHONY: dashboards
@@ -297,7 +295,6 @@ ocp-cleanup: undeploy undeploy-loki undeploy-prometheus undeploy-grafana ## Unde
 dev-local-deploy: ## Deploy locally with simulated netflows
 	-pkill --oldest --full "${FLP_BIN_FILE}"
 	-pkill --oldest --full "${NETFLOW_GENERATOR}"
-	@go mod vendor
 	go build "${CMD_DIR}${FLP_BIN_FILE}"
 	go build "${CMD_DIR}${CG_BIN_FILE}"
 	./${CG_BIN_FILE} --log-level debug --srcFolder network_definitions \
