@@ -71,13 +71,13 @@ type DefFile struct {
 
 func (cg *ConfGen) Run() error {
 	var err error
-	cg.config, err = cg.parseConfigFile(Opt.SrcFolder + "/" + configFileName)
+	cg.config, err = cg.ParseConfigFile(Opt.SrcFolder + "/" + configFileName)
 	if err != nil {
-		log.Debugf("cg.parseConfigFile err: %v ", err)
+		log.Debugf("cg.ParseConfigFile err: %v ", err)
 		return err
 	}
 
-	definitionFiles := cg.getDefinitionFiles(Opt.SrcFolder)
+	definitionFiles := cg.GetDefinitionFiles(Opt.SrcFolder)
 	for _, definitionFile := range definitionFiles {
 		err := cg.parseFile(definitionFile)
 		if err != nil {
@@ -86,7 +86,7 @@ func (cg *ConfGen) Run() error {
 		}
 	}
 
-	cg.dedupe()
+	cg.Dedupe()
 
 	if len(Opt.GenerateStages) != 0 {
 		config := cg.GenerateTruncatedConfig(Opt.GenerateStages)
@@ -215,7 +215,7 @@ func (cg *ConfGen) parseFile(fileName string) error {
 	return nil
 }
 
-func (*ConfGen) getDefinitionFiles(rootPath string) []string {
+func (*ConfGen) GetDefinitionFiles(rootPath string) []string {
 
 	var files []string
 
