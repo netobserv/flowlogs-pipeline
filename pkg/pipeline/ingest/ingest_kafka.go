@@ -206,9 +206,9 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		commitInterval = jsonIngestKafka.CommitInterval
 	}
 
-	dialer := &kafka.Dialer{
-		Timeout:   kafka.DefaultDialer.Timeout,
-		DualStack: kafka.DefaultDialer.DualStack,
+	dialer := &kafkago.Dialer{
+		Timeout:   kafkago.DefaultDialer.Timeout,
+		DualStack: kafkago.DefaultDialer.DualStack,
 	}
 	if jsonIngestKafka.TLS != nil {
 		log.Infof("Using TLS configuration: %v", jsonIngestKafka.TLS)
