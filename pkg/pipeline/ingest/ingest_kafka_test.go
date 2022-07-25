@@ -189,7 +189,7 @@ func Test_KafkaListener(t *testing.T) {
 	}()
 
 	// wait for the data to have been processed
-	receivedEntries, err := test.WaitFromChannel(ingestOutput, 2000)
+	receivedEntries, err := test.WaitFromChannel(ingestOutput, 2*time.Second)
 	require.NoError(t, err)
 
 	// we remove timestamp for test stability
@@ -217,7 +217,7 @@ func Test_MaxBatchLength(t *testing.T) {
 	}()
 
 	// wait for the data to have been processed
-	receivedEntries, err := test.WaitFromChannel(ingestOutput, 2000)
+	receivedEntries, err := test.WaitFromChannel(ingestOutput, 2*time.Second)
 	require.NoError(t, err)
 
 	require.Equal(t, 10, len(receivedEntries))
@@ -242,7 +242,7 @@ func Test_BatchTimeout(t *testing.T) {
 
 	require.Equal(t, 0, len(ingestOutput))
 	// wait for the data to have been processed
-	receivedEntries, err := test.WaitFromChannel(ingestOutput, 2000)
+	receivedEntries, err := test.WaitFromChannel(ingestOutput, 2*time.Second)
 	require.NoError(t, err)
 	require.Equal(t, 5, len(receivedEntries))
 

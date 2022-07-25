@@ -182,9 +182,8 @@ func DumpToTemp(content string) (string, error, func()) {
 	}
 }
 
-func WaitFromChannel(in chan []config.GenericMap, timeout int64) ([]config.GenericMap, error) {
-	duration := time.Duration(timeout) * time.Millisecond
-	timeoutReached := time.NewTicker(duration)
+func WaitFromChannel(in chan []config.GenericMap, timeout time.Duration) ([]config.GenericMap, error) {
+	timeoutReached := time.NewTicker(timeout)
 	select {
 	case record := <-in:
 		return record, nil
