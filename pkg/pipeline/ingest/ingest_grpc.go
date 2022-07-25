@@ -28,9 +28,9 @@ const (
 )
 
 // Prometheus metrics describing the performance of the eBPF ingest
+// This metrics are internal to the goflow2 library, we update them here manually to align with the IPFIX ingester
 var (
-	flowDecoderCount = flow.DecoderStats.With(
-		prometheus.Labels{"worker": "", "name": decoderName})
+	flowDecoderCount    = flow.DecoderStats
 	processDelaySummary = flow.NetFlowTimeStatsSum.With(
 		prometheus.Labels{"version": decoderVersion, "router": ""})
 	flowTrafficBytesSum = flow.MetricPacketSizeSum
@@ -113,7 +113,8 @@ func instrumentGRPC(port int) grpc2.UnaryServerInterceptor {
 		}
 
 		// instruments number of decoded flow messages
-		flowDecoderCount.Inc()
+		flowDecoderCount.With(
+			prometheus.Labels{"worker": "", "name": decoderName}).Inc()
 
 		// instruments number of processed individual flows
 		linesProcessed.Add(float64(len(flowRecords.Entries)))
