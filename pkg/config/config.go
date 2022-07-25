@@ -40,12 +40,6 @@ type Health struct {
 	Port string
 }
 
-type ConfigFileStruct struct {
-	LogLevel   string       `yaml:"log-level,omitempty" json:"log-level,omitempty"`
-	Pipeline   []Stage      `yaml:"pipeline,omitempty" json:"pipeline,omitempty"`
-	Parameters []StageParam `yaml:"parameters,omitempty" json:"parameters,omitempty"`
-}
-
 type Stage struct {
 	Name    string `yaml:"name" json:"name"`
 	Follows string `yaml:"follows,omitempty" json:"follows,omitempty"`

@@ -22,20 +22,21 @@ import (
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/stretchr/testify/require"
 )
 
 func expectedConfig() *Config {
 	return &Config{
 		Description: "test description",
-		Encode: ConfigEncode{
-			Prom: api.PromEncode{
+		Encode: config.Encode{
+			Prom: &api.PromEncode{
 				Port:   7777,
 				Prefix: "prefix",
 			},
 		},
-		Ingest: ConfigIngest{
-			Collector: api.IngestCollector{
+		Ingest: config.Ingest{
+			Collector: &api.IngestCollector{
 				Port: 8888,
 			},
 		},

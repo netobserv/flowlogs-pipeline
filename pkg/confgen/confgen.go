@@ -78,19 +78,24 @@ func (cg *ConfGen) Run() error {
 		return err
 	}
 
-	definitionFiles := cg.GetDefinitionFiles(cg.opts.SrcFolder)
+	definitionFiles := getDefinitionFiles(cg.opts.SrcFolder)
 	for _, definitionFile := range definitionFiles {
-		err := cg.parseFile(definitionFile)
+		b, err := ioutil.ReadFile(definitionFile)
 		if err != nil {
-			log.Debugf("cg.parseFile err: %v ", err)
+			log.Debugf("ioutil.ReadFile err: %v ", err)
+			continue
+		}
+		err = cg.ParseDefinition(definitionFile, b)
+		if err != nil {
+			log.Debugf("cg.parseDefinition err: %v ", err)
 			continue
 		}
 	}
 
-	cg.Dedupe()
+	cg.dedupe()
 
 	if len(cg.opts.GenerateStages) != 0 {
-		config := cg.GenerateTruncatedConfig(cg.opts.GenerateStages)
+		config := cg.GenerateTruncatedConfig()
 		err = cg.writeConfigFile(cg.opts.DestConfFile, config)
 		if err != nil {
 			log.Debugf("cg.GenerateTruncatedConfig err: %v ", err)
@@ -121,47 +126,28 @@ func (cg *ConfGen) Run() error {
 	return nil
 }
 
-func (cg *ConfGen) checkHeader(fileName string) error {
-	// check header
-	f, err := os.OpenFile(fileName, os.O_RDONLY, 0644)
-	if err != nil {
-		log.Debugf("os.OpenFile error: %v ", err)
-		return err
-	}
+func checkHeader(bytes []byte) error {
 	header := make([]byte, len(definitionHeader))
-	_, err = f.Read(header)
-	if err != nil || string(header) != definitionHeader {
-		log.Debugf("Wrong header file: %s ", fileName)
+	copy(header, bytes)
+	if string(header) != definitionHeader {
 		return fmt.Errorf("wrong header")
 	}
-	err = f.Close()
-	if err != nil {
-		log.Debugf("f.Close err: %v ", err)
-		return err
-	}
-
 	return nil
 }
 
-func (cg *ConfGen) parseFile(fileName string) error {
-
+func (cg *ConfGen) ParseDefinition(name string, bytes []byte) error {
 	// check header
-	err := cg.checkHeader(fileName)
+	err := checkHeader(bytes)
 	if err != nil {
-		log.Debugf("cg.checkHeader err: %v ", err)
+		log.Debugf("%s cg.checkHeader err: %v ", name, err)
 		return err
 	}
 
 	// parse yaml
 	var defFile DefFile
-	yamlFile, err := ioutil.ReadFile(fileName)
+	err = yaml.Unmarshal(bytes, &defFile)
 	if err != nil {
-		log.Debugf("ioutil.ReadFile err: %v ", err)
-		return err
-	}
-	err = yaml.Unmarshal(yamlFile, &defFile)
-	if err != nil {
-		log.Debugf("yaml.Unmarshal err: %v ", err)
+		log.Debugf("%s yaml.Unmarshal err: %v ", name, err)
 		return err
 	}
 
@@ -169,14 +155,15 @@ func (cg *ConfGen) parseFile(fileName string) error {
 	for _, skipTag := range cg.opts.SkipWithTags {
 		for _, tag := range defFile.Tags {
 			if skipTag == tag {
-				return fmt.Errorf("skipping definition %s due to skip tag %s", fileName, tag)
+				log.Infof("skipping definition %s due to skip tag %s", name, tag)
+				return nil
 			}
 		}
 	}
 
 	// parse definition
 	definition := Definition{
-		FileName:    fileName,
+		FileName:    name,
 		Description: defFile.Description,
 		Details:     defFile.Details,
 		Usage:       defFile.Usage,
@@ -216,7 +203,7 @@ func (cg *ConfGen) parseFile(fileName string) error {
 	return nil
 }
 
-func (*ConfGen) GetDefinitionFiles(rootPath string) []string {
+func getDefinitionFiles(rootPath string) []string {
 
 	var files []string
 
