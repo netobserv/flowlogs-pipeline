@@ -59,7 +59,7 @@ encode:
 
 func Test_parseConfigFile(t *testing.T) {
 	filename := "/tmp/config"
-	cg := getConfGen()
+	cg := NewConfGen(&Options{})
 	err := os.WriteFile(filename, []byte(testConfig), 0644)
 	require.Equal(t, err, nil)
 	config, err := cg.ParseConfigFile(filename)

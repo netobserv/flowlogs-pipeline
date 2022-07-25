@@ -29,7 +29,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var (
+const (
 	definitionExt    = ".yaml"
 	definitionHeader = "#flp_confgen"
 	configFileName   = "config.yaml"
@@ -50,6 +50,7 @@ type Definition struct {
 type Definitions []Definition
 
 type ConfGen struct {
+	opts                 *Options
 	config               *Config
 	transformRules       api.NetworkTransformRules
 	aggregateDefinitions aggregate.Definitions
@@ -71,13 +72,13 @@ type DefFile struct {
 
 func (cg *ConfGen) Run() error {
 	var err error
-	cg.config, err = cg.ParseConfigFile(Opt.SrcFolder + "/" + configFileName)
+	cg.config, err = cg.ParseConfigFile(cg.opts.SrcFolder + "/" + configFileName)
 	if err != nil {
 		log.Debugf("cg.ParseConfigFile err: %v ", err)
 		return err
 	}
 
-	definitionFiles := cg.GetDefinitionFiles(Opt.SrcFolder)
+	definitionFiles := cg.GetDefinitionFiles(cg.opts.SrcFolder)
 	for _, definitionFile := range definitionFiles {
 		err := cg.parseFile(definitionFile)
 		if err != nil {
@@ -88,9 +89,9 @@ func (cg *ConfGen) Run() error {
 
 	cg.Dedupe()
 
-	if len(Opt.GenerateStages) != 0 {
-		config := cg.GenerateTruncatedConfig(Opt.GenerateStages)
-		err = cg.writeConfigFile(Opt.DestConfFile, config)
+	if len(cg.opts.GenerateStages) != 0 {
+		config := cg.GenerateTruncatedConfig(cg.opts.GenerateStages)
+		err = cg.writeConfigFile(cg.opts.DestConfFile, config)
 		if err != nil {
 			log.Debugf("cg.GenerateTruncatedConfig err: %v ", err)
 			return err
@@ -98,20 +99,20 @@ func (cg *ConfGen) Run() error {
 		return nil
 	} else {
 		config := cg.GenerateFlowlogs2PipelineConfig()
-		err = cg.writeConfigFile(Opt.DestConfFile, config)
+		err = cg.writeConfigFile(cg.opts.DestConfFile, config)
 		if err != nil {
 			log.Debugf("cg.GenerateFlowlogs2PipelineConfig err: %v ", err)
 			return err
 		}
 	}
 
-	err = cg.generateDoc(Opt.DestDocFile)
+	err = cg.generateDoc(cg.opts.DestDocFile)
 	if err != nil {
 		log.Debugf("cg.generateDoc err: %v ", err)
 		return err
 	}
 
-	err = cg.generateGrafanaJsonnet(Opt.DestGrafanaJsonnetFolder)
+	err = cg.generateGrafanaJsonnet(cg.opts.DestGrafanaJsonnetFolder)
 	if err != nil {
 		log.Debugf("cg.generateGrafanaJsonnet err: %v ", err)
 		return err
@@ -165,7 +166,7 @@ func (cg *ConfGen) parseFile(fileName string) error {
 	}
 
 	//skip if their skip tag match
-	for _, skipTag := range Opt.SkipWithTags {
+	for _, skipTag := range cg.opts.SkipWithTags {
 		for _, tag := range defFile.Tags {
 			if skipTag == tag {
 				return fmt.Errorf("skipping definition %s due to skip tag %s", fileName, tag)
@@ -235,11 +236,12 @@ func (*ConfGen) GetDefinitionFiles(rootPath string) []string {
 	return files
 }
 
-func NewConfGen() (*ConfGen, error) {
+func NewConfGen(opts *Options) *ConfGen {
 	return &ConfGen{
+		opts:                 opts,
 		transformRules:       api.NetworkTransformRules{},
 		aggregateDefinitions: aggregate.Definitions{},
 		definitions:          Definitions{},
 		visualizations:       Visualizations{},
-	}, nil
+	}
 }

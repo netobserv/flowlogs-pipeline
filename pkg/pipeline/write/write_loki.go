@@ -98,6 +98,10 @@ func buildLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 	}
 	if c.ClientConfig != nil {
 		cfg.Client = *c.ClientConfig
+		// JSON serialization fix
+		if cfg.Client.ProxyURL.URL != nil && cfg.Client.ProxyURL.URL.String() == "" {
+			cfg.Client.ProxyURL.URL = nil
+		}
 	}
 	var clientURL urlutil.URLValue
 	err = clientURL.Set(strings.TrimSuffix(c.URL, "/") + "/loki/api/v1/push")
