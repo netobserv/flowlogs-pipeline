@@ -336,6 +336,8 @@ func getEncoder(params config.StageParam) (encode.Encoder, error) {
 	switch params.Encode.Type {
 	case api.PromType:
 		encoder, err = encode.NewEncodeProm(params)
+	case api.SimplePromType:
+		encoder, err = encode.NewEncodeSimpleProm(params)
 	case api.KafkaType:
 		encoder, err = encode.NewEncodeKafka(params)
 	case api.NoneType:

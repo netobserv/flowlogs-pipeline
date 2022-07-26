@@ -84,9 +84,10 @@ type Extract struct {
 }
 
 type Encode struct {
-	Type  string           `yaml:"type" json:"type"`
-	Prom  *api.PromEncode  `yaml:"prom,omitempty" json:"prom,omitempty"`
-	Kafka *api.EncodeKafka `yaml:"kafka,omitempty" json:"kafka,omitempty"`
+	Type       string                `yaml:"type" json:"type"`
+	Prom       *api.PromEncode       `yaml:"prom,omitempty" json:"prom,omitempty"`
+	SimpleProm *api.SimplePromEncode `yaml:"simpleProm,omitempty" json:"simpleProm,omitempty"`
+	Kafka      *api.EncodeKafka      `yaml:"kafka,omitempty" json:"kafka,omitempty"`
 }
 
 type Write struct {

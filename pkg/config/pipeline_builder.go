@@ -124,6 +124,11 @@ func (b *PipelineBuilderStage) EncodePrometheus(name string, prom api.PromEncode
 	return b.next(name, NewEncodePrometheusParams(name, prom))
 }
 
+// SimpleEncodePrometheus chains the current stage with a SimplePromEncode stage (to expose metrics in Prometheus format) and returns that new stage
+func (b *PipelineBuilderStage) SimpleEncodePrometheus(name string, prom api.SimplePromEncode) PipelineBuilderStage {
+	return b.next(name, StageParam{Name: name, Encode: &Encode{Type: api.SimplePromType, SimpleProm: &prom}})
+}
+
 // EncodeKafka chains the current stage with an EncodeKafka stage (writing to a Kafka topic) and returns that new stage
 func (b *PipelineBuilderStage) EncodeKafka(name string, kafka api.EncodeKafka) PipelineBuilderStage {
 	return b.next(name, NewEncodeKafkaParams(name, kafka))
