@@ -62,6 +62,7 @@ func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
 	}
 	e := cs.connList.PushBack(conn)
 	cs.hash2conn[hashId] = e
+	metrics.connStoreLength.Set(float64(cs.connList.Len()))
 }
 
 func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
@@ -94,6 +95,7 @@ func (cs *connectionStore) iterateOldToNew(f processConnF) {
 		if shouldDelete {
 			delete(cs.hash2conn, conn.getHash().hashTotal)
 			cs.connList.Remove(e)
+			metrics.connStoreLength.Set(float64(cs.connList.Len()))
 		}
 		if shouldStop {
 			break
@@ -130,6 +132,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 		computedHash, err := ComputeHash(fl, ct.config.KeyDefinition, ct.hashProvider())
 		if err != nil {
 			log.Warningf("skipping flow log %v: %v", fl, err)
+			metrics.inputRecords.WithLabelValues("rejected").Inc()
 			continue
 		}
 		conn, exists := ct.connStore.getConnection(computedHash.hashTotal)
@@ -142,14 +145,17 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				Build()
 			ct.connStore.addConnection(computedHash.hashTotal, conn)
 			ct.updateConnection(conn, fl, computedHash)
+			metrics.inputRecords.WithLabelValues("newConnection").Inc()
 			if ct.shouldOutputNewConnection {
 				record := conn.toGenericMap()
 				addHashField(record, computedHash.hashTotal)
 				addTypeField(record, api.ConnTrackOutputRecordTypeName("NewConnection"))
 				outputRecords = append(outputRecords, record)
+				metrics.outputRecords.WithLabelValues("newConnection").Inc()
 			}
 		} else {
 			ct.updateConnection(conn, fl, computedHash)
+			metrics.inputRecords.WithLabelValues("update").Inc()
 		}
 
 		if ct.shouldOutputFlowLogs {
@@ -157,12 +163,14 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 			addHashField(record, computedHash.hashTotal)
 			addTypeField(record, api.ConnTrackOutputRecordTypeName("FlowLog"))
 			outputRecords = append(outputRecords, record)
+			metrics.outputRecords.WithLabelValues("flowLog").Inc()
 		}
 	}
 
 	endConnectionRecords := ct.popEndConnections()
 	if ct.shouldOutputEndConnection {
 		outputRecords = append(outputRecords, endConnectionRecords...)
+		metrics.outputRecords.WithLabelValues("endConnection").Add(float64(len(endConnectionRecords)))
 	}
 
 	return outputRecords
