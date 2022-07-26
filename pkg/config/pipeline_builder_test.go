@@ -109,6 +109,9 @@ func TestKafkaPromPipeline(t *testing.T) {
 			Input: "doesnt_exist",
 		}},
 	})
+	pl = pl.ConnTrack("conntrack", api.ConnTrack{
+		KeyDefinition: api.KeyDefinition{},
+	})
 	pl = pl.Aggregate("aggregate", []api.AggregateDefinition{{
 		Name:      "src_as_connection_count",
 		By:        api.AggregateBy{"srcAS"},
@@ -130,14 +133,14 @@ func TestKafkaPromPipeline(t *testing.T) {
 		Prefix: "flp_",
 	})
 	stages := pl.GetStages()
-	require.Len(t, stages, 4)
+	require.Len(t, stages, 5)
 
 	b, err := json.Marshal(stages)
 	require.NoError(t, err)
-	require.Equal(t, `[{"name":"ingest"},{"name":"filter","follows":"ingest"},{"name":"aggregate","follows":"filter"},{"name":"prom","follows":"aggregate"}]`, string(b))
+	require.Equal(t, `[{"name":"ingest"},{"name":"filter","follows":"ingest"},{"name":"conntrack","follows":"filter"},{"name":"aggregate","follows":"conntrack"},{"name":"prom","follows":"aggregate"}]`, string(b))
 
 	params := pl.GetStageParams()
-	require.Len(t, params, 4)
+	require.Len(t, params, 5)
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
@@ -149,9 +152,13 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"aggregate","extract":{"type":"aggregates","aggregates":[{"name":"src_as_connection_count","by":["srcAS"],"operation":"count"}]}}`, string(b))
+	require.Equal(t, `{"name":"conntrack","extract":{"type":"conntrack","conntrack":{"KeyDefinition":{"FieldGroups":null,"Hash":{"FieldGroupRefs":null,"FieldGroupARef":"","FieldGroupBRef":""}},"OutputRecordTypes":null,"OutputFields":null,"EndConnectionTimeout":"0s"}}}`, string(b))
 
 	b, err = json.Marshal(params[3])
+	require.NoError(t, err)
+	require.Equal(t, `{"name":"aggregate","extract":{"type":"aggregates","aggregates":[{"name":"src_as_connection_count","by":["srcAS"],"operation":"count"}]}}`, string(b))
+
+	b, err = json.Marshal(params[4])
 	require.NoError(t, err)
 	require.Equal(t, `{"name":"prom","encode":{"type":"prom","prom":{"metrics":[{"name":"connections_per_source_as","type":"counter","filter":{"key":"name","value":"src_as_connection_count"},"valueKey":"recent_count","labels":["by","aggregate"],"buckets":[]}],"port":9090,"prefix":"flp_"}}}`, string(b))
 }
