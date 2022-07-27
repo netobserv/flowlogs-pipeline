@@ -36,9 +36,9 @@ func TestNewHealthServer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			config.Opt.Health.Port = tt.args.port
-			expectedAddr := fmt.Sprintf("0.0.0.0:%s", config.Opt.Health.Port)
-			server := NewHealthServer(&tt.args.pipeline)
+			opts := config.Options{Health: config.Health{Port: tt.args.port}}
+			expectedAddr := fmt.Sprintf("0.0.0.0:%s", opts.Health.Port)
+			server := NewHealthServer(&opts, &tt.args.pipeline)
 			require.NotNil(t, server)
 			require.Equal(t, expectedAddr, server.address)
 

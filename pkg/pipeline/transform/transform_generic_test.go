@@ -130,10 +130,10 @@ func TestNewTransformGenericMaintainTrue(t *testing.T) {
 }
 
 func InitNewTransformGeneric(t *testing.T, configFile string) Transformer {
-	v := test.InitConfig(t, configFile)
+	v, cfg := test.InitConfig(t, configFile)
 	require.NotNil(t, v)
 
-	config := config.Parameters[0]
+	config := cfg.Parameters[0]
 	newTransform, err := NewTransformGeneric(config)
 	require.NoError(t, err)
 	return newTransform

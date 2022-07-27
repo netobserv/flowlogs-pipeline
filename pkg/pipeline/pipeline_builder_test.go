@@ -22,10 +22,10 @@ const baseConfig = `parameters:
 `
 
 func TestConnectionVerification_Pass(t *testing.T) {
-	test.InitConfig(t, baseConfig+`pipeline:
+	_, cfg := test.InitConfig(t, baseConfig+`pipeline:
 - { follows: ingest1, name: write1 }
 `)
-	_, err := NewPipeline()
+	_, err := NewPipeline(cfg)
 	assert.NoError(t, err)
 }
 
@@ -89,8 +89,8 @@ pipeline:
 		failingNodeName: "write1",
 	}} {
 		t.Run(tc.description, func(t *testing.T) {
-			test.InitConfig(t, tc.config)
-			_, err := NewPipeline()
+			_, cfg := test.InitConfig(t, tc.config)
+			_, err := NewPipeline(cfg)
 			require.Error(t, err)
 			require.IsType(t, &Error{}, err, err.Error())
 			assert.Equal(t, tc.failingNodeName, err.(*Error).StageName, err.Error())

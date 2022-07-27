@@ -43,6 +43,7 @@ var (
 	logLevel           string
 	envPrefix          = "FLOWLOGS-PIPILNE"
 	defaultLogFileName = ".flowlogs-pipeline"
+	opts               config.Options
 )
 
 // rootCmd represents the root command
@@ -98,8 +99,8 @@ func initLogger() {
 	log.SetFormatter(&log.TextFormatter{DisableColors: false, FullTimestamp: true, PadLevelText: true, DisableQuote: true})
 }
 
-func dumpConfig() {
-	configAsJSON, _ := json.MarshalIndent(config.Opt, "", "    ")
+func dumpConfig(opts config.Options) {
+	configAsJSON, _ := json.MarshalIndent(opts, "", "    ")
 	fmt.Printf("Using configuration:\n%s\n", configAsJSON)
 }
 
@@ -133,9 +134,9 @@ func initFlags() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", fmt.Sprintf("config file (default is $HOME/%s)", defaultLogFileName))
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "error", "Log level: debug, info, warning, error")
-	rootCmd.PersistentFlags().StringVar(&config.Opt.Health.Port, "health.port", "8080", "Health server port")
-	rootCmd.PersistentFlags().StringVar(&config.Opt.PipeLine, "pipeline", "", "json of config file pipeline field")
-	rootCmd.PersistentFlags().StringVar(&config.Opt.Parameters, "parameters", "", "json of config file parameters field")
+	rootCmd.PersistentFlags().StringVar(&opts.Health.Port, "health.port", "8080", "Health server port")
+	rootCmd.PersistentFlags().StringVar(&opts.PipeLine, "pipeline", "", "json of config file pipeline field")
+	rootCmd.PersistentFlags().StringVar(&opts.Parameters, "parameters", "", "json of config file parameters field")
 }
 
 func main() {
@@ -159,9 +160,9 @@ func run() {
 		filepath.Base(os.Args[0]), BuildVersion, BuildDate)
 
 	// Dump configuration
-	dumpConfig()
+	dumpConfig(opts)
 
-	err = config.ParseConfig()
+	cfg, err := config.ParseConfig(opts)
 	if err != nil {
 		log.Errorf("error in parsing config file: %v", err)
 		os.Exit(1)
@@ -171,14 +172,14 @@ func run() {
 	utils.SetupElegantExit()
 
 	// Create new flows pipeline
-	mainPipeline, err = pipeline.NewPipeline()
+	mainPipeline, err = pipeline.NewPipeline(&cfg)
 	if err != nil {
 		log.Fatalf("failed to initialize pipeline %s", err)
 		os.Exit(1)
 	}
 
 	// Start health report server
-	health.NewHealthServer(mainPipeline)
+	health.NewHealthServer(&opts, mainPipeline)
 
 	// Starts the flows pipeline
 	mainPipeline.Run()

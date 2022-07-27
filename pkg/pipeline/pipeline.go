@@ -46,12 +46,12 @@ type Pipeline struct {
 }
 
 // NewPipeline defines the pipeline elements
-func NewPipeline() (*Pipeline, error) {
+func NewPipeline(cfg *config.ConfigFileStruct) (*Pipeline, error) {
 	log.Debugf("entering NewPipeline")
 
-	stages := config.PipeLine
+	stages := cfg.Pipeline
 	log.Debugf("stages = %v ", stages)
-	configParams := config.Parameters
+	configParams := cfg.Parameters
 	log.Debugf("configParams = %v ", configParams)
 
 	build := newBuilder(configParams, stages)

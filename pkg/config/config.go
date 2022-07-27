@@ -24,16 +24,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	Opt        = Options{}
-	PipeLine   []Stage
-	Parameters []StageParam
-)
-
 type Options struct {
 	PipeLine   string
 	Parameters string
 	Health     Health
+}
+
+type ConfigFileStruct struct {
+	LogLevel   string       `yaml:"log-level,omitempty" json:"log-level,omitempty"`
+	Pipeline   []Stage      `yaml:"pipeline,omitempty" json:"pipeline,omitempty"`
+	Parameters []StageParam `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 }
 
 type Health struct {
@@ -95,20 +95,22 @@ type Write struct {
 }
 
 // ParseConfig creates the internal unmarshalled representation from the Pipeline and Parameters json
-func ParseConfig() error {
-	logrus.Debugf("config.Opt.PipeLine = %v ", Opt.PipeLine)
-	err := json.Unmarshal([]byte(Opt.PipeLine), &PipeLine)
-	if err != nil {
-		logrus.Errorf("error when reading config file: %v", err)
-		return err
-	}
-	logrus.Debugf("stages = %v ", PipeLine)
+func ParseConfig(opts Options) (ConfigFileStruct, error) {
+	out := ConfigFileStruct{}
 
-	err = json.Unmarshal([]byte(Opt.Parameters), &Parameters)
+	logrus.Debugf("config.Opt.PipeLine = %v ", opts.PipeLine)
+	err := json.Unmarshal([]byte(opts.PipeLine), &out.Pipeline)
 	if err != nil {
 		logrus.Errorf("error when reading config file: %v", err)
-		return err
+		return out, err
 	}
-	logrus.Debugf("params = %v ", Parameters)
-	return nil
+	logrus.Debugf("stages = %v ", out.Pipeline)
+
+	err = json.Unmarshal([]byte(opts.Parameters), &out.Parameters)
+	if err != nil {
+		logrus.Errorf("error when reading config file: %v", err)
+		return out, err
+	}
+	logrus.Debugf("params = %v ", out.Parameters)
+	return out, nil
 }

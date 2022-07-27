@@ -18,7 +18,6 @@
 package write
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
@@ -245,34 +244,31 @@ func (l *Loki) processRecords() {
 // NewWriteLoki creates a Loki writer from configuration
 func NewWriteLoki(params config.StageParam) (*Loki, error) {
 	log.Debugf("entering NewWriteLoki")
-
-	writeLokiString := pUtils.ParamString(params, "write", "loki")
-	log.Debugf("writeLokiString = %s", writeLokiString)
-	var jsonWriteLoki = api.GetWriteLokiDefaults()
-	err := json.Unmarshal([]byte(writeLokiString), &jsonWriteLoki)
-	if err != nil {
-		return nil, err
+	lokiConfigIn := api.WriteLoki{}
+	if params.Write != nil && params.Write.Loki != nil {
+		lokiConfigIn = *params.Write.Loki
 	}
-
 	// need to combine defaults with parameters that are provided in the config yaml file
-	if err = jsonWriteLoki.Validate(); err != nil {
+	lokiConfigIn.SetDefaults()
+
+	if err := lokiConfigIn.Validate(); err != nil {
 		return nil, fmt.Errorf("the provided config is not valid: %w", err)
 	}
 
-	lokiConfig, buildconfigErr := buildLokiConfig(&jsonWriteLoki)
+	lokiConfig, buildconfigErr := buildLokiConfig(&lokiConfigIn)
 	if buildconfigErr != nil {
-		return nil, err
+		return nil, buildconfigErr
 	}
-	client, NewWithLoggerErr := loki.NewWithLogger(lokiConfig, logAdapter.NewLogger(log.WithField("module", "export/loki")))
-	if NewWithLoggerErr != nil {
-		return nil, err
+	client, newWithLoggerErr := loki.NewWithLogger(lokiConfig, logAdapter.NewLogger(log.WithField("module", "export/loki")))
+	if newWithLoggerErr != nil {
+		return nil, newWithLoggerErr
 	}
 
 	in := make(chan config.GenericMap, channelSize)
 
 	l := &Loki{
 		lokiConfig: lokiConfig,
-		apiConfig:  jsonWriteLoki,
+		apiConfig:  lokiConfigIn,
 		client:     client,
 		timeNow:    time.Now,
 		exitChan:   pUtils.ExitChannel(),

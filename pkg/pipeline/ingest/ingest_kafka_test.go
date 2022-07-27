@@ -70,10 +70,10 @@ parameters:
 `
 
 func initNewIngestKafka(t *testing.T, configTemplate string) Ingester {
-	v := test.InitConfig(t, configTemplate)
+	v, cfg := test.InitConfig(t, configTemplate)
 	require.NotNil(t, v)
 
-	newIngest, err := NewIngestKafka(config.Parameters[0])
+	newIngest, err := NewIngestKafka(cfg.Parameters[0])
 	require.NoError(t, err)
 	return newIngest
 }

@@ -87,10 +87,10 @@ parameters:
 func TestTransformMultiple(t *testing.T) {
 	var mainPipeline *Pipeline
 	var err error
-	v := test.InitConfig(t, testConfigTransformMultiple)
+	v, cfg := test.InitConfig(t, testConfigTransformMultiple)
 	require.NotNil(t, v)
 
-	mainPipeline, err = NewPipeline()
+	mainPipeline, err = NewPipeline(cfg)
 	require.NoError(t, err)
 
 	// The file ingester reads the entire file, pushes it down the pipeline, and then exits
