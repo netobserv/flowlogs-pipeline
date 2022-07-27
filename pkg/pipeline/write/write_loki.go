@@ -136,7 +136,7 @@ func (l *Loki) ProcessRecord(record config.GenericMap) error {
 	}
 
 	err = l.client.Handle(labels, timestamp, string(js))
-	if err != nil {
+	if err == nil {
 		recordsWritten.Inc()
 	}
 	return err
