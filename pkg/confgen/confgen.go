@@ -95,8 +95,8 @@ func (cg *ConfGen) Run() error {
 	cg.dedupe()
 
 	if len(cg.opts.GenerateStages) != 0 {
-		config := cg.GenerateTruncatedConfig()
-		err = cg.writeConfigFile(cg.opts.DestConfFile, config)
+		cfg := cg.GenerateTruncatedConfig()
+		err = cg.writeConfigFile(cg.opts.DestConfFile, cfg)
 		if err != nil {
 			log.Debugf("cg.GenerateTruncatedConfig err: %v ", err)
 			return err

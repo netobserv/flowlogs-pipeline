@@ -27,7 +27,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() map[string]interface{} {
+func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.ConfigFileStruct {
 	pipeline, _ := config.NewPipeline("ingest_collector", &cg.config.Ingest)
 	next := pipeline
 	if cg.config.Transform.Generic != nil {
@@ -53,10 +53,10 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() map[string]interface{} {
 	if cg.config.Write.Loki != nil {
 		next.WriteLoki("write_loki", *cg.config.Write.Loki)
 	}
-	return map[string]interface{}{
-		"log-level":  "error",
-		"pipeline":   pipeline.GetStages(),
-		"parameters": pipeline.GetStageParams(),
+	return &config.ConfigFileStruct{
+		LogLevel:   "error",
+		Pipeline:   pipeline.GetStages(),
+		Parameters: pipeline.GetStageParams(),
 	}
 }
 
@@ -84,8 +84,8 @@ func (cg *ConfGen) GenerateTruncatedConfig() []config.StageParam {
 	return parameters
 }
 
-func (cg *ConfGen) writeConfigFile(fileName string, config interface{}) error {
-	configData, err := yaml.Marshal(config)
+func (cg *ConfGen) writeConfigFile(fileName string, cfg interface{}) error {
+	configData, err := yaml.Marshal(cfg)
 	if err != nil {
 		return err
 	}
