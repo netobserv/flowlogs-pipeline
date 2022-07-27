@@ -41,15 +41,20 @@ func (et *ExtractTimebased) Extract(entries []config.GenericMap) []config.Generi
 		timebased.AddEntryToTables(et.recordKeyStructs, entry, nowInSecs)
 	}
 
+	output := make([]config.GenericMap, 0)
 	// Calculate filters based on time windows
 	for _, filter := range et.filters {
 		filter.CalculateResults(nowInSecs)
+		filter.ComputeTopkBotk()
+		genMap := filter.CreateGenericMap()
+		output = append(output, genMap...)
 	}
+	log.Debugf("output of extract timebased: %v", output)
 
-	// TODO extract topk/botk and build return []config.GenericMap
+	// delete entries from tables that are outside time windows
+	timebased.DeleteOldEntriesFromTables(et.recordKeyStructs, nowInSecs)
 
-	// TODO: delete entries from tables that are outside time window
-	return nil
+	return output
 }
 
 //  NewExtractTimebased creates a new extractor

@@ -24,10 +24,11 @@ import (
 	"strconv"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
-func (fs FilterStruct) CalculateResults(nowInSecs int64) {
+func (fs *FilterStruct) CalculateResults(nowInSecs int64) {
 	log.Debugf("CalculateResults nowInSecs = %d", nowInSecs)
 	oldestValidTime := nowInSecs - int64(fs.rule.TimeInterval)
 	for key, l := range fs.recordKeyDataTable.dataTableMap {
@@ -57,7 +58,7 @@ func (fs FilterStruct) CalculateResults(nowInSecs int64) {
 		default:
 			valueFloat64 = fs.CalculateValue(l, oldestValidTime)
 		}
-		fs.results[key] = filterOperationResult{
+		fs.results[key] = &filterOperationResult{
 			key:             key,
 			operationResult: valueFloat64,
 		}
@@ -65,7 +66,7 @@ func (fs FilterStruct) CalculateResults(nowInSecs int64) {
 	log.Debugf("CalculateResults results = %v", fs.results)
 }
 
-func (fs FilterStruct) CalculateValue(l *list.List, oldestValidTime int64) float64 {
+func (fs *FilterStruct) CalculateValue(l *list.List, oldestValidTime int64) float64 {
 	log.Debugf("CalculateValue nowInSecs = %d", oldestValidTime)
 	currentValue := getInitValue(fs.rule.Operation)
 	nItems := 0
@@ -106,4 +107,37 @@ func getInitValue(operation api.FilterOperation) float64 {
 		log.Panicf("unkown operation %v", operation)
 		return 0
 	}
+}
+
+func (fs *FilterStruct) ComputeTopkBotk() {
+	var output []filterOperationResult
+	if fs.rule.TopK > 0 {
+		output = fs.computeTopK(fs.results)
+	} else if fs.rule.BotK > 0 {
+		output = fs.computeBotK(fs.results)
+	} else {
+		// return all results; convert map to array
+		output := make([]filterOperationResult, len(fs.results))
+		i := 0
+		for _, item := range fs.results {
+			output[i] = *item
+		}
+	}
+	fs.output = output
+}
+
+func (fs *FilterStruct) CreateGenericMap() []config.GenericMap {
+	output := make([]config.GenericMap, 0)
+	for _, result := range fs.output {
+		t := config.GenericMap{
+			"name":             fs.rule.Name,
+			"record_key":       fs.rule.RecordKey,
+			"operation":        fs.rule.Operation,
+			"operation_key":    fs.rule.OperationKey,
+			"key_value":        result.key,
+			"operation_result": result.operationResult,
+		}
+		output = append(output, t)
+	}
+	return output
 }

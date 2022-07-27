@@ -38,9 +38,10 @@ type FilterStruct struct {
 	rule               api.TimebasedFilterRule
 	recordKeyDataTable *RecordKeyTable
 	results            filterOperationResults
+	output             []filterOperationResult
 }
 
-type filterOperationResults map[string]filterOperationResult
+type filterOperationResults map[string]*filterOperationResult
 
 type filterOperationResult struct {
 	key             string

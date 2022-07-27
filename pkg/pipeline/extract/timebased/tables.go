@@ -48,6 +48,26 @@ func AddEntryToTable(cEntry *TableEntry, tableList *list.List) {
 	tableList.PushBack(cEntry)
 }
 
+func DeleteOldEntriesFromTables(recordKeyStructs map[string]*RecordKeyTable, nowInSecs int64) {
+	for _, recordTable := range recordKeyStructs {
+		oldestTime := nowInSecs - int64(recordTable.maxTimeInterval)
+		for _, tableMap := range recordTable.dataTableMap {
+			for {
+				head := tableMap.Front()
+				if head == nil {
+					continue
+				}
+				tableEntry := head.Value.(*TableEntry)
+				if tableEntry.timeStamp < oldestTime {
+					tableMap.Remove(head)
+					continue
+				}
+				break
+			}
+		}
+	}
+}
+
 func PrintTable(l *list.List) {
 	for e := l.Front(); e != nil; e = e.Next() {
 		fmt.Printf("PrintTable: e = %v, Value = %v \n", e, e.Value)
