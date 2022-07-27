@@ -116,7 +116,7 @@ func (b *PipelineBuilderStage) TransformNetwork(name string, nw api.TransformNet
 
 // ConnTrack chains the current stage with a ConnTrack stage and returns that new stage
 func (b *PipelineBuilderStage) ConnTrack(name string, ct api.ConnTrack) PipelineBuilderStage {
-	return b.next(name, StageParam{Name: name, Extract: &Extract{Type: api.ConnTrackType, ConnTrack: &ct}})
+	return b.next(name, NewConnTrackParams(name, ct))
 }
 
 // EncodePrometheus chains the current stage with a PromEncode stage (to expose metrics in Prometheus format) and returns that new stage

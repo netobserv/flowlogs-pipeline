@@ -49,6 +49,10 @@ func NewTransformNetworkParams(name string, nw api.TransformNetwork) StageParam 
 	return StageParam{Name: name, Transform: &Transform{Type: api.NetworkType, Network: &nw}}
 }
 
+func NewConnTrackParams(name string, ct api.ConnTrack) StageParam {
+	return StageParam{Name: name, Extract: &Extract{Type: api.ConnTrackType, ConnTrack: &ct}}
+}
+
 func NewEncodePrometheusParams(name string, prom api.PromEncode) StageParam {
 	return StageParam{Name: name, Encode: &Encode{Type: api.PromType, Prom: &prom}}
 }
