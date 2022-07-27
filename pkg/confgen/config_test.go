@@ -18,6 +18,7 @@
 package confgen
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -59,11 +60,16 @@ encode:
 `
 
 func Test_parseConfigFile(t *testing.T) {
-	filename := "/tmp/config"
+	file, err := ioutil.TempFile("", "config.yaml")
+	require.NoError(t, err)
+	defer os.Remove(file.Name())
 	cg := NewConfGen(&Options{})
-	err := os.WriteFile(filename, []byte(testConfig), 0644)
-	require.Equal(t, err, nil)
-	config, err := cg.ParseConfigFile(filename)
+	_, err = file.Write([]byte(testConfig))
+	require.NoError(t, err)
+	err = file.Close()
+	require.NoError(t, err)
+
+	config, err := cg.ParseConfigFile(file.Name())
 	require.NoError(t, err)
 	require.Equal(t, config, expectedConfig())
 }

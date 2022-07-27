@@ -150,10 +150,10 @@ func Test_ParseDefinition(t *testing.T) {
 }
 
 func Test_getDefinitionFiles(t *testing.T) {
-	dirPath := "/tmp/getDefinitionFilesTest"
 	filename := "/def.yaml"
-	err := os.MkdirAll(dirPath, 0755)
+	dirPath, err := ioutil.TempDir("", "getDefinitionFilesTest")
 	require.NoError(t, err)
+	defer os.RemoveAll(dirPath)
 	err = os.WriteFile(filepath.Join(dirPath, filename), []byte(networkDefs), 0644)
 	require.NoError(t, err)
 	files := getDefinitionFiles(dirPath)
@@ -164,15 +164,23 @@ func Test_getDefinitionFiles(t *testing.T) {
 
 func Test_RunShortConfGen(t *testing.T) {
 	// Prepare
-	dirPath := "/tmp/getDefinitionFilesTest"
+	dirPath, err := ioutil.TempDir("", "RunShortConfGenTest")
+	require.NoError(t, err)
+	defer os.RemoveAll(dirPath)
+	outDirPath, err := ioutil.TempDir("", "RunShortConfGenTest_out")
+	require.NoError(t, err)
+	defer os.RemoveAll(outDirPath)
+
+	configOut := filepath.Join(outDirPath, "config.yaml")
+	docOut := filepath.Join(outDirPath, "doc.md")
+	jsonnetOut := filepath.Join(outDirPath, "jsonnet")
+
 	cg := NewConfGen(&Options{
 		SrcFolder:                dirPath,
-		DestConfFile:             "/tmp/destConfigTest",
-		DestDocFile:              "/tmp/destDocTest",
-		DestGrafanaJsonnetFolder: "/tmp/destJsonnetTest",
+		DestConfFile:             configOut,
+		DestDocFile:              docOut,
+		DestGrafanaJsonnetFolder: jsonnetOut,
 	})
-	err := os.MkdirAll(dirPath, 0755)
-	require.NoError(t, err)
 	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(shortConfig), 0644)
 	require.NoError(t, err)
 	err = os.WriteFile(filepath.Join(dirPath, "def.yaml"), []byte(networkDefs), 0644)
@@ -187,7 +195,7 @@ func Test_RunShortConfGen(t *testing.T) {
 		Pipeline   []config.Stage      `yaml:"pipeline"`
 		Parameters []config.StageParam `yaml:"parameters"`
 	}
-	destCfgBytes, err := ioutil.ReadFile("/tmp/destConfigTest")
+	destCfgBytes, err := ioutil.ReadFile(configOut)
 	require.NoError(t, err)
 	var out Output
 	err = yaml.Unmarshal(destCfgBytes, &out)
@@ -248,15 +256,23 @@ func Test_RunShortConfGen(t *testing.T) {
 
 func Test_RunLongConfGen(t *testing.T) {
 	// Prepare
-	dirPath := "/tmp/getDefinitionFilesTest"
+	dirPath, err := ioutil.TempDir("", "RunLongConfGenTest")
+	require.NoError(t, err)
+	defer os.RemoveAll(dirPath)
+	outDirPath, err := ioutil.TempDir("", "RunLongConfGenTest_out")
+	require.NoError(t, err)
+	defer os.RemoveAll(outDirPath)
+
+	configOut := filepath.Join(outDirPath, "config.yaml")
+	docOut := filepath.Join(outDirPath, "doc.md")
+	jsonnetOut := filepath.Join(outDirPath, "jsonnet")
+
 	cg := NewConfGen(&Options{
 		SrcFolder:                dirPath,
-		DestConfFile:             "/tmp/destConfigTest",
-		DestDocFile:              "/tmp/destDocTest",
-		DestGrafanaJsonnetFolder: "/tmp/destJsonnetTest",
+		DestConfFile:             configOut,
+		DestDocFile:              docOut,
+		DestGrafanaJsonnetFolder: jsonnetOut,
 	})
-	err := os.MkdirAll(dirPath, 0755)
-	require.NoError(t, err)
 	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(longConfig), 0644)
 	require.NoError(t, err)
 	err = os.WriteFile(filepath.Join(dirPath, "def.yaml"), []byte(networkDefs), 0644)
@@ -271,7 +287,7 @@ func Test_RunLongConfGen(t *testing.T) {
 		Pipeline   []config.Stage      `yaml:"pipeline"`
 		Parameters []config.StageParam `yaml:"parameters"`
 	}
-	destCfgBytes, err := ioutil.ReadFile("/tmp/destConfigTest")
+	destCfgBytes, err := ioutil.ReadFile(configOut)
 	require.NoError(t, err)
 	var out Output
 	err = yaml.Unmarshal(destCfgBytes, &out)
