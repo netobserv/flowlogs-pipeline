@@ -298,7 +298,7 @@ dev-local-deploy: ## Deploy locally with simulated netflows
 	go build "${CMD_DIR}${FLP_BIN_FILE}"
 	go build "${CMD_DIR}${CG_BIN_FILE}"
 	./${CG_BIN_FILE} --log-level debug --srcFolder network_definitions \
-	--skipWithLabels "kubernetes" \
+	--skipWithTags "kubernetes" \
 	--destConfFile /tmp/flowlogs-pipeline.conf.yaml --destGrafanaJsonnetFolder /tmp/
 	test -f /tmp/${NETFLOW_GENERATOR} || curl -L --output /tmp/${NETFLOW_GENERATOR}  https://github.com/nerdalert/nflow-generator/blob/master/binaries/nflow-generator-x86_64-linux?raw=true
 	chmod +x /tmp/${NETFLOW_GENERATOR}
