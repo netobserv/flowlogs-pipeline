@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -28,11 +30,13 @@ type histoInfo struct {
 	histo *prometheus.HistogramVec
 	info  *api.SimplePromMetricsItem
 }
-
 type SimpleEncodeProm struct {
-	gauges   []gaugeInfo
-	counters []counterInfo
-	histos   []histoInfo
+	gauges     []gaugeInfo
+	counters   []counterInfo
+	histos     []histoInfo
+	expiryTime int64
+	mCache     *utils.TimedCache
+	exitChan   <-chan struct{}
 }
 
 var errorsCounter = operationalMetrics.NewCounterVec(prometheus.CounterOpts{
@@ -53,7 +57,7 @@ func (e *SimpleEncodeProm) FlowToMetrics(flow config.GenericMap) {
 
 	// Process counters
 	for _, mInfo := range e.counters {
-		labels, value := prepareMetric(flow, mInfo.info)
+		labels, value := e.prepareMetric(flow, mInfo.info, mInfo.counter.MetricVec)
 		if labels == nil {
 			continue
 		}
@@ -69,7 +73,7 @@ func (e *SimpleEncodeProm) FlowToMetrics(flow config.GenericMap) {
 
 	// Process gauges
 	for _, mInfo := range e.gauges {
-		labels, value := prepareMetric(flow, mInfo.info)
+		labels, value := e.prepareMetric(flow, mInfo.info, mInfo.gauge.MetricVec)
 		if labels == nil {
 			continue
 		}
@@ -85,7 +89,7 @@ func (e *SimpleEncodeProm) FlowToMetrics(flow config.GenericMap) {
 
 	// Process histograms
 	for _, mInfo := range e.histos {
-		labels, value := prepareMetric(flow, mInfo.info)
+		labels, value := e.prepareMetric(flow, mInfo.info, mInfo.histo.MetricVec)
 		if labels == nil {
 			continue
 		}
@@ -100,7 +104,7 @@ func (e *SimpleEncodeProm) FlowToMetrics(flow config.GenericMap) {
 	}
 }
 
-func prepareMetric(flow config.GenericMap, info *api.SimplePromMetricsItem) (map[string]string, float64) {
+func (e *SimpleEncodeProm) prepareMetric(flow config.GenericMap, info *api.SimplePromMetricsItem, m *prometheus.MetricVec) (map[string]string, float64) {
 	val, found := flow[info.RecordKey]
 	if !found {
 		errorsCounter.WithLabelValues("RecordKeyMissing", info.Name, info.RecordKey).Inc()
@@ -111,13 +115,21 @@ func prepareMetric(flow config.GenericMap, info *api.SimplePromMetricsItem) (map
 		errorsCounter.WithLabelValues("ValueConversionError", info.Name, info.RecordKey).Inc()
 		return nil, 0
 	}
+
 	entryLabels := make(map[string]string, len(info.Labels))
+	key := strings.Builder{}
+	key.WriteString(info.Name)
+	key.WriteRune('|')
 	for _, t := range info.Labels {
 		entryLabels[t] = ""
 		if v, ok := flow[t]; ok {
 			entryLabels[t] = fmt.Sprintf("%v", v)
 		}
+		key.WriteString(entryLabels[t])
+		key.WriteRune('|')
 	}
+	// Update entry for expiry mechanism (the entry itself is its own cleanup function)
+	e.mCache.UpdateCacheEntry(key.String(), func() { m.Delete(entryLabels) })
 	return entryLabels, floatVal
 }
 
@@ -138,11 +150,35 @@ func (e *SimpleEncodeProm) startServer(port int) {
 	}
 }
 
+// callback function from lru cleanup
+func (e *SimpleEncodeProm) Cleanup(cleanupFunc interface{}) {
+	cleanupFunc.(func())()
+}
+
+func (e *SimpleEncodeProm) cleanupExpiredEntriesLoop() {
+	ticker := time.NewTicker(time.Duration(e.expiryTime) * time.Second)
+	for {
+		select {
+		case <-e.exitChan:
+			log.Debugf("exiting cleanupExpiredEntriesLoop because of signal")
+			return
+		case <-ticker.C:
+			e.mCache.CleanupExpiredEntries(e.expiryTime, e)
+		}
+	}
+}
+
 func NewEncodeSimpleProm(params config.StageParam) (Encoder, error) {
 	config := api.SimplePromEncode{}
 	if params.Encode != nil && params.Encode.SimpleProm != nil {
 		config = *params.Encode.SimpleProm
 	}
+
+	expiryTime := int64(config.ExpiryTime)
+	if expiryTime == 0 {
+		expiryTime = defaultExpiryTime
+	}
+	log.Debugf("expiryTime = %d", expiryTime)
 
 	counters := []counterInfo{}
 	gauges := []gaugeInfo{}
@@ -199,10 +235,14 @@ func NewEncodeSimpleProm(params config.StageParam) (Encoder, error) {
 	log.Debugf("gauges = %v", gauges)
 	log.Debugf("histos = %v", histos)
 	w := &SimpleEncodeProm{
-		counters: counters,
-		gauges:   gauges,
-		histos:   histos,
+		counters:   counters,
+		gauges:     gauges,
+		histos:     histos,
+		expiryTime: expiryTime,
+		mCache:     utils.NewTimedCache(),
+		exitChan:   utils.ExitChannel(),
 	}
 	go w.startServer(config.Port)
+	go w.cleanupExpiredEntriesLoop()
 	return w, nil
 }
