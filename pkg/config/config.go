@@ -98,7 +98,7 @@ type Write struct {
 func ParseConfig(opts Options) (ConfigFileStruct, error) {
 	out := ConfigFileStruct{}
 
-	logrus.Debugf("config.Opt.PipeLine = %v ", opts.PipeLine)
+	logrus.Debugf("opts.PipeLine = %v ", opts.PipeLine)
 	err := json.Unmarshal([]byte(opts.PipeLine), &out.Pipeline)
 	if err != nil {
 		logrus.Errorf("error when reading config file: %v", err)
