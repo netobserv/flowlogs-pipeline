@@ -28,7 +28,6 @@ const (
 	StdoutType            = "stdout"
 	LokiType              = "loki"
 	AggregateType         = "aggregates"
-	SimplePromType        = "simpleprom"
 	PromType              = "prom"
 	GenericType           = "generic"
 	NetworkType           = "network"
@@ -52,7 +51,6 @@ const (
 
 type API struct {
 	PromEncode         PromEncode          `yaml:"prom" doc:"## Prometheus encode API\nFollowing is the supported API format for prometheus encode:\n"`
-	SimplePromEncode   SimplePromEncode    `yaml:"simpleprom" doc:"## Prometheus encode API\nFollowing is the supported API format for prometheus encode:\n"`
 	KafkaEncode        EncodeKafka         `yaml:"kafka" doc:"## Kafka encode API\nFollowing is the supported API format for kafka encode:\n"`
 	IngestCollector    IngestCollector     `yaml:"collector" doc:"## Ingest collector API\nFollowing is the supported API format for the NetFlow / IPFIX collector:\n"`
 	IngestKafka        IngestKafka         `yaml:"kafka" doc:"## Ingest Kafka API\nFollowing is the supported API format for the kafka ingest:\n"`

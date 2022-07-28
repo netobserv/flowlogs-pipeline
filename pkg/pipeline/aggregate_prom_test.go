@@ -27,15 +27,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createEncodeOutput(name string, labels map[string]string, value interface{}) config.GenericMap {
-	gm := config.GenericMap{
-		"Name":   name,
-		"Labels": labels,
-		"value":  value,
-	}
-	return gm
-}
-
 // Test_Extract_Encode tests the integration between extract_aggregate and encode_prom.
 // The test sends flows in 2 batches. Each batch is passed through the extractor and the encoder.
 // The output of each stage is verified.
@@ -91,7 +82,7 @@ parameters:
              - service
 
          - name: bytes_histogram
-           type: histogram
+           type: agg_histogram
            filter: {key: name, value: bandwidth_raw_values}
            valueKey: recent_raw_values
            labels:
@@ -113,7 +104,7 @@ parameters:
 		name           string
 		inputBatch     []config.GenericMap
 		expectedAggs   []config.GenericMap
-		expectedEncode []config.GenericMap
+		expectedEncode []string
 	}{
 		{
 			name: "batch1",
@@ -131,13 +122,19 @@ parameters:
 				test.CreateMockAgg("bandwidth_raw_values", "bytes", "service", "http", aggregate.OperationRawValues, 0, 2, []float64{10, 20}, 0, 2),
 				test.CreateMockAgg("bandwidth_raw_values", "bytes", "service", "tcp", aggregate.OperationRawValues, 0, 2, []float64{1, 2}, 0, 2),
 			},
-			expectedEncode: []config.GenericMap{
-				createEncodeOutput("test_flow_count", map[string]string{"service": "http"}, 2),
-				createEncodeOutput("test_flow_count", map[string]string{"service": "tcp"}, 2),
-				createEncodeOutput("test_bytes_sum", map[string]string{"service": "http"}, 30.0),
-				createEncodeOutput("test_bytes_sum", map[string]string{"service": "tcp"}, 3.0),
-				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, []float64{10, 20}),
-				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, []float64{1, 2}),
+			expectedEncode: []string{
+				`test_flow_count{service="http"} 2`,
+				`test_flow_count{service="tcp"} 2`,
+				`test_bytes_sum{service="http"} 30`,
+				`test_bytes_sum{service="tcp"} 3`,
+				`test_bytes_histogram_bucket{service="http",le="10"} 1`,
+				`test_bytes_histogram_bucket{service="http",le="+Inf"} 2`,
+				`test_bytes_histogram_sum{service="http"} 30`,
+				`test_bytes_histogram_count{service="http"} 2`,
+				`test_bytes_histogram_bucket{service="tcp",le="1"} 1`,
+				`test_bytes_histogram_bucket{service="tcp",le="2.5"} 2`,
+				`test_bytes_histogram_sum{service="tcp"} 3`,
+				`test_bytes_histogram_count{service="tcp"} 2`,
 			},
 		},
 		{
@@ -155,13 +152,20 @@ parameters:
 				test.CreateMockAgg("bandwidth_raw_values", "bytes", "service", "http", aggregate.OperationRawValues, 0, 3, []float64{30}, 0, 1),
 				test.CreateMockAgg("bandwidth_raw_values", "bytes", "service", "tcp", aggregate.OperationRawValues, 0, 4, []float64{4, 5}, 0, 2),
 			},
-			expectedEncode: []config.GenericMap{
-				createEncodeOutput("test_flow_count", map[string]string{"service": "http"}, 1),
-				createEncodeOutput("test_flow_count", map[string]string{"service": "tcp"}, 2),
-				createEncodeOutput("test_bytes_sum", map[string]string{"service": "http"}, 30.0),
-				createEncodeOutput("test_bytes_sum", map[string]string{"service": "tcp"}, 9.0),
-				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "http"}, []float64{30}),
-				createEncodeOutput("test_bytes_histogram", map[string]string{"service": "tcp"}, []float64{4, 5}),
+			expectedEncode: []string{
+				`test_flow_count{service="http"} 3`,
+				`test_flow_count{service="tcp"} 4`,
+				`test_bytes_sum{service="http"} 60`,
+				`test_bytes_sum{service="tcp"} 12`,
+				`test_bytes_histogram_bucket{service="http",le="10"} 1`,
+				`test_bytes_histogram_bucket{service="http",le="+Inf"} 3`,
+				`test_bytes_histogram_sum{service="http"} 60`,
+				`test_bytes_histogram_count{service="http"} 3`,
+				`test_bytes_histogram_bucket{service="tcp",le="1"} 1`,
+				`test_bytes_histogram_bucket{service="tcp",le="2.5"} 2`,
+				`test_bytes_histogram_bucket{service="tcp",le="5"} 4`,
+				`test_bytes_histogram_sum{service="tcp"} 12`,
+				`test_bytes_histogram_count{service="tcp"} 4`,
 			},
 		},
 	}
@@ -174,7 +178,11 @@ parameters:
 			require.ElementsMatch(t, tt.expectedAggs, actualAggs)
 
 			promEncode.Encode(actualAggs)
-			require.ElementsMatch(t, tt.expectedEncode, promEncode.(*encode.EncodeProm).PrevRecords)
+			exposed := test.ReadExposedMetrics(t)
+
+			for _, expected := range tt.expectedEncode {
+				require.Contains(t, exposed, expected)
+			}
 		})
 	}
 }
