@@ -96,12 +96,12 @@ func Test_FilterEntry(t *testing.T) {
 	aggregate := GetMockAggregate()
 	entry := test.GetIngestMockEntry(false)
 
-	err, _ := aggregate.FilterEntry(entry)
+	err, _, _ := aggregate.FilterEntry(entry)
 
 	require.Equal(t, err, nil)
 	entry = test.GetIngestMockEntry(true)
 
-	err, _ = aggregate.FilterEntry(entry)
+	err, _, _ = aggregate.FilterEntry(entry)
 
 	require.EqualError(t, err, "missing keys in entry")
 }
