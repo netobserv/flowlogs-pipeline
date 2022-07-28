@@ -107,7 +107,7 @@ details:
   test details
 usage:
   test usage
-labels:
+tags:
   - test
   - label
 transform:
