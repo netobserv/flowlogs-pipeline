@@ -18,6 +18,7 @@
 package encode
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -72,6 +73,7 @@ type EncodeProm struct {
 	mCache      *utils.TimedCache
 	exitChan    <-chan struct{}
 	PrevRecords []config.GenericMap
+	server      *http.Server
 }
 
 var metricsProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
@@ -201,6 +203,7 @@ func (e *EncodeProm) cleanupExpiredEntriesLoop() {
 func startPrometheusInterface(w *EncodeProm) {
 	log.Debugf("entering startPrometheusInterface")
 	log.Infof("startPrometheusInterface: port num = %s", w.port)
+	w.server = &http.Server{Addr: w.port}
 
 	// The Handler function provides a default handler to expose metrics
 	// via an HTTP server. "/metrics" is the usual endpoint for that.
@@ -208,14 +211,18 @@ func startPrometheusInterface(w *EncodeProm) {
 
 	var err error
 	if w.tlsConfig != nil {
-		err = http.ListenAndServeTLS(w.port, w.tlsConfig.CertPath, w.tlsConfig.KeyPath, nil)
+		err = w.server.ListenAndServeTLS(w.port, w.tlsConfig.CertPath, w.tlsConfig.KeyPath, nil)
 	} else {
-		err = http.ListenAndServe(w.port, nil)
+		err = w.server.ListenAndServe()
 	}
-	if err != nil {
+	if err != nil && err != http.ErrServerClosed {
 		log.Errorf("error in http.ListenAndServe: %v", err)
 		os.Exit(1)
 	}
+}
+
+func (e *EncodeProm) closeServer(ctx context.Context) error {
+	return e.server.Shutdown(ctx)
 }
 
 func NewEncodeProm(params config.StageParam) (Encoder, error) {

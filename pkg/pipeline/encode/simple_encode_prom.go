@@ -1,6 +1,7 @@
 package encode
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -37,6 +38,7 @@ type SimpleEncodeProm struct {
 	expiryTime int64
 	mCache     *utils.TimedCache
 	exitChan   <-chan struct{}
+	server     *http.Server
 }
 
 var errorsCounter = operationalMetrics.NewCounterVec(prometheus.CounterOpts{
@@ -137,17 +139,22 @@ func (e *SimpleEncodeProm) prepareMetric(flow config.GenericMap, info *api.Simpl
 func (e *SimpleEncodeProm) startServer(port int) {
 	log.Debugf("entering startServer")
 	addr := fmt.Sprintf(":%v", port)
+	e.server = &http.Server{Addr: addr}
 	log.Infof("startServer: addr = %s", addr)
 
 	// The Handler function provides a default handler to expose metrics
 	// via an HTTP server. "/metrics" is the usual endpoint for that.
 	http.Handle("/metrics", promhttp.Handler())
 
-	err := http.ListenAndServe(addr, nil)
-	if err != nil {
+	err := e.server.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
 		log.Errorf("error in http.ListenAndServe: %v", err)
 		os.Exit(1)
 	}
+}
+
+func (e *SimpleEncodeProm) stopServer(ctx context.Context) error {
+	return e.server.Shutdown(ctx)
 }
 
 // callback function from lru cleanup
