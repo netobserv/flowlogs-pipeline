@@ -49,7 +49,7 @@ parameters:
   - name: write1
     write:
       type: loki
-      loki:
+      loki: { url: 'http://loki:3100/' }
 `
 
 func Test_transformToLoki(t *testing.T) {
@@ -59,9 +59,9 @@ func Test_transformToLoki(t *testing.T) {
 	require.NoError(t, err)
 	transformed = append(transformed, transform.Transform(input)...)
 
-	v := test.InitConfig(t, yamlConfigNoParams)
+	v, cfg := test.InitConfig(t, yamlConfigNoParams)
 	require.NotNil(t, v)
-	loki, err := write.NewWriteLoki(config.Parameters[0])
+	loki, err := write.NewWriteLoki(cfg.Parameters[0])
 	require.NoError(t, err)
 	loki.Write(transformed)
 }
@@ -108,9 +108,9 @@ parameters:
 func Test_SimplePipeline(t *testing.T) {
 	var mainPipeline *Pipeline
 	var err error
-	test.InitConfig(t, configTemplate)
+	_, cfg := test.InitConfig(t, configTemplate)
 
-	mainPipeline, err = NewPipeline()
+	mainPipeline, err = NewPipeline(cfg)
 	require.NoError(t, err)
 
 	// The file ingester reads the entire file, pushes it down the pipeline, and then exits
@@ -135,7 +135,7 @@ func Test_SimplePipeline(t *testing.T) {
 func TestGRPCProtobuf(t *testing.T) {
 	port, err := test2.FreeTCPPort()
 	require.NoError(t, err)
-	test.InitConfig(t, fmt.Sprintf(`---
+	_, cfg := test.InitConfig(t, fmt.Sprintf(`---
 log-level: debug
 pipeline:
   - name: ingest1
@@ -154,7 +154,7 @@ parameters:
         format: json
 `, port))
 
-	pipe, err := NewPipeline()
+	pipe, err := NewPipeline(cfg)
 	require.NoError(t, err)
 
 	capturedOut, w, _ := os.Pipe()
@@ -234,13 +234,13 @@ parameters:
 func BenchmarkPipeline(b *testing.B) {
 	logrus.StandardLogger().SetLevel(logrus.ErrorLevel)
 	t := &testing.T{}
-	test.InitConfig(t, strings.ReplaceAll(configTemplate, "type: file", "type: file_chunks"))
+	_, cfg := test.InitConfig(t, strings.ReplaceAll(configTemplate, "type: file", "type: file_chunks"))
 	if t.Failed() {
 		b.Fatalf("unexpected error loading config")
 	}
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
-		p, err := NewPipeline()
+		p, err := NewPipeline(cfg)
 		if err != nil {
 			t.Fatalf("unexpected error %s", err)
 		}

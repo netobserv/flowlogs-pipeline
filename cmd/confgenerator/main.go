@@ -39,6 +39,7 @@ var (
 	logLevel           string
 	envPrefix          = "FLP_CONFGEN"
 	defaultLogFileName = ".confgen"
+	opts               confgen.Options
 )
 
 // rootCmd represents the root command
@@ -92,8 +93,8 @@ func initLogger() {
 	log.SetFormatter(&log.TextFormatter{DisableColors: false, FullTimestamp: true})
 }
 
-func dumpConfig() {
-	configAsJSON, _ := json.MarshalIndent(confgen.Opt, "", "\t")
+func dumpConfig(opts *confgen.Options) {
+	configAsJSON, _ := json.MarshalIndent(opts, "", "\t")
 	log.Infof("configuration:\n%s\n", configAsJSON)
 }
 
@@ -128,12 +129,12 @@ func initFlags() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", fmt.Sprintf("config file (default is $HOME/%s)", defaultLogFileName))
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "error", "Log level: debug, info, warning, error")
-	rootCmd.PersistentFlags().StringVar(&confgen.Opt.SrcFolder, "srcFolder", "network_definitions", "source folder")
-	rootCmd.PersistentFlags().StringVar(&confgen.Opt.DestConfFile, "destConfFile", "/tmp/flowlogs-pipeline.conf.yaml", "destination configuration file")
-	rootCmd.PersistentFlags().StringVar(&confgen.Opt.DestDocFile, "destDocFile", "/tmp/metrics.md", "destination documentation file (.md)")
-	rootCmd.PersistentFlags().StringVar(&confgen.Opt.DestGrafanaJsonnetFolder, "destGrafanaJsonnetFolder", "/tmp/jsonnet", "destination grafana jsonnet folder")
-	rootCmd.PersistentFlags().StringSliceVar(&confgen.Opt.SkipWithTags, "skipWithTags", nil, "Skip definitions with Tags")
-	rootCmd.PersistentFlags().StringSliceVar(&confgen.Opt.GenerateStages, "generateStages", nil, "Produce only specified stages (ingest, transform_generic, transform_network, extract_aggregate, encode_prom, write_loki")
+	rootCmd.PersistentFlags().StringVar(&opts.SrcFolder, "srcFolder", "network_definitions", "source folder")
+	rootCmd.PersistentFlags().StringVar(&opts.DestConfFile, "destConfFile", "/tmp/flowlogs-pipeline.conf.yaml", "destination configuration file")
+	rootCmd.PersistentFlags().StringVar(&opts.DestDocFile, "destDocFile", "/tmp/metrics.md", "destination documentation file (.md)")
+	rootCmd.PersistentFlags().StringVar(&opts.DestGrafanaJsonnetFolder, "destGrafanaJsonnetFolder", "/tmp/jsonnet", "destination grafana jsonnet folder")
+	rootCmd.PersistentFlags().StringSliceVar(&opts.SkipWithTags, "skipWithTags", nil, "Skip definitions with Tags")
+	rootCmd.PersistentFlags().StringSliceVar(&opts.GenerateStages, "generateStages", nil, "Produce only specified stages (ingest, transform_generic, transform_network, extract_aggregate, encode_prom, write_loki")
 }
 
 func main() {
@@ -150,15 +151,10 @@ func run() {
 	fmt.Printf("Starting %s:\n=====\nBuild Version: %s\nBuild Date: %s\n\n",
 		filepath.Base(os.Args[0]), BuildVersion, BuildDate)
 	// Dump the configuration
-	dumpConfig()
+	dumpConfig(&opts)
 	// creating a new configuration generator
-	confGen, err := confgen.NewConfGen()
-	if err != nil {
-		log.Fatalf("failed to initialize NewConfGen %s", err)
-		os.Exit(1)
-	}
-
-	err = confGen.Run()
+	confGen := confgen.NewConfGen(&opts)
+	err := confGen.Run()
 	if err != nil {
 		log.Fatalf("failed to initialize NewConfGen %s", err)
 		os.Exit(1)

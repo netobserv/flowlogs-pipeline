@@ -25,7 +25,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -58,7 +57,7 @@ func GetIngestMockEntry(missingKey bool) config.GenericMap {
 	return entry
 }
 
-func InitConfig(t *testing.T, conf string) *viper.Viper {
+func InitConfig(t *testing.T, conf string) (*viper.Viper, *config.ConfigFileStruct) {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	yamlConfig := []byte(conf)
 	v := viper.New()
@@ -67,46 +66,29 @@ func InitConfig(t *testing.T, conf string) *viper.Viper {
 	err := v.ReadConfig(r)
 	require.NoError(t, err)
 
-	// set up global config info
-	// first clear out the config structures in case they were set by a previous instantiation
-	p1 := reflect.ValueOf(&config.PipeLine).Elem()
-	p1.Set(reflect.Zero(p1.Type()))
-	p2 := reflect.ValueOf(&config.Parameters).Elem()
-	p2.Set(reflect.Zero(p2.Type()))
-
 	var b []byte
 	pipelineStr := v.Get("pipeline")
 	b, err = json.Marshal(&pipelineStr)
 	if err != nil {
 		fmt.Printf("error marshaling: %v\n", err)
-		return nil
+		return nil, nil
 	}
-	config.Opt.PipeLine = string(b)
+	opts := config.Options{}
+	opts.PipeLine = string(b)
 	parametersStr := v.Get("parameters")
 	b, err = json.Marshal(&parametersStr)
 	if err != nil {
 		fmt.Printf("error marshaling: %v\n", err)
-		return nil
+		return nil, nil
 	}
-	config.Opt.Parameters = string(b)
-	err = json.Unmarshal([]byte(config.Opt.PipeLine), &config.PipeLine)
-	if err != nil {
-		fmt.Printf("error unmarshaling: %v\n", err)
-		return nil
-	}
-	err = json.Unmarshal([]byte(config.Opt.Parameters), &config.Parameters)
-	if err != nil {
-		fmt.Printf("error unmarshaling: %v\n", err)
-		return nil
-	}
-
-	err = config.ParseConfig()
+	opts.Parameters = string(b)
+	out, err := config.ParseConfig(opts)
 	if err != nil {
 		fmt.Printf("error in parsing config file: %v \n", err)
-		return nil
+		return nil, nil
 	}
 
-	return v
+	return v, &out
 }
 
 func GetExtractMockEntry() config.GenericMap {

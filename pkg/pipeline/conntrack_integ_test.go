@@ -93,10 +93,10 @@ func TestConnTrack(t *testing.T) {
 	// connection record with specific values was written.
 	var mainPipeline *Pipeline
 	var err error
-	v := test.InitConfig(t, testConfigConntrack)
+	v, cfg := test.InitConfig(t, testConfigConntrack)
 	require.NotNil(t, v)
 
-	mainPipeline, err = NewPipeline()
+	mainPipeline, err = NewPipeline(cfg)
 	require.NoError(t, err)
 
 	go mainPipeline.Run()

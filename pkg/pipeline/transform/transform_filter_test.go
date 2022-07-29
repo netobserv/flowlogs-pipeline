@@ -114,10 +114,10 @@ func TestNewTransformFilterRemoveEntryIfDoesntExists(t *testing.T) {
 	require.Equal(t, output, []config.GenericMap{})
 }
 func InitNewTransformFilter(t *testing.T, configFile string) Transformer {
-	v := test.InitConfig(t, configFile)
+	v, cfg := test.InitConfig(t, configFile)
 	require.NotNil(t, v)
 
-	config := config.Parameters[0]
+	config := cfg.Parameters[0]
 	newTransform, err := NewTransformFilter(config)
 	require.NoError(t, err)
 	return newTransform

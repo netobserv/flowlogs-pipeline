@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
@@ -64,19 +63,21 @@ parameters:
           baz: bae
           tiki: taka
 `
-	v := test.InitConfig(t, yamlConfig)
+	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
 
-	loki, err := NewWriteLoki(config.Parameters[0])
+	loki, err := NewWriteLoki(cfg.Parameters[0])
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://foo:8888/loki/api/v1/push", loki.lokiConfig.URL.String())
 	assert.Equal(t, "theTenant", loki.lokiConfig.TenantID)
 	assert.Equal(t, time.Minute, loki.lokiConfig.BatchWait)
-	assert.NotZero(t, loki.lokiConfig.BatchSize)
-	assert.Equal(t, loki.apiConfig.BatchSize, loki.lokiConfig.BatchSize)
 	minBackoff, _ := time.ParseDuration(loki.apiConfig.MinBackoff)
 	assert.Equal(t, minBackoff, loki.lokiConfig.BackoffConfig.MinBackoff)
+
+	// Make sure default batch size is set
+	assert.Equal(t, 102400, loki.lokiConfig.BatchSize)
+	assert.Equal(t, loki.apiConfig.BatchSize, loki.lokiConfig.BatchSize)
 }
 
 func TestLoki_ProcessRecord(t *testing.T) {
@@ -89,6 +90,7 @@ parameters:
     write:
       type: loki
       loki:
+        url: http://loki:3100/
         timestampLabel: ts
         ignoreList:
         - ignored
@@ -98,10 +100,10 @@ parameters:
           - foo
           - bar
 `
-	v := test.InitConfig(t, yamlConfig)
+	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
 
-	loki, err := NewWriteLoki(config.Parameters[0])
+	loki, err := NewWriteLoki(cfg.Parameters[0])
 	require.NoError(t, err)
 
 	fe := fakeEmitter{}
@@ -149,12 +151,13 @@ parameters:
     write:
       type: loki
       loki:
+        url: http://loki:3100/
         timestampScale: %s
 `, testCase.unit)
-			v := test.InitConfig(t, yamlConf)
+			v, cfg := test.InitConfig(t, yamlConf)
 			require.NotNil(t, v)
 
-			loki, err := NewWriteLoki(config.Parameters[0])
+			loki, err := NewWriteLoki(cfg.Parameters[0])
 			require.NoError(t, err)
 
 			fe := fakeEmitter{}
@@ -176,7 +179,7 @@ parameters:
   - name: write1
     write:
       type: loki
-      loki:
+      loki: { url: http://loki:3100/ }
 `
 
 // Tests those cases where the timestamp can't be extracted and reports the current time
@@ -192,10 +195,10 @@ func TestTimestampExtraction_LocalTime(t *testing.T) {
 		{name: "zero ts value", tsLabel: "ts", input: map[string]interface{}{"ts": 0}},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			v := test.InitConfig(t, yamlConfigNoParams)
+			v, cfg := test.InitConfig(t, yamlConfigNoParams)
 			require.NotNil(t, v)
 
-			loki, err := NewWriteLoki(config.Parameters[0])
+			loki, err := NewWriteLoki(cfg.Parameters[0])
 			require.NoError(t, err)
 
 			loki.apiConfig.TimestampLabel = testCase.tsLabel
@@ -227,16 +230,17 @@ parameters:
     write:
       type: loki
       loki:
+        url: http://loki:3100/
         labels:
           - "fo.o"
           - "ba-r"
           - "ba/z"
           - "ignored?"
 `
-	v := test.InitConfig(t, yamlConfig)
+	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
 
-	loki, err := NewWriteLoki(config.Parameters[0])
+	loki, err := NewWriteLoki(cfg.Parameters[0])
 	require.NoError(t, err)
 
 	fe := fakeEmitter{}
@@ -268,8 +272,8 @@ parameters:
       loki:
         url: %s
 `, fakeLoki.URL)
-	test.InitConfig(t, yamlConfig)
-	loki, err := NewWriteLoki(config.Parameters[0])
+	_, cfg := test.InitConfig(t, yamlConfig)
+	loki, err := NewWriteLoki(cfg.Parameters[0])
 	require.NoError(t, err)
 
 	require.NoError(t, loki.ProcessRecord(map[string]interface{}{"foo": "bar", "baz": "bae"}))
