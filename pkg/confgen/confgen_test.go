@@ -191,13 +191,9 @@ func Test_RunShortConfGen(t *testing.T) {
 	require.NoError(t, err)
 
 	// Unmarshal output
-	type Output struct {
-		Pipeline   []config.Stage      `yaml:"pipeline"`
-		Parameters []config.StageParam `yaml:"parameters"`
-	}
 	destCfgBytes, err := ioutil.ReadFile(configOut)
 	require.NoError(t, err)
-	var out Output
+	var out config.ConfigFileStruct
 	err = yaml.Unmarshal(destCfgBytes, &out)
 	require.NoError(t, err)
 	require.Len(t, out.Pipeline, 4)
@@ -283,13 +279,9 @@ func Test_RunLongConfGen(t *testing.T) {
 	require.NoError(t, err)
 
 	// Unmarshal output
-	type Output struct {
-		Pipeline   []config.Stage      `yaml:"pipeline"`
-		Parameters []config.StageParam `yaml:"parameters"`
-	}
 	destCfgBytes, err := ioutil.ReadFile(configOut)
 	require.NoError(t, err)
-	var out Output
+	var out config.ConfigFileStruct
 	err = yaml.Unmarshal(destCfgBytes, &out)
 	require.NoError(t, err)
 	require.Len(t, out.Parameters, 6)
