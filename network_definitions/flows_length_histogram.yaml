@@ -21,6 +21,7 @@ extract:
     - name: flows_bytes_hist
       by:
         - all_Evaluate
+        - _RecordType
       operation: raw_values
       recordkey: bytes
 encode:

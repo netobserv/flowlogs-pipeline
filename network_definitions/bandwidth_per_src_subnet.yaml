@@ -21,6 +21,7 @@ extract:
     - name: bandwidth_source_subnet
       by:
         - srcSubnet
+        - _RecordType
       operation: sum
       recordKey: bytes
 encode:

@@ -21,6 +21,7 @@ extract:
     - name: bandwidth_network_service
       by:
         - service
+        - _RecordType
       operation: sum
       recordKey: bytes
 encode:

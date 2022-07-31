@@ -15,6 +15,7 @@ extract:
     - name: src_as_connection_count
       by:
         - srcAS
+        - _RecordType
       operation: count
 encode:
   type: prom

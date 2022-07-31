@@ -145,17 +145,20 @@ parameters:
     - name: bandwidth_network_service
       by:
       - service
+      - _RecordType
       operation: sum
       recordKey: bytes
     - name: bandwidth_source_destination_subnet
       by:
       - dstSubnet24
       - srcSubnet24
+      - _RecordType
       operation: sum
       recordKey: bytes
     - name: bandwidth_source_subnet
       by:
       - srcSubnet
+      - _RecordType
       operation: sum
       recordKey: bytes
     - name: connection_bytes_hist
@@ -176,52 +179,63 @@ parameters:
     - name: dest_connection_subnet_count
       by:
       - dstSubnet
+      - _RecordType
       operation: count
       recordKey: isNewFlow
     - name: src_connection_count
       by:
       - srcSubnet
+      - _RecordType
       operation: count
     - name: TCPFlags_count
       by:
       - TCPFlags
+      - _RecordType
       operation: count
     - name: dst_as_connection_count
       by:
       - dstAS
+      - _RecordType
       operation: count
     - name: src_as_connection_count
       by:
       - srcAS
+      - _RecordType
       operation: count
     - name: count_source_destination_subnet
       by:
       - dstSubnet24
       - srcSubnet24
+      - _RecordType
       operation: count
     - name: bandwidth_destination_subnet
       by:
       - dstSubnet
+      - _RecordType
       operation: sum
       recordKey: bytes
     - name: bandwidth_namespace
       by:
       - srcK8S_Namespace
       - srcK8S_Type
+      - _RecordType
       operation: sum
       recordKey: bytes
     - name: flows_bytes_hist
       by:
       - all_Evaluate
+      - _RecordType
       operation: raw_values
       recordKey: bytes
     - name: dest_connection_location_count
       by:
       - dstLocation_CountryName
+      - _RecordType
       operation: count
     - name: dest_service_count
       by:
       - service
+      - _RecordType
       operation: count
 - name: encode_prom
   encode:

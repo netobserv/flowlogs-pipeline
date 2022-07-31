@@ -18,7 +18,7 @@ and the transformation to generate the exported metric.
 | **Details** | Sum bytes for all traffic per network service | 
 | **Usage** | Evaluate network usage breakdown per network service | 
 | **Tags** | bandwidth, graph, rate, network-service |
-| **Operation** | aggregate by `service` and `sum` field `bytes` |
+| **Operation** | aggregate by `service, _RecordType` and `sum` field `bytes` |
 | **Exposed as** | `flp_bandwidth_per_network_service` of type `counter` |
 | **Visualized as** | "Bandwidth per network service" on dashboard `details` |
 |||  
@@ -30,7 +30,7 @@ and the transformation to generate the exported metric.
 | **Details** | Sum bandwidth bytes for all traffic per source / destination subnet pair | 
 | **Usage** | Evaluate network usage breakdown per source / destination subnet pair | 
 | **Tags** | bandwidth, graph, rate, subnet |
-| **Operation** | aggregate by `dstSubnet24, srcSubnet24` and `sum` field `bytes` |
+| **Operation** | aggregate by `dstSubnet24, srcSubnet24, _RecordType` and `sum` field `bytes` |
 | **Exposed as** | `flp_bandwidth_per_source_destination_subnet` of type `counter` |
 | **Visualized as** | "Bandwidth per src and destination subnet" on dashboard `details` |
 |||  
@@ -42,7 +42,7 @@ and the transformation to generate the exported metric.
 | **Details** | Sum bytes for all traffic per source subnet | 
 | **Usage** | Evaluate network usage breakdown per source subnet | 
 | **Tags** | bandwidth, graph, rate, subnet |
-| **Operation** | aggregate by `srcSubnet` and `sum` field `bytes` |
+| **Operation** | aggregate by `srcSubnet, _RecordType` and `sum` field `bytes` |
 | **Exposed as** | `flp_bandwidth_per_source_subnet` of type `counter` |
 | **Visualized as** | "Bandwidth per source subnet" on dashboard `details` |
 |||  
@@ -71,7 +71,7 @@ and the transformation to generate the exported metric.
 | **Details** | Counts the number of connections per subnet with network prefix length /16 (using conn_tracking sum isNewFlow field) | 
 | **Usage** | Evaluate network connections per subnet | 
 | **Tags** | rate, subnet |
-| **Operation** | aggregate by `dstSubnet` and `count` field `isNewFlow` |
+| **Operation** | aggregate by `dstSubnet, _RecordType` and `count` field `isNewFlow` |
 | **Exposed as** | `flp_connections_per_destination_subnet` of type `counter` |
 | **Visualized as** | "Connections rate per destinationIP /16 subnets" on dashboard `details` |
 |||  
@@ -83,7 +83,7 @@ and the transformation to generate the exported metric.
 | **Details** | Counts the number of connections per subnet with network prefix length /16 | 
 | **Usage** | Evaluate network connections per subnet | 
 | **Tags** | rate, subnet |
-| **Operation** | aggregate by `srcSubnet` and `count`  |
+| **Operation** | aggregate by `srcSubnet, _RecordType` and `count`  |
 | **Exposed as** | `flp_connections_per_source_subnet` of type `counter` |
 | **Visualized as** | "Connections rate per sourceIP /16 subnets" on dashboard `details` |
 |||  
@@ -95,7 +95,7 @@ and the transformation to generate the exported metric.
 | **Details** | Counts the number of connections per tcp flags | 
 | **Usage** | Evaluate difference in connections rate of different TCP Flags. Can be used, for example, to identify syn-attacks. | 
 | **Tags** | rate, TCPFlags |
-| **Operation** | aggregate by `TCPFlags` and `count`  |
+| **Operation** | aggregate by `TCPFlags, _RecordType` and `count`  |
 | **Exposed as** | `flp_connections_per_tcp_flags` of type `counter` |
 | **Visualized as** | "Connections rate per TCPFlags" on dashboard `details` |
 |||  
@@ -107,7 +107,7 @@ and the transformation to generate the exported metric.
 | **Details** | Aggregates flow records by values of "DstAS" field and counts the number of entries in each aggregate with non zero value | 
 | **Usage** | Evaluate amount of connections targeted at different Autonomous Systems | 
 | **Tags** | rate, count, AS |
-| **Operation** | aggregate by `dstAS` and `count`  |
+| **Operation** | aggregate by `dstAS, _RecordType` and `count`  |
 | **Exposed as** | `flp_connections_per_destination_as` of type `counter` |
 | **Visualized as** | "Connections rate per destination AS" on dashboard `details` |
 |||  
@@ -119,7 +119,7 @@ and the transformation to generate the exported metric.
 | **Details** | Aggregates flow records by values of "SrcAS" field and counts the number of entries in each aggregate with non zero value | 
 | **Usage** | Evaluate amount of connections initiated by different Autonomous Systems | 
 | **Tags** | rate, count, AS |
-| **Operation** | aggregate by `srcAS` and `count`  |
+| **Operation** | aggregate by `srcAS, _RecordType` and `count`  |
 | **Exposed as** | `flp_connections_per_source_as` of type `counter` |
 | **Visualized as** | "Connections rate per source AS" on dashboard `details` |
 |||  
@@ -131,7 +131,7 @@ and the transformation to generate the exported metric.
 | **Details** | Count the number of distinct source / destination subnet pairs | 
 | **Usage** | Evaluate network usage breakdown per source / destination subnet pair | 
 | **Tags** | count, graph, rate, subnet |
-| **Operation** | aggregate by `dstSubnet24, srcSubnet24` and `count`  |
+| **Operation** | aggregate by `dstSubnet24, srcSubnet24, _RecordType` and `count`  |
 | **Exposed as** | `flp_count_per_source_destination_subnet` of type `counter` |
 | **Visualized as** | "Connections rate of src / destination subnet occurences" on dashboard `details` |
 |||  
@@ -143,7 +143,7 @@ and the transformation to generate the exported metric.
 | **Details** | Sum egress bytes for all traffic per destination subnet | 
 | **Usage** | Evaluate network usage breakdown per destination subnet | 
 | **Tags** | bandwidth, graph, rate, subnet |
-| **Operation** | aggregate by `dstSubnet` and `sum` field `bytes` |
+| **Operation** | aggregate by `dstSubnet, _RecordType` and `sum` field `bytes` |
 | **Exposed as** | `flp_egress_per_destination_subnet` of type `counter` |
 | **Visualized as** | "Bandwidth per destination subnet" on dashboard `details` |
 | **Visualized as** | "Total bandwidth" on dashboard `totals` |
@@ -156,7 +156,7 @@ and the transformation to generate the exported metric.
 | **Details** | Sum egress bytes for all traffic per namespace | 
 | **Usage** | Evaluate network usage breakdown per namespace | 
 | **Tags** | kubernetes, bandwidth, graph |
-| **Operation** | aggregate by `srcK8S_Namespace, srcK8S_Type` and `sum` field `bytes` |
+| **Operation** | aggregate by `srcK8S_Namespace, srcK8S_Type, _RecordType` and `sum` field `bytes` |
 | **Exposed as** | `flp_egress_per_namespace` of type `counter` |
 | **Visualized as** | "Bandwidth per namespace" on dashboard `details` |
 |||  
@@ -168,7 +168,7 @@ and the transformation to generate the exported metric.
 | **Details** | Flows length distribution over time | 
 | **Usage** | Evaluate flows length behavior including mice/elephant use-case | 
 | **Tags** | bandwidth, mice, elephant, rate |
-| **Operation** | aggregate by `all_Evaluate` and `raw_values` field `bytes` |
+| **Operation** | aggregate by `all_Evaluate, _RecordType` and `raw_values` field `bytes` |
 | **Exposed as** | `flp_flows_length_histogram` of type `histogram` |
 | **Visualized as** | "Flows length heatmap" on dashboard `details` |
 | **Visualized as** | "Flows length histogram" on dashboard `totals` |
@@ -181,7 +181,7 @@ and the transformation to generate the exported metric.
 | **Details** | Counts the number of connections per geo-location based on destination IP | 
 | **Usage** | Evaluate network connections geo-location | 
 | **Tags** | rate, connections-count, geo-location, destinationIP |
-| **Operation** | aggregate by `dstLocation_CountryName` and `count`  |
+| **Operation** | aggregate by `dstLocation_CountryName, _RecordType` and `count`  |
 | **Exposed as** | `flp_connections_per_destination_location` of type `counter` |
 | **Visualized as** | "Connections rate per destinationIP geo-location" on dashboard `details` |
 |||  
@@ -213,7 +213,7 @@ and the transformation to generate the exported metric.
 | **Details** | Counts the number of connections per network service based on destination port number and protocol | 
 | **Usage** | Evaluate network services | 
 | **Tags** | rate, network-services, destination-port, destination-protocol |
-| **Operation** | aggregate by `service` and `count`  |
+| **Operation** | aggregate by `service, _RecordType` and `count`  |
 | **Exposed as** | `flp_service_count` of type `counter` |
 | **Visualized as** | "Network services connections rate" on dashboard `details` |
 | **Visualized as** | "Number of network services" on dashboard `totals` |

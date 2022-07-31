@@ -20,6 +20,7 @@ extract:
     - name: src_connection_count
       by:
         - srcSubnet
+        - _RecordType
       operation: count
 encode:
   type: prom
