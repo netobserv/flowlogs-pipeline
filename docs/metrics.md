@@ -48,6 +48,23 @@ and the transformation to generate the exported metric.
 |||  
 
 
+### connection length histogram
+| **Description** | A histogram of connection bytes | 
+|:---|:---|
+| **Details** | Connection length distribution over time | 
+| **Usage** | Evaluate connection length behavior including mice/elephant use-case | 
+| **Tags** |  |
+| **Operation** | aggregate by `_RecordType` and `raw_values` field `bytes_total` |
+| **Operation** | aggregate by `_RecordType` and `raw_values` field `bytes_AB` |
+| **Operation** | aggregate by `_RecordType` and `raw_values` field `bytes_BA` |
+| **Exposed as** | `flp_connection_length_histogram` of type `histogram` |
+| **Exposed as** | `flp_connection_length_histogram_ab` of type `histogram` |
+| **Exposed as** | `flp_connection_length_histogram_ba` of type `histogram` |
+| **Visualized as** | "Connection length heatmap" on dashboard `details` |
+| **Visualized as** | "Connection length histogram" on dashboard `totals` |
+|||  
+
+
 ### connection rate per dest subnet
 | **Description** | This metric observes network connections rate per destination subnet | 
 |:---|:---|

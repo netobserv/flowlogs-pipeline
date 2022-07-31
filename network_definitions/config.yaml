@@ -29,6 +29,10 @@ transform:
         output: srcAS
       - input: DstAS
         output: dstAS
+      - input: Packets
+        output: packets
+      - input: TimeReceived
+        output: timeReceived
 track:
   conntrack:
     endConnectionTimeout: 30s
@@ -54,20 +58,26 @@ track:
         fieldGroupARef: src
         fieldGroupBRef: dst
     outputFields:
+      - name: bytes_total
+        operation: sum
+        input: bytes
       - name: bytes
         operation: sum
-        SplitAB: true
-      - name: Packets
+        splitAB: true
+      - name: packets_total
         operation: sum
-        SplitAB: true
+        input: packets
+      - name: packets
+        operation: sum
+        splitAB: true
       - name: numFlowLogs
         operation: count
-      - name: TimeFlowStart
+      - name: timeStart
         operation: min
-        input: TimeReceived
-      - name: TimeFlowEnd
+        input: timeReceived
+      - name: timeEnd
         operation: max
-        input: TimeReceived
+        input: timeReceived
 encode:
   prom:
     prefix: flp_

@@ -46,6 +46,10 @@ parameters:
         output: srcAS
       - input: DstAS
         output: dstAS
+      - input: Packets
+        output: packets
+      - input: TimeReceived
+        output: timeReceived
 - name: transform_network
   transform:
     type: network
@@ -113,18 +117,26 @@ parameters:
       - flowLog
       - endConnection
       outputFields:
+      - name: bytes_total
+        operation: sum
+        input: bytes
       - name: bytes
         operation: sum
-      - name: Packets
+        splitAB: true
+      - name: packets_total
         operation: sum
+        input: packets
+      - name: packets
+        operation: sum
+        splitAB: true
       - name: numFlowLogs
         operation: count
-      - name: TimeFlowStart
+      - name: timeStart
         operation: min
-        input: TimeReceived
-      - name: TimeFlowEnd
+        input: timeReceived
+      - name: timeEnd
         operation: max
-        input: TimeReceived
+        input: timeReceived
       endConnectionTimeout: 30s
 - name: extract_aggregate
   extract:
@@ -146,6 +158,21 @@ parameters:
       - srcSubnet
       operation: sum
       recordKey: bytes
+    - name: connection_bytes_hist
+      by:
+      - _RecordType
+      operation: raw_values
+      recordKey: bytes_total
+    - name: connection_bytes_hist_AB
+      by:
+      - _RecordType
+      operation: raw_values
+      recordKey: bytes_AB
+    - name: connection_bytes_hist_BA
+      by:
+      - _RecordType
+      operation: raw_values
+      recordKey: bytes_BA
     - name: dest_connection_subnet_count
       by:
       - dstSubnet
@@ -231,6 +258,51 @@ parameters:
         - by
         - aggregate
         buckets: []
+      - name: connection_length_histogram
+        type: histogram
+        filter:
+          key: name
+          value: connection_bytes_hist
+        valueKey: recent_raw_values
+        labels:
+        - by
+        - aggregate
+        buckets:
+        - 128
+        - 2048
+        - 10240
+        - 102400
+        - 1.048576e+06
+      - name: connection_length_histogram_ab
+        type: histogram
+        filter:
+          key: name
+          value: connection_bytes_hist_AB
+        valueKey: recent_raw_values
+        labels:
+        - by
+        - aggregate
+        buckets:
+        - 128
+        - 2048
+        - 10240
+        - 102400
+        - 1.048576e+06
+      - name: connection_length_histogram_ba
+        type: histogram
+        filter:
+          key: name
+          value: connection_bytes_hist_BA
+        valueKey: recent_raw_values
+        labels:
+        - by
+        - aggregate
+        buckets:
+        - 128
+        - 2048
+        - 10240
+        - 102400
+        - 1.048576e+06
       - name: connections_per_destination_subnet
         type: counter
         filter:

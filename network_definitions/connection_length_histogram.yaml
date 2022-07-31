@@ -1,0 +1,87 @@
+#flp_confgen
+description:
+  A histogram of connection bytes
+details:
+  Connection length distribution over time
+usage:
+  Evaluate connection length behavior including mice/elephant use-case
+labels:
+  - bandwidth
+  - mice
+  - elephant
+  - rate
+extract:
+  aggregates:
+    - name: connection_bytes_hist
+      by:
+        - _RecordType
+      operation: raw_values
+      recordKey: bytes_total
+    - name: connection_bytes_hist_AB
+      by:
+        - _RecordType
+      operation: raw_values
+      recordKey: bytes_AB
+    - name: connection_bytes_hist_BA
+      by:
+        - _RecordType
+      operation: raw_values
+      recordKey: bytes_BA
+encode:
+  type: prom
+  prom:
+    metrics:
+      - name: connection_length_histogram
+        type: histogram
+        filter: { key: name, value: connection_bytes_hist }
+        valueKey: recent_raw_values
+        labels:
+          - by
+          - aggregate
+        buckets:
+          - 128
+          - 2048
+          - 10240   #  10KiB
+          - 102400  # 100KiB
+          - 1048576 #   1MiB
+      - name: connection_length_histogram_ab
+        type: histogram
+        filter: { key: name, value: connection_bytes_hist_AB }
+        valueKey: recent_raw_values
+        labels:
+          - by
+          - aggregate
+        buckets:
+          - 128
+          - 2048
+          - 10240   #  10KiB
+          - 102400  # 100KiB
+          - 1048576 #   1MiB
+      - name: connection_length_histogram_ba
+        type: histogram
+        filter: { key: name, value: connection_bytes_hist_BA }
+        valueKey: recent_raw_values
+        labels:
+          - by
+          - aggregate
+        buckets:
+          - 128
+          - 2048
+          - 10240   #  10KiB
+          - 102400  # 100KiB
+          - 1048576 #   1MiB
+visualization:
+  type: grafana
+  grafana:
+    # The visualizations are based on:
+    # https://grafana.com/blog/2020/06/23/how-to-visualize-prometheus-histograms-in-grafana/
+    - expr: 'sum(rate(flp_connection_length_histogram_bucket[$__interval])) by (le)'
+      type: heatmap
+      dashboard: details
+      title:
+        Connection length heatmap
+    - expr: 'flp_connection_length_histogram_bucket{aggregate="endConnection"}'
+      type: barGauge
+      dashboard: totals
+      title:
+        Connection length histogram
