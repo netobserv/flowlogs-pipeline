@@ -361,6 +361,8 @@ pipeline:
 Using `remove_entry_if_doesnt_exist` in the rule reverses the logic and will not remove the above example entry
 Using `remove_field` in the rule `type` instead, results in outputting the entry after
 removal of only the `SrcPort` key and value 
+Using `remove_entry_if_equal` will remove the entry if the specified field exists and is equal to the specified value.
+Using `remove_entry_if_not_equal` will remove the entry if the specified field exists and is not equal to the specified value.
 
 ### Transform Network
 
