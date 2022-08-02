@@ -73,6 +73,9 @@ parameters:
 `
 
 func initPromWithServer(params *api.PromEncode) (*EncodeProm, func(), error) {
+	// We need to re-instanciate globals used here and there, to avoid errors such as:
+	//  "panic: http: multiple registrations for /metrics"
+	//  TODO: remove use of default globals.
 	reg := prometheus.NewRegistry()
 	prometheus.DefaultRegisterer = reg
 	prometheus.DefaultGatherer = reg

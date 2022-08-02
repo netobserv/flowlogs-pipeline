@@ -38,17 +38,17 @@ const defaultExpiryTime = 120
 
 type gaugeInfo struct {
 	gauge *prometheus.GaugeVec
-	info  *api.PromMetricsItem
+	info  api.PromMetricsItem
 }
 
 type counterInfo struct {
 	counter *prometheus.CounterVec
-	info    *api.PromMetricsItem
+	info    api.PromMetricsItem
 }
 
 type histoInfo struct {
 	histo *prometheus.HistogramVec
-	info  *api.PromMetricsItem
+	info  api.PromMetricsItem
 }
 
 type EncodeProm struct {
@@ -86,7 +86,7 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) {
 
 	// Process counters
 	for _, mInfo := range e.counters {
-		labels, value := e.prepareMetric(metricRecord, mInfo.info, mInfo.counter.MetricVec)
+		labels, value := e.prepareMetric(metricRecord, &mInfo.info, mInfo.counter.MetricVec)
 		if labels == nil {
 			continue
 		}
@@ -102,7 +102,7 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) {
 
 	// Process gauges
 	for _, mInfo := range e.gauges {
-		labels, value := e.prepareMetric(metricRecord, mInfo.info, mInfo.gauge.MetricVec)
+		labels, value := e.prepareMetric(metricRecord, &mInfo.info, mInfo.gauge.MetricVec)
 		if labels == nil {
 			continue
 		}
@@ -118,7 +118,7 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) {
 
 	// Process histograms
 	for _, mInfo := range e.histos {
-		labels, value := e.prepareMetric(metricRecord, mInfo.info, mInfo.histo.MetricVec)
+		labels, value := e.prepareMetric(metricRecord, &mInfo.info, mInfo.histo.MetricVec)
 		if labels == nil {
 			continue
 		}
@@ -134,7 +134,7 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) {
 
 	// Process pre-aggregated histograms
 	for _, mInfo := range e.aggHistos {
-		labels, values := e.prepareAggHisto(metricRecord, mInfo.info, mInfo.histo.MetricVec)
+		labels, values := e.prepareAggHisto(metricRecord, &mInfo.info, mInfo.histo.MetricVec)
 		if labels == nil {
 			continue
 		}
@@ -260,12 +260,12 @@ func (e *EncodeProm) closeServer(ctx context.Context) error {
 }
 
 func NewEncodeProm(params config.StageParam) (Encoder, error) {
-	config := api.PromEncode{}
+	cfg := api.PromEncode{}
 	if params.Encode != nil && params.Encode.Prom != nil {
-		config = *params.Encode.Prom
+		cfg = *params.Encode.Prom
 	}
 
-	expiryTime := int64(config.ExpiryTime)
+	expiryTime := int64(cfg.ExpiryTime)
 	if expiryTime == 0 {
 		expiryTime = defaultExpiryTime
 	}
@@ -276,9 +276,8 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 	histos := []histoInfo{}
 	aggHistos := []histoInfo{}
 
-	for i := range config.Metrics {
-		mInfo := config.Metrics[i]
-		fullMetricName := config.Prefix + mInfo.Name
+	for _, mInfo := range cfg.Metrics {
+		fullMetricName := cfg.Prefix + mInfo.Name
 		labels := mInfo.Labels
 		log.Debugf("fullMetricName = %v", fullMetricName)
 		log.Debugf("Labels = %v", labels)
@@ -292,7 +291,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 			}
 			counters = append(counters, counterInfo{
 				counter: counter,
-				info:    &mInfo,
+				info:    mInfo,
 			})
 		case api.PromEncodeOperationName("Gauge"):
 			gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: ""}, labels)
@@ -303,7 +302,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 			}
 			gauges = append(gauges, gaugeInfo{
 				gauge: gauge,
-				info:  &mInfo,
+				info:  mInfo,
 			})
 		case api.PromEncodeOperationName("Histogram"):
 			log.Debugf("buckets = %v", mInfo.Buckets)
@@ -315,7 +314,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 			}
 			histos = append(histos, histoInfo{
 				histo: hist,
-				info:  &mInfo,
+				info:  mInfo,
 			})
 		case api.PromEncodeOperationName("AggHistogram"):
 			log.Debugf("buckets = %v", mInfo.Buckets)
@@ -327,7 +326,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 			}
 			aggHistos = append(aggHistos, histoInfo{
 				histo: hist,
-				info:  &mInfo,
+				info:  mInfo,
 			})
 		case "default":
 			log.Errorf("invalid metric type = %v, skipping", mInfo.Type)
@@ -340,7 +339,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 	log.Debugf("histos = %v", histos)
 	log.Debugf("aggHistos = %v", aggHistos)
 
-	addr := fmt.Sprintf(":%v", config.Port)
+	addr := fmt.Sprintf(":%v", cfg.Port)
 	log.Infof("startServer: addr = %s", addr)
 
 	w := &EncodeProm{
