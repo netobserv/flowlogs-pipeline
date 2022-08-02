@@ -37,6 +37,6 @@ func TestDuration_MarshalYAML(t *testing.T) {
 func TestDuration_UnmarshalYAML(t *testing.T) {
 	expectedMsg := testMessage{Elapsed: Duration{2 * time.Hour}}
 	var actualMsg testMessage
-	require.NoError(t, yaml.Unmarshal([]byte("elapsed: 2h\n"), &actualMsg))
+	require.NoError(t, yaml.UnmarshalStrict([]byte("elapsed: 2h\n"), &actualMsg))
 	require.Equal(t, expectedMsg, actualMsg)
 }
