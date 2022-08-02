@@ -92,7 +92,11 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 			}
 			result, evaluateErr := expression.Evaluate(map[string]interface{}{"val": outputEntry[rule.Input]})
 			if evaluateErr == nil && result.(bool) {
-				outputEntry[rule.Output] = outputEntry[rule.Input]
+				if rule.Assignee != "" {
+					outputEntry[rule.Output] = rule.Assignee
+				} else {
+					outputEntry[rule.Output] = outputEntry[rule.Input]
+				}
 				outputEntry[rule.Output+"_Evaluate"] = true
 			}
 		case api.TransformNetworkOperationName("AddSubnet"):
