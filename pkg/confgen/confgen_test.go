@@ -55,7 +55,6 @@ encode:
     prefix: flp_
     port: 9102
 visualization:
-  type: grafana
   grafana:
     dashboards:
       - name: "details"
@@ -90,7 +89,6 @@ write:
     staticLabels:
       job: flowlogs-pipeline
 visualization:
-  type: grafana
   grafana:
     dashboards:
       - name: "details"
