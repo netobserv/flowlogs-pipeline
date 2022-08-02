@@ -141,9 +141,46 @@ visualization:
       Test grafana title
 `
 
+const networkDefNoAgg = `#flp_confgen
+description:
+  test description
+details:
+  test details
+usage:
+  test usage
+labels:
+  - test
+  - label
+transform:
+  rules:
+    - input: testInput
+      output: testOutput
+      type: add_service
+      parameters: proto
+encode:
+  type: prom
+  prom:
+    metrics:
+      - name: test_metric
+        type: counter
+        valueKey: Bytes
+        labels:
+          - service
+visualization:
+  type: grafana
+  grafana:
+  - expr: 'test expression'
+    type: graphPanel
+    dashboard: test
+    title:
+      Test grafana title
+`
+
 func Test_ParseDefinition(t *testing.T) {
 	cg := NewConfGen(&Options{})
 	err := cg.ParseDefinition("def", []byte(networkDefs))
+	require.NoError(t, err)
+	err = cg.ParseDefinition("def", []byte(networkDefNoAgg))
 	require.NoError(t, err)
 }
 
@@ -246,6 +283,84 @@ func Test_RunShortConfGen(t *testing.T) {
 			Buckets:  []float64{},
 		}},
 	}, out.Parameters[3].Encode.Prom)
+}
+
+func Test_RunConfGenNoAgg(t *testing.T) {
+	// Prepare
+	dirPath, err := ioutil.TempDir("", "RunConfGenNoAggTest")
+	require.NoError(t, err)
+	defer os.RemoveAll(dirPath)
+	outDirPath, err := ioutil.TempDir("", "RunConfGenNoAggTest_out")
+	require.NoError(t, err)
+	defer os.RemoveAll(outDirPath)
+
+	configOut := filepath.Join(outDirPath, "config.yaml")
+	docOut := filepath.Join(outDirPath, "doc.md")
+	jsonnetOut := filepath.Join(outDirPath, "jsonnet")
+
+	cg := NewConfGen(&Options{
+		SrcFolder:                dirPath,
+		DestConfFile:             configOut,
+		DestDocFile:              docOut,
+		DestGrafanaJsonnetFolder: jsonnetOut,
+	})
+	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(shortConfig), 0644)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(dirPath, "def.yaml"), []byte(networkDefNoAgg), 0644)
+	require.NoError(t, err)
+
+	// Run
+	err = cg.Run()
+	require.NoError(t, err)
+
+	// Unmarshal output
+	destCfgBytes, err := ioutil.ReadFile(configOut)
+	require.NoError(t, err)
+	var out config.ConfigFileStruct
+	err = yaml.Unmarshal(destCfgBytes, &out)
+	require.NoError(t, err)
+	require.Len(t, out.Pipeline, 3)
+	require.Len(t, out.Parameters, 3)
+
+	// Pipeline structure
+	require.Equal(t,
+		[]config.Stage(
+			[]config.Stage{{Name: "ingest_collector"},
+				{Name: "transform_network", Follows: "ingest_collector"},
+				{Name: "encode_prom", Follows: "transform_network"}}),
+		out.Pipeline,
+	)
+
+	// Expects ingest
+	require.Equal(t, &api.IngestCollector{
+		HostName:   "0.0.0.0",
+		Port:       2155,
+		PortLegacy: 2156,
+	}, out.Parameters[0].Ingest.Collector)
+
+	// Expects transform network
+	require.Len(t, out.Parameters[1].Transform.Network.Rules, 1)
+	require.Equal(t, api.NetworkTransformRule{
+		Input:      "testInput",
+		Output:     "testOutput",
+		Type:       "add_service",
+		Parameters: "proto",
+	}, out.Parameters[1].Transform.Network.Rules[0])
+
+	// Expects prom encode
+	require.Len(t, out.Parameters[2].Encode.Prom.Metrics, 1)
+	require.Equal(t, &api.PromEncode{
+		Port:   9102,
+		Prefix: "flp_",
+		Metrics: api.PromMetricsItems{{
+			Name:     "test_metric",
+			Type:     "counter",
+			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
+			ValueKey: "Bytes",
+			Labels:   []string{"service"},
+			Buckets:  []float64{},
+		}},
+	}, out.Parameters[2].Encode.Prom)
 }
 
 func Test_RunLongConfGen(t *testing.T) {
@@ -379,4 +494,29 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 			Labels:   []string{"by", "aggregate"},
 		}},
 	}, params[1].Encode.Prom)
+}
+
+func Test_GenerateTruncatedNoAgg(t *testing.T) {
+	// Prepare
+	cg := NewConfGen(&Options{
+		GenerateStages: []string{"encode_prom"},
+	})
+	err := cg.ParseDefinition("defs", []byte(networkDefNoAgg))
+	require.NoError(t, err)
+
+	// Run
+	params := cg.GenerateTruncatedConfig()
+
+	require.Len(t, params, 1)
+	// Expects prom encode
+	require.Len(t, params[0].Encode.Prom.Metrics, 1)
+	require.Equal(t, &api.PromEncode{
+		Metrics: api.PromMetricsItems{{
+			Name:     "test_metric",
+			Type:     "counter",
+			Filter:   api.PromMetricsFilter{},
+			ValueKey: "Bytes",
+			Labels:   []string{"service"},
+		}},
+	}, params[0].Encode.Prom)
 }
