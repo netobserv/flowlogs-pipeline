@@ -302,6 +302,20 @@ func Test_Transform_AddIfScientificNotation(t *testing.T) {
 					Type:       "add_if",
 					Parameters: "<10",
 				},
+				api.NetworkTransformRule{
+					Input:      "value",
+					Output:     "dir",
+					Assignee:   "in",
+					Type:       "add_if",
+					Parameters: "==1",
+				},
+				api.NetworkTransformRule{
+					Input:      "value",
+					Output:     "dir",
+					Assignee:   "out",
+					Type:       "add_if",
+					Parameters: "==0",
+				},
 			},
 		},
 	}
@@ -320,6 +334,20 @@ func Test_Transform_AddIfScientificNotation(t *testing.T) {
 	output = newNetworkTransform.Transform([]config.GenericMap{entry})
 	require.Equal(t, true, output[0]["smaller_than_10_Evaluate"])
 	require.Equal(t, 1.2345e-67, output[0]["smaller_than_10"])
+
+	entry = config.GenericMap{
+		"value": 1,
+	}
+	output = newNetworkTransform.Transform([]config.GenericMap{entry})
+	require.Equal(t, true, output[0]["dir_Evaluate"])
+	require.Equal(t, "in", output[0]["dir"])
+
+	entry = config.GenericMap{
+		"value": 0,
+	}
+	output = newNetworkTransform.Transform([]config.GenericMap{entry})
+	require.Equal(t, true, output[0]["dir_Evaluate"])
+	require.Equal(t, "out", output[0]["dir"])
 }
 
 func Test_TransformNetworkOperationNameCustomServices(t *testing.T) {

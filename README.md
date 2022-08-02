@@ -391,6 +391,11 @@ parameters:
             output: value_smaller_than10
             type: add_if
             parameters: <10
+          - input: value
+            output: dir
+            type: add_if
+            parameters: ==1
+            assignee: in
           - input: dstPort
             output: service
             type: add_service
@@ -418,7 +423,8 @@ The second `add_if` generates a new field named `value_smaller_than10` that cont
 the contents of the `value` field for entries that satisfy the condition specified 
 in the `parameters` variable (smaller than 10 in the example above). In addition, the
 field `value_smaller_than10_Evaluate` with value `true` is added to all satisfied
-entries
+entries. if `assignee` field is set, then on satified parmater i.e. if parameter evalutes true then
+`output` value will get value of `assignee` key.
 
 The third rule `add_service` generates a new field named `service` with the known network 
 service name of `dstPort` port and `protocol` protocol. Unrecognized ports are ignored 
