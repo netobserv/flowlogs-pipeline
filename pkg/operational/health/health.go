@@ -43,10 +43,10 @@ func (hs *Server) Serve() {
 	}
 }
 
-func NewHealthServer(pipeline *pipeline.Pipeline) *Server {
+func NewHealthServer(opts *config.Options, pipeline *pipeline.Pipeline) *Server {
 
 	handler := healthcheck.NewHandler()
-	address := net.JoinHostPort(defaultServerHost, config.Opt.Health.Port)
+	address := net.JoinHostPort(defaultServerHost, opts.Health.Port)
 
 	handler.AddLivenessCheck("PipelineCheck", pipeline.IsAlive())
 	handler.AddReadinessCheck("PipelineCheck", pipeline.IsReady())

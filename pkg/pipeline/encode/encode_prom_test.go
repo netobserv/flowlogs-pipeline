@@ -65,10 +65,10 @@ parameters:
 `
 
 func initNewEncodeProm(t *testing.T) Encoder {
-	v := test.InitConfig(t, testConfig)
+	v, cfg := test.InitConfig(t, testConfig)
 	require.NotNil(t, v)
 
-	newEncode, err := NewEncodeProm(config.Parameters[0])
+	newEncode, err := NewEncodeProm(cfg.Parameters[0])
 	require.Equal(t, err, nil)
 	return newEncode
 }

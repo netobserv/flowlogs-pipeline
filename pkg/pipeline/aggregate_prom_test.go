@@ -99,13 +99,13 @@ parameters:
 `
 	var err error
 
-	v := test.InitConfig(t, yamlConfig)
+	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
 
-	extractAggregate, err := extract.NewExtractAggregate(config.Parameters[0])
+	extractAggregate, err := extract.NewExtractAggregate(cfg.Parameters[0])
 	require.NoError(t, err)
 
-	promEncode, err := encode.NewEncodeProm(config.Parameters[1])
+	promEncode, err := encode.NewEncodeProm(cfg.Parameters[1])
 	require.Equal(t, err, nil)
 
 	// Test cases

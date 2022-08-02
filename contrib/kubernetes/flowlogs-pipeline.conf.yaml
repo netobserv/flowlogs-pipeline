@@ -13,7 +13,7 @@ pipeline:
 - name: encode_prom
   follows: extract_aggregate
 - name: write_loki
-  follows: transform_network
+  follows: extract_conntrack
 parameters:
 - name: ingest_collector
   ingest:

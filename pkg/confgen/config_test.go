@@ -18,24 +18,26 @@
 package confgen
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/stretchr/testify/require"
 )
 
 func expectedConfig() *Config {
 	return &Config{
 		Description: "test description",
-		Encode: ConfigEncode{
-			Prom: api.PromEncode{
+		Encode: config.Encode{
+			Prom: &api.PromEncode{
 				Port:   7777,
 				Prefix: "prefix",
 			},
 		},
-		Ingest: ConfigIngest{
-			Collector: api.IngestCollector{
+		Ingest: config.Ingest{
+			Collector: &api.IngestCollector{
 				Port: 8888,
 			},
 		},
@@ -58,11 +60,16 @@ encode:
 `
 
 func Test_parseConfigFile(t *testing.T) {
-	filename := "/tmp/config"
-	cg := getConfGen()
-	err := os.WriteFile(filename, []byte(testConfig), 0644)
-	require.Equal(t, err, nil)
-	config, err := cg.ParseConfigFile(filename)
+	file, err := ioutil.TempFile("", "config.yaml")
+	require.NoError(t, err)
+	defer os.Remove(file.Name())
+	cg := NewConfGen(&Options{})
+	_, err = file.Write([]byte(testConfig))
+	require.NoError(t, err)
+	err = file.Close()
+	require.NoError(t, err)
+
+	config, err := cg.ParseConfigFile(file.Name())
 	require.NoError(t, err)
 	require.Equal(t, config, expectedConfig())
 }

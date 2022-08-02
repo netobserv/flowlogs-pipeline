@@ -33,7 +33,7 @@ transform:
         output: packets
       - input: TimeReceived
         output: timeReceived
-track:
+extract:
   conntrack:
     endConnectionTimeout: 30s
     outputRecordTypes:

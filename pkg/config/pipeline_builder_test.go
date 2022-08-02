@@ -36,7 +36,7 @@ func TestLokiPipeline(t *testing.T) {
 		Input:  "DstAddr",
 		Output: "DstK8S",
 	}}})
-	pl = pl.WriteLoki("loki", api.GetWriteLokiDefaults())
+	pl = pl.WriteLoki("loki", api.WriteLoki{URL: "http://loki:3100/"})
 	stages := pl.GetStages()
 	require.Len(t, stages, 3)
 
@@ -57,7 +57,7 @@ func TestLokiPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/","batchWait":"1s","batchSize":102400,"timeout":"10s","minBackoff":"1s","maxBackoff":"5m","maxRetries":10,"timestampLabel":"TimeReceived","timestampScale":"1s"}}}`, string(b))
+	require.Equal(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/"}}}`, string(b))
 }
 
 func TestGRPCPipeline(t *testing.T) {
@@ -165,7 +165,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 func TestForkPipeline(t *testing.T) {
 	plFork := NewCollectorPipeline("ingest", api.IngestCollector{HostName: "127.0.0.1", Port: 9999})
-	plFork.WriteLoki("loki", api.GetWriteLokiDefaults())
+	plFork.WriteLoki("loki", api.WriteLoki{URL: "http://loki:3100/"})
 	plFork.WriteStdout("stdout", api.WriteStdout{})
 	stages := plFork.GetStages()
 	require.Len(t, stages, 3)
@@ -183,7 +183,7 @@ func TestForkPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/","batchWait":"1s","batchSize":102400,"timeout":"10s","minBackoff":"1s","maxBackoff":"5m","maxRetries":10,"timestampLabel":"TimeReceived","timestampScale":"1s"}}}`, string(b))
+	require.Equal(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/"}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)

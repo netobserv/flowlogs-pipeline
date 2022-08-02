@@ -96,12 +96,17 @@ func Test_FilterEntry(t *testing.T) {
 	aggregate := GetMockAggregate()
 	entry := test.GetIngestMockEntry(false)
 
-	err, _ := aggregate.FilterEntry(entry)
-
+	err, _, _ := aggregate.FilterEntry(entry)
 	require.Equal(t, err, nil)
+
+	err, normalizedLabels, labels := aggregate.FilterEntry(entry)
+	require.Equal(t, err, nil)
+	require.Equal(t, Labels{"srcIP": "10.0.0.1", "dstIP": "20.0.0.2"}, labels)
+	require.Equal(t, NormalizedValues("20.0.0.2,10.0.0.1"), normalizedLabels)
+
 	entry = test.GetIngestMockEntry(true)
 
-	err, _ = aggregate.FilterEntry(entry)
+	err, _, _ = aggregate.FilterEntry(entry)
 
 	require.EqualError(t, err, "missing keys in entry")
 }
