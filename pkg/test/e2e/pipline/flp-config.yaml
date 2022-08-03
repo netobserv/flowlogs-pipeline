@@ -11,8 +11,6 @@ data:
             hostname: 0.0.0.0
             port: 2055
             portLegacy: 2056
-            decoder:
-              type: json
           type: collector
         name: ingest_collector
       - name: transform_generic
