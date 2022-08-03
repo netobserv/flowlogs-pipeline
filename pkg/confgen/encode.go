@@ -43,8 +43,8 @@ func (cg *ConfGen) parseEncode(encode *map[string]interface{}, followAggregate b
 	// Histograms built from Aggregate need to be flagged as they are handled in a different way in PromEncode
 	if followAggregate {
 		for i := range prom.Metrics {
-			if prom.Metrics[i].Type == "Histogram" {
-				prom.Metrics[i].Type = "AggHistogram"
+			if prom.Metrics[i].Type == "histogram" {
+				prom.Metrics[i].Type = "agg_histogram"
 			}
 		}
 	}

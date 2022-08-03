@@ -130,12 +130,12 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 			if service == nil {
 				protocolAsNumber, err := strconv.Atoi(fmt.Sprintf("%v", protocol))
 				if err != nil {
-					log.Debugf("Can't find service name for Port %v and protocol %v - err %v", outputEntry[rule.Input], protocol, err)
+					log.Infof("Can't find service name for Port %v and protocol %v - err %v", outputEntry[rule.Input], protocol, err)
 					continue
 				}
 				service = netdb.GetServByPort(portNumber, netdb.GetProtoByNumber(protocolAsNumber))
 				if service == nil {
-					log.Debugf("Can't find service name for Port %v and protocol %v - err %v", outputEntry[rule.Input], protocol, err)
+					log.Infof("Can't find service name for Port %v and protocol %v - err %v", outputEntry[rule.Input], protocol, err)
 					continue
 				}
 			}

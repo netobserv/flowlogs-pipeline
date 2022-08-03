@@ -289,11 +289,7 @@ func BenchmarkPromEncode(b *testing.B) {
 			Type:     "histogram",
 			ValueKey: "latency",
 			Labels:   []string{"srcIP", "dstIP"},
-			Filter: api.PromMetricsFilter{
-				Key:   "hack",
-				Value: "hack",
-			},
-			Buckets: []float64{},
+			Buckets:  []float64{},
 		}},
 	}
 

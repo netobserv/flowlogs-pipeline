@@ -48,12 +48,6 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.ConfigFileStruct {
 	metricsNode := forkedNode
 	if len(cg.aggregateDefinitions) > 0 {
 		metricsNode = metricsNode.Aggregate("extract_aggregate", cg.aggregateDefinitions)
-		// Fix histogram types, as they must differ depending if they come from Aggregation stage or not
-		for i := range cg.promMetrics {
-			if cg.promMetrics[i].Type == "Histogram" {
-				cg.promMetrics[i].Type = "AggHistogram"
-			}
-		}
 	}
 	if len(cg.promMetrics) > 0 {
 		metricsNode.EncodePrometheus("encode_prom", api.PromEncode{

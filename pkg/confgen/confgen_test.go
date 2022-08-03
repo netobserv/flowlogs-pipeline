@@ -26,6 +26,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -41,146 +42,13 @@ func Test_checkHeader(t *testing.T) {
 	require.NoError(t, err)
 }
 
-const shortConfig = `#flp_confgen
-description:
-  test description
-ingest:
-  collector:
-    port: 2155
-    portLegacy: 2156
-    hostName: 0.0.0.0
-encode:
-  type: prom
-  prom:
-    prefix: flp_
-    port: 9102
-visualization:
-  grafana:
-    dashboards:
-      - name: "details"
-        title: "Flow-Logs to Metrics - Details"
-        time_from: "now-15m"
-        tags: "['flp','grafana','dashboard','details']"
-        schemaVersion: "16"
-`
-
-const longConfig = `#flp_confgen
-description:
-  test description
-ingest:
-  collector:
-    port: 2155
-    portLegacy: 2156
-    hostName: 0.0.0.0
-transform:
-  generic:
-    rules:
-    - input: SrcAddr
-      output: srcIP
-encode:
-  type: prom
-  prom:
-    prefix: flp_
-    port: 9102
-write:
-  type: loki
-  loki:
-    url: http://loki:3100
-    staticLabels:
-      job: flowlogs-pipeline
-visualization:
-  grafana:
-    dashboards:
-      - name: "details"
-        title: "Flow-Logs to Metrics - Details"
-        time_from: "now-15m"
-        tags: "['flp','grafana','dashboard','details']"
-        schemaVersion: "16"
-`
-
-const networkDefs = `#flp_confgen
-description:
-  test description
-details:
-  test details
-usage:
-  test usage
-tags:
-  - test
-  - label
-transform:
-  rules:
-    - input: testInput
-      output: testOutput
-      type: add_service
-      parameters: proto
-extract:
-  aggregates:
-    - name: test_aggregates
-      by:
-        - service
-      operation: sum
-      recordKey: test_record_key
-encode:
-  type: prom
-  prom:
-    metrics:
-      - name: test_metric
-        type: gauge
-        valueKey: test_aggregates_value
-        labels:
-          - by
-          - aggregate
-visualization:
-  type: grafana
-  grafana:
-  - expr: 'test expression'
-    type: graphPanel
-    dashboard: test
-    title:
-      Test grafana title
-`
-
-const networkDefNoAgg = `#flp_confgen
-description:
-  test description
-details:
-  test details
-usage:
-  test usage
-labels:
-  - test
-  - label
-transform:
-  rules:
-    - input: testInput
-      output: testOutput
-      type: add_service
-      parameters: proto
-encode:
-  type: prom
-  prom:
-    metrics:
-      - name: test_metric
-        type: counter
-        valueKey: Bytes
-        labels:
-          - service
-visualization:
-  type: grafana
-  grafana:
-  - expr: 'test expression'
-    type: graphPanel
-    dashboard: test
-    title:
-      Test grafana title
-`
-
 func Test_ParseDefinition(t *testing.T) {
 	cg := NewConfGen(&Options{})
-	err := cg.ParseDefinition("def", []byte(networkDefs))
+	err := cg.ParseDefinition("def", []byte(test.ConfgenNetworkDefBase))
 	require.NoError(t, err)
-	err = cg.ParseDefinition("def", []byte(networkDefNoAgg))
+	err = cg.ParseDefinition("def", []byte(test.ConfgenNetworkDefNoAgg))
+	require.NoError(t, err)
+	err = cg.ParseDefinition("def", []byte(test.ConfgenNetworkDefHisto))
 	require.NoError(t, err)
 }
 
@@ -189,7 +57,7 @@ func Test_getDefinitionFiles(t *testing.T) {
 	dirPath, err := ioutil.TempDir("", "getDefinitionFilesTest")
 	require.NoError(t, err)
 	defer os.RemoveAll(dirPath)
-	err = os.WriteFile(filepath.Join(dirPath, filename), []byte(networkDefs), 0644)
+	err = os.WriteFile(filepath.Join(dirPath, filename), []byte(test.ConfgenNetworkDefBase), 0644)
 	require.NoError(t, err)
 	files := getDefinitionFiles(dirPath)
 	require.Equal(t, 1, len(files))
@@ -216,9 +84,9 @@ func Test_RunShortConfGen(t *testing.T) {
 		DestDocFile:              docOut,
 		DestGrafanaJsonnetFolder: jsonnetOut,
 	})
-	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(shortConfig), 0644)
+	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(test.ConfgenShortConfig), 0644)
 	require.NoError(t, err)
-	err = os.WriteFile(filepath.Join(dirPath, "def.yaml"), []byte(networkDefs), 0644)
+	err = os.WriteFile(filepath.Join(dirPath, "def.yaml"), []byte(test.ConfgenNetworkDefBase), 0644)
 	require.NoError(t, err)
 
 	// Run
@@ -304,9 +172,9 @@ func Test_RunConfGenNoAgg(t *testing.T) {
 		DestDocFile:              docOut,
 		DestGrafanaJsonnetFolder: jsonnetOut,
 	})
-	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(shortConfig), 0644)
+	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(test.ConfgenShortConfig), 0644)
 	require.NoError(t, err)
-	err = os.WriteFile(filepath.Join(dirPath, "def.yaml"), []byte(networkDefNoAgg), 0644)
+	err = os.WriteFile(filepath.Join(dirPath, "def.yaml"), []byte(test.ConfgenNetworkDefNoAgg), 0644)
 	require.NoError(t, err)
 
 	// Run
@@ -382,9 +250,11 @@ func Test_RunLongConfGen(t *testing.T) {
 		DestDocFile:              docOut,
 		DestGrafanaJsonnetFolder: jsonnetOut,
 	})
-	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(longConfig), 0644)
+	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(test.ConfgenLongConfig), 0644)
 	require.NoError(t, err)
-	err = os.WriteFile(filepath.Join(dirPath, "def.yaml"), []byte(networkDefs), 0644)
+	err = os.WriteFile(filepath.Join(dirPath, "def1.yaml"), []byte(test.ConfgenNetworkDefBase), 0644)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(dirPath, "def2.yaml"), []byte(test.ConfgenNetworkDefHisto), 0644)
 	require.NoError(t, err)
 
 	// Run
@@ -432,22 +302,35 @@ func Test_RunLongConfGen(t *testing.T) {
 	}, out.Parameters[2].Transform.Network.Rules[0])
 
 	// Expects aggregates
-	require.Len(t, out.Parameters[3].Extract.Aggregates, 1)
+	require.Len(t, out.Parameters[3].Extract.Aggregates, 2)
 	require.Equal(t, api.AggregateDefinition{
 		Name:      "test_aggregates",
 		By:        api.AggregateBy{"service"},
 		Operation: "sum",
 		RecordKey: "test_record_key",
 	}, out.Parameters[3].Extract.Aggregates[0])
+	require.Equal(t, api.AggregateDefinition{
+		Name:      "test_agg_histo",
+		By:        api.AggregateBy{"service"},
+		Operation: "sum",
+		RecordKey: "test_record_key",
+	}, out.Parameters[3].Extract.Aggregates[1])
 
-	// Expects prom encode
-	require.Len(t, out.Parameters[4].Encode.Prom.Metrics, 1)
+	// Expects prom encode; make sure type "histogram" is changed to "agg_histogram"
+	require.Len(t, out.Parameters[4].Encode.Prom.Metrics, 2)
 	require.Equal(t, &api.PromEncode{
 		Port:   9102,
 		Prefix: "flp_",
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
 			Type:     "gauge",
+			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
+			ValueKey: "test_aggregates_value",
+			Labels:   []string{"by", "aggregate"},
+			Buckets:  []float64{},
+		}, {
+			Name:     "test_histo",
+			Type:     "agg_histogram",
 			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"by", "aggregate"},
@@ -467,7 +350,7 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 	cg := NewConfGen(&Options{
 		GenerateStages: []string{"extract_aggregate", "encode_prom"},
 	})
-	err := cg.ParseDefinition("defs", []byte(networkDefs))
+	err := cg.ParseDefinition("defs", []byte(test.ConfgenNetworkDefBase))
 	require.NoError(t, err)
 
 	// Run
@@ -501,7 +384,7 @@ func Test_GenerateTruncatedNoAgg(t *testing.T) {
 	cg := NewConfGen(&Options{
 		GenerateStages: []string{"encode_prom"},
 	})
-	err := cg.ParseDefinition("defs", []byte(networkDefNoAgg))
+	err := cg.ParseDefinition("defs", []byte(test.ConfgenNetworkDefNoAgg))
 	require.NoError(t, err)
 
 	// Run
