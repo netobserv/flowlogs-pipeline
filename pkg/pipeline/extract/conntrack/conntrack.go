@@ -221,9 +221,9 @@ func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalH
 
 // NewConnectionTrack creates a new connection track instance
 func NewConnectionTrack(params config.StageParam, clock clock.Clock) (extract.Extractor, error) {
-	config := params.Extract.ConnTrack
+	cfg := params.Extract.ConnTrack
 	var aggregators []aggregator
-	for _, of := range config.OutputFields {
+	for _, of := range cfg.OutputFields {
 		agg, err := newAggregator(of)
 		if err != nil {
 			return nil, fmt.Errorf("error creating aggregator: %w", err)
@@ -233,7 +233,7 @@ func NewConnectionTrack(params config.StageParam, clock clock.Clock) (extract.Ex
 	shouldOutputFlowLogs := false
 	shouldOutputNewConnection := false
 	shouldOutputEndConnection := false
-	for _, option := range config.OutputRecordTypes {
+	for _, option := range cfg.OutputRecordTypes {
 		switch option {
 		case api.ConnTrackOutputRecordTypeName("FlowLog"):
 			shouldOutputFlowLogs = true
@@ -249,7 +249,7 @@ func NewConnectionTrack(params config.StageParam, clock clock.Clock) (extract.Ex
 	conntrack := &conntrackImpl{
 		clock:                     clock,
 		connStore:                 newConnectionStore(),
-		config:                    config,
+		config:                    cfg,
 		hashProvider:              fnv.New64a,
 		aggregators:               aggregators,
 		shouldOutputFlowLogs:      shouldOutputFlowLogs,
