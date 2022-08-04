@@ -218,4 +218,3 @@ Following is the supported API format for specifying metrics time-based filters:
                  botK: number of lowest incidence to report (default - report all)
                  timeInterval: seconds of data to use to compute the metric
 </pre>
->>>>>>> added basic structures for timebased topk/botk

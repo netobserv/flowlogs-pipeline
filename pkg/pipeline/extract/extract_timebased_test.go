@@ -76,9 +76,9 @@ parameters:
             BotK: 2
             TimeInterval: 15
 `
-	v := test.InitConfig(t, yamlConfig)
+	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
-	extractor, err := NewExtractTimebased(config.Parameters[0])
+	extractor, err := NewExtractTimebased(cfg.Parameters[0])
 	require.NoError(t, err)
 
 	return extractor.(*ExtractTimebased)

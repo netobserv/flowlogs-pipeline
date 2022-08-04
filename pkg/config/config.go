@@ -81,7 +81,7 @@ type Extract struct {
 	Type       string                    `yaml:"type" json:"type"`
 	Aggregates []api.AggregateDefinition `yaml:"aggregates,omitempty" json:"aggregates,omitempty"`
 	ConnTrack  *api.ConnTrack            `yaml:"conntrack,omitempty" json:"conntrack,omitempty"`
-	Timebased  *api.ExtractTimebased      `yaml:"timebased,omitempty" `json:"timebased,omitempty"`
+	Timebased  *api.ExtractTimebased     `yaml:"timebased,omitempty" json:"timebased,omitempty"`
 }
 
 type Encode struct {
