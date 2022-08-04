@@ -73,6 +73,33 @@ func initNewEncodeProm(t *testing.T) Encoder {
 	return newEncode
 }
 
+const testConfigTLS = `---
+log-level: debug
+pipeline:
+  - name: encode1
+parameters:
+  - name: encode1
+    encode:
+      type: prom
+      prom:
+        port: 9103
+        prefix: test_
+        expiryTime: 1
+        tls:
+          enable: true
+          certFile: /path/to/cert
+          keyFile: /path/to/key
+`
+
+func initNewEncodePromTLS(t *testing.T) Encoder {
+	v := test.InitConfig(t, testConfigTLS)
+	require.NotNil(t, v)
+
+	newEncode, err := NewEncodeProm(config.Parameters[0])
+	require.Equal(t, err, nil)
+	return newEncode
+}
+
 func Test_NewEncodeProm(t *testing.T) {
 	newEncode := initNewEncodeProm(t)
 	encodeProm := newEncode.(*EncodeProm)

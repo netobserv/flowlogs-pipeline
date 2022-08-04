@@ -68,6 +68,7 @@ type EncodeProm struct {
 	prefix      string
 	metrics     map[string]metricInfo
 	expiryTime  int64
+	tlsConfig   api.PromTLSConf
 	mCache      *utils.TimedCache
 	exitChan    <-chan struct{}
 	PrevRecords []config.GenericMap
@@ -205,7 +206,12 @@ func startPrometheusInterface(w *EncodeProm) {
 	// via an HTTP server. "/metrics" is the usual endpoint for that.
 	http.Handle("/metrics", promhttp.Handler())
 
-	err := http.ListenAndServe(w.port, nil)
+	var err error
+	if w.tlsConfig.Enable {
+		err = http.ListenAndServeTLS(w.port, w.tlsConfig.CertFile, w.tlsConfig.KeyFile, nil)
+	} else {
+		err = http.ListenAndServe(w.port, nil)
+	}
 	if err != nil {
 		log.Errorf("error in http.ListenAndServe: %v", err)
 		os.Exit(1)
@@ -284,6 +290,7 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 		mCache:      utils.NewTimedCache(),
 		exitChan:    utils.ExitChannel(),
 		PrevRecords: make([]config.GenericMap, 0),
+		tlsConfig:   jsonEncodeProm.TLS,
 	}
 	go startPrometheusInterface(w)
 	go w.cleanupExpiredEntriesLoop()

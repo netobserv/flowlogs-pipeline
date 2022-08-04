@@ -17,11 +17,18 @@
 
 package api
 
+type PromTLSConf struct {
+	Enable   bool   `yaml:"enable,omitempty" json:"enable,omitempty" doc:"set to true to enable tls for the prometheus endpoint"`
+	CertFile string `yaml:"certFile,omitempty" json:"certFile,omitempty" doc:"path to the certificate file"`
+	KeyFile  string `yaml:"keyFile,omitempty" json:"keyFile,omitempty" doc:"path to the key file"`
+}
+
 type PromEncode struct {
 	Metrics    PromMetricsItems `yaml:"metrics,omitempty" json:"metrics,omitempty" doc:"list of prometheus metric definitions, each includes:"`
 	Port       int              `yaml:"port,omitempty" json:"port,omitempty" doc:"port number to expose \"/metrics\" endpoint"`
 	Prefix     string           `yaml:"prefix,omitempty" json:"prefix,omitempty" doc:"prefix added to each metric name"`
 	ExpiryTime int              `yaml:"expiryTime,omitempty" json:"expiryTime,omitempty" doc:"seconds of no-flow to wait before deleting prometheus data item"`
+	TLS        PromTLSConf      `yaml:"tls,omitempty" json:"tls,omitempty" doc:"TLS configuration for the prometheus endpoint"`
 }
 
 type PromEncodeOperationEnum struct {
