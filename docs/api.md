@@ -19,6 +19,10 @@ Following is the supported API format for prometheus encode:
          port: port number to expose "/metrics" endpoint
          prefix: prefix added to each metric name
          expiryTime: seconds of no-flow to wait before deleting prometheus data item
+         tls: TLS configuration for the prometheus endpoint
+             enable: set to true to enable tls for the prometheus endpoint
+             certFile: path to the certificate file
+             keyFile: path to the key file
 </pre>
 ## Kafka encode API
 Following is the supported API format for kafka encode:

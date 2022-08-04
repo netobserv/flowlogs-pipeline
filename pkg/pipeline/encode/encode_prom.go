@@ -68,7 +68,7 @@ type EncodeProm struct {
 	prefix      string
 	metrics     map[string]metricInfo
 	expiryTime  int64
-	tlsConfig   api.PromTLSConf
+	tlsConfig   *api.PromTLSConf
 	mCache      *utils.TimedCache
 	exitChan    <-chan struct{}
 	PrevRecords []config.GenericMap
@@ -207,8 +207,8 @@ func startPrometheusInterface(w *EncodeProm) {
 	http.Handle("/metrics", promhttp.Handler())
 
 	var err error
-	if w.tlsConfig.Enable {
-		err = http.ListenAndServeTLS(w.port, w.tlsConfig.CertFile, w.tlsConfig.KeyFile, nil)
+	if w.tlsConfig != nil {
+		err = http.ListenAndServeTLS(w.port, w.tlsConfig.CertPath, w.tlsConfig.KeyPath, nil)
 	} else {
 		err = http.ListenAndServe(w.port, nil)
 	}

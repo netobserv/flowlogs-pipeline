@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
@@ -41,10 +42,6 @@ parameters:
         port: 9103
         prefix: test_
         expiryTime: 1
-        tls:
-          enable: false
-          certFile: /path/to/cert
-          keyFile: /path/to/key
         metrics:
           - name: Bytes
             type: gauge
@@ -84,9 +81,7 @@ func Test_NewEncodeProm(t *testing.T) {
 	require.Equal(t, "test_", encodeProm.prefix)
 	require.Equal(t, 3, len(encodeProm.metrics))
 	require.Equal(t, int64(1), encodeProm.expiryTime)
-	require.Equal(t, false, encodeProm.tlsConfig.Enable)
-	require.Equal(t, "/path/to/cert", encodeProm.tlsConfig.CertFile)
-	require.Equal(t, "/path/to/key", encodeProm.tlsConfig.KeyFile)
+	require.Equal(t, (*api.PromTLSConf)(nil), encodeProm.tlsConfig)
 
 	metrics := encodeProm.metrics
 	assert.Contains(t, metrics, "Bytes")
