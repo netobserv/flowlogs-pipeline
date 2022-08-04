@@ -41,6 +41,10 @@ parameters:
         port: 9103
         prefix: test_
         expiryTime: 1
+        tls:
+          enable: false
+          certFile: /path/to/cert
+          keyFile: /path/to/key
         metrics:
           - name: Bytes
             type: gauge
@@ -73,33 +77,6 @@ func initNewEncodeProm(t *testing.T) Encoder {
 	return newEncode
 }
 
-const testConfigTLS = `---
-log-level: debug
-pipeline:
-  - name: encode1
-parameters:
-  - name: encode1
-    encode:
-      type: prom
-      prom:
-        port: 9103
-        prefix: test_
-        expiryTime: 1
-        tls:
-          enable: true
-          certFile: /path/to/cert
-          keyFile: /path/to/key
-`
-
-func initNewEncodePromTLS(t *testing.T) Encoder {
-	v := test.InitConfig(t, testConfigTLS)
-	require.NotNil(t, v)
-
-	newEncode, err := NewEncodeProm(config.Parameters[0])
-	require.Equal(t, err, nil)
-	return newEncode
-}
-
 func Test_NewEncodeProm(t *testing.T) {
 	newEncode := initNewEncodeProm(t)
 	encodeProm := newEncode.(*EncodeProm)
@@ -107,6 +84,9 @@ func Test_NewEncodeProm(t *testing.T) {
 	require.Equal(t, "test_", encodeProm.prefix)
 	require.Equal(t, 3, len(encodeProm.metrics))
 	require.Equal(t, int64(1), encodeProm.expiryTime)
+	require.Equal(t, false, encodeProm.tlsConfig.Enable)
+	require.Equal(t, "/path/to/cert", encodeProm.tlsConfig.CertFile)
+	require.Equal(t, "/path/to/key", encodeProm.tlsConfig.KeyFile)
 
 	metrics := encodeProm.metrics
 	assert.Contains(t, metrics, "Bytes")
