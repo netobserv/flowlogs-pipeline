@@ -28,6 +28,7 @@ const (
 	StdoutType            = "stdout"
 	LokiType              = "loki"
 	AggregateType         = "aggregates"
+	TimebasedType         = "timebased"
 	PromType              = "prom"
 	GenericType           = "generic"
 	NetworkType           = "network"

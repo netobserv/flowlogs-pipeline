@@ -27,8 +27,8 @@ import (
 )
 
 type ExtractTimebased struct {
-	filters          []timebased.FilterStruct
-	recordKeyStructs map[string]*timebased.RecordKeyTable
+	Filters          []timebased.FilterStruct
+	RecordKeyStructs map[string]*timebased.RecordKeyTable
 }
 
 // Extract extracts a flow before being stored
@@ -38,12 +38,12 @@ func (et *ExtractTimebased) Extract(entries []config.GenericMap) []config.Generi
 	// Populate the Table with the current entries
 	for _, entry := range entries {
 		log.Debugf("ExtractTimebased Extract, entry = %v", entry)
-		timebased.AddEntryToTables(et.recordKeyStructs, entry, nowInSecs)
+		timebased.AddEntryToTables(et.RecordKeyStructs, entry, nowInSecs)
 	}
 
 	output := make([]config.GenericMap, 0)
-	// Calculate filters based on time windows
-	for _, filter := range et.filters {
+	// Calculate Filters based on time windows
+	for _, filter := range et.Filters {
 		filter.CalculateResults(nowInSecs)
 		filter.ComputeTopkBotk()
 		genMap := filter.CreateGenericMap()
@@ -52,14 +52,13 @@ func (et *ExtractTimebased) Extract(entries []config.GenericMap) []config.Generi
 	log.Debugf("output of extract timebased: %v", output)
 
 	// delete entries from tables that are outside time windows
-	timebased.DeleteOldEntriesFromTables(et.recordKeyStructs, nowInSecs)
+	timebased.DeleteOldEntriesFromTables(et.RecordKeyStructs, nowInSecs)
 
 	return output
 }
 
 //  NewExtractTimebased creates a new extractor
 func NewExtractTimebased(params config.StageParam) (Extractor, error) {
-	log.Debugf("entering NewExtractTimebased")
 	var rules []api.TimebasedFilterRule
 	if params.Extract != nil && params.Extract.Timebased.Rules != nil {
 		rules = params.Extract.Timebased.Rules
@@ -69,7 +68,7 @@ func NewExtractTimebased(params config.StageParam) (Extractor, error) {
 	tmpRecordKeyStructs, tmpFilters := timebased.CreateRecordKeysAndFilters(rules)
 
 	return &ExtractTimebased{
-		filters:          tmpFilters,
-		recordKeyStructs: tmpRecordKeyStructs,
+		Filters:          tmpFilters,
+		RecordKeyStructs: tmpRecordKeyStructs,
 	}, nil
 }

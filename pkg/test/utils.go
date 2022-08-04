@@ -174,3 +174,19 @@ func WaitFromChannel(in chan []config.GenericMap, timeout time.Duration) ([]conf
 		return nil, errors.New("Timeout reached")
 	}
 }
+
+func GetExtractGenericMaps() []config.GenericMap {
+	entries := []config.GenericMap{
+		{"SrcAddr": "10.0.0.1", "DstAddr": "11.0.0.1", "Bytes": 100, "Packets": 1},
+		{"SrcAddr": "10.0.0.2", "DstAddr": "11.0.0.1", "Bytes": 200, "Packets": 2},
+		{"SrcAddr": "10.0.0.3", "DstAddr": "11.0.0.1", "Bytes": 300, "Packets": 3},
+		{"SrcAddr": "10.0.0.1", "DstAddr": "11.0.0.1", "Bytes": 400, "Packets": 1},
+		{"SrcAddr": "10.0.0.2", "DstAddr": "11.0.0.1", "Bytes": 500, "Packets": 1},
+		{"SrcAddr": "10.0.0.3", "DstAddr": "11.0.0.1", "Bytes": 600, "Packets": 1},
+		{"SrcAddr": "10.0.0.1", "DstAddr": "11.0.0.1", "Bytes": 700, "Packets": 4},
+		{"SrcAddr": "10.0.0.2", "DstAddr": "11.0.0.1", "Bytes": 800, "Packets": 5},
+		{"SrcAddr": "10.0.0.3", "DstAddr": "11.0.0.1", "Bytes": 900, "Packets": 1},
+		{"SrcAddr": "10.0.0.4", "DstAddr": "11.0.0.1", "Bytes": 1000, "Packets": 1},
+	}
+	return entries
+}

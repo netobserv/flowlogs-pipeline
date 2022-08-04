@@ -30,17 +30,17 @@ import (
 
 func (fs *FilterStruct) CalculateResults(nowInSecs int64) {
 	log.Debugf("CalculateResults nowInSecs = %d", nowInSecs)
-	oldestValidTime := nowInSecs - int64(fs.rule.TimeInterval)
-	for key, l := range fs.recordKeyDataTable.dataTableMap {
+	oldestValidTime := nowInSecs - int64(fs.Rule.TimeInterval)
+	for key, l := range fs.RecordKeyDataTable.dataTableMap {
 		var valueFloat64 = float64(0)
-		switch fs.rule.Operation {
+		switch fs.Rule.Operation {
 		case OperationLast:
 			// handle empty list
-			if l.Front() == nil {
+			if l.Len() == 0 {
 				continue
 			}
 			cEntry := l.Back().Value.(*TableEntry)
-			valueString := fmt.Sprintf("%v", cEntry.entry[fs.rule.OperationKey])
+			valueString := fmt.Sprintf("%v", cEntry.entry[fs.Rule.OperationKey])
 			valueFloat64, _ = strconv.ParseFloat(valueString, 64)
 		case OperationDiff:
 			for e := l.Front(); e != nil; e = e.Next() {
@@ -49,26 +49,26 @@ func (fs *FilterStruct) CalculateResults(nowInSecs int64) {
 					// entry is out of time range; ignore it
 					continue
 				}
-				valueString := fmt.Sprintf("%v", e.Value.(*TableEntry).entry[fs.rule.OperationKey])
+				valueString := fmt.Sprintf("%v", e.Value.(*TableEntry).entry[fs.Rule.OperationKey])
 				first, _ := strconv.ParseFloat(valueString, 64)
-				valueString = fmt.Sprintf("%v", l.Back().Value.(*TableEntry).entry[fs.rule.OperationKey])
+				valueString = fmt.Sprintf("%v", l.Back().Value.(*TableEntry).entry[fs.Rule.OperationKey])
 				last, _ := strconv.ParseFloat(valueString, 64)
 				valueFloat64 = last - first
 			}
 		default:
 			valueFloat64 = fs.CalculateValue(l, oldestValidTime)
 		}
-		fs.results[key] = &filterOperationResult{
+		fs.Results[key] = &filterOperationResult{
 			key:             key,
 			operationResult: valueFloat64,
 		}
 	}
-	log.Debugf("CalculateResults results = %v", fs.results)
+	log.Debugf("CalculateResults Results = %v", fs.Results)
 }
 
 func (fs *FilterStruct) CalculateValue(l *list.List, oldestValidTime int64) float64 {
 	log.Debugf("CalculateValue nowInSecs = %d", oldestValidTime)
-	currentValue := getInitValue(fs.rule.Operation)
+	currentValue := getInitValue(fs.Rule.Operation)
 	nItems := 0
 	// TODO: handle case where there are no valid entries
 	for e := l.Front(); e != nil; e = e.Next() {
@@ -77,10 +77,10 @@ func (fs *FilterStruct) CalculateValue(l *list.List, oldestValidTime int64) floa
 			// entry is out of time range; ignore it
 			continue
 		}
-		valueString := fmt.Sprintf("%v", cEntry.entry[fs.rule.OperationKey])
+		valueString := fmt.Sprintf("%v", cEntry.entry[fs.Rule.OperationKey])
 		valueFloat64, _ := strconv.ParseFloat(valueString, 64)
 		nItems++
-		switch fs.rule.Operation {
+		switch fs.Rule.Operation {
 		case OperationSum, OperationAvg:
 			currentValue += valueFloat64
 		case OperationMax:
@@ -89,7 +89,7 @@ func (fs *FilterStruct) CalculateValue(l *list.List, oldestValidTime int64) floa
 			currentValue = math.Min(currentValue, valueFloat64)
 		}
 	}
-	if fs.rule.Operation == OperationAvg && nItems > 0 {
+	if fs.Rule.Operation == OperationAvg && nItems > 0 {
 		currentValue = currentValue / float64(nItems)
 	}
 	return currentValue
@@ -111,29 +111,29 @@ func getInitValue(operation api.FilterOperation) float64 {
 
 func (fs *FilterStruct) ComputeTopkBotk() {
 	var output []filterOperationResult
-	if fs.rule.TopK > 0 {
-		output = fs.computeTopK(fs.results)
-	} else if fs.rule.BotK > 0 {
-		output = fs.computeBotK(fs.results)
+	if fs.Rule.TopK > 0 {
+		output = fs.computeTopK(fs.Results)
+	} else if fs.Rule.BotK > 0 {
+		output = fs.computeBotK(fs.Results)
 	} else {
-		// return all results; convert map to array
-		output := make([]filterOperationResult, len(fs.results))
+		// return all Results; convert map to array
+		output := make([]filterOperationResult, len(fs.Results))
 		i := 0
-		for _, item := range fs.results {
+		for _, item := range fs.Results {
 			output[i] = *item
 		}
 	}
-	fs.output = output
+	fs.Output = output
 }
 
 func (fs *FilterStruct) CreateGenericMap() []config.GenericMap {
 	output := make([]config.GenericMap, 0)
-	for _, result := range fs.output {
+	for _, result := range fs.Output {
 		t := config.GenericMap{
-			"name":             fs.rule.Name,
-			"record_key":       fs.rule.RecordKey,
-			"operation":        fs.rule.Operation,
-			"operation_key":    fs.rule.OperationKey,
+			"name":             fs.Rule.Name,
+			"record_key":       fs.Rule.RecordKey,
+			"operation":        fs.Rule.Operation,
+			"operation_key":    fs.Rule.OperationKey,
 			"key_value":        result.key,
 			"operation_result": result.operationResult,
 		}

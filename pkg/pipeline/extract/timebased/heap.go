@@ -64,7 +64,7 @@ func (filter *FilterStruct) computeTopK(inputs filterOperationResults) []filterO
 	// we will be left with the TopK items
 	var prevMin float64
 	prevMin = -math.MaxFloat64
-	topk := filter.rule.TopK
+	topk := filter.Rule.TopK
 	h := &topkHeap{}
 	for key, metricMap := range inputs {
 		val := metricMap.operationResult
@@ -125,7 +125,7 @@ func (filter *FilterStruct) computeBotK(inputs filterOperationResults) []filterO
 	// we will be left with the BotK items
 	var prevMax float64
 	prevMax = math.MaxFloat64
-	botk := filter.rule.BotK
+	botk := filter.Rule.BotK
 	h := &botkHeap{}
 	for key, metricMap := range inputs {
 		val := metricMap.operationResult

@@ -55,7 +55,7 @@ func DeleteOldEntriesFromTables(recordKeyStructs map[string]*RecordKeyTable, now
 			for {
 				head := tableMap.Front()
 				if head == nil {
-					continue
+					break
 				}
 				tableEntry := head.Value.(*TableEntry)
 				if tableEntry.timeStamp < oldestTime {
@@ -64,12 +64,15 @@ func DeleteOldEntriesFromTables(recordKeyStructs map[string]*RecordKeyTable, now
 				}
 				break
 			}
+			// TODO: if tableMap is empty, we should clean it up and remove it from recordTable.dataTableMap
 		}
 	}
 }
 
 func PrintTable(l *list.List) {
+	fmt.Printf("start PrintTable: \n")
 	for e := l.Front(); e != nil; e = e.Next() {
 		fmt.Printf("PrintTable: e = %v, Value = %v \n", e, e.Value)
 	}
+	fmt.Printf("end PrintTable: \n")
 }

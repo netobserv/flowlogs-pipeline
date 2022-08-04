@@ -210,7 +210,7 @@ Following is the supported API format for specifying metrics time-based filters:
 <pre>
  timebased:
          rules: list of filter rules, each includes:
-                 name: description of aggregation result
+                 name: description of filter result
                  recordKey: internal field to index TopK/BotK 
                  operation: sum, min, max, avg, last or diff
                  operationKey: internal field on which to perform the operation

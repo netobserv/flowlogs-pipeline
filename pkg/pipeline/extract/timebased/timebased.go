@@ -35,10 +35,10 @@ const (
 )
 
 type FilterStruct struct {
-	rule               api.TimebasedFilterRule
-	recordKeyDataTable *RecordKeyTable
-	results            filterOperationResults
-	output             []filterOperationResult
+	Rule               api.TimebasedFilterRule
+	RecordKeyDataTable *RecordKeyTable
+	Results            filterOperationResults
+	Output             []filterOperationResult
 }
 
 type filterOperationResults map[string]*filterOperationResult
@@ -61,13 +61,13 @@ type TableEntry struct {
 }
 
 // Create structures for each RecordKey that appears in the rules.
-// Note that the same RecordKey might appear in more than one rule.
+// Note that the same RecordKey might appear in more than one Rule.
 // Connect RecordKey structure to its filters.
 // For each RecordKey, we need a table of history to handle the largest TimeInterval.
 func CreateRecordKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*RecordKeyTable, []FilterStruct) {
 	tmpRecordKeyStructs := make(map[string]*RecordKeyTable)
-	tmpFilters := make([]FilterStruct, len(rules))
-	for i, filterRule := range rules {
+	tmpFilters := make([]FilterStruct, 0)
+	for _, filterRule := range rules {
 		// verify there is a valid RecordKey
 		if filterRule.RecordKey == "" {
 			log.Errorf("missing RecordKey for filter %s", filterRule.Name)
@@ -87,12 +87,13 @@ func CreateRecordKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*Re
 			}
 		}
 		// TODO: verify the validity of the Operation field in the filterRule
-		tmpFilters[i] = FilterStruct{
-			rule:               filterRule,
-			recordKeyDataTable: rStruct,
-			results:            make(filterOperationResults),
+		tmpFilter := FilterStruct{
+			Rule:               filterRule,
+			RecordKeyDataTable: rStruct,
+			Results:            make(filterOperationResults),
 		}
-		log.Debugf("new rule = %v", tmpFilters[i])
+		log.Debugf("new Rule = %v", tmpFilter)
+		tmpFilters = append(tmpFilters, tmpFilter)
 	}
 	return tmpRecordKeyStructs, tmpFilters
 }
