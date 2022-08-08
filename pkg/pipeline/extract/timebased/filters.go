@@ -118,10 +118,11 @@ func (fs *FilterStruct) ComputeTopkBotk() {
 		output = fs.computeBotK(fs.Results)
 	} else {
 		// return all Results; convert map to array
-		output := make([]filterOperationResult, len(fs.Results))
+		output = make([]filterOperationResult, len(fs.Results))
 		i := 0
 		for _, item := range fs.Results {
 			output[i] = *item
+			i++
 		}
 	}
 	fs.Output = output

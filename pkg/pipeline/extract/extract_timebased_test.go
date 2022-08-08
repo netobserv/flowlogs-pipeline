@@ -143,6 +143,22 @@ parameters:
             TimeInterval: 10
 `
 
+var yamlConfig6 = `
+pipeline:
+  - name: extract6
+parameters:
+  - name: extract6
+    extract:
+      type: timebased
+      timebased:
+        rules:
+          - Name: All_Bytes6
+            Operation: sum
+            OperationKey: Bytes
+            RecordKey: SrcAddr
+            TimeInterval: 10
+`
+
 func initTimebased(t *testing.T, yamlConfig string) *ExtractTimebased {
 	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
@@ -297,4 +313,49 @@ func Test_ExtractTimebasedExtract5(t *testing.T) {
 		},
 	}
 	require.Equal(t, expectedOutput, output)
+}
+
+func Test_ExtractTimebasedExtract6(t *testing.T) {
+	tb := initTimebased(t, yamlConfig6)
+	require.NotNil(t, tb)
+	entries := test.GetExtractMockEntries2()
+	output := tb.Extract(entries)
+	require.Equal(t, 4, len(output))
+	expectedOutput := []config.GenericMap{
+		{
+			"key_value":        "10.0.0.1",
+			"name":             "All_Bytes6",
+			"operation":        api.FilterOperation("sum"),
+			"operation_key":    "Bytes",
+			"operation_result": float64(1200),
+			"record_key":       "SrcAddr",
+		},
+		{
+			"key_value":        "10.0.0.2",
+			"name":             "All_Bytes6",
+			"operation":        api.FilterOperation("sum"),
+			"operation_key":    "Bytes",
+			"operation_result": float64(1500),
+			"record_key":       "SrcAddr",
+		},
+		{
+			"key_value":        "10.0.0.3",
+			"name":             "All_Bytes6",
+			"operation":        api.FilterOperation("sum"),
+			"operation_key":    "Bytes",
+			"operation_result": float64(1800),
+			"record_key":       "SrcAddr",
+		},
+		{
+			"key_value":        "10.0.0.4",
+			"name":             "All_Bytes6",
+			"operation":        api.FilterOperation("sum"),
+			"operation_key":    "Bytes",
+			"operation_result": float64(1000),
+			"record_key":       "SrcAddr",
+		},
+	}
+	for _, configMap := range expectedOutput {
+		require.Contains(t, output, configMap)
+	}
 }
