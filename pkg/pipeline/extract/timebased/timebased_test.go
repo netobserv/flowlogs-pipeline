@@ -90,7 +90,7 @@ func Test_CreateRecordKeysAndFiltersError(t *testing.T) {
 func Test_AddAndDeleteEntryToTables(t *testing.T) {
 	rules := getTimebasedRules()
 	recordKeyStructs, _ := CreateRecordKeysAndFilters(rules)
-	entries := test.GetExtractGenericMaps()
+	entries := test.GetExtractMockEntries2()
 	nowInSecs := time.Now().Unix()
 	for _, entry := range entries {
 		AddEntryToTables(recordKeyStructs, entry, nowInSecs)

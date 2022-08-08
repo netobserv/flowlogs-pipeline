@@ -54,6 +54,7 @@ func (fs *FilterStruct) CalculateResults(nowInSecs int64) {
 				valueString = fmt.Sprintf("%v", l.Back().Value.(*TableEntry).entry[fs.Rule.OperationKey])
 				last, _ := strconv.ParseFloat(valueString, 64)
 				valueFloat64 = last - first
+				break
 			}
 		default:
 			valueFloat64 = fs.CalculateValue(l, oldestValidTime)

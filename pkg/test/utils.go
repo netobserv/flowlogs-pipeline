@@ -175,7 +175,7 @@ func WaitFromChannel(in chan []config.GenericMap, timeout time.Duration) ([]conf
 	}
 }
 
-func GetExtractGenericMaps() []config.GenericMap {
+func GetExtractMockEntries2() []config.GenericMap {
 	entries := []config.GenericMap{
 		{"SrcAddr": "10.0.0.1", "DstAddr": "11.0.0.1", "Bytes": 100, "Packets": 1},
 		{"SrcAddr": "10.0.0.2", "DstAddr": "11.0.0.1", "Bytes": 200, "Packets": 2},

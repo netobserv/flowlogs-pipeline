@@ -18,7 +18,6 @@
 package extract
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -28,11 +27,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func GetMockTimebased() ExtractTimebased {
+func GetMockTimebased1() ExtractTimebased {
 	tb := ExtractTimebased{
 		Filters: []timebased.FilterStruct{
 			{Rule: api.TimebasedFilterRule{
-				Name:         "TopK_Bytes",
+				Name:         "TopK_Bytes1",
 				RecordKey:    "SrcAddr",
 				Operation:    "last",
 				OperationKey: "Bytes",
@@ -40,7 +39,7 @@ func GetMockTimebased() ExtractTimebased {
 				TimeInterval: 10,
 			}},
 			{Rule: api.TimebasedFilterRule{
-				Name:         "BotK_Bytes",
+				Name:         "BotK_Bytes1",
 				RecordKey:    "SrcAddr",
 				Operation:    "avg",
 				OperationKey: "Bytes",
@@ -53,8 +52,7 @@ func GetMockTimebased() ExtractTimebased {
 	return tb
 }
 
-func initTimebased(t *testing.T) *ExtractTimebased {
-	var yamlConfig = `
+var yamlConfig1 = `
 pipeline:
   - name: extract1
 parameters:
@@ -63,19 +61,89 @@ parameters:
       type: timebased
       timebased:
         rules:
-          - Name: TopK_Bytes
+          - Name: TopK_Bytes1
             Operation: last
             OperationKey: Bytes
             RecordKey: SrcAddr
             TopK: 3
             TimeInterval: 10
-          - Name: BotK_Bytes
+          - Name: BotK_Bytes1
             Operation: avg
             OperationKey: Bytes
             RecordKey: SrcAddr
             BotK: 2
             TimeInterval: 15
 `
+
+var yamlConfig2 = `
+pipeline:
+  - name: extract2
+parameters:
+  - name: extract2
+    extract:
+      type: timebased
+      timebased:
+        rules:
+          - Name: TopK_Bytes2
+            Operation: sum
+            OperationKey: Bytes
+            RecordKey: SrcAddr
+            TopK: 1
+            TimeInterval: 10
+`
+
+var yamlConfig3 = `
+pipeline:
+  - name: extract3
+parameters:
+  - name: extract3
+    extract:
+      type: timebased
+      timebased:
+        rules:
+          - Name: BotK_Bytes3
+            Operation: diff
+            OperationKey: Bytes
+            RecordKey: SrcAddr
+            BotK: 1
+            TimeInterval: 10
+`
+
+var yamlConfig4 = `
+pipeline:
+  - name: extract4
+parameters:
+  - name: extract4
+    extract:
+      type: timebased
+      timebased:
+        rules:
+          - Name: TopK_Bytes4
+            Operation: max
+            OperationKey: Bytes
+            RecordKey: SrcAddr
+            TopK: 1
+            TimeInterval: 10
+`
+
+var yamlConfig5 = `
+pipeline:
+  - name: extract5
+parameters:
+  - name: extract5
+    extract:
+      type: timebased
+      timebased:
+        rules:
+          - Name: BotK_Bytes5
+            Operation: min
+            OperationKey: Bytes
+            RecordKey: SrcAddr
+            BotK: 1
+            TimeInterval: 10
+`
+
+func initTimebased(t *testing.T, yamlConfig string) *ExtractTimebased {
 	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
 	extractor, err := NewExtractTimebased(cfg.Parameters[0])
@@ -86,9 +154,9 @@ parameters:
 
 func Test_NewExtractTimebased(t *testing.T) {
 
-	tb := initTimebased(t)
+	tb := initTimebased(t, yamlConfig1)
 	require.NotNil(t, tb)
-	expectedTimebased := GetMockTimebased()
+	expectedTimebased := GetMockTimebased1()
 	require.Equal(t, expectedTimebased.Filters[0].Rule.Name, tb.Filters[0].Rule.Name)
 	require.Equal(t, expectedTimebased.Filters[0].Rule.Operation, tb.Filters[0].Rule.Operation)
 	require.Equal(t, expectedTimebased.Filters[0].Rule.OperationKey, tb.Filters[0].Rule.OperationKey)
@@ -104,17 +172,16 @@ func Test_NewExtractTimebased(t *testing.T) {
 	require.Equal(t, expectedTimebased.Filters[1].Rule.TimeInterval, tb.Filters[1].Rule.TimeInterval)
 }
 
-func Test_ExtractTimebasedExtract(t *testing.T) {
-	tb := initTimebased(t)
+func Test_ExtractTimebasedExtract1(t *testing.T) {
+	tb := initTimebased(t, yamlConfig1)
 	require.NotNil(t, tb)
-	entries := test.GetExtractGenericMaps()
+	entries := test.GetExtractMockEntries2()
 	output := tb.Extract(entries)
-	fmt.Printf("output = %v \n", output)
 	require.Equal(t, 5, len(output))
 	expectedOutput := []config.GenericMap{
 		{
 			"key_value":        "10.0.0.4",
-			"name":             "TopK_Bytes",
+			"name":             "TopK_Bytes1",
 			"operation":        api.FilterOperation("last"),
 			"operation_key":    "Bytes",
 			"operation_result": float64(1000),
@@ -122,7 +189,7 @@ func Test_ExtractTimebasedExtract(t *testing.T) {
 		},
 		{
 			"key_value":        "10.0.0.3",
-			"name":             "TopK_Bytes",
+			"name":             "TopK_Bytes1",
 			"operation":        api.FilterOperation("last"),
 			"operation_key":    "Bytes",
 			"operation_result": float64(900),
@@ -130,7 +197,7 @@ func Test_ExtractTimebasedExtract(t *testing.T) {
 		},
 		{
 			"key_value":        "10.0.0.2",
-			"name":             "TopK_Bytes",
+			"name":             "TopK_Bytes1",
 			"operation":        api.FilterOperation("last"),
 			"operation_key":    "Bytes",
 			"operation_result": float64(800),
@@ -138,7 +205,7 @@ func Test_ExtractTimebasedExtract(t *testing.T) {
 		},
 		{
 			"key_value":        "10.0.0.1",
-			"name":             "BotK_Bytes",
+			"name":             "BotK_Bytes1",
 			"operation":        api.FilterOperation("avg"),
 			"operation_key":    "Bytes",
 			"operation_result": float64(400),
@@ -146,10 +213,86 @@ func Test_ExtractTimebasedExtract(t *testing.T) {
 		},
 		{
 			"key_value":        "10.0.0.2",
-			"name":             "BotK_Bytes",
+			"name":             "BotK_Bytes1",
 			"operation":        api.FilterOperation("avg"),
 			"operation_key":    "Bytes",
 			"operation_result": float64(500),
+			"record_key":       "SrcAddr",
+		},
+	}
+	require.Equal(t, expectedOutput, output)
+}
+
+func Test_ExtractTimebasedExtract2(t *testing.T) {
+	tb := initTimebased(t, yamlConfig2)
+	require.NotNil(t, tb)
+	entries := test.GetExtractMockEntries2()
+	output := tb.Extract(entries)
+	require.Equal(t, 1, len(output))
+	expectedOutput := []config.GenericMap{
+		{
+			"key_value":        "10.0.0.3",
+			"name":             "TopK_Bytes2",
+			"operation":        api.FilterOperation("sum"),
+			"operation_key":    "Bytes",
+			"operation_result": float64(1800),
+			"record_key":       "SrcAddr",
+		},
+	}
+	require.Equal(t, expectedOutput, output)
+}
+
+func Test_ExtractTimebasedExtract3(t *testing.T) {
+	tb := initTimebased(t, yamlConfig3)
+	require.NotNil(t, tb)
+	entries := test.GetExtractMockEntries2()
+	output := tb.Extract(entries)
+	require.Equal(t, 1, len(output))
+	expectedOutput := []config.GenericMap{
+		{
+			"key_value":        "10.0.0.4",
+			"name":             "BotK_Bytes3",
+			"operation":        api.FilterOperation("diff"),
+			"operation_key":    "Bytes",
+			"operation_result": float64(0),
+			"record_key":       "SrcAddr",
+		},
+	}
+	require.Equal(t, expectedOutput, output)
+}
+
+func Test_ExtractTimebasedExtract4(t *testing.T) {
+	tb := initTimebased(t, yamlConfig4)
+	require.NotNil(t, tb)
+	entries := test.GetExtractMockEntries2()
+	output := tb.Extract(entries)
+	require.Equal(t, 1, len(output))
+	expectedOutput := []config.GenericMap{
+		{
+			"key_value":        "10.0.0.4",
+			"name":             "TopK_Bytes4",
+			"operation":        api.FilterOperation("max"),
+			"operation_key":    "Bytes",
+			"operation_result": float64(1000),
+			"record_key":       "SrcAddr",
+		},
+	}
+	require.Equal(t, expectedOutput, output)
+}
+
+func Test_ExtractTimebasedExtract5(t *testing.T) {
+	tb := initTimebased(t, yamlConfig5)
+	require.NotNil(t, tb)
+	entries := test.GetExtractMockEntries2()
+	output := tb.Extract(entries)
+	require.Equal(t, 1, len(output))
+	expectedOutput := []config.GenericMap{
+		{
+			"key_value":        "10.0.0.1",
+			"name":             "BotK_Bytes5",
+			"operation":        api.FilterOperation("min"),
+			"operation_key":    "Bytes",
+			"operation_result": float64(100),
 			"record_key":       "SrcAddr",
 		},
 	}
