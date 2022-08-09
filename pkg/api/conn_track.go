@@ -17,6 +17,10 @@
 
 package api
 
+import (
+	"fmt"
+)
+
 const (
 	HashIdFieldName     = "_HashId"
 	RecordTypeFieldName = "_RecordType"
@@ -78,4 +82,77 @@ type ConnTrackOperationEnum struct {
 
 func ConnTrackOperationName(operation string) string {
 	return GetEnumName(ConnTrackOperationEnum{}, operation)
+}
+
+func (ct *ConnTrack) Validate() error {
+	isGroupAEmpty := ct.KeyDefinition.Hash.FieldGroupARef == ""
+	isGroupBEmpty := ct.KeyDefinition.Hash.FieldGroupBRef == ""
+	if isGroupAEmpty != isGroupBEmpty { // XOR
+		return fmt.Errorf("only one of 'fieldGroupARef' and 'fieldGroupBRef' is set. They should both be set or both unset")
+	}
+
+	isBidi := !isGroupAEmpty
+	for _, of := range ct.OutputFields {
+		if of.SplitAB && !isBidi {
+			return fmt.Errorf("output field %q has splitAB=true although bidirection is not enabled (fieldGroupARef is empty)", of.Name)
+		}
+		if !isOperationValid(of.Operation) {
+			return fmt.Errorf("unknown operation %q in output field %q", of.Operation, of.Name)
+		}
+	}
+
+	fieldGroups := map[string]struct{}{}
+	for _, fg := range ct.KeyDefinition.FieldGroups {
+		name := fg.Name
+		if _, found := fieldGroups[name]; found {
+			return fmt.Errorf("duplicate fieldGroup %q", name)
+		}
+		fieldGroups[name] = struct{}{}
+	}
+
+	if _, found := fieldGroups[ct.KeyDefinition.Hash.FieldGroupARef]; !isGroupAEmpty && !found {
+		return fmt.Errorf("undefined fieldGroupARef %q", ct.KeyDefinition.Hash.FieldGroupARef)
+	}
+
+	if _, found := fieldGroups[ct.KeyDefinition.Hash.FieldGroupBRef]; !isGroupBEmpty && !found {
+		return fmt.Errorf("undefined fieldGroupBRef %q", ct.KeyDefinition.Hash.FieldGroupBRef)
+	}
+
+	for _, fieldGroupRef := range ct.KeyDefinition.Hash.FieldGroupRefs {
+		if _, found := fieldGroups[fieldGroupRef]; !found {
+			return fmt.Errorf("undefined fieldGroup %q", fieldGroupRef)
+		}
+	}
+
+	for _, ort := range ct.OutputRecordTypes {
+		if !isOutputRecordTypeValid(ort) {
+			return fmt.Errorf("undefined output record type %q", ort)
+		}
+	}
+	return nil
+}
+
+func isOperationValid(value string) bool {
+	valid := true
+	switch value {
+	case ConnTrackOperationName("Sum"):
+	case ConnTrackOperationName("Count"):
+	case ConnTrackOperationName("Min"):
+	case ConnTrackOperationName("Max"):
+	default:
+		valid = false
+	}
+	return valid
+}
+
+func isOutputRecordTypeValid(value string) bool {
+	valid := true
+	switch value {
+	case ConnTrackOutputRecordTypeName("NewConnection"):
+	case ConnTrackOutputRecordTypeName("EndConnection"):
+	case ConnTrackOutputRecordTypeName("FlowLog"):
+	default:
+		valid = false
+	}
+	return valid
 }
