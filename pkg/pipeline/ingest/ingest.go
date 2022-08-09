@@ -17,10 +17,24 @@
 
 package ingest
 
-import "github.com/netobserv/flowlogs-pipeline/pkg/config"
+import (
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
+	"github.com/prometheus/client_golang/prometheus"
+)
 
 type Ingester interface {
 	Ingest(out chan<- []config.GenericMap)
 }
 type IngesterNone struct {
 }
+
+var queueLength = operationalMetrics.NewGauge(prometheus.GaugeOpts{
+	Name: "ingest_collector_queue_length",
+	Help: "Queue length",
+})
+
+var linesProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
+	Name: "ingest_collector_flow_logs_processed",
+	Help: "Number of log lines (flow logs) processed",
+})
