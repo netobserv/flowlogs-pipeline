@@ -88,16 +88,19 @@ func (ct *ConnTrack) Validate() error {
 	isGroupAEmpty := ct.KeyDefinition.Hash.FieldGroupARef == ""
 	isGroupBEmpty := ct.KeyDefinition.Hash.FieldGroupBRef == ""
 	if isGroupAEmpty != isGroupBEmpty { // XOR
-		return fmt.Errorf("only one of 'fieldGroupARef' and 'fieldGroupBRef' is set. They should both be set or both unset")
+		return fmt.Errorf("only one of 'fieldGroupARef' and 'fieldGroupBRef' is set. They should both be set or both unset %w",
+			conntrackInvalidError{fieldGroupABOnlyOneIsSet: true})
 	}
 
 	isBidi := !isGroupAEmpty
 	for _, of := range ct.OutputFields {
 		if of.SplitAB && !isBidi {
-			return fmt.Errorf("output field %q has splitAB=true although bidirection is not enabled (fieldGroupARef is empty)", of.Name)
+			return fmt.Errorf("output field %q has splitAB=true although bidirection is not enabled (fieldGroupARef is empty) %w", of.Name,
+				conntrackInvalidError{splitABWithNoBidi: true})
 		}
 		if !isOperationValid(of.Operation) {
-			return fmt.Errorf("unknown operation %q in output field %q", of.Operation, of.Name)
+			return fmt.Errorf("unknown operation %q in output field %q %w", of.Operation, of.Name,
+				conntrackInvalidError{unknownOperation: true})
 		}
 	}
 
@@ -105,28 +108,33 @@ func (ct *ConnTrack) Validate() error {
 	for _, fg := range ct.KeyDefinition.FieldGroups {
 		name := fg.Name
 		if _, found := fieldGroups[name]; found {
-			return fmt.Errorf("duplicate fieldGroup %q", name)
+			return fmt.Errorf("duplicate fieldGroup %q %w", name,
+				conntrackInvalidError{duplicateFieldGroup: true})
 		}
 		fieldGroups[name] = struct{}{}
 	}
 
 	if _, found := fieldGroups[ct.KeyDefinition.Hash.FieldGroupARef]; !isGroupAEmpty && !found {
-		return fmt.Errorf("undefined fieldGroupARef %q", ct.KeyDefinition.Hash.FieldGroupARef)
+		return fmt.Errorf("undefined fieldGroupARef %q %w", ct.KeyDefinition.Hash.FieldGroupARef,
+			conntrackInvalidError{undefinedFieldGroupARef: true})
 	}
 
 	if _, found := fieldGroups[ct.KeyDefinition.Hash.FieldGroupBRef]; !isGroupBEmpty && !found {
-		return fmt.Errorf("undefined fieldGroupBRef %q", ct.KeyDefinition.Hash.FieldGroupBRef)
+		return fmt.Errorf("undefined fieldGroupBRef %q %w", ct.KeyDefinition.Hash.FieldGroupBRef,
+			conntrackInvalidError{undefinedFieldGroupBRef: true})
 	}
 
 	for _, fieldGroupRef := range ct.KeyDefinition.Hash.FieldGroupRefs {
 		if _, found := fieldGroups[fieldGroupRef]; !found {
-			return fmt.Errorf("undefined fieldGroup %q", fieldGroupRef)
+			return fmt.Errorf("undefined fieldGroup %q %w", fieldGroupRef,
+				conntrackInvalidError{undefinedFieldGroupRef: true})
 		}
 	}
 
 	for _, ort := range ct.OutputRecordTypes {
 		if !isOutputRecordTypeValid(ort) {
-			return fmt.Errorf("undefined output record type %q", ort)
+			return fmt.Errorf("undefined output record type %q %w", ort,
+				conntrackInvalidError{unknownOutputRecord: true})
 		}
 	}
 	return nil
@@ -155,4 +163,19 @@ func isOutputRecordTypeValid(value string) bool {
 		valid = false
 	}
 	return valid
+}
+
+type conntrackInvalidError struct {
+	fieldGroupABOnlyOneIsSet bool
+	splitABWithNoBidi        bool
+	unknownOperation         bool
+	duplicateFieldGroup      bool
+	undefinedFieldGroupARef  bool
+	undefinedFieldGroupBRef  bool
+	undefinedFieldGroupRef   bool
+	unknownOutputRecord      bool
+}
+
+func (conntrackInvalidError) Error() string {
+	return ""
 }

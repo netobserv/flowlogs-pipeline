@@ -26,14 +26,16 @@ import (
 func TestConnTrackValidate(t *testing.T) {
 	// Invalid configurations
 	tests := []struct {
-		name   string
-		config ConnTrack
+		name        string
+		config      ConnTrack
+		expectedErr conntrackInvalidError
 	}{
 		{
 			"FieldGroupARef is set but FieldGroupBRef isn't",
 			ConnTrack{
 				KeyDefinition: KeyDefinition{Hash: ConnTrackHash{FieldGroupARef: "src"}},
 			},
+			conntrackInvalidError{fieldGroupABOnlyOneIsSet: true},
 		},
 		{
 			"splitAB in non bidirectional configuration",
@@ -43,6 +45,7 @@ func TestConnTrackValidate(t *testing.T) {
 					{Name: "Bytes", Operation: "sum", SplitAB: true},
 				},
 			},
+			conntrackInvalidError{splitABWithNoBidi: true},
 		},
 		{
 			"Unknown operation",
@@ -52,6 +55,19 @@ func TestConnTrackValidate(t *testing.T) {
 					{Name: "Bytes", Operation: "unknown"},
 				},
 			},
+			conntrackInvalidError{unknownOperation: true},
+		},
+		{
+			"Duplicate field groups",
+			ConnTrack{
+				KeyDefinition: KeyDefinition{
+					FieldGroups: []FieldGroup{
+						{Name: "src"},
+						{Name: "src"},
+					},
+				},
+			},
+			conntrackInvalidError{duplicateFieldGroup: true},
 		},
 		{
 			"Undefined fieldGroupARef",
@@ -64,6 +80,7 @@ func TestConnTrackValidate(t *testing.T) {
 					Hash: ConnTrackHash{FieldGroupARef: "undefined", FieldGroupBRef: "dst"},
 				},
 			},
+			conntrackInvalidError{undefinedFieldGroupARef: true},
 		},
 		{
 			"Undefined fieldGroupBRef",
@@ -76,6 +93,7 @@ func TestConnTrackValidate(t *testing.T) {
 					Hash: ConnTrackHash{FieldGroupARef: "src", FieldGroupBRef: "unknown"},
 				},
 			},
+			conntrackInvalidError{undefinedFieldGroupBRef: true},
 		},
 		{
 			"Undefined fieldGroupRefs",
@@ -88,19 +106,21 @@ func TestConnTrackValidate(t *testing.T) {
 					Hash: ConnTrackHash{FieldGroupRefs: []string{"unknown"}},
 				},
 			},
+			conntrackInvalidError{undefinedFieldGroupRef: true},
 		},
 		{
 			"Unknown output record",
 			ConnTrack{
 				OutputRecordTypes: []string{"unknown"},
 			},
+			conntrackInvalidError{unknownOutputRecord: true},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.Validate()
-			require.Error(t, err)
+			require.ErrorIs(t, err, tt.expectedErr)
 		})
 	}
 }
