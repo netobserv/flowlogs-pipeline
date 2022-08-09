@@ -146,6 +146,16 @@ func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
 	}
 }
 
+func (ingestC *ingestCollector) processBatch(out chan<- []config.GenericMap, records []config.GenericMap) {
+	log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
+	linesProcessed.Add(float64(len(records)))
+	queueLength.Set(float64(len(out)))
+	log.Debugf("ingestCollector records = %v", records)
+	for _, record := range records {
+		processPacketMetrics(record)
+	}
+	out <- records
+}
 func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) {
 	var records []config.GenericMap
 	// Maximum batch time for each batch
@@ -159,12 +169,9 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) 
 		case record := <-ingestC.in:
 			records = append(records, record)
 			if len(records) >= ingestC.batchMaxLength {
-				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
-				linesProcessed.Add(float64(len(records)))
-				queueLength.Set(float64(len(out)))
-				log.Debugf("ingestCollector records = %v", records)
-				out <- records
+				ingestC.processBatch(out, records)
 				records = []config.GenericMap{}
+
 			}
 		case <-flushRecords.C:
 			// Process batch of records (if not empty)
@@ -175,11 +182,7 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) 
 						records = append(records, record)
 					}
 				}
-				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
-				linesProcessed.Add(float64(len(records)))
-				queueLength.Set(float64(len(out)))
-				log.Debugf("ingestCollector records = %v", records)
-				out <- records
+				ingestC.processBatch(out, records)
 				records = []config.GenericMap{}
 			}
 		}

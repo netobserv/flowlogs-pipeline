@@ -38,3 +38,27 @@ var linesProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
 	Name: "ingest_collector_flow_logs_processed",
 	Help: "Number of log lines (flow logs) processed",
 })
+
+var packetsCount = operationalMetrics.NewCounter(prometheus.CounterOpts{
+	Name: "ingest_packets_captured",
+	Help: "Number of packet captured",
+})
+
+var packetsSize = operationalMetrics.NewCounter(prometheus.CounterOpts{
+	Name: "ingest_packets_captured_size",
+	Help: "Size of all packet captured",
+})
+
+func processPacketMetrics(record config.GenericMap) {
+	if packets_raw, ok := record["Packets"]; ok {
+		if packets, ok := packets_raw.(uint64); ok {
+			packetsCount.Add(float64(packets))
+		}
+	}
+	if bytes_raw, ok := record["Bytes"]; ok {
+		if bytes, ok := bytes_raw.(uint64); ok {
+			packetsSize.Add(float64(bytes))
+		}
+	}
+
+}

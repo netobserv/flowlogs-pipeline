@@ -91,7 +91,21 @@ func (ingestK *ingestKafka) kafkaListener() {
 
 }
 
-func processRecordDelay(record config.GenericMap) {
+func (ingestK *ingestKafka) processPacketMetrics(record config.GenericMap) {
+	if packets_raw, ok := record["Packets"]; ok {
+		if packets, ok := packets_raw.(float64); ok {
+			packetsCount.Add(packets)
+		}
+	}
+	if bytes_raw, ok := record["Bytes"]; ok {
+		if bytes, ok := bytes_raw.(float64); ok {
+			packetsSize.Add(bytes)
+		}
+	}
+
+}
+
+func (ingestK *ingestKafka) processRecordMetrics(record config.GenericMap) {
 	TimeFlowEndInterface, ok := record["TimeFlowEnd"]
 	if !ok {
 		flowErrors.With(prometheus.Labels{"router": "", "error": "No TimeFlowEnd found"}).Inc()
@@ -104,6 +118,8 @@ func processRecordDelay(record config.GenericMap) {
 	}
 	delay := time.Since(time.Unix(int64(TimeFlowEnd), 0)).Seconds()
 	processDelaySummary.Observe(delay)
+
+	ingestK.processPacketMetrics(record)
 }
 
 func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records []interface{}) {
@@ -120,7 +136,7 @@ func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records
 	ingestK.prevRecords = decoded
 
 	for _, record := range decoded {
-		processRecordDelay(record)
+		ingestK.processRecordMetrics(record)
 	}
 
 	// Send batch

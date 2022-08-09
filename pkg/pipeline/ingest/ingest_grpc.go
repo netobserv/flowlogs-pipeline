@@ -82,6 +82,9 @@ func (no *GRPCProtobuf) Ingest(out chan<- []config.GenericMap) {
 	for fp := range no.flowPackets {
 		records := no.decoder.Decode([]interface{}{fp})
 		log.Debugf("GRPCProtobuf records = %v", records)
+		for _, record := range records {
+			processPacketMetrics(record)
+		}
 		out <- records
 	}
 }
