@@ -19,6 +19,7 @@ package encode
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -60,6 +61,7 @@ type EncodeProm struct {
 	mCache     *utils.TimedCache
 	exitChan   <-chan struct{}
 	server     *http.Server
+	tlsConfig  *api.PromTLSConf
 }
 
 var metricsProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
@@ -245,7 +247,7 @@ func (e *EncodeProm) startServer() {
 
 	var err error
 	if e.tlsConfig != nil {
-		err = e.server.ListenAndServeTLS(e.tlsConfig.CertPath, e.tlsConfig.KeyPath, nil)
+		err = e.server.ListenAndServeTLS(e.tlsConfig.CertPath, e.tlsConfig.KeyPath)
 	} else {
 		err = e.server.ListenAndServe()
 	}
@@ -343,7 +345,14 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 	log.Infof("startServer: addr = %s", addr)
 
 	w := &EncodeProm{
-		server:     &http.Server{Addr: addr},
+		server: &http.Server{
+			Addr: addr,
+			// TLS clients must use TLS 1.2 or higher
+			TLSConfig: &tls.Config{
+				MinVersion: tls.VersionTLS12,
+			},
+		},
+		tlsConfig:  cfg.TLS,
 		counters:   counters,
 		gauges:     gauges,
 		histos:     histos,
