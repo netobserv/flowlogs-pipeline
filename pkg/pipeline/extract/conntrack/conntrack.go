@@ -113,14 +113,15 @@ func newConnectionStore() *connectionStore {
 //////////////////////////
 
 type conntrackImpl struct {
-	clock                     clock.Clock
-	config                    *api.ConnTrack
-	hashProvider              func() hash.Hash64
-	connStore                 *connectionStore
-	aggregators               []aggregator
-	shouldOutputFlowLogs      bool
-	shouldOutputNewConnection bool
-	shouldOutputEndConnection bool
+	clock                        clock.Clock
+	config                       *api.ConnTrack
+	hashProvider                 func() hash.Hash64
+	connStore                    *connectionStore
+	aggregators                  []aggregator
+	shouldOutputFlowLogs         bool
+	shouldOutputNewConnection    bool
+	shouldOutputEndConnection    bool
+	shouldOutputUpdateConnection bool
 }
 
 func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericMap {
@@ -237,6 +238,7 @@ func NewConnectionTrack(params config.StageParam, clock clock.Clock) (extract.Ex
 	shouldOutputFlowLogs := false
 	shouldOutputNewConnection := false
 	shouldOutputEndConnection := false
+	shouldOutputUpdateConnection := false
 	for _, option := range cfg.OutputRecordTypes {
 		switch option {
 		case api.ConnTrackOutputRecordTypeName("FlowLog"):
@@ -245,20 +247,23 @@ func NewConnectionTrack(params config.StageParam, clock clock.Clock) (extract.Ex
 			shouldOutputNewConnection = true
 		case api.ConnTrackOutputRecordTypeName("EndConnection"):
 			shouldOutputEndConnection = true
+		case api.ConnTrackOutputRecordTypeName("UpdateConnection"):
+			shouldOutputUpdateConnection = true
 		default:
 			return nil, fmt.Errorf("unknown OutputRecordTypes: %v", option)
 		}
 	}
 
 	conntrack := &conntrackImpl{
-		clock:                     clock,
-		connStore:                 newConnectionStore(),
-		config:                    cfg,
-		hashProvider:              fnv.New64a,
-		aggregators:               aggregators,
-		shouldOutputFlowLogs:      shouldOutputFlowLogs,
-		shouldOutputNewConnection: shouldOutputNewConnection,
-		shouldOutputEndConnection: shouldOutputEndConnection,
+		clock:                        clock,
+		connStore:                    newConnectionStore(),
+		config:                       cfg,
+		hashProvider:                 fnv.New64a,
+		aggregators:                  aggregators,
+		shouldOutputFlowLogs:         shouldOutputFlowLogs,
+		shouldOutputNewConnection:    shouldOutputNewConnection,
+		shouldOutputEndConnection:    shouldOutputEndConnection,
+		shouldOutputUpdateConnection: shouldOutputUpdateConnection,
 	}
 	return conntrack, nil
 }

@@ -35,9 +35,10 @@ type ConnTrack struct {
 }
 
 type ConnTrackOutputRecordTypeEnum struct {
-	NewConnection string `yaml:"newConnection" doc:"New connection"`
-	EndConnection string `yaml:"endConnection" doc:"End connection"`
-	FlowLog       string `yaml:"flowLog" doc:"Flow log"`
+	NewConnection    string `yaml:"newConnection" doc:"New connection"`
+	EndConnection    string `yaml:"endConnection" doc:"End connection"`
+	UpdateConnection string `yaml:"updateConnection" doc:"Update connection"`
+	FlowLog          string `yaml:"flowLog" doc:"Flow log"`
 }
 
 func ConnTrackOutputRecordTypeName(operation string) string {
@@ -188,6 +189,7 @@ func isOutputRecordTypeValid(value string) bool {
 	switch value {
 	case ConnTrackOutputRecordTypeName("NewConnection"):
 	case ConnTrackOutputRecordTypeName("EndConnection"):
+	case ConnTrackOutputRecordTypeName("UpdateConnection"):
 	case ConnTrackOutputRecordTypeName("FlowLog"):
 	default:
 		valid = false
