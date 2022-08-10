@@ -28,10 +28,11 @@ const (
 
 type ConnTrack struct {
 	// TODO: should by a pointer instead?
-	KeyDefinition        KeyDefinition `yaml:"keyDefinition,omitempty" doc:"fields that are used to identify the connection"`
-	OutputRecordTypes    []string      `yaml:"outputRecordTypes,omitempty" enum:"ConnTrackOutputRecordTypeEnum" doc:"output record types to emit"`
-	OutputFields         []OutputField `yaml:"outputFields,omitempty" doc:"list of output fields"`
-	EndConnectionTimeout Duration      `yaml:"endConnectionTimeout,omitempty" doc:"duration of time to wait from the last flow log to end a connection"`
+	KeyDefinition            KeyDefinition `yaml:"keyDefinition,omitempty" doc:"fields that are used to identify the connection"`
+	OutputRecordTypes        []string      `yaml:"outputRecordTypes,omitempty" enum:"ConnTrackOutputRecordTypeEnum" doc:"output record types to emit"`
+	OutputFields             []OutputField `yaml:"outputFields,omitempty" doc:"list of output fields"`
+	EndConnectionTimeout     Duration      `yaml:"endConnectionTimeout,omitempty" doc:"duration of time to wait from the last flow log to end a connection"`
+	UpdateConnectionInterval Duration      `yaml:"updateConnectionInterval,omitempty" doc:"duration of time to wait between update reports of a connection"`
 }
 
 type ConnTrackOutputRecordTypeEnum struct {

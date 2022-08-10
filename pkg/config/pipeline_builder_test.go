@@ -152,7 +152,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"conntrack","extract":{"type":"conntrack","conntrack":{"KeyDefinition":{"FieldGroups":null,"Hash":{"FieldGroupRefs":null,"FieldGroupARef":"","FieldGroupBRef":""}},"OutputRecordTypes":null,"OutputFields":null,"EndConnectionTimeout":"0s"}}}`, string(b))
+	require.Equal(t, `{"name":"conntrack","extract":{"type":"conntrack","conntrack":{"KeyDefinition":{"FieldGroups":null,"Hash":{"FieldGroupRefs":null,"FieldGroupARef":"","FieldGroupBRef":""}},"OutputRecordTypes":null,"OutputFields":null,"EndConnectionTimeout":"0s","UpdateConnectionInterval":"0s"}}}`, string(b))
 
 	b, err = json.Marshal(params[3])
 	require.NoError(t, err)
