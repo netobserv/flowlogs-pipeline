@@ -88,19 +88,19 @@ func (ct *ConnTrack) Validate() error {
 	isGroupAEmpty := ct.KeyDefinition.Hash.FieldGroupARef == ""
 	isGroupBEmpty := ct.KeyDefinition.Hash.FieldGroupBRef == ""
 	if isGroupAEmpty != isGroupBEmpty { // XOR
-		return fmt.Errorf("only one of 'fieldGroupARef' and 'fieldGroupBRef' is set. They should both be set or both unset %w",
-			conntrackInvalidError{fieldGroupABOnlyOneIsSet: true})
+		return conntrackInvalidError{fieldGroupABOnlyOneIsSet: true,
+			msg: fmt.Errorf("only one of 'fieldGroupARef' and 'fieldGroupBRef' is set. They should both be set or both unset")}
 	}
 
 	isBidi := !isGroupAEmpty
 	for _, of := range ct.OutputFields {
 		if of.SplitAB && !isBidi {
-			return fmt.Errorf("output field %q has splitAB=true although bidirection is not enabled (fieldGroupARef is empty) %w", of.Name,
-				conntrackInvalidError{splitABWithNoBidi: true})
+			return conntrackInvalidError{splitABWithNoBidi: true,
+				msg: fmt.Errorf("output field %q has splitAB=true although bidirection is not enabled (fieldGroupARef is empty)", of.Name)}
 		}
 		if !isOperationValid(of.Operation) {
-			return fmt.Errorf("unknown operation %q in output field %q %w", of.Operation, of.Name,
-				conntrackInvalidError{unknownOperation: true})
+			return conntrackInvalidError{unknownOperation: true,
+				msg: fmt.Errorf("unknown operation %q in output field %q", of.Operation, of.Name)}
 		}
 	}
 
@@ -108,33 +108,33 @@ func (ct *ConnTrack) Validate() error {
 	for _, fg := range ct.KeyDefinition.FieldGroups {
 		name := fg.Name
 		if _, found := fieldGroups[name]; found {
-			return fmt.Errorf("duplicate fieldGroup %q %w", name,
-				conntrackInvalidError{duplicateFieldGroup: true})
+			return conntrackInvalidError{duplicateFieldGroup: true,
+				msg: fmt.Errorf("duplicate fieldGroup %q", name)}
 		}
 		fieldGroups[name] = struct{}{}
 	}
 
 	if _, found := fieldGroups[ct.KeyDefinition.Hash.FieldGroupARef]; !isGroupAEmpty && !found {
-		return fmt.Errorf("undefined fieldGroupARef %q %w", ct.KeyDefinition.Hash.FieldGroupARef,
-			conntrackInvalidError{undefinedFieldGroupARef: true})
+		return conntrackInvalidError{undefinedFieldGroupARef: true,
+			msg: fmt.Errorf("undefined fieldGroupARef %q", ct.KeyDefinition.Hash.FieldGroupARef)}
 	}
 
 	if _, found := fieldGroups[ct.KeyDefinition.Hash.FieldGroupBRef]; !isGroupBEmpty && !found {
-		return fmt.Errorf("undefined fieldGroupBRef %q %w", ct.KeyDefinition.Hash.FieldGroupBRef,
-			conntrackInvalidError{undefinedFieldGroupBRef: true})
+		return conntrackInvalidError{undefinedFieldGroupBRef: true,
+			msg: fmt.Errorf("undefined fieldGroupBRef %q", ct.KeyDefinition.Hash.FieldGroupBRef)}
 	}
 
 	for _, fieldGroupRef := range ct.KeyDefinition.Hash.FieldGroupRefs {
 		if _, found := fieldGroups[fieldGroupRef]; !found {
-			return fmt.Errorf("undefined fieldGroup %q %w", fieldGroupRef,
-				conntrackInvalidError{undefinedFieldGroupRef: true})
+			return conntrackInvalidError{undefinedFieldGroupRef: true,
+				msg: fmt.Errorf("undefined fieldGroup %q", fieldGroupRef)}
 		}
 	}
 
 	for _, ort := range ct.OutputRecordTypes {
 		if !isOutputRecordTypeValid(ort) {
-			return fmt.Errorf("undefined output record type %q %w", ort,
-				conntrackInvalidError{unknownOutputRecord: true})
+			return conntrackInvalidError{unknownOutputRecord: true,
+				msg: fmt.Errorf("undefined output record type %q", ort)}
 		}
 	}
 	return nil
@@ -166,6 +166,7 @@ func isOutputRecordTypeValid(value string) bool {
 }
 
 type conntrackInvalidError struct {
+	msg                      error
 	fieldGroupABOnlyOneIsSet bool
 	splitABWithNoBidi        bool
 	unknownOperation         bool
@@ -176,6 +177,17 @@ type conntrackInvalidError struct {
 	unknownOutputRecord      bool
 }
 
-func (conntrackInvalidError) Error() string {
+func (err conntrackInvalidError) Error() string {
+	if err.msg != nil {
+		return err.msg.Error()
+	}
 	return ""
+}
+
+// Is makes 2 conntrackInvalidError objects equal if all their fields except for `msg` are the equal.
+// This is useful in the tests where we don't want to repeat the error message.
+// Is() is invoked by errors.Is() which is invoked by require.ErrorIs().
+func (err conntrackInvalidError) Is(target error) bool {
+	err.msg = nil
+	return err == target
 }
