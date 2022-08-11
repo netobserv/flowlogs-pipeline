@@ -173,6 +173,11 @@ func Test_CustomMetric(t *testing.T) {
 			ValueKey: "latency",
 			Labels:   []string{"srcIP", "dstIP"},
 			Buckets:  []float64{},
+		}, {
+			Name:     "flows_total",
+			Type:     "counter",
+			ValueKey: "", // empty valuekey means it's a records counter
+			Labels:   []string{"srcIP", "dstIP"},
 		}},
 	}
 
@@ -200,6 +205,8 @@ func Test_CustomMetric(t *testing.T) {
 	require.Contains(t, exposed, `test_latency_seconds_bucket{dstIP="30.0.0.3",srcIP="10.0.0.1",le="+Inf"} 1`)
 	require.Contains(t, exposed, `test_latency_seconds_sum{dstIP="30.0.0.3",srcIP="10.0.0.1"} 0.2`)
 	require.Contains(t, exposed, `test_latency_seconds_count{dstIP="30.0.0.3",srcIP="10.0.0.1"} 1`)
+	require.Contains(t, exposed, `test_flows_total{dstIP="10.0.0.1",srcIP="20.0.0.2"} 2`)
+	require.Contains(t, exposed, `test_flows_total{dstIP="30.0.0.3",srcIP="10.0.0.1"} 1`)
 }
 
 func Test_MetricTTL(t *testing.T) {

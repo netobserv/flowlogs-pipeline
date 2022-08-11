@@ -195,6 +195,10 @@ func (e *EncodeProm) extractGenericValue(flow config.GenericMap, info *api.PromM
 			return nil
 		}
 	}
+	if info.ValueKey == "" {
+		// No value key means it's a records / flows counter (1 flow = 1 increment), so just return 1
+		return 1
+	}
 	val, found := flow[info.ValueKey]
 	if !found {
 		errorsCounter.WithLabelValues("RecordKeyMissing", info.Name, info.ValueKey).Inc()
