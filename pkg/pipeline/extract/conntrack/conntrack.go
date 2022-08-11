@@ -78,6 +78,7 @@ func (cs *connectionStore) updateConnectionTime(hashId uint64, t time.Time) {
 	elem, ok := cs.hash2conn[hashId]
 	if !ok {
 		log.Errorf("BUG. connection hash %x doesn't exist", hashId)
+		return
 	}
 	elem.Value.(connection).setLastUpdate(t)
 	// move to end of list
