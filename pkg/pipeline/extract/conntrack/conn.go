@@ -32,15 +32,18 @@ type connection interface {
 	updateAggValue(fieldName string, newValueFn func(curr float64) float64)
 	setLastUpdate(t time.Time)
 	getLastUpdate() time.Time
+	setNextUpdateReportTime(t time.Time)
+	getNextUpdateReportTime() time.Time
 	toGenericMap() config.GenericMap
 	getHash() totalHashType
 }
 
 type connType struct {
-	hash       totalHashType
-	keys       config.GenericMap
-	aggFields  map[string]float64
-	lastUpdate time.Time
+	hash                 totalHashType
+	keys                 config.GenericMap
+	aggFields            map[string]float64
+	lastUpdate           time.Time
+	nextUpdateReportTime time.Time
 }
 
 func (c *connType) addAgg(fieldName string, initValue float64) {
@@ -66,6 +69,14 @@ func (c *connType) setLastUpdate(t time.Time) {
 
 func (c *connType) getLastUpdate() time.Time {
 	return c.lastUpdate
+}
+
+func (c *connType) setNextUpdateReportTime(t time.Time) {
+	c.nextUpdateReportTime = t
+}
+
+func (c *connType) getNextUpdateReportTime() time.Time {
+	return c.nextUpdateReportTime
 }
 
 func (c *connType) toGenericMap() config.GenericMap {

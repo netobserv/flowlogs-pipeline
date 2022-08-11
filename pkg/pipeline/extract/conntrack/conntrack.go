@@ -175,6 +175,12 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 		metrics.outputRecords.WithLabelValues("endConnection").Add(float64(len(endConnectionRecords)))
 	}
 
+	if ct.shouldOutputUpdateConnection {
+		updateConnectionRecords := ct.getUpdateConnectionRecords()
+		outputRecords = append(outputRecords, updateConnectionRecords...)
+		metrics.outputRecords.WithLabelValues("updateConnection").Add(float64(len(updateConnectionRecords)))
+	}
+
 	return outputRecords
 }
 
@@ -193,6 +199,27 @@ func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 		} else {
 			// No more expired connections
 			shouldDelete, shouldStop = false, true
+		}
+		return
+	})
+	return outputRecords
+}
+
+func (ct *conntrackImpl) getUpdateConnectionRecords() []config.GenericMap {
+	var outputRecords []config.GenericMap
+	// TODO: Since the iteration order of the connections is done according to their last update time rather than the
+	//  next report time, we must iterate over all of them.
+	ct.connStore.iterateOldToNew(func(conn connection) (shouldDelete, shouldStop bool) {
+		nextUpdate := conn.getNextUpdateReportTime()
+		needToReport := ct.clock.Now().After(nextUpdate)
+		if needToReport {
+			record := conn.toGenericMap()
+			addHashField(record, conn.getHash().hashTotal)
+			addTypeField(record, api.ConnTrackOutputRecordTypeName("UpdateConnection"))
+			outputRecords = append(outputRecords, record)
+			newNextUpdate := ct.clock.Now().Add(ct.config.UpdateConnectionInterval.Duration)
+			conn.setNextUpdateReportTime(newNextUpdate)
+			shouldDelete, shouldStop = false, false
 		}
 		return
 	})
