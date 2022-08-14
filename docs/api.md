@@ -195,6 +195,7 @@ Following is the supported API format for specifying connection tracking:
          outputRecordTypes: (enum) output record types to emit
              newConnection: New connection
              endConnection: End connection
+             updateConnection: Update connection
              flowLog: Flow log
          outputFields: list of output fields
                  name: output field name
@@ -206,4 +207,5 @@ Following is the supported API format for specifying connection tracking:
                  splitAB: When true, 2 output fields will be created. One for A->B and one for B->A flows.
                  input: The input field to base the operation on. When omitted, 'name' is used
          endConnectionTimeout: duration of time to wait from the last flow log to end a connection
+         updateConnectionInterval: duration of time to wait between update reports of a connection
 </pre>
