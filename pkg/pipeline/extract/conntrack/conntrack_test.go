@@ -75,8 +75,9 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *
 					{Name: "Packets", Operation: "sum", SplitAB: splitAB},
 					{Name: "numFlowLogs", Operation: "count", SplitAB: false},
 				},
-				OutputRecordTypes:    outputRecordType,
-				EndConnectionTimeout: api.Duration{Duration: 30 * time.Second},
+				OutputRecordTypes:        outputRecordType,
+				UpdateConnectionInterval: api.Duration{Duration: 10 * time.Second},
+				EndConnectionTimeout:     api.Duration{Duration: 30 * time.Second},
 			}, // end of api.ConnTrack
 		}, // end of config.Track
 	} // end of config.StageParam
@@ -320,6 +321,153 @@ func TestEndConn_Unidirectional(t *testing.T) {
 			nil,
 			[]config.GenericMap{
 				newMockRecordEndConn(ipB, portB, ipA, portA, protocol, 777, 77, 2).withHash(hashIdBA).get(),
+			},
+		},
+	}
+
+	for _, test := range table {
+		var prevTime time.Time
+		t.Run(test.name, func(t *testing.T) {
+			require.Less(t, prevTime, test.time)
+			prevTime = test.time
+			clk.Set(test.time)
+			actual := ct.Extract(test.inputFlowLogs)
+			require.Equal(t, test.expected, actual)
+		})
+	}
+}
+
+// TestUpdateConn_Unidirectional tests that update connection records are outputted correctly and in the right time in
+// unidirectional setting.
+// The test simulates 2 flow logs from A to B and 2 from B to A in different timestamps.
+// Then the test verifies that an update connection record is outputted only after 10 seconds from the last update
+// connection report.
+func TestUpdateConn_Unidirectional(t *testing.T) {
+	clk := clock.NewMock()
+	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "updateConnection", "endConnection"})
+	ct, err := NewConnectionTrack(*conf, clk)
+	require.NoError(t, err)
+
+	ipA := "10.0.0.1"
+	ipB := "10.0.0.2"
+	portA := 9001
+	portB := 9002
+	protocol := 6
+	hashIdAB := "705baa5149302fa1"
+	hashIdBA := "cc40f571f40f3111"
+
+	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 111, 11)
+	flAB2 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 222, 22)
+	flBA3 := newMockFlowLog(ipB, portB, ipA, portA, protocol, 333, 33)
+	startTime := clk.Now()
+	table := []struct {
+		name          string
+		time          time.Time
+		inputFlowLogs []config.GenericMap
+		expected      []config.GenericMap
+	}{
+		{
+			"start: flow AB",
+			startTime.Add(0 * time.Second),
+			[]config.GenericMap{flAB1},
+			[]config.GenericMap{
+				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
+				newMockRecordFromFlowLog(flAB1).withHash(hashIdAB).get(),
+			},
+		},
+		{
+			"5s: flow AB and BA",
+			startTime.Add(5 * time.Second),
+			[]config.GenericMap{flAB2, flBA3},
+			[]config.GenericMap{
+				newMockRecordFromFlowLog(flAB2).withHash(hashIdAB).get(),
+				newMockRecordNewConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
+				newMockRecordFromFlowLog(flBA3).withHash(hashIdBA).get(),
+			},
+		},
+		{
+			"9s: no update report",
+			startTime.Add(9 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"11s: update report AB",
+			startTime.Add(11 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
+			},
+		},
+		{
+			"14s: no update report",
+			startTime.Add(14 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"16s: update report BA",
+			startTime.Add(16 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
+			},
+		},
+		{
+			"20s: no update report",
+			startTime.Add(20 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"22s: update report AB",
+			startTime.Add(22 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
+			},
+		},
+		{
+			"25s: no update report",
+			startTime.Add(25 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"27s: update report BA",
+			startTime.Add(27 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
+			},
+		},
+		{
+			"31s: no update report",
+			startTime.Add(31 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"33s: update report AB",
+			startTime.Add(33 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
+			},
+		},
+		{
+			"34s: no end conn",
+			startTime.Add(34 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"36s: end conn AB and BA",
+			startTime.Add(36 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordEndConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
+				newMockRecordEndConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
 			},
 		},
 	}
