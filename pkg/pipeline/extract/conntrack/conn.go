@@ -88,8 +88,6 @@ func (c *connType) toGenericMap() config.GenericMap {
 	for k, v := range c.keys {
 		gm[k] = v
 	}
-	// TODO: Add hash field
-	// TODO: Should this method add recordTypeField?
 	return gm
 }
 
@@ -97,7 +95,6 @@ func (c *connType) getHash() totalHashType {
 	return c.hash
 }
 
-// TODO: Should connBuilder get a file of its own?
 type connBuilder struct {
 	conn *connType
 }
@@ -119,7 +116,6 @@ func (cb *connBuilder) Hash(h totalHashType) *connBuilder {
 func (cb *connBuilder) KeysFrom(flowLog config.GenericMap, kd api.KeyDefinition) *connBuilder {
 	for _, fg := range kd.FieldGroups {
 		for _, f := range fg.Fields {
-			// TODO: is it correct from OOP PoV to access conn.keys directly?
 			cb.conn.keys[f] = flowLog[f]
 		}
 	}
