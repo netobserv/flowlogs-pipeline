@@ -126,8 +126,7 @@ type conntrackImpl struct {
 }
 
 func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericMap {
-	log.Debugf("Entering Track")
-	log.Debugf("Track none, in = %v", flowLogs)
+	log.Debugf("entering Extract conntrack, in = %v", flowLogs)
 
 	var outputRecords []config.GenericMap
 	for _, fl := range flowLogs {
