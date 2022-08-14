@@ -70,6 +70,36 @@ func TestConnTrackValidate(t *testing.T) {
 			conntrackInvalidError{duplicateFieldGroup: true},
 		},
 		{
+			"Duplicate output field names (1)",
+			ConnTrack{
+				OutputFields: []OutputField{
+					{Name: "Bytes", Operation: "min"},
+					{Name: "Bytes", Operation: "max"},
+				},
+			},
+			conntrackInvalidError{duplicateOutputFieldNames: true},
+		},
+		{
+			"Duplicate output field names (2)",
+			ConnTrack{
+				KeyDefinition: KeyDefinition{
+					FieldGroups: []FieldGroup{
+						{Name: "src"},
+						{Name: "dst"},
+					},
+					Hash: ConnTrackHash{
+						FieldGroupARef: "src",
+						FieldGroupBRef: "dst",
+					},
+				},
+				OutputFields: []OutputField{
+					{Name: "Bytes", Operation: "min", SplitAB: true},
+					{Name: "Bytes_AB", Operation: "max"},
+				},
+			},
+			conntrackInvalidError{duplicateOutputFieldNames: true},
+		},
+		{
 			"Undefined fieldGroupARef",
 			ConnTrack{
 				KeyDefinition: KeyDefinition{

@@ -104,14 +104,35 @@ func (ct *ConnTrack) Validate() error {
 		}
 	}
 
+	outputFieldNames := map[string]struct{}{}
+	for _, of := range ct.OutputFields {
+		if of.SplitAB {
+			name := of.Name + "_AB"
+			if unique := addToSet(outputFieldNames, name); !unique {
+				return conntrackInvalidError{duplicateOutputFieldNames: true,
+					msg: fmt.Errorf("duplicate outputField %q", name)}
+			}
+			name = of.Name + "_BA"
+			if unique := addToSet(outputFieldNames, name); !unique {
+				return conntrackInvalidError{duplicateOutputFieldNames: true,
+					msg: fmt.Errorf("duplicate outputField %q", name)}
+			}
+		} else {
+			name := of.Name
+			if unique := addToSet(outputFieldNames, name); !unique {
+				return conntrackInvalidError{duplicateOutputFieldNames: true,
+					msg: fmt.Errorf("duplicate outputField %q", name)}
+			}
+		}
+	}
+
 	fieldGroups := map[string]struct{}{}
 	for _, fg := range ct.KeyDefinition.FieldGroups {
 		name := fg.Name
-		if _, found := fieldGroups[name]; found {
+		if unique := addToSet(fieldGroups, name); !unique {
 			return conntrackInvalidError{duplicateFieldGroup: true,
 				msg: fmt.Errorf("duplicate fieldGroup %q", name)}
 		}
-		fieldGroups[name] = struct{}{}
 	}
 
 	if _, found := fieldGroups[ct.KeyDefinition.Hash.FieldGroupARef]; !isGroupAEmpty && !found {
@@ -140,6 +161,15 @@ func (ct *ConnTrack) Validate() error {
 	return nil
 }
 
+// addToSet adds an item to a set and returns true if it's a new item. Otherwise, it returns false.
+func addToSet(set map[string]struct{}, item string) bool {
+	if _, found := set[item]; found {
+		return false
+	}
+	set[item] = struct{}{}
+	return true
+}
+
 func isOperationValid(value string) bool {
 	valid := true
 	switch value {
@@ -166,15 +196,16 @@ func isOutputRecordTypeValid(value string) bool {
 }
 
 type conntrackInvalidError struct {
-	msg                      error
-	fieldGroupABOnlyOneIsSet bool
-	splitABWithNoBidi        bool
-	unknownOperation         bool
-	duplicateFieldGroup      bool
-	undefinedFieldGroupARef  bool
-	undefinedFieldGroupBRef  bool
-	undefinedFieldGroupRef   bool
-	unknownOutputRecord      bool
+	msg                       error
+	fieldGroupABOnlyOneIsSet  bool
+	splitABWithNoBidi         bool
+	unknownOperation          bool
+	duplicateFieldGroup       bool
+	duplicateOutputFieldNames bool
+	undefinedFieldGroupARef   bool
+	undefinedFieldGroupBRef   bool
+	undefinedFieldGroupRef    bool
+	unknownOutputRecord       bool
 }
 
 func (err conntrackInvalidError) Error() string {
