@@ -20,9 +20,8 @@ Following is the supported API format for prometheus encode:
          prefix: prefix added to each metric name
          expiryTime: seconds of no-flow to wait before deleting prometheus data item
          tls: TLS configuration for the prometheus endpoint
-             enable: set to true to enable tls for the prometheus endpoint
-             certFile: path to the certificate file
-             keyFile: path to the key file
+             certPath: path to the certificate file
+             keyPath: path to the key file
 </pre>
 ## Kafka encode API
 Following is the supported API format for kafka encode:
@@ -42,6 +41,10 @@ Following is the supported API format for kafka encode:
          batchBytes: limit the maximum size of a request in bytes before being sent to a partition
          batchSize: limit on how many messages will be buffered before being sent to a partition
          tls: TLS client configuration (optional)
+             insecureSkipVerify: skip client verifying the server's certificate chain and host name
+             caCertPath: path to the CA certificate
+             userCertPath: path to the user certificate
+             userKeyPath: path to the user private key
 </pre>
 ## Ingest collector API
 Following is the supported API format for the NetFlow / IPFIX collector:
@@ -71,6 +74,10 @@ Following is the supported API format for the kafka ingest:
          batchMaxLen: the number of accumulated flows before being forwarded for processing
          commitInterval: the interval (in milliseconds) at which offsets are committed to the broker.  If 0, commits will be handled synchronously.
          tls: TLS client configuration (optional)
+             insecureSkipVerify: skip client verifying the server's certificate chain and host name
+             caCertPath: path to the CA certificate
+             userCertPath: path to the user certificate
+             userKeyPath: path to the user private key
 </pre>
 ## Ingest GRPC from Network Observability eBPF Agent
 Following is the supported API format for the Network Observability eBPF ingest:

@@ -69,6 +69,12 @@ func iterate(output io.Writer, data interface{}, indent int) {
 			}
 		}
 		return
+	} else if dataType == reflect.Ptr {
+		elemType := reflect.TypeOf(data).Elem()
+		zeroElement := reflect.Zero(elemType).Interface()
+		// Since we only "converted" Ptr to Struct and the actual output is done in the next iteration, we call
+		// iterate() with the same `indent` as the current level
+		iterate(output, zeroElement, indent)
 	}
 }
 
