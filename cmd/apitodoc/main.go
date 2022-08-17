@@ -35,7 +35,7 @@ func iterate(output io.Writer, data interface{}, indent int) {
 	if dataType == reflect.Slice || dataType == reflect.Map {
 		// DEBUG code: fmt.Fprintf(output, "%s %s <-- %s \n",strings.Repeat(" ",4*indent),dataTypeName,dataType )
 		zeroElement := reflect.Zero(reflect.ValueOf(data).Type().Elem()).Interface()
-		iterate(output, zeroElement, indent+1)
+		iterate(output, zeroElement, newIndent)
 		return
 	} else if dataType == reflect.Struct {
 		// DEBUG code: fmt.Fprintf(output,"%s %s <-- %s \n",strings.Repeat(" ",4*indent),dataTypeName,dataType )
@@ -52,7 +52,7 @@ func iterate(output io.Writer, data interface{}, indent int) {
 				enumType := api.GetEnumReflectionTypeByFieldName(fieldEnumTag)
 				zeroElement := reflect.Zero(enumType).Interface()
 				fmt.Fprintf(output, "%s %s: (enum) %s\n", strings.Repeat(" ", 4*newIndent), fieldName, fieldDocTag)
-				iterate(output, zeroElement, indent+1)
+				iterate(output, zeroElement, newIndent)
 				continue
 			}
 			if fieldDocTag != "" {
