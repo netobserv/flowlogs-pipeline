@@ -18,73 +18,81 @@
 package conntrack
 
 import (
-	"container/list"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	expiryOrder               = OrderID("expiryOrder")
+	nextUpdateReportTimeOrder = OrderID("nextUpdateReportTimeOrder")
+)
+
 // connectionStore provides both retrieving a connection by its hash and iterating connections sorted by their last
 // update time.
 type connectionStore struct {
-	hash2conn map[uint64]*list.Element
-	connList  *list.List
+	mom *MultiOrderedMap
 }
 
 type processConnF func(connection) (shouldDelete, shouldStop bool)
 
 func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
-	_, ok := cs.getConnection(hashId)
-	if ok {
+	err := cs.mom.AddRecord(Key(hashId), conn)
+	if err != nil {
 		log.Errorf("BUG. connection with hash %x already exists in store. %v", hashId, conn)
 	}
-	e := cs.connList.PushBack(conn)
-	cs.hash2conn[hashId] = e
-	metrics.connStoreLength.Set(float64(cs.connList.Len()))
+	metrics.connStoreLength.Set(float64(cs.mom.Len()))
 }
 
 func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
-	elem, ok := cs.hash2conn[hashId]
-	if ok {
-		conn := elem.Value.(connection)
-		return conn, ok
+	record, ok := cs.mom.GetRecord(Key(hashId))
+	if !ok {
+		return nil, false
 	}
-	return nil, ok
+	conn := record.(connection)
+	return conn, true
 }
 
 func (cs *connectionStore) updateConnectionTime(hashId uint64, t time.Time) {
-	elem, ok := cs.hash2conn[hashId]
+	conn, ok := cs.getConnection(hashId)
 	if !ok {
-		log.Errorf("BUG. connection hash %x doesn't exist", hashId)
+		log.Panicf("BUG. connection hash %x doesn't exist", hashId)
 		return
 	}
-	elem.Value.(connection).setLastUpdate(t)
-	// move to end of list
-	cs.connList.MoveToBack(elem)
+	conn.setLastUpdate(t)
+	// Move to the back of the list
+	err := cs.mom.MoveToBack(Key(hashId), expiryOrder)
+	if err != nil {
+		log.Panicf("BUG. Can't update connection time for hash %x: %v", hashId, err)
+		return
+	}
 }
 
-func (cs *connectionStore) iterateOldToNew(f processConnF) {
-	// How to remove element from list while iterating the same list in golang
-	// https://stackoverflow.com/a/27662823/2749989
-	var next *list.Element
-	for e := cs.connList.Front(); e != nil; e = next {
-		conn := e.Value.(connection)
-		next = e.Next()
-		shouldDelete, shouldStop := f(conn)
-		if shouldDelete {
-			delete(cs.hash2conn, conn.getHash().hashTotal)
-			cs.connList.Remove(e)
-			metrics.connStoreLength.Set(float64(cs.connList.Len()))
-		}
-		if shouldStop {
-			break
-		}
+func (cs *connectionStore) updateNextReportTime(hashId uint64, t time.Time) {
+	conn, ok := cs.getConnection(hashId)
+	if !ok {
+		log.Panicf("BUG. connection hash %x doesn't exist", hashId)
+		return
 	}
+	conn.setNextUpdateReportTime(t)
+	// Move to the back of the list
+	err := cs.mom.MoveToBack(Key(hashId), nextUpdateReportTimeOrder)
+	if err != nil {
+		log.Panicf("BUG. Can't next report time for hash %x: %v", hashId, err)
+		return
+	}
+}
+
+func (cs *connectionStore) iterateFrontToBack(orderID OrderID, f processConnF) {
+	cs.mom.IterateFrontToBack(orderID, func(r Record) (shouldDelete, shouldStop bool) {
+		shouldDelete, shouldStop = f(r.(connection))
+		return
+	})
+	metrics.connStoreLength.Set(float64(cs.mom.Len()))
 }
 
 func newConnectionStore() *connectionStore {
 	return &connectionStore{
-		hash2conn: make(map[uint64]*list.Element),
-		connList:  list.New(),
+		mom: NewMultiOrderedMap(expiryOrder, nextUpdateReportTimeOrder),
 	}
 }

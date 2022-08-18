@@ -18,6 +18,8 @@
 package conntrack
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -491,7 +493,7 @@ func assertConnDoesntExist(t *testing.T, store *connectionStore, hashId uint64) 
 	require.False(t, found)
 }
 
-func TestIterateOldToNew(t *testing.T) {
+func TestIterateFrontToBack(t *testing.T) {
 	// This test adds 2 connections to the store, deletes them and verifies deletion.
 	cs := newConnectionStore()
 
@@ -503,7 +505,7 @@ func TestIterateOldToNew(t *testing.T) {
 	conn2 := NewConnBuilder().Hash(conn2hash).Build()
 	cs.addConnection(conn2.getHash().hashTotal, conn2)
 
-	cs.iterateOldToNew(func(c connection) (shouldDelete, shouldStop bool) {
+	cs.iterateFrontToBack(expiryOrder, func(c connection) (shouldDelete, shouldStop bool) {
 		// Delete all
 		shouldDelete = true
 		shouldStop = false
@@ -511,4 +513,67 @@ func TestIterateOldToNew(t *testing.T) {
 	})
 	assertConnDoesntExist(t, cs, conn1.getHash().hashTotal)
 	assertConnDoesntExist(t, cs, conn2.getHash().hashTotal)
+}
+
+func TestPrepareUpdateConnectionRecords(t *testing.T) {
+	// This test tests prepareUpdateConnectionRecords().
+	// It sets the update report interval to 10 seconds and creates 3 records for the first interval and 3 records for the second interval (6 in total).
+	// Then, it calls prepareUpdateConnectionRecords() a couple of times in different times.
+	// It makes sure that only the right records are returned on each call.
+	clk := clock.NewMock()
+	conf := buildMockConnTrackConfig(false, []string{"updateConnection"})
+	interval := 10 * time.Second
+	conf.Extract.ConnTrack.UpdateConnectionInterval = api.Duration{Duration: interval}
+	extract, err := NewConnectionTrack(*conf, clk)
+	require.NoError(t, err)
+	ct := extract.(*conntrackImpl)
+	startTime := clk.Now()
+
+	reportTimes := []struct {
+		nextReportTime time.Time
+		hash           uint64
+	}{
+		{startTime.Add(1 * time.Second), 0x01},
+		{startTime.Add(2 * time.Second), 0x02},
+		{startTime.Add(3 * time.Second), 0x03},
+		{startTime.Add(interval + 1*time.Second), 0x0a},
+		{startTime.Add(interval + 2*time.Second), 0x0b},
+		{startTime.Add(interval + 3*time.Second), 0x0c},
+	}
+	for _, r := range reportTimes {
+		hash := totalHashType{hashTotal: r.hash}
+		builder := NewConnBuilder()
+		conn := builder.Hash(hash).Build()
+		ct.connStore.addConnection(hash.hashTotal, conn)
+		conn.setNextUpdateReportTime(r.nextReportTime)
+	}
+	clk.Set(startTime.Add(interval))
+	actual := ct.prepareUpdateConnectionRecords()
+	assertHashOrder(t, []uint64{0x01, 0x02, 0x03}, actual)
+
+	clk.Set(startTime.Add(2 * interval))
+	actual = ct.prepareUpdateConnectionRecords()
+	assertHashOrder(t, []uint64{0x0a, 0x0b, 0x0c}, actual)
+
+	clk.Set(startTime.Add(3 * interval))
+	actual = ct.prepareUpdateConnectionRecords()
+	assertHashOrder(t, []uint64{0x01, 0x02, 0x03}, actual)
+}
+
+func assertHashOrder(t *testing.T, expected []uint64, actualRecords []config.GenericMap) {
+	t.Helper()
+	var actual []uint64
+	for _, r := range actualRecords {
+		actual = append(actual, hex2int(r[api.HashIdFieldName].(string)))
+	}
+	require.Equal(t, expected, actual)
+}
+
+func hex2int(hexStr string) uint64 {
+	// remove 0x suffix if found in the input string
+	cleaned := strings.Replace(hexStr, "0x", "", -1)
+
+	// base 16 for hexadecimal
+	result, _ := strconv.ParseUint(cleaned, 16, 64)
+	return uint64(result)
 }
