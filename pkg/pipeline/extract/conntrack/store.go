@@ -53,17 +53,17 @@ func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
 	return conn, true
 }
 
-func (cs *connectionStore) updateConnectionTime(hashId uint64, t time.Time) {
+func (cs *connectionStore) updateConnectionExpiryTime(hashId uint64, t time.Time) {
 	conn, ok := cs.getConnection(hashId)
 	if !ok {
 		log.Panicf("BUG. connection hash %x doesn't exist", hashId)
 		return
 	}
-	conn.setLastUpdate(t)
+	conn.setExpiryTime(t)
 	// Move to the back of the list
 	err := cs.mom.MoveToBack(Key(hashId), expiryOrder)
 	if err != nil {
-		log.Panicf("BUG. Can't update connection time for hash %x: %v", hashId, err)
+		log.Panicf("BUG. Can't update connection expiry time for hash %x: %v", hashId, err)
 		return
 	}
 }

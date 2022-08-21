@@ -113,13 +113,11 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 
 func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 	var outputRecords []config.GenericMap
-	// TODO: The following comment isn't correct. it's last update time rather than expired time.
-	// Iterate over the connections by their expired time from old to new.
+	// Iterate over the connections by their expiry time from old to new.
 	ct.connStore.iterateFrontToBack(expiryOrder, func(conn connection) (shouldDelete, shouldStop bool) {
-		expireTime := ct.clock.Now().Add(-ct.config.EndConnectionTimeout.Duration)
-		lastUpdate := conn.getLastUpdate()
-		if lastUpdate.Before(expireTime) {
-			// The last update time of this connection is too old. We want to pop it.
+		expiryTime := conn.getExpiryTime()
+		if ct.clock.Now().After(expiryTime) {
+			// The connection has expired. We want to pop it.
 			record := conn.toGenericMap()
 			addHashField(record, conn.getHash().hashTotal)
 			addTypeField(record, api.ConnTrackOutputRecordTypeName("EndConnection"))
@@ -161,7 +159,8 @@ func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.Generi
 	for _, agg := range ct.aggregators {
 		agg.update(conn, flowLog, d)
 	}
-	ct.connStore.updateConnectionTime(flowLogHash.hashTotal, ct.clock.Now())
+	newExpiryTime := ct.clock.Now().Add(ct.config.EndConnectionTimeout.Duration)
+	ct.connStore.updateConnectionExpiryTime(flowLogHash.hashTotal, newExpiryTime)
 }
 
 func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalHashType) direction {

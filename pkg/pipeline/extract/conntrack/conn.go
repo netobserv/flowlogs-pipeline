@@ -30,8 +30,8 @@ type connection interface {
 	addAgg(fieldName string, initValue float64)
 	getAggValue(fieldName string) (float64, bool)
 	updateAggValue(fieldName string, newValueFn func(curr float64) float64)
-	setLastUpdate(t time.Time)
-	getLastUpdate() time.Time
+	setExpiryTime(t time.Time)
+	getExpiryTime() time.Time
 	setNextUpdateReportTime(t time.Time)
 	getNextUpdateReportTime() time.Time
 	toGenericMap() config.GenericMap
@@ -42,7 +42,7 @@ type connType struct {
 	hash                 totalHashType
 	keys                 config.GenericMap
 	aggFields            map[string]float64
-	lastUpdate           time.Time
+	expiryTime           time.Time
 	nextUpdateReportTime time.Time
 }
 
@@ -63,12 +63,12 @@ func (c *connType) updateAggValue(fieldName string, newValueFn func(curr float64
 	c.aggFields[fieldName] = newValueFn(v)
 }
 
-func (c *connType) setLastUpdate(t time.Time) {
-	c.lastUpdate = t
+func (c *connType) setExpiryTime(t time.Time) {
+	c.expiryTime = t
 }
 
-func (c *connType) getLastUpdate() time.Time {
-	return c.lastUpdate
+func (c *connType) getExpiryTime() time.Time {
+	return c.expiryTime
 }
 
 func (c *connType) setNextUpdateReportTime(t time.Time) {
