@@ -129,6 +129,11 @@ func (cb *connBuilder) Aggregators(aggs []aggregator) *connBuilder {
 	return cb
 }
 
+func (cb *connBuilder) NextUpdateReportTime(t time.Time) *connBuilder {
+	cb.conn.setNextUpdateReportTime(t)
+	return cb
+}
+
 func (cb *connBuilder) Build() connection {
 	return cb.conn
 }

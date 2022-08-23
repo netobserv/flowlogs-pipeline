@@ -70,8 +70,8 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				Hash(computedHash).
 				KeysFrom(fl, ct.config.KeyDefinition).
 				Aggregators(ct.aggregators).
+				NextUpdateReportTime(ct.clock.Now().Add(ct.config.UpdateConnectionInterval.Duration)).
 				Build()
-			conn.setNextUpdateReportTime(ct.clock.Now().Add(ct.config.UpdateConnectionInterval.Duration))
 			ct.connStore.addConnection(computedHash.hashTotal, conn)
 			ct.updateConnection(conn, fl, computedHash)
 			metrics.inputRecords.WithLabelValues("newConnection").Inc()
