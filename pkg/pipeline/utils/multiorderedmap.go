@@ -21,7 +21,7 @@
 // order by MoveToBack()
 // Note: MultiOrderedMap isn't responsible for keeping the records sorted. The user should take care of that.
 
-package conntrack
+package utils
 
 import (
 	"container/list"

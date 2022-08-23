@@ -15,7 +15,7 @@
  *
  */
 
-package conntrack
+package utils
 
 import (
 	"testing"

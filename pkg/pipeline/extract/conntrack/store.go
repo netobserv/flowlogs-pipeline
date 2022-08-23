@@ -20,24 +20,25 @@ package conntrack
 import (
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	expiryOrder               = OrderID("expiryOrder")
-	nextUpdateReportTimeOrder = OrderID("nextUpdateReportTimeOrder")
+	expiryOrder               = utils.OrderID("expiryOrder")
+	nextUpdateReportTimeOrder = utils.OrderID("nextUpdateReportTimeOrder")
 )
 
 // connectionStore provides both retrieving a connection by its hash and iterating connections sorted by their last
 // update time.
 type connectionStore struct {
-	mom *MultiOrderedMap
+	mom *utils.MultiOrderedMap
 }
 
 type processConnF func(connection) (shouldDelete, shouldStop bool)
 
 func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
-	err := cs.mom.AddRecord(Key(hashId), conn)
+	err := cs.mom.AddRecord(utils.Key(hashId), conn)
 	if err != nil {
 		log.Errorf("BUG. connection with hash %x already exists in store. %v", hashId, conn)
 	}
@@ -45,7 +46,7 @@ func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
 }
 
 func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
-	record, ok := cs.mom.GetRecord(Key(hashId))
+	record, ok := cs.mom.GetRecord(utils.Key(hashId))
 	if !ok {
 		return nil, false
 	}
@@ -61,7 +62,7 @@ func (cs *connectionStore) updateConnectionExpiryTime(hashId uint64, t time.Time
 	}
 	conn.setExpiryTime(t)
 	// Move to the back of the list
-	err := cs.mom.MoveToBack(Key(hashId), expiryOrder)
+	err := cs.mom.MoveToBack(utils.Key(hashId), expiryOrder)
 	if err != nil {
 		log.Panicf("BUG. Can't update connection expiry time for hash %x: %v", hashId, err)
 		return
@@ -76,15 +77,15 @@ func (cs *connectionStore) updateNextReportTime(hashId uint64, t time.Time) {
 	}
 	conn.setNextUpdateReportTime(t)
 	// Move to the back of the list
-	err := cs.mom.MoveToBack(Key(hashId), nextUpdateReportTimeOrder)
+	err := cs.mom.MoveToBack(utils.Key(hashId), nextUpdateReportTimeOrder)
 	if err != nil {
 		log.Panicf("BUG. Can't next report time for hash %x: %v", hashId, err)
 		return
 	}
 }
 
-func (cs *connectionStore) iterateFrontToBack(orderID OrderID, f processConnF) {
-	cs.mom.IterateFrontToBack(orderID, func(r Record) (shouldDelete, shouldStop bool) {
+func (cs *connectionStore) iterateFrontToBack(orderID utils.OrderID, f processConnF) {
+	cs.mom.IterateFrontToBack(orderID, func(r utils.Record) (shouldDelete, shouldStop bool) {
 		shouldDelete, shouldStop = f(r.(connection))
 		return
 	})
@@ -93,6 +94,6 @@ func (cs *connectionStore) iterateFrontToBack(orderID OrderID, f processConnF) {
 
 func newConnectionStore() *connectionStore {
 	return &connectionStore{
-		mom: NewMultiOrderedMap(expiryOrder, nextUpdateReportTimeOrder),
+		mom: utils.NewMultiOrderedMap(expiryOrder, nextUpdateReportTimeOrder),
 	}
 }
