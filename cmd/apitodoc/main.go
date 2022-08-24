@@ -30,7 +30,7 @@ import (
 func iterate(output io.Writer, data interface{}, indent int) {
 	newIndent := indent + 1
 	dataType := reflect.ValueOf(data).Kind()
-	//dataTypeName := reflect.ValueOf(data).Type().String()
+	// DEBUG code: dataTypeName := reflect.ValueOf(data).Type().String()
 	d := reflect.ValueOf(data)
 	if dataType == reflect.Slice || dataType == reflect.Map {
 		// DEBUG code: fmt.Fprintf(output, "%s %s <-- %s \n",strings.Repeat(" ",4*indent),dataTypeName,dataType )
@@ -41,7 +41,6 @@ func iterate(output io.Writer, data interface{}, indent int) {
 		// DEBUG code: fmt.Fprintf(output,"%s %s <-- %s \n",strings.Repeat(" ",4*indent),dataTypeName,dataType )
 		for i := 0; i < d.NumField(); i++ {
 			val := reflect.Indirect(reflect.ValueOf(data))
-			// fieldName := val.Type().Field(i).Name
 			fieldName := val.Type().Field(i).Tag.Get(api.TagYaml)
 			fieldName = strings.ReplaceAll(fieldName, ",omitempty", "")
 
@@ -70,6 +69,7 @@ func iterate(output io.Writer, data interface{}, indent int) {
 		}
 		return
 	} else if dataType == reflect.Ptr {
+		// DEBUG code: fmt.Fprintf(output, "%s %s <-- %s \n", strings.Repeat(" ", 4*indent), dataTypeName, dataType)
 		elemType := reflect.TypeOf(data).Elem()
 		zeroElement := reflect.Zero(elemType).Interface()
 		// Since we only "converted" Ptr to Struct and the actual output is done in the next iteration, we call
