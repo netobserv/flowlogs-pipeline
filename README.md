@@ -325,7 +325,7 @@ After the first transform, we have the keys `dstAddr` and `srcAddr`.
 After the second transform, we have the keys `dstAddr`, `dstIP`, `srcAddr`, and `srcIP`.
 
 To maintain all the old keys and values and simply add the key `dstAddr` (derived from `DstAddr`), use the following:
-```
+```yaml
 parameters:
   - name: transform1
     transform:
@@ -343,7 +343,7 @@ The filter transform module allows setting rules to remove complete entries from
 the output, or just remove specific keys and values from entries.
 
 For example, suppose we have a flow log with the following syntax:
-```
+```json
 {"Bytes":20800,"DstAddr":"10.130.2.2","DstPort":36936,"Packets":400,"Proto":6,"SequenceNum":1919,"SrcAddr":"10.130.2.13","SrcHostIP":"10.0.197.206","SrcPort":3100,"TCPFlags":0,"TimeFlowStart":0,"TimeReceived":1637501832}
 ```
 
@@ -533,6 +533,122 @@ No aggregate operation is needed and it should be set `raw_values`. The `valueKe
 
 **Note**: `recent_raw_values` is filled only when the operation is `raw_values`.
 
+### Connection tracking
+
+The connection tracking module allows grouping flow logs with common properties (i.e. same connection) and calculate 
+useful statistics.
+The input of the module is flow-log records and the output is connection records and the flow-log records with an
+additional hash id field to correlate with the connection records.
+There are 3 types of connection records:
+1. **New connection**: indicates that a new connection is detected. i.e. the input contains a flow-log that doesn't
+belong to any of the tracked connections.
+2. **Update connection**: a periodic report of the connection statistics for long connections.
+3. **End connection**: indicates that a connection has ended. Currently, a connection is considered ended once the 
+timeout since the latest flow-log of the connection has elapsed.
+
+The configuration can suppress any of the output types.
+
+The configuration of the module allows defining how to group flow-logs into connections.
+There is an option to group flow-logs into unidirectional connections or bidirectional connections.
+The difference is that in unidirectional setting, flow-logs from A to B are grouped separately from flow-logs from B to A.
+While, in bidirectional setting, they are grouped together.
+
+Bidirectional setting requires defining both `fieldGroupARef` and `fieldGroupBRef` sections to allow the connection
+tracking module to identify which set of fields can swap values and still be considered as the same connection.
+
+The configuration example below defines a bidirectional setting. So flow-logs that have the values of `SrcAddr` and `SrcPort` 
+swapped with `DstAddr` and `DstPort` are grouped together as long as they have the same `Proto` field.
+For example, the following first 2 flow-logs are grouped together into the same connection.
+While the third flow-log forms a new connection (because its `Proto` field differs from the first 2).
+```json
+{"SrcAddr":"10.0.0.1", "SrcPort":1234, "DstAddr":"10.0.0.2", "DstPort":80, "Proto":6, "Bytes":100, "TimeReceived": 1661430100}
+{"SrcAddr":"10.0.0.2", "SrcPort":80, "DstAddr":"10.0.0.1", "DstPort":1234, "Proto":6, "Bytes":200, "TimeReceived": 1661430200}
+{"SrcAddr":"10.0.0.1", "SrcPort":1234, "DstAddr":"10.0.0.2", "DstPort":80, "Proto":17, "Bytes":300, "TimeReceived": 1661430300}
+```
+
+A typical configuration might look like:
+```yaml
+parameters:
+- name: extract_conntrack
+  extract:
+    type: conntrack
+    conntrack:
+      endConnectionTimeout: 30s
+      updateConnectionInterval: 10s
+      keyDefinition:
+        fieldGroups:
+        - name: src
+          fields:
+          - SrcIP
+          - SrcPort
+        - name: dst
+          fields:
+          - DstIP
+          - DstPort
+        - name: protocol
+          fields:
+          - Proto
+        hash:
+          fieldGroupRefs:
+          - protocol
+          fieldGroupARef: src
+          fieldGroupBRef: dst
+      outputRecordTypes:
+      - newConnection
+      - endConnection
+      - updateConnection
+      - flowLog
+      outputFields:
+      - name: Bytes_total
+        operation: sum
+        input: Bytes
+      - name: Bytes
+        operation: sum
+        splitAB: true
+      - name: numFlowLogs
+        operation: count
+      - name: TimeFlowStart
+        operation: min
+        input: TimeReceived
+      - name: TimeFlowEnd
+        operation: max
+        input: TimeReceived
+```
+
+A possible output would look like:
+```json
+{
+    "_RecordType": "endConnection",
+    "_HashId": "3e8ba98164baecaf",
+    "SrcAddr": "10.0.0.1",
+    "SrcPort": 1234,
+    "DstAddr": "10.0.0.2",
+    "DstPort": 80,
+    "Proto": 6,
+    "Bytes_AB": 100,
+    "Bytes_BA": 200,
+    "Bytes_total": 300,
+    "numFlowLogs": 2,
+    "TimeFlowStart": 1661430100,
+    "TimeFlowEnd": 1661430200
+}
+
+{
+    "_RecordType": "flowLog",
+    "_HashId": "bca4c313a1ad1b1c",
+    "SrcAddr": "10.0.0.1",
+    "SrcPort": 1234,
+    "DstAddr": "10.0.0.2",
+    "DstPort": 80,
+    "Proto": 17,
+    "Bytes": 300,
+    "TimeReceived": 1661430300
+}
+```
+
+Notice that all output records contain `_RecordType` and `_HashId` fields.
+Output fields that set `splitAB: true` (like in `Bytes`) are split into 2 fields `Bytes_AB` and `Bytes_BA` which 
+aggregate values separately based on direction A->B and B->A respectively.
 
 ### Prometheus encoder
 
@@ -584,7 +700,7 @@ and including static label with key `job` with value `flowlogs-pipeline`.
 Additional parameters such as `url` and `batchWait` are defined in 
 Loki writer API [docs/api.md](docs/api.md)
 
-```bash
+```yaml
 parameters:
   - name: write_loki
     write:
