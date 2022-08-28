@@ -20,6 +20,7 @@ package timebased
 import (
 	"container/list"
 	"math"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -27,9 +28,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (fs *FilterStruct) CalculateResults(nowInSecs int64) {
-	log.Debugf("CalculateResults nowInSecs = %d", nowInSecs)
-	oldestValidTime := nowInSecs - int64(fs.Rule.TimeInterval)
+func (fs *FilterStruct) CalculateResults(nowInSecs time.Time) {
+	log.Debugf("CalculateResults nowInSecs = %v", nowInSecs)
+	oldestValidTime := nowInSecs.Add(-fs.Rule.TimeInterval)
 	for key, l := range fs.RecordKeyDataTable.dataTableMap {
 		var valueFloat64 = float64(0)
 		switch fs.Rule.Operation {
@@ -42,7 +43,7 @@ func (fs *FilterStruct) CalculateResults(nowInSecs int64) {
 		case OperationDiff:
 			for e := l.Front(); e != nil; e = e.Next() {
 				cEntry := e.Value.(*TableEntry)
-				if cEntry.timeStamp < oldestValidTime {
+				if cEntry.timeStamp.Before(oldestValidTime) {
 					// entry is out of time range; ignore it
 					continue
 				}
@@ -62,13 +63,13 @@ func (fs *FilterStruct) CalculateResults(nowInSecs int64) {
 	log.Debugf("CalculateResults Results = %v", fs.Results)
 }
 
-func (fs *FilterStruct) CalculateValue(l *list.List, oldestValidTime int64) float64 {
-	log.Debugf("CalculateValue nowInSecs = %d", oldestValidTime)
+func (fs *FilterStruct) CalculateValue(l *list.List, oldestValidTime time.Time) float64 {
+	log.Debugf("CalculateValue nowInSecs = %v", oldestValidTime)
 	currentValue := getInitValue(fs.Rule.Operation)
 	nItems := 0
 	for e := l.Front(); e != nil; e = e.Next() {
 		cEntry := e.Value.(*TableEntry)
-		if cEntry.timeStamp < oldestValidTime {
+		if cEntry.timeStamp.Before(oldestValidTime) {
 			// entry is out of time range; ignore it
 			continue
 		}

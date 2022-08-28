@@ -19,6 +19,7 @@ package timebased
 
 import (
 	"container/list"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -51,12 +52,12 @@ type filterOperationResult struct {
 type DataTableMap map[string]*list.List
 
 type RecordKeyTable struct {
-	maxTimeInterval int
+	maxTimeInterval time.Duration
 	dataTableMap    DataTableMap
 }
 
 type TableEntry struct {
-	timeStamp int64
+	timeStamp time.Time
 	entry     config.GenericMap
 }
 

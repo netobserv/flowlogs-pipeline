@@ -35,7 +35,7 @@ func getTimebasedRules() []api.TimebasedFilterRule {
 			Operation:    "sum",
 			OperationKey: "Bytes",
 			TopK:         2,
-			TimeInterval: 1,
+			TimeInterval: time.Duration(1 * time.Second),
 		},
 		{
 			Name:         "Bot2_last",
@@ -43,7 +43,7 @@ func getTimebasedRules() []api.TimebasedFilterRule {
 			Operation:    "last",
 			OperationKey: "Bytes",
 			BotK:         2,
-			TimeInterval: 3,
+			TimeInterval: time.Duration(3 * time.Second),
 		},
 		{
 			Name:         "Top4_max",
@@ -51,7 +51,7 @@ func getTimebasedRules() []api.TimebasedFilterRule {
 			Operation:    "max",
 			OperationKey: "Bytes",
 			TopK:         4,
-			TimeInterval: 1,
+			TimeInterval: time.Duration(1 * time.Second),
 		},
 	}
 	return rules
@@ -64,8 +64,8 @@ func Test_CreateRecordKeysAndFilters(t *testing.T) {
 	require.Equal(t, 3, len(filters))
 	require.Contains(t, recordKeyStructs, "SrcAddr")
 	require.Contains(t, recordKeyStructs, "DstAddr")
-	require.Equal(t, 3, recordKeyStructs["SrcAddr"].maxTimeInterval)
-	require.Equal(t, 1, recordKeyStructs["DstAddr"].maxTimeInterval)
+	require.Equal(t, time.Duration(3*time.Second), recordKeyStructs["SrcAddr"].maxTimeInterval)
+	require.Equal(t, time.Duration(1*time.Second), recordKeyStructs["DstAddr"].maxTimeInterval)
 	require.Equal(t, filters[0].RecordKeyDataTable, recordKeyStructs["SrcAddr"])
 	require.Equal(t, filters[1].RecordKeyDataTable, recordKeyStructs["SrcAddr"])
 	require.Equal(t, filters[2].RecordKeyDataTable, recordKeyStructs["DstAddr"])
@@ -79,7 +79,7 @@ func Test_CreateRecordKeysAndFiltersError(t *testing.T) {
 			Operation:    "sum",
 			OperationKey: "operationKey1",
 			TopK:         2,
-			TimeInterval: 10,
+			TimeInterval: time.Duration(10 * time.Second),
 		},
 	}
 	recordKeyStructs, filters := CreateRecordKeysAndFilters(rules)
@@ -91,7 +91,7 @@ func Test_AddAndDeleteEntryToTables(t *testing.T) {
 	rules := getTimebasedRules()
 	recordKeyStructs, _ := CreateRecordKeysAndFilters(rules)
 	entries := test.GetExtractMockEntries2()
-	nowInSecs := time.Now().Unix()
+	nowInSecs := time.Now()
 	for _, entry := range entries {
 		AddEntryToTables(recordKeyStructs, entry, nowInSecs)
 	}
@@ -106,7 +106,7 @@ func Test_AddAndDeleteEntryToTables(t *testing.T) {
 	fmt.Printf("going to sleep for timeout value \n")
 	time.Sleep(2 * time.Second)
 	fmt.Printf("after sleep for timeout value \n")
-	nowInSecs = time.Now().Unix()
+	nowInSecs = time.Now()
 	DeleteOldEntriesFromTables(recordKeyStructs, nowInSecs)
 	require.Equal(t, 0, recordKeyStructs["DstAddr"].dataTableMap["11.0.0.1"].Len())
 	require.Equal(t, 3, recordKeyStructs["SrcAddr"].dataTableMap["10.0.0.1"].Len())

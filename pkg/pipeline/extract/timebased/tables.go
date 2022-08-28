@@ -20,12 +20,13 @@ package timebased
 import (
 	"container/list"
 	"fmt"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
-func AddEntryToTables(recordKeyStructs map[string]*RecordKeyTable, entry config.GenericMap, nowInSecs int64) {
+func AddEntryToTables(recordKeyStructs map[string]*RecordKeyTable, entry config.GenericMap, nowInSecs time.Time) {
 	for key, recordTable := range recordKeyStructs {
 		log.Debugf("ExtractTimebased addEntryToTables: key = %s, recordTable = %v", key, recordTable)
 		if val, ok := entry[key]; ok {
@@ -48,9 +49,9 @@ func AddEntryToTable(cEntry *TableEntry, tableList *list.List) {
 	tableList.PushBack(cEntry)
 }
 
-func DeleteOldEntriesFromTables(recordKeyStructs map[string]*RecordKeyTable, nowInSecs int64) {
+func DeleteOldEntriesFromTables(recordKeyStructs map[string]*RecordKeyTable, nowInSecs time.Time) {
 	for _, recordTable := range recordKeyStructs {
-		oldestTime := nowInSecs - int64(recordTable.maxTimeInterval)
+		oldestTime := nowInSecs.Add(-recordTable.maxTimeInterval)
 		for _, tableMap := range recordTable.dataTableMap {
 			for {
 				head := tableMap.Front()
@@ -58,7 +59,7 @@ func DeleteOldEntriesFromTables(recordKeyStructs map[string]*RecordKeyTable, now
 					break
 				}
 				tableEntry := head.Value.(*TableEntry)
-				if tableEntry.timeStamp < oldestTime {
+				if tableEntry.timeStamp.Before(oldestTime) {
 					tableMap.Remove(head)
 					continue
 				}

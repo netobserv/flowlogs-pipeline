@@ -34,7 +34,7 @@ type ExtractTimebased struct {
 // Extract extracts a flow before being stored
 func (et *ExtractTimebased) Extract(entries []config.GenericMap) []config.GenericMap {
 	log.Debugf("entering ExtractTimebased Extract")
-	nowInSecs := time.Now().Unix()
+	nowInSecs := time.Now()
 	// Populate the Table with the current entries
 	for _, entry := range entries {
 		log.Debugf("ExtractTimebased Extract, entry = %v", entry)
