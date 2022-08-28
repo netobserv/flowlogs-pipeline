@@ -125,7 +125,7 @@ func (filter *FilterStruct) computeBotK(inputs filterOperationResults) []filterO
 	// we will be left with the BotK items
 	var prevMax float64
 	prevMax = math.MaxFloat64
-	botk := filter.Rule.BotK
+	botk := filter.Rule.TopK
 	h := &botkHeap{}
 	for key, metricMap := range inputs {
 		val := metricMap.operationResult

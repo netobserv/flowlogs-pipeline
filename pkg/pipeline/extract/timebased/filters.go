@@ -107,9 +107,11 @@ func getInitValue(operation api.FilterOperation) float64 {
 func (fs *FilterStruct) ComputeTopkBotk() {
 	var output []filterOperationResult
 	if fs.Rule.TopK > 0 {
-		output = fs.computeTopK(fs.Results)
-	} else if fs.Rule.BotK > 0 {
-		output = fs.computeBotK(fs.Results)
+		if fs.Rule.Reversed {
+			output = fs.computeBotK(fs.Results)
+		} else {
+			output = fs.computeTopK(fs.Results)
+		}
 	} else {
 		// return all Results; convert map to array
 		output = make([]filterOperationResult, len(fs.Results))

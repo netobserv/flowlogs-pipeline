@@ -43,7 +43,8 @@ func GetMockTimebased1() ExtractTimebased {
 				RecordKey:    "SrcAddr",
 				Operation:    "avg",
 				OperationKey: "Bytes",
-				BotK:         2,
+				TopK:         2,
+				Reversed:     true,
 				TimeInterval: 15,
 			}},
 		},
@@ -71,7 +72,8 @@ parameters:
             operation: avg
             operationKey: Bytes
             recordKey: SrcAddr
-            botK: 2
+            topK: 2
+            reversed: true
             timeInterval: 15
 `
 
@@ -105,7 +107,8 @@ parameters:
             operation: diff
             operationKey: Bytes
             recordKey: SrcAddr
-            botK: 1
+            topK: 1
+            reversed: true
             timeInterval: 10
 `
 
@@ -139,7 +142,8 @@ parameters:
             operation: min
             operationKey: Bytes
             recordKey: SrcAddr
-            botK: 1
+            topK: 1
+            reversed: true
             timeInterval: 10
 `
 
@@ -183,7 +187,8 @@ func Test_NewExtractTimebased(t *testing.T) {
 	require.Equal(t, expectedTimebased.Filters[1].Rule.Name, tb.Filters[1].Rule.Name)
 	require.Equal(t, expectedTimebased.Filters[1].Rule.Operation, tb.Filters[1].Rule.Operation)
 	require.Equal(t, expectedTimebased.Filters[1].Rule.OperationKey, tb.Filters[1].Rule.OperationKey)
-	require.Equal(t, expectedTimebased.Filters[1].Rule.BotK, tb.Filters[1].Rule.BotK)
+	require.Equal(t, expectedTimebased.Filters[1].Rule.TopK, tb.Filters[1].Rule.TopK)
+	require.Equal(t, expectedTimebased.Filters[1].Rule.Reversed, tb.Filters[1].Rule.Reversed)
 	require.Equal(t, expectedTimebased.Filters[1].Rule.RecordKey, tb.Filters[1].Rule.RecordKey)
 	require.Equal(t, expectedTimebased.Filters[1].Rule.TimeInterval, tb.Filters[1].Rule.TimeInterval)
 }

@@ -42,7 +42,7 @@ func getTimebasedRules() []api.TimebasedFilterRule {
 			RecordKey:    "SrcAddr",
 			Operation:    "last",
 			OperationKey: "Bytes",
-			BotK:         2,
+			Reversed:     true,
 			TimeInterval: time.Duration(3 * time.Second),
 		},
 		{
@@ -51,6 +51,7 @@ func getTimebasedRules() []api.TimebasedFilterRule {
 			Operation:    "max",
 			OperationKey: "Bytes",
 			TopK:         4,
+			Reversed:     false,
 			TimeInterval: time.Duration(1 * time.Second),
 		},
 	}

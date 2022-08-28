@@ -211,10 +211,10 @@ Following is the supported API format for specifying metrics time-based filters:
  timebased:
          rules: list of filter rules, each includes:
                  name: description of filter result
-                 recordKey: internal field to index TopK/BotK 
+                 recordKey: internal field to index TopK
                  operation: sum, min, max, avg, last or diff
                  operationKey: internal field on which to perform the operation
                  topK: number of highest incidence to report (default - report all)
-                 botK: number of lowest incidence to report (default - report all)
-                 timeInterval: seconds of data to use to compute the metric
+                 reversed: report lowest incidence instead of highest (default - false)
+                 timeInterval: time duration of data to use to compute the metric
 </pre>
