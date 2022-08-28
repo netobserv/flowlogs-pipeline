@@ -86,7 +86,14 @@ func CreateRecordKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*Re
 				rStruct.maxTimeInterval = filterRule.TimeInterval
 			}
 		}
-		// TODO: verify the validity of the Operation field in the filterRule
+		// verify the validity of the Operation field in the filterRule
+		switch filterRule.Operation {
+		case OperationLast, OperationDiff, OperationAvg, OperationMax, OperationMin, OperationSum:
+			// OK; nothing to do
+		default:
+			log.Errorf("illegal operation type %s", filterRule.Operation)
+			continue
+		}
 		tmpFilter := FilterStruct{
 			Rule:               filterRule,
 			RecordKeyDataTable: rStruct,

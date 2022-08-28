@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 IBM, Inc.
+ * Copyright (C) 2022 IBM, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,18 +61,18 @@ parameters:
       type: timebased
       timebased:
         rules:
-          - Name: TopK_Bytes1
-            Operation: last
-            OperationKey: Bytes
-            RecordKey: SrcAddr
-            TopK: 3
-            TimeInterval: 10
-          - Name: BotK_Bytes1
-            Operation: avg
-            OperationKey: Bytes
-            RecordKey: SrcAddr
-            BotK: 2
-            TimeInterval: 15
+          - name: TopK_Bytes1
+            operation: last
+            operationKey: Bytes
+            recordKey: SrcAddr
+            topK: 3
+            timeInterval: 10
+          - name: BotK_Bytes1
+            operation: avg
+            operationKey: Bytes
+            recordKey: SrcAddr
+            botK: 2
+            timeInterval: 15
 `
 
 var yamlConfig2 = `
@@ -84,12 +84,12 @@ parameters:
       type: timebased
       timebased:
         rules:
-          - Name: TopK_Bytes2
-            Operation: sum
-            OperationKey: Bytes
-            RecordKey: SrcAddr
-            TopK: 1
-            TimeInterval: 10
+          - name: TopK_Bytes2
+            operation: sum
+            operationKey: Bytes
+            recordKey: SrcAddr
+            topK: 1
+            timeInterval: 10
 `
 
 var yamlConfig3 = `
@@ -101,12 +101,12 @@ parameters:
       type: timebased
       timebased:
         rules:
-          - Name: BotK_Bytes3
-            Operation: diff
-            OperationKey: Bytes
-            RecordKey: SrcAddr
-            BotK: 1
-            TimeInterval: 10
+          - name: BotK_Bytes3
+            operation: diff
+            operationKey: Bytes
+            recordKey: SrcAddr
+            botK: 1
+            timeInterval: 10
 `
 
 var yamlConfig4 = `
@@ -118,12 +118,12 @@ parameters:
       type: timebased
       timebased:
         rules:
-          - Name: TopK_Bytes4
-            Operation: max
-            OperationKey: Bytes
-            RecordKey: SrcAddr
-            TopK: 1
-            TimeInterval: 10
+          - name: TopK_Bytes4
+            operation: max
+            operationKey: Bytes
+            recordKey: SrcAddr
+            topK: 1
+            timeInterval: 10
 `
 
 var yamlConfig5 = `
@@ -135,12 +135,12 @@ parameters:
       type: timebased
       timebased:
         rules:
-          - Name: BotK_Bytes5
-            Operation: min
-            OperationKey: Bytes
-            RecordKey: SrcAddr
-            BotK: 1
-            TimeInterval: 10
+          - name: BotK_Bytes5
+            operation: min
+            operationKey: Bytes
+            recordKey: SrcAddr
+            botK: 1
+            timeInterval: 10
 `
 
 var yamlConfig6 = `
@@ -152,11 +152,11 @@ parameters:
       type: timebased
       timebased:
         rules:
-          - Name: All_Bytes6
-            Operation: sum
-            OperationKey: Bytes
-            RecordKey: SrcAddr
-            TimeInterval: 10
+          - name: All_Bytes6
+            operation: sum
+            operationKey: Bytes
+            recordKey: SrcAddr
+            timeInterval: 10
 `
 
 func initTimebased(t *testing.T, yamlConfig string) *ExtractTimebased {

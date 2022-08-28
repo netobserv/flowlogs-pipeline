@@ -19,12 +19,11 @@ package timebased
 
 import (
 	"container/list"
-	"fmt"
 	"math"
-	"strconv"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,9 +38,7 @@ func (fs *FilterStruct) CalculateResults(nowInSecs int64) {
 			if l.Len() == 0 {
 				continue
 			}
-			cEntry := l.Back().Value.(*TableEntry)
-			valueString := fmt.Sprintf("%v", cEntry.entry[fs.Rule.OperationKey])
-			valueFloat64, _ = strconv.ParseFloat(valueString, 64)
+			valueFloat64, _ = utils.ConvertToFloat64(l.Back().Value.(*TableEntry).entry[fs.Rule.OperationKey])
 		case OperationDiff:
 			for e := l.Front(); e != nil; e = e.Next() {
 				cEntry := e.Value.(*TableEntry)
@@ -49,10 +46,8 @@ func (fs *FilterStruct) CalculateResults(nowInSecs int64) {
 					// entry is out of time range; ignore it
 					continue
 				}
-				valueString := fmt.Sprintf("%v", e.Value.(*TableEntry).entry[fs.Rule.OperationKey])
-				first, _ := strconv.ParseFloat(valueString, 64)
-				valueString = fmt.Sprintf("%v", l.Back().Value.(*TableEntry).entry[fs.Rule.OperationKey])
-				last, _ := strconv.ParseFloat(valueString, 64)
+				first, _ := utils.ConvertToFloat64(e.Value.(*TableEntry).entry[fs.Rule.OperationKey])
+				last, _ := utils.ConvertToFloat64(l.Back().Value.(*TableEntry).entry[fs.Rule.OperationKey])
 				valueFloat64 = last - first
 				break
 			}
@@ -71,15 +66,13 @@ func (fs *FilterStruct) CalculateValue(l *list.List, oldestValidTime int64) floa
 	log.Debugf("CalculateValue nowInSecs = %d", oldestValidTime)
 	currentValue := getInitValue(fs.Rule.Operation)
 	nItems := 0
-	// TODO: handle case where there are no valid entries
 	for e := l.Front(); e != nil; e = e.Next() {
 		cEntry := e.Value.(*TableEntry)
 		if cEntry.timeStamp < oldestValidTime {
 			// entry is out of time range; ignore it
 			continue
 		}
-		valueString := fmt.Sprintf("%v", cEntry.entry[fs.Rule.OperationKey])
-		valueFloat64, _ := strconv.ParseFloat(valueString, 64)
+		valueFloat64, _ := utils.ConvertToFloat64(cEntry.entry[fs.Rule.OperationKey])
 		nItems++
 		switch fs.Rule.Operation {
 		case OperationSum, OperationAvg:
