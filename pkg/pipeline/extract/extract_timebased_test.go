@@ -19,6 +19,7 @@ package extract
 
 import (
 	"testing"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -36,7 +37,7 @@ func GetMockTimebased1() ExtractTimebased {
 				Operation:    "last",
 				OperationKey: "Bytes",
 				TopK:         3,
-				TimeInterval: 10,
+				TimeInterval: api.Duration{Duration: 10 * time.Second},
 			}},
 			{Rule: api.TimebasedFilterRule{
 				Name:         "BotK_Bytes1",
@@ -45,7 +46,7 @@ func GetMockTimebased1() ExtractTimebased {
 				OperationKey: "Bytes",
 				TopK:         2,
 				Reversed:     true,
-				TimeInterval: 15,
+				TimeInterval: api.Duration{Duration: 15 * time.Second},
 			}},
 		},
 		RecordKeyStructs: map[string]*timebased.RecordKeyTable{},
@@ -67,14 +68,14 @@ parameters:
             operationKey: Bytes
             recordKey: SrcAddr
             topK: 3
-            timeInterval: 10
+            timeInterval: 10s
           - name: BotK_Bytes1
             operation: avg
             operationKey: Bytes
             recordKey: SrcAddr
             topK: 2
             reversed: true
-            timeInterval: 15
+            timeInterval: 15s
 `
 
 var yamlConfig2 = `
@@ -91,7 +92,7 @@ parameters:
             operationKey: Bytes
             recordKey: SrcAddr
             topK: 1
-            timeInterval: 10
+            timeInterval: 10s
 `
 
 var yamlConfig3 = `
@@ -109,7 +110,7 @@ parameters:
             recordKey: SrcAddr
             topK: 1
             reversed: true
-            timeInterval: 10
+            timeInterval: 10s
 `
 
 var yamlConfig4 = `
@@ -126,7 +127,7 @@ parameters:
             operationKey: Bytes
             recordKey: SrcAddr
             topK: 1
-            timeInterval: 10
+            timeInterval: 10s
 `
 
 var yamlConfig5 = `
@@ -144,7 +145,7 @@ parameters:
             recordKey: SrcAddr
             topK: 1
             reversed: true
-            timeInterval: 10
+            timeInterval: 10s
 `
 
 var yamlConfig6 = `
@@ -160,7 +161,7 @@ parameters:
             operation: sum
             operationKey: Bytes
             recordKey: SrcAddr
-            timeInterval: 10
+            timeInterval: 10s
 `
 
 func initTimebased(t *testing.T, yamlConfig string) *ExtractTimebased {
@@ -201,7 +202,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 	require.Equal(t, 5, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key_value":        "10.0.0.4",
+			"key":              "10.0.0.4",
 			"name":             "TopK_Bytes1",
 			"operation":        api.FilterOperation("last"),
 			"operation_key":    "Bytes",
@@ -209,7 +210,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"record_key":       "SrcAddr",
 		},
 		{
-			"key_value":        "10.0.0.3",
+			"key":              "10.0.0.3",
 			"name":             "TopK_Bytes1",
 			"operation":        api.FilterOperation("last"),
 			"operation_key":    "Bytes",
@@ -217,7 +218,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"record_key":       "SrcAddr",
 		},
 		{
-			"key_value":        "10.0.0.2",
+			"key":              "10.0.0.2",
 			"name":             "TopK_Bytes1",
 			"operation":        api.FilterOperation("last"),
 			"operation_key":    "Bytes",
@@ -225,7 +226,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"record_key":       "SrcAddr",
 		},
 		{
-			"key_value":        "10.0.0.1",
+			"key":              "10.0.0.1",
 			"name":             "BotK_Bytes1",
 			"operation":        api.FilterOperation("avg"),
 			"operation_key":    "Bytes",
@@ -233,7 +234,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"record_key":       "SrcAddr",
 		},
 		{
-			"key_value":        "10.0.0.2",
+			"key":              "10.0.0.2",
 			"name":             "BotK_Bytes1",
 			"operation":        api.FilterOperation("avg"),
 			"operation_key":    "Bytes",
@@ -252,7 +253,7 @@ func Test_ExtractTimebasedExtract2(t *testing.T) {
 	require.Equal(t, 1, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key_value":        "10.0.0.3",
+			"key":              "10.0.0.3",
 			"name":             "TopK_Bytes2",
 			"operation":        api.FilterOperation("sum"),
 			"operation_key":    "Bytes",
@@ -271,7 +272,7 @@ func Test_ExtractTimebasedExtract3(t *testing.T) {
 	require.Equal(t, 1, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key_value":        "10.0.0.4",
+			"key":              "10.0.0.4",
 			"name":             "BotK_Bytes3",
 			"operation":        api.FilterOperation("diff"),
 			"operation_key":    "Bytes",
@@ -290,7 +291,7 @@ func Test_ExtractTimebasedExtract4(t *testing.T) {
 	require.Equal(t, 1, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key_value":        "10.0.0.4",
+			"key":              "10.0.0.4",
 			"name":             "TopK_Bytes4",
 			"operation":        api.FilterOperation("max"),
 			"operation_key":    "Bytes",
@@ -309,7 +310,7 @@ func Test_ExtractTimebasedExtract5(t *testing.T) {
 	require.Equal(t, 1, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key_value":        "10.0.0.1",
+			"key":              "10.0.0.1",
 			"name":             "BotK_Bytes5",
 			"operation":        api.FilterOperation("min"),
 			"operation_key":    "Bytes",
@@ -328,7 +329,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 	require.Equal(t, 4, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key_value":        "10.0.0.1",
+			"key":              "10.0.0.1",
 			"name":             "All_Bytes6",
 			"operation":        api.FilterOperation("sum"),
 			"operation_key":    "Bytes",
@@ -336,7 +337,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 			"record_key":       "SrcAddr",
 		},
 		{
-			"key_value":        "10.0.0.2",
+			"key":              "10.0.0.2",
 			"name":             "All_Bytes6",
 			"operation":        api.FilterOperation("sum"),
 			"operation_key":    "Bytes",
@@ -344,7 +345,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 			"record_key":       "SrcAddr",
 		},
 		{
-			"key_value":        "10.0.0.3",
+			"key":              "10.0.0.3",
 			"name":             "All_Bytes6",
 			"operation":        api.FilterOperation("sum"),
 			"operation_key":    "Bytes",
@@ -352,7 +353,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 			"record_key":       "SrcAddr",
 		},
 		{
-			"key_value":        "10.0.0.4",
+			"key":              "10.0.0.4",
 			"name":             "All_Bytes6",
 			"operation":        api.FilterOperation("sum"),
 			"operation_key":    "Bytes",

@@ -17,8 +17,6 @@
 
 package api
 
-import "time"
-
 type FilterOperation string
 
 type ExtractTimebased struct {
@@ -32,5 +30,5 @@ type TimebasedFilterRule struct {
 	OperationKey string          `yaml:"operationKey,omitempty" json:"operationKey,omitempty" doc:"internal field on which to perform the operation"`
 	TopK         int             `yaml:"topK,omitempty" json:"topK,omitempty" doc:"number of highest incidence to report (default - report all)"`
 	Reversed     bool            `yaml:"reversed,omitempty" json:"reversed,omitempty" doc:"report lowest incidence instead of highest (default - false)"`
-	TimeInterval time.Duration   `yaml:"timeInterval,omitempty" json:"timeInterval,omitempty" doc:"time duration of data to use to compute the metric"`
+	TimeInterval Duration        `yaml:"timeInterval,omitempty" json:"timeInterval,omitempty" doc:"time duration of data to use to compute the metric"`
 }

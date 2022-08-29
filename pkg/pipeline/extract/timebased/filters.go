@@ -30,7 +30,7 @@ import (
 
 func (fs *FilterStruct) CalculateResults(nowInSecs time.Time) {
 	log.Debugf("CalculateResults nowInSecs = %v", nowInSecs)
-	oldestValidTime := nowInSecs.Add(-fs.Rule.TimeInterval)
+	oldestValidTime := nowInSecs.Add(-fs.Rule.TimeInterval.Duration)
 	for key, l := range fs.RecordKeyDataTable.dataTableMap {
 		var valueFloat64 = float64(0)
 		switch fs.Rule.Operation {
@@ -132,7 +132,7 @@ func (fs *FilterStruct) CreateGenericMap() []config.GenericMap {
 			"record_key":       fs.Rule.RecordKey,
 			"operation":        fs.Rule.Operation,
 			"operation_key":    fs.Rule.OperationKey,
-			"key_value":        result.key,
+			"key":              result.key,
 			"operation_result": result.operationResult,
 		}
 		output = append(output, t)

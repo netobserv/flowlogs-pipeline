@@ -57,7 +57,7 @@ func (et *ExtractTimebased) Extract(entries []config.GenericMap) []config.Generi
 	return output
 }
 
-//  NewExtractTimebased creates a new extractor
+// NewExtractTimebased creates a new extractor
 func NewExtractTimebased(params config.StageParam) (Extractor, error) {
 	var rules []api.TimebasedFilterRule
 	if params.Extract != nil && params.Extract.Timebased.Rules != nil {

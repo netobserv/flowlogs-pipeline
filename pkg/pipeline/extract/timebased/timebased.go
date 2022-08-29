@@ -61,7 +61,7 @@ type TableEntry struct {
 	entry     config.GenericMap
 }
 
-// Create structures for each RecordKey that appears in the rules.
+// CreateRecordKeysAndFilters creates structures for each RecordKey that appears in the rules.
 // Note that the same RecordKey might appear in more than one Rule.
 // Connect RecordKey structure to its filters.
 // For each RecordKey, we need a table of history to handle the largest TimeInterval.
@@ -69,6 +69,7 @@ func CreateRecordKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*Re
 	tmpRecordKeyStructs := make(map[string]*RecordKeyTable)
 	tmpFilters := make([]FilterStruct, 0)
 	for _, filterRule := range rules {
+		log.Debugf("CreateRecordKeysAndFilters: filterRule = %v", filterRule)
 		// verify there is a valid RecordKey
 		if filterRule.RecordKey == "" {
 			log.Errorf("missing RecordKey for filter %s", filterRule.Name)
@@ -77,14 +78,14 @@ func CreateRecordKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*Re
 		rStruct, ok := tmpRecordKeyStructs[filterRule.RecordKey]
 		if !ok {
 			rStruct = &RecordKeyTable{
-				maxTimeInterval: filterRule.TimeInterval,
+				maxTimeInterval: filterRule.TimeInterval.Duration,
 				dataTableMap:    make(DataTableMap),
 			}
 			tmpRecordKeyStructs[filterRule.RecordKey] = rStruct
 			log.Debugf("new RecordKeyTable: name = %s = %v", filterRule.RecordKey, *rStruct)
 		} else {
-			if filterRule.TimeInterval > rStruct.maxTimeInterval {
-				rStruct.maxTimeInterval = filterRule.TimeInterval
+			if filterRule.TimeInterval.Duration > rStruct.maxTimeInterval {
+				rStruct.maxTimeInterval = filterRule.TimeInterval.Duration
 			}
 		}
 		// verify the validity of the Operation field in the filterRule
