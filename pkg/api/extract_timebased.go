@@ -17,18 +17,29 @@
 
 package api
 
-type FilterOperation string
+type FilterOperationEnum struct {
+	FilterOperationSum  string `yaml:"sum" json:"sum" doc:"set output field to sum of parameters fields in the time window"`
+	FilterOperationAvg  string `yaml:"avg" json:"avg" doc:"set output field to average of parameters fields in the time window"`
+	FilterOperationMin  string `yaml:"min" json:"min" doc:"set output field to minimum of parameters fields in the time window"`
+	FilterOperationMax  string `yaml:"max" json:"max" doc:"set output field to maximum of parameters fields in the time window"`
+	FilterOperationLast string `yaml:"last" json:"last" doc:"set output field to last of parameters fields in the time window"`
+	FilterOperationDiff string `yaml:"diff" json:"diff" doc:"set output field to the difference of the first and last parameters fields in the time window"`
+}
+
+func FilterOperationName(operation string) string {
+	return GetEnumName(FilterOperationEnum{}, operation)
+}
 
 type ExtractTimebased struct {
 	Rules []TimebasedFilterRule `yaml:"rules,omitempty" json:"rules,omitempty" doc:"list of filter rules, each includes:"`
 }
 
 type TimebasedFilterRule struct {
-	Name         string          `yaml:"name,omitempty" json:"name,omitempty" doc:"description of filter result"`
-	RecordKey    string          `yaml:"recordKey,omitempty" json:"recordKey,omitempty" doc:"internal field to index TopK"`
-	Operation    FilterOperation `yaml:"operation,omitempty" json:"operation,omitempty" doc:"sum, min, max, avg, last or diff"`
-	OperationKey string          `yaml:"operationKey,omitempty" json:"operationKey,omitempty" doc:"internal field on which to perform the operation"`
-	TopK         int             `yaml:"topK,omitempty" json:"topK,omitempty" doc:"number of highest incidence to report (default - report all)"`
-	Reversed     bool            `yaml:"reversed,omitempty" json:"reversed,omitempty" doc:"report lowest incidence instead of highest (default - false)"`
-	TimeInterval Duration        `yaml:"timeInterval,omitempty" json:"timeInterval,omitempty" doc:"time duration of data to use to compute the metric"`
+	Name         string   `yaml:"name,omitempty" json:"name,omitempty" doc:"description of filter result"`
+	RecordKey    string   `yaml:"recordKey,omitempty" json:"recordKey,omitempty" doc:"internal field to index TopK"`
+	Operation    string   `yaml:"operation,omitempty" json:"operation,omitempty" enum:"FilterOperationEnum" doc:"sum, min, max, avg, last or diff"`
+	OperationKey string   `yaml:"operationKey,omitempty" json:"operationKey,omitempty" doc:"internal field on which to perform the operation"`
+	TopK         int      `yaml:"topK,omitempty" json:"topK,omitempty" doc:"number of highest incidence to report (default - report all)"`
+	Reversed     bool     `yaml:"reversed,omitempty" json:"reversed,omitempty" doc:"report lowest incidence instead of highest (default - false)"`
+	TimeInterval Duration `yaml:"timeInterval,omitempty" json:"timeInterval,omitempty" doc:"time duration of data to use to compute the metric"`
 }

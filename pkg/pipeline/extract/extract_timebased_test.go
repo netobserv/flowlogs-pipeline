@@ -204,7 +204,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 		{
 			"key":              "10.0.0.4",
 			"name":             "TopK_Bytes1",
-			"operation":        api.FilterOperation("last"),
+			"operation":        "last",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1000),
 			"record_key":       "SrcAddr",
@@ -212,7 +212,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 		{
 			"key":              "10.0.0.3",
 			"name":             "TopK_Bytes1",
-			"operation":        api.FilterOperation("last"),
+			"operation":        "last",
 			"operation_key":    "Bytes",
 			"operation_result": float64(900),
 			"record_key":       "SrcAddr",
@@ -220,7 +220,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 		{
 			"key":              "10.0.0.2",
 			"name":             "TopK_Bytes1",
-			"operation":        api.FilterOperation("last"),
+			"operation":        "last",
 			"operation_key":    "Bytes",
 			"operation_result": float64(800),
 			"record_key":       "SrcAddr",
@@ -228,7 +228,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 		{
 			"key":              "10.0.0.1",
 			"name":             "BotK_Bytes1",
-			"operation":        api.FilterOperation("avg"),
+			"operation":        "avg",
 			"operation_key":    "Bytes",
 			"operation_result": float64(400),
 			"record_key":       "SrcAddr",
@@ -236,7 +236,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 		{
 			"key":              "10.0.0.2",
 			"name":             "BotK_Bytes1",
-			"operation":        api.FilterOperation("avg"),
+			"operation":        "avg",
 			"operation_key":    "Bytes",
 			"operation_result": float64(500),
 			"record_key":       "SrcAddr",
@@ -255,7 +255,7 @@ func Test_ExtractTimebasedExtract2(t *testing.T) {
 		{
 			"key":              "10.0.0.3",
 			"name":             "TopK_Bytes2",
-			"operation":        api.FilterOperation("sum"),
+			"operation":        "sum",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1800),
 			"record_key":       "SrcAddr",
@@ -274,7 +274,7 @@ func Test_ExtractTimebasedExtract3(t *testing.T) {
 		{
 			"key":              "10.0.0.4",
 			"name":             "BotK_Bytes3",
-			"operation":        api.FilterOperation("diff"),
+			"operation":        "diff",
 			"operation_key":    "Bytes",
 			"operation_result": float64(0),
 			"record_key":       "SrcAddr",
@@ -293,7 +293,7 @@ func Test_ExtractTimebasedExtract4(t *testing.T) {
 		{
 			"key":              "10.0.0.4",
 			"name":             "TopK_Bytes4",
-			"operation":        api.FilterOperation("max"),
+			"operation":        "max",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1000),
 			"record_key":       "SrcAddr",
@@ -312,7 +312,7 @@ func Test_ExtractTimebasedExtract5(t *testing.T) {
 		{
 			"key":              "10.0.0.1",
 			"name":             "BotK_Bytes5",
-			"operation":        api.FilterOperation("min"),
+			"operation":        "min",
 			"operation_key":    "Bytes",
 			"operation_result": float64(100),
 			"record_key":       "SrcAddr",
@@ -331,7 +331,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 		{
 			"key":              "10.0.0.1",
 			"name":             "All_Bytes6",
-			"operation":        api.FilterOperation("sum"),
+			"operation":        "sum",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1200),
 			"record_key":       "SrcAddr",
@@ -339,7 +339,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 		{
 			"key":              "10.0.0.2",
 			"name":             "All_Bytes6",
-			"operation":        api.FilterOperation("sum"),
+			"operation":        "sum",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1500),
 			"record_key":       "SrcAddr",
@@ -347,7 +347,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 		{
 			"key":              "10.0.0.3",
 			"name":             "All_Bytes6",
-			"operation":        api.FilterOperation("sum"),
+			"operation":        "sum",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1800),
 			"record_key":       "SrcAddr",
@@ -355,7 +355,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 		{
 			"key":              "10.0.0.4",
 			"name":             "All_Bytes6",
-			"operation":        api.FilterOperation("sum"),
+			"operation":        "sum",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1000),
 			"record_key":       "SrcAddr",

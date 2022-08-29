@@ -26,15 +26,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	OperationSum  = "sum"
-	OperationAvg  = "avg"
-	OperationMax  = "max"
-	OperationMin  = "min"
-	OperationLast = "last"
-	OperationDiff = "diff"
-)
-
 type FilterStruct struct {
 	Rule               api.TimebasedFilterRule
 	RecordKeyDataTable *RecordKeyTable
@@ -90,7 +81,12 @@ func CreateRecordKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*Re
 		}
 		// verify the validity of the Operation field in the filterRule
 		switch filterRule.Operation {
-		case OperationLast, OperationDiff, OperationAvg, OperationMax, OperationMin, OperationSum:
+		case api.FilterOperationName("FilterOperationLast"),
+			api.FilterOperationName("FilterOperationDiff"),
+			api.FilterOperationName("FilterOperationAvg"),
+			api.FilterOperationName("FilterOperationMax"),
+			api.FilterOperationName("FilterOperationMin"),
+			api.FilterOperationName("FilterOperationSum"):
 			// OK; nothing to do
 		default:
 			log.Errorf("illegal operation type %s", filterRule.Operation)
