@@ -178,20 +178,8 @@ func Test_NewExtractTimebased(t *testing.T) {
 	tb := initTimebased(t, yamlConfig1)
 	require.NotNil(t, tb)
 	expectedTimebased := GetMockTimebased1()
-	require.Equal(t, expectedTimebased.Filters[0].Rule.Name, tb.Filters[0].Rule.Name)
-	require.Equal(t, expectedTimebased.Filters[0].Rule.Operation, tb.Filters[0].Rule.Operation)
-	require.Equal(t, expectedTimebased.Filters[0].Rule.OperationKey, tb.Filters[0].Rule.OperationKey)
-	require.Equal(t, expectedTimebased.Filters[0].Rule.TopK, tb.Filters[0].Rule.TopK)
-	require.Equal(t, expectedTimebased.Filters[0].Rule.RecordKey, tb.Filters[0].Rule.RecordKey)
-	require.Equal(t, expectedTimebased.Filters[0].Rule.TimeInterval, tb.Filters[0].Rule.TimeInterval)
-
-	require.Equal(t, expectedTimebased.Filters[1].Rule.Name, tb.Filters[1].Rule.Name)
-	require.Equal(t, expectedTimebased.Filters[1].Rule.Operation, tb.Filters[1].Rule.Operation)
-	require.Equal(t, expectedTimebased.Filters[1].Rule.OperationKey, tb.Filters[1].Rule.OperationKey)
-	require.Equal(t, expectedTimebased.Filters[1].Rule.TopK, tb.Filters[1].Rule.TopK)
-	require.Equal(t, expectedTimebased.Filters[1].Rule.Reversed, tb.Filters[1].Rule.Reversed)
-	require.Equal(t, expectedTimebased.Filters[1].Rule.RecordKey, tb.Filters[1].Rule.RecordKey)
-	require.Equal(t, expectedTimebased.Filters[1].Rule.TimeInterval, tb.Filters[1].Rule.TimeInterval)
+	require.Equal(t, expectedTimebased.Filters[0].Rule, tb.Filters[0].Rule)
+	require.Equal(t, expectedTimebased.Filters[1].Rule, tb.Filters[1].Rule)
 }
 
 func Test_ExtractTimebasedExtract1(t *testing.T) {
