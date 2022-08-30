@@ -97,7 +97,7 @@ func TestMultiOrderedMap_MoveToBack(t *testing.T) {
 	assertLengthConsistency(t, mom)
 }
 
-func TestMultiOrderedMap_IterateFrontToBackIterateFrontToBack(t *testing.T) {
+func TestMultiOrderedMap_IterateFrontToBack(t *testing.T) {
 	t.Run("delete all", func(t *testing.T) {
 		lengthOrder := OrderID("length")
 		lexicalOrder := OrderID("lexical")
