@@ -539,12 +539,13 @@ The connection tracking module allows grouping flow logs with common properties 
 useful statistics.
 The input of the module is flow-log records and the output is connection records and the flow-log records with an
 additional hash id field to correlate with the connection records.
-There are 3 types of connection records:
+There are 4  output records types:
 1. **New connection**: indicates that a new connection is detected. i.e. the input contains a flow-log that doesn't
 belong to any of the tracked connections.
 2. **Update connection**: a periodic report of the connection statistics for long connections.
 3. **End connection**: indicates that a connection has ended. Currently, a connection is considered ended once the 
 timeout since the latest flow-log of the connection has elapsed.
+4. **Flow log**: a copy of the input flow log with the additional `_RecordType` and `_HashId` fields.
 
 The configuration can suppress any of the output types.
 
