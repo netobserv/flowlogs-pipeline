@@ -99,10 +99,10 @@ func (mom MultiOrderedMap) RemoveRecord(key Key) {
 // MoveToBack moves the record of key `key` to the back of orderID. If the key or the orderID doesn't exist, an error
 // is returned.
 func (mom MultiOrderedMap) MoveToBack(key Key, orderID OrderID) error {
-	if _, found := mom.GetRecord(key); !found {
+	rw, found := mom.m[key]
+	if !found {
 		return fmt.Errorf("can't MoveToBack non-existing key %x (order id %q)", key, orderID)
 	}
-	rw := mom.m[key]
 	elem, found := rw.orderID2element[orderID]
 	if !found {
 		return fmt.Errorf("can't MoveToBack non-existing order id %q (key %x)", orderID, key)
