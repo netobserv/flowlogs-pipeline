@@ -650,6 +650,7 @@ A possible output would look like:
 Notice that all output records contain `_RecordType` and `_HashId` fields.
 Output fields that set `splitAB: true` (like in `Bytes`) are split into 2 fields `Bytes_AB` and `Bytes_BA` which 
 aggregate values separately based on direction A->B and B->A respectively.
+When `splitAB` is absent, its default value is `false`.
 
 ### Prometheus encoder
 
