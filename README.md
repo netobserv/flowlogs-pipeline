@@ -579,11 +579,11 @@ parameters:
         fieldGroups:
         - name: src
           fields:
-          - SrcIP
+          - SrcAddr
           - SrcPort
         - name: dst
           fields:
-          - DstIP
+          - DstAddr
           - DstPort
         - name: protocol
           fields:
