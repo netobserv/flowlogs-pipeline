@@ -53,7 +53,7 @@ and the transformation to generate the exported metric.
 |:---|:---|
 | **Details** | Connection length distribution over time | 
 | **Usage** | Evaluate connection length behavior including mice/elephant use-case | 
-| **Tags** |  |
+| **Tags** | bandwidth, mice, elephant, rate |
 | **Operation** | aggregate by `_RecordType` and `raw_values` field `bytes_total` |
 | **Operation** | aggregate by `_RecordType` and `raw_values` field `bytes_AB` |
 | **Operation** | aggregate by `_RecordType` and `raw_values` field `bytes_BA` |

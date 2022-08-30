@@ -5,7 +5,7 @@ details:
   Connection length distribution over time
 usage:
   Evaluate connection length behavior including mice/elephant use-case
-labels:
+tags:
   - bandwidth
   - mice
   - elephant

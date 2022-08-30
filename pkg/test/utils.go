@@ -143,6 +143,7 @@ func RunCommand(command string) string {
 }
 
 func DeserializeJSONToMap(t *testing.T, in string) config.GenericMap {
+	t.Helper()
 	var m config.GenericMap
 	err := json.Unmarshal([]byte(in), &m)
 	require.NoError(t, err)

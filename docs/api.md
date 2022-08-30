@@ -19,6 +19,9 @@ Following is the supported API format for prometheus encode:
          port: port number to expose "/metrics" endpoint
          prefix: prefix added to each metric name
          expiryTime: seconds of no-flow to wait before deleting prometheus data item
+         tls: TLS configuration for the prometheus endpoint
+             certPath: path to the certificate file
+             keyPath: path to the key file
 </pre>
 ## Kafka encode API
 Following is the supported API format for kafka encode:
@@ -38,6 +41,10 @@ Following is the supported API format for kafka encode:
          batchBytes: limit the maximum size of a request in bytes before being sent to a partition
          batchSize: limit on how many messages will be buffered before being sent to a partition
          tls: TLS client configuration (optional)
+             insecureSkipVerify: skip client verifying the server's certificate chain and host name
+             caCertPath: path to the CA certificate
+             userCertPath: path to the user certificate
+             userKeyPath: path to the user private key
 </pre>
 ## Ingest collector API
 Following is the supported API format for the NetFlow / IPFIX collector:
@@ -67,6 +74,10 @@ Following is the supported API format for the kafka ingest:
          batchMaxLen: the number of accumulated flows before being forwarded for processing
          commitInterval: the interval (in milliseconds) at which offsets are committed to the broker.  If 0, commits will be handled synchronously.
          tls: TLS client configuration (optional)
+             insecureSkipVerify: skip client verifying the server's certificate chain and host name
+             caCertPath: path to the CA certificate
+             userCertPath: path to the user certificate
+             userKeyPath: path to the user private key
 </pre>
 ## Ingest GRPC from Network Observability eBPF Agent
 Following is the supported API format for the Network Observability eBPF ingest:
@@ -99,6 +110,14 @@ Following is the supported API format for filter transformations:
                      remove_field: removes the field from the entry
                      remove_entry_if_exists: removes the entry if the field exists
                      remove_entry_if_doesnt_exist: removes the entry if the field doesnt exist
+                     remove_entry_if_equal: removes the entry if the field value equals specified value
+                     remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
+                 value: (enum) specified value of input field:
+                     remove_field: removes the field from the entry
+                     remove_entry_if_exists: removes the entry if the field exists
+                     remove_entry_if_doesnt_exist: removes the entry if the field doesnt exist
+                     remove_entry_if_equal: removes the entry if the field value equals specified value
+                     remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
 </pre>
 ## Transform Network API
 Following is the supported API format for network transformations:
@@ -117,6 +136,7 @@ Following is the supported API format for network transformations:
                      add_service: add output network service field from input port and parameters protocol field
                      add_kubernetes: add output kubernetes fields from input
                  parameters: parameters specific to type
+                 assignee: value needs to assign to output field
          kubeConfigPath: path to kubeconfig file (optional)
          servicesFile: path to services file (optional, default: /etc/services)
          protocolsFile: path to protocols file (optional, default: /etc/protocols)

@@ -25,11 +25,12 @@ import (
 )
 
 type DocTags struct {
-	Title string            `yaml:"title" doc:"##title"`
-	Field string            `yaml:"field" doc:"field"`
-	Slice []string          `yaml:"slice" doc:"slice"`
-	Map   map[string]string `yaml:"map" doc:"map"`
-	Sub   DocSubTags        `yaml:"sub" doc:"sub"`
+	Title  string            `yaml:"title" doc:"##title"`
+	Field  string            `yaml:"field" doc:"field"`
+	Slice  []string          `yaml:"slice" doc:"slice"`
+	Map    map[string]string `yaml:"map" doc:"map"`
+	Sub    DocSubTags        `yaml:"sub" doc:"sub"`
+	SubPtr *DocSubTags       `yaml:"subPtr" doc:"subPtr"`
 }
 
 type DocSubTags struct {
@@ -38,7 +39,7 @@ type DocSubTags struct {
 
 func Test_iterate(t *testing.T) {
 	output := new(bytes.Buffer)
-	expected := "\n##title\n<pre>\n title:\n</pre>     field: field\n     slice: slice\n     map: map\n     sub: sub\n         subField: subField\n"
+	expected := "\n##title\n<pre>\n title:\n</pre>     field: field\n     slice: slice\n     map: map\n     sub: sub\n         subField: subField\n     subPtr: subPtr\n         subField: subField\n"
 	iterate(output, DocTags{}, 0)
 	require.Equal(t, expected, output.String())
 }

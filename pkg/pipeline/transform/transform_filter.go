@@ -48,6 +48,18 @@ func (f *Filter) Transform(input []config.GenericMap) []config.GenericMap {
 				if _, ok := entry[rule.Input]; !ok {
 					addToOutput = false
 				}
+			case api.TransformFilterOperationName("RemoveEntryIfEqual"):
+				if val, ok := entry[rule.Input]; ok {
+					if val == rule.Value {
+						addToOutput = false
+					}
+				}
+			case api.TransformFilterOperationName("RemoveEntryIfNotEqual"):
+				if val, ok := entry[rule.Input]; ok {
+					if val != rule.Value {
+						addToOutput = false
+					}
+				}
 			default:
 				log.Panicf("unknown type %s for transform.Filter rule: %v", rule.Type, rule)
 			}

@@ -55,7 +55,6 @@ encode:
     prefix: flp_
     port: 9102
 visualization:
-  type: grafana
   grafana:
     dashboards:
       - name: "details"
@@ -90,7 +89,6 @@ write:
     staticLabels:
       job: flowlogs-pipeline
 visualization:
-  type: grafana
   grafana:
     dashboards:
       - name: "details"
@@ -107,7 +105,7 @@ details:
   test details
 usage:
   test usage
-labels:
+tags:
   - test
   - label
 transform:
@@ -194,7 +192,7 @@ func Test_RunShortConfGen(t *testing.T) {
 	destCfgBytes, err := ioutil.ReadFile(configOut)
 	require.NoError(t, err)
 	var out config.ConfigFileStruct
-	err = yaml.Unmarshal(destCfgBytes, &out)
+	err = yaml.UnmarshalStrict(destCfgBytes, &out)
 	require.NoError(t, err)
 	require.Len(t, out.Pipeline, 4)
 	require.Len(t, out.Parameters, 4)
@@ -282,7 +280,7 @@ func Test_RunLongConfGen(t *testing.T) {
 	destCfgBytes, err := ioutil.ReadFile(configOut)
 	require.NoError(t, err)
 	var out config.ConfigFileStruct
-	err = yaml.Unmarshal(destCfgBytes, &out)
+	err = yaml.UnmarshalStrict(destCfgBytes, &out)
 	require.NoError(t, err)
 	require.Len(t, out.Parameters, 6)
 	require.Len(t, out.Pipeline, 6)
