@@ -68,7 +68,7 @@ and the transformation to generate the exported metric.
 ### connection rate per dest subnet
 | **Description** | This metric observes network connections rate per destination subnet | 
 |:---|:---|
-| **Details** | Counts the number of connections per subnet with network prefix length /16 (using conn_tracking sum isNewFlow field) | 
+| **Details** | Counts the number of connections per subnet with network prefix length /16 | 
 | **Usage** | Evaluate network connections per subnet | 
 | **Tags** | rate, subnet |
 | **Operation** | aggregate by `dstSubnet, _RecordType` and `count` field `isNewFlow` |

@@ -18,17 +18,14 @@
 package transform
 
 import (
-	"bytes"
 	"fmt"
 	"net"
 	"regexp"
 	"strconv"
-	"text/template"
 
 	"github.com/Knetic/govaluate"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/connection_tracking"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/network_services"
@@ -54,26 +51,6 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 
 	for _, rule := range n.Rules {
 		switch rule.Type {
-		case api.TransformNetworkOperationName("ConnTracking"):
-			template, err := template.New("").Parse(rule.Input)
-			if err != nil {
-				panic(err)
-			}
-			buf := &bytes.Buffer{}
-			err = template.Execute(buf, outputEntry)
-			if err != nil {
-				panic(err)
-			}
-			FlowIDFieldsAsString := buf.String()
-			isNew := connection_tracking.CT.AddFlow(FlowIDFieldsAsString)
-			if isNew {
-				if rule.Parameters != "" {
-					outputEntry[rule.Output] = rule.Parameters
-				} else {
-					outputEntry[rule.Output] = true
-				}
-			}
-
 		case api.TransformNetworkOperationName("AddRegExIf"):
 			matched, err := regexp.MatchString(rule.Parameters, fmt.Sprintf("%s", outputEntry[rule.Input]))
 			if err != nil {
@@ -175,7 +152,6 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	var needToInitLocationDB = false
 	var needToInitKubeData = false
-	var needToInitConnectionTracking = false
 	var needToInitNetworkServices = false
 
 	jsonNetworkTransform := api.TransformNetwork{}
@@ -188,15 +164,9 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 			needToInitLocationDB = true
 		case api.TransformNetworkOperationName("AddKubernetes"):
 			needToInitKubeData = true
-		case api.TransformNetworkOperationName("ConnTracking"):
-			needToInitConnectionTracking = true
 		case api.TransformNetworkOperationName("AddService"):
 			needToInitNetworkServices = true
 		}
-	}
-
-	if needToInitConnectionTracking {
-		connection_tracking.InitConnectionTracking()
 	}
 
 	if needToInitLocationDB {
