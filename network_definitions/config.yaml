@@ -29,6 +29,55 @@ transform:
         output: srcAS
       - input: DstAS
         output: dstAS
+      - input: Packets
+        output: packets
+      - input: TimeReceived
+        output: timeReceived
+extract:
+  conntrack:
+    endConnectionTimeout: 30s
+    outputRecordTypes:
+      - newConnection
+      - flowLog
+      - endConnection
+    keyDefinition:
+      fieldGroups:
+        - name: src
+          fields:
+            - srcIP
+            - srcPort
+        - name: dst
+          fields:
+            - dstIP
+            - dstPort
+        - name: protocol
+          fields:
+            - proto
+      hash:
+        fieldGroupRefs: [ protocol ]
+        fieldGroupARef: src
+        fieldGroupBRef: dst
+    outputFields:
+      - name: bytes_total
+        operation: sum
+        input: bytes
+      - name: bytes
+        operation: sum
+        splitAB: true
+      - name: packets_total
+        operation: sum
+        input: packets
+      - name: packets
+        operation: sum
+        splitAB: true
+      - name: numFlowLogs
+        operation: count
+      - name: timeStart
+        operation: min
+        input: timeReceived
+      - name: timeEnd
+        operation: max
+        input: timeReceived
 encode:
   prom:
     prefix: flp_

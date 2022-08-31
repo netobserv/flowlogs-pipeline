@@ -21,6 +21,7 @@ extract:
     - name: dest_connection_location_count
       by:
         - dstLocation_CountryName
+        - _RecordType
       operation: count
 encode:
   type: prom

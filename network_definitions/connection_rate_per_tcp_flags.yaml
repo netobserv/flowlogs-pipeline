@@ -14,6 +14,7 @@ extract:
     - name: TCPFlags_count
       by:
         - TCPFlags
+        - _RecordType
       operation: count
 encode:
   type: prom

@@ -22,6 +22,7 @@ extract:
     - name: dest_service_count
       by:
         - service
+        - _RecordType
       operation: count
 encode:
   type: prom

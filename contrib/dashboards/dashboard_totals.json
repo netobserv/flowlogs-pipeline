@@ -12,6 +12,41 @@
    "links": [ ],
    "panels": [
       {
+         "datasource": "prometheus",
+         "fieldConfig": {
+            "defaults": {
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": null
+            }
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+         },
+         "id": 2,
+         "targets": [
+            {
+               "expr": "flp_connection_length_histogram_bucket{aggregate=\"endConnection\"}",
+               "format": "heatmap",
+               "intervalFactor": 2,
+               "legendFormat": "{{le}}",
+               "refId": "A"
+            }
+         ],
+         "title": "Connection length histogram",
+         "type": "bargauge"
+      },
+      {
          "cacheTimeout": null,
          "colorBackground": false,
          "colorValue": false,
@@ -35,7 +70,7 @@
             "x": 0,
             "y": 0
          },
-         "id": 2,
+         "id": 3,
          "interval": null,
          "links": [ ],
          "mappingType": 1,
@@ -114,7 +149,7 @@
             "x": 0,
             "y": 0
          },
-         "id": 3,
+         "id": 4,
          "targets": [
             {
                "expr": "flp_flows_length_histogram_bucket",
@@ -151,7 +186,7 @@
             "x": 0,
             "y": 0
          },
-         "id": 4,
+         "id": 5,
          "interval": null,
          "links": [ ],
          "mappingType": 1,

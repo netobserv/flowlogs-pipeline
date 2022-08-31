@@ -21,6 +21,7 @@ extract:
     - name: bandwidth_destination_subnet
       by:
         - dstSubnet
+        - _RecordType
       operation: sum
       recordKey: bytes
 encode:

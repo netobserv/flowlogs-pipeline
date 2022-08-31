@@ -21,6 +21,7 @@ extract:
       by:
         - srcK8S_Namespace
         - srcK8S_Type
+        - _RecordType
       operation: sum
       recordKey: bytes
 encode:

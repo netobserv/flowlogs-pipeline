@@ -17,6 +17,30 @@ dashboard.new(
   tags=['flp','grafana','dashboard','total'],
 )
 .addPanel(
+  barGaugePanel.new(
+    datasource='prometheus',
+    title="Connection size in bytes histogram",
+    thresholds=[
+          {
+            "color": "green",
+            "value": null
+          }
+        ],
+  )
+  .addTarget(
+    prometheus.target(
+      expr='flp_connection_size_histogram_bucket{aggregate="endConnection"}',
+      format='heatmap',
+      legendFormat='{{le}}',
+    )
+  ), gridPos={
+    x: 0,
+    y: 0,
+    w: 12,
+    h: 8,
+  }
+)
+.addPanel(
   singlestat.new(
     datasource='prometheus',
     title="Total bandwidth",

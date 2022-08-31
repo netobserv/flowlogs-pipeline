@@ -82,7 +82,7 @@ func (b *builder) readStages() error {
 		case StageWrite:
 			pEntry.Writer, err = getWriter(param)
 		default:
-			err = fmt.Errorf("invalid stage type: %v", pEntry.stageType)
+			err = fmt.Errorf("invalid stage type: %v, stage name: %v", pEntry.stageType, pEntry.stageName)
 		}
 		if err != nil {
 			return err

@@ -24,6 +24,7 @@ extract:
     - name: dest_connection_subnet_count
       by:
         - dstSubnet
+        - _RecordType
       operation: count
       recordKey: isNewFlow
 encode:

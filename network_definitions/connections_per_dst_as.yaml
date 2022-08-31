@@ -15,6 +15,7 @@ extract:
     - name: dst_as_connection_count
       by:
         - dstAS
+        - _RecordType
       operation: count
 encode:
   type: prom

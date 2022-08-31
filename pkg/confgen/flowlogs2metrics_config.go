@@ -42,6 +42,9 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.ConfigFileStruct {
 			Rules: cg.transformRules,
 		})
 	}
+	if cg.config.Extract.ConnTrack != nil {
+		next = next.ConnTrack("extract_conntrack", *cg.config.Extract.ConnTrack)
+	}
 	if len(cg.aggregateDefinitions) > 0 {
 		agg := next.Aggregate("extract_aggregate", cg.aggregateDefinitions)
 		agg.EncodePrometheus("encode_prom", api.PromEncode{
