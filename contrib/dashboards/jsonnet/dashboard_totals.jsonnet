@@ -19,7 +19,7 @@ dashboard.new(
 .addPanel(
   barGaugePanel.new(
     datasource='prometheus',
-    title="Connection length histogram",
+    title="Connection size in bytes histogram",
     thresholds=[
           {
             "color": "green",
@@ -29,7 +29,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='flp_connection_length_histogram_bucket{aggregate="endConnection"}',
+      expr='flp_connection_size_histogram_bucket{aggregate="endConnection"}',
       format='heatmap',
       legendFormat='{{le}}',
     )

@@ -67,12 +67,12 @@ dashboard.new(
 .addPanel(
   heatmapPanel.new(
     datasource='prometheus',
-    title="Connection length heatmap",
+    title="Connection size in bytes heatmap",
     dataFormat="tsbuckets",
   )
   .addTarget(
     prometheus.target(
-      expr='sum(rate(flp_connection_length_histogram_bucket[$__interval])) by (le)',
+      expr='sum(rate(flp_connection_size_histogram_bucket[$__interval])) by (le)',
       format='heatmap',
       legendFormat='{{le}}',
     )

@@ -1,10 +1,10 @@
 #flp_confgen
 description:
-  A histogram of connection bytes
+  A histogram of connection size in bytes
 details:
-  Connection length distribution over time
+  Connection size in bytes distribution over time
 usage:
-  Evaluate connection length behavior including mice/elephant use-case
+  Evaluate connection size behavior including mice/elephant use-case
 tags:
   - bandwidth
   - mice
@@ -31,7 +31,7 @@ encode:
   type: prom
   prom:
     metrics:
-      - name: connection_length_histogram
+      - name: connection_size_histogram
         type: histogram
         filter: { key: name, value: connection_bytes_hist }
         valueKey: recent_raw_values
@@ -44,7 +44,7 @@ encode:
           - 10240   #  10KiB
           - 102400  # 100KiB
           - 1048576 #   1MiB
-      - name: connection_length_histogram_ab
+      - name: connection_size_histogram_ab
         type: histogram
         filter: { key: name, value: connection_bytes_hist_AB }
         valueKey: recent_raw_values
@@ -57,7 +57,7 @@ encode:
           - 10240   #  10KiB
           - 102400  # 100KiB
           - 1048576 #   1MiB
-      - name: connection_length_histogram_ba
+      - name: connection_size_histogram_ba
         type: histogram
         filter: { key: name, value: connection_bytes_hist_BA }
         valueKey: recent_raw_values
@@ -75,13 +75,13 @@ visualization:
   grafana:
     # The visualizations are based on:
     # https://grafana.com/blog/2020/06/23/how-to-visualize-prometheus-histograms-in-grafana/
-    - expr: 'sum(rate(flp_connection_length_histogram_bucket[$__interval])) by (le)'
+    - expr: 'sum(rate(flp_connection_size_histogram_bucket[$__interval])) by (le)'
       type: heatmap
       dashboard: details
       title:
-        Connection length heatmap
-    - expr: 'flp_connection_length_histogram_bucket{aggregate="endConnection"}'
+        Connection size in bytes heatmap
+    - expr: 'flp_connection_size_histogram_bucket{aggregate="endConnection"}'
       type: barGauge
       dashboard: totals
       title:
-        Connection length histogram
+        Connection size in bytes histogram
