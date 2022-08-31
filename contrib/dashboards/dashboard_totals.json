@@ -36,14 +36,14 @@
          "id": 2,
          "targets": [
             {
-               "expr": "flp_connection_length_histogram_bucket{aggregate=\"endConnection\"}",
+               "expr": "flp_connection_size_histogram_bucket{aggregate=\"endConnection\"}",
                "format": "heatmap",
                "intervalFactor": 2,
                "legendFormat": "{{le}}",
                "refId": "A"
             }
          ],
-         "title": "Connection length histogram",
+         "title": "Connection size in bytes histogram",
          "type": "bargauge"
       },
       {

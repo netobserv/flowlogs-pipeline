@@ -295,14 +295,14 @@
          },
          "targets": [
             {
-               "expr": "sum(rate(flp_connection_length_histogram_bucket[$__interval])) by (le)",
+               "expr": "sum(rate(flp_connection_size_histogram_bucket[$__interval])) by (le)",
                "format": "heatmap",
                "intervalFactor": 2,
                "legendFormat": "{{le}}",
                "refId": "A"
             }
          ],
-         "title": "Connection length heatmap",
+         "title": "Connection size in bytes heatmap",
          "tooltip": {
             "show": true,
             "showHistogram": false
