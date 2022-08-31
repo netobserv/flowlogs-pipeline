@@ -48,6 +48,9 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.ConfigFileStruct {
 	metricsNode := forkedNode
 	if len(cg.aggregateDefinitions) > 0 {
 		metricsNode = metricsNode.Aggregate("extract_aggregate", cg.aggregateDefinitions)
+		if cg.config.Extract.Timebased != nil {
+			metricsNode = metricsNode.ExtractTimebased("extract_timebased", *cg.config.Extract.Timebased)
+		}
 	}
 	if len(cg.promMetrics) > 0 {
 		metricsNode.EncodePrometheus("encode_prom", api.PromEncode{

@@ -100,8 +100,8 @@ func (b *PipelineBuilderStage) Aggregate(name string, aggs []api.AggregateDefini
 }
 
 // ExtractTimebased chains the current stage with a ExtractTimebased stage and returns that new stage
-func (b *PipelineBuilderStage) ExtractTimebased(name string, tb *api.ExtractTimebased) PipelineBuilderStage {
-	return b.next(name, StageParam{Name: name, Extract: &Extract{Type: api.TimebasedType, Timebased: tb}})
+func (b *PipelineBuilderStage) ExtractTimebased(name string, tb api.ExtractTimebased) PipelineBuilderStage {
+	return b.next(name, StageParam{Name: name, Extract: &Extract{Type: api.TimebasedType, Timebased: &tb}})
 }
 
 // TransformGeneric chains the current stage with a TransformGeneric stage and returns that new stage
