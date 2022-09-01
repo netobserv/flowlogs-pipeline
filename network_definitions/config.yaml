@@ -46,10 +46,12 @@ extract:
           fields:
             - srcIP
             - srcPort
+            - srcSubnet
         - name: dst
           fields:
             - dstIP
             - dstPort
+            - dstSubnet
         - name: protocol
           fields:
             - proto

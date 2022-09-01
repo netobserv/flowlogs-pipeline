@@ -90,7 +90,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(flp_connections_per_destination_subnet[1m]))',
+      expr='topk(10,rate(flp_connections_per_destination_subnet{_RecordType="newConnection"}[1m]))',
     )
   ), gridPos={
     x: 0,
