@@ -138,7 +138,10 @@ func (fs *FilterStruct) CreateGenericMap() []config.GenericMap {
 			"key":              result.key,
 			"operation_result": result.operationResult,
 		}
+		t[fs.Rule.RecordKey] = result.key
+		log.Infof("FilterStruct CreateGenericMap: %v", t)
 		output = append(output, t)
 	}
+	log.Debugf("FilterStruct CreateGenericMap: output = %v \n", output)
 	return output
 }
