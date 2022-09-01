@@ -18,15 +18,18 @@
 package encode
 
 import (
+	"context"
+	"fmt"
+	"math/rand"
+	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
-	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,79 +66,61 @@ parameters:
             type: histogram
             valueKey: aggregate
             labels:
+          - name: subnetHistogram2
+            type: agg_histogram
+            valueKey: aggregate
+            labels:
 `
 
-func initNewEncodeProm(t *testing.T) Encoder {
-	v, cfg := test.InitConfig(t, testConfig)
-	require.NotNil(t, v)
-
-	newEncode, err := NewEncodeProm(cfg.Parameters[0])
-	require.Equal(t, err, nil)
-	return newEncode
+func initPromWithServer(params *api.PromEncode) (*EncodeProm, func(), error) {
+	// We need to re-instanciate globals used here and there, to avoid errors such as:
+	//  "panic: http: multiple registrations for /metrics"
+	//  TODO: remove use of default globals.
+	reg := prometheus.NewRegistry()
+	prometheus.DefaultRegisterer = reg
+	prometheus.DefaultGatherer = reg
+	http.DefaultServeMux = http.NewServeMux()
+	enc, err := NewEncodeProm(config.StageParam{Encode: &config.Encode{Prom: params}})
+	if err != nil {
+		return nil, nil, err
+	}
+	prom := enc.(*EncodeProm)
+	return prom, func() {
+		err := prom.closeServer(context.Background())
+		if err != nil {
+			fmt.Printf("Error while closing prom server: %v\n", err)
+		}
+	}, nil
 }
 
 func Test_NewEncodeProm(t *testing.T) {
-	newEncode := initNewEncodeProm(t)
-	encodeProm := newEncode.(*EncodeProm)
-	require.Equal(t, ":9103", encodeProm.port)
-	require.Equal(t, "test_", encodeProm.prefix)
-	require.Equal(t, 3, len(encodeProm.metrics))
+	v, cfg := test.InitConfig(t, testConfig)
+	require.NotNil(t, v)
+	encodeProm, cleanup, err := initPromWithServer(cfg.Parameters[0].Encode.Prom)
+	require.NoError(t, err)
+	defer cleanup()
+
+	require.Equal(t, 1, len(encodeProm.counters))
+	require.Equal(t, 1, len(encodeProm.gauges))
+	require.Equal(t, 1, len(encodeProm.histos))
+	require.Equal(t, 1, len(encodeProm.aggHistos))
 	require.Equal(t, int64(1), encodeProm.expiryTime)
 	require.Equal(t, (*api.PromTLSConf)(nil), encodeProm.tlsConfig)
 
-	metrics := encodeProm.metrics
-	assert.Contains(t, metrics, "Bytes")
-	gInfo := metrics["Bytes"]
-	require.Equal(t, gInfo.input, "bytes")
+	require.Equal(t, encodeProm.gauges[0].info.Name, "Bytes")
 	expectedList := []string{"srcAddr", "dstAddr", "srcPort"}
-	require.Equal(t, gInfo.labelNames, expectedList)
+	require.Equal(t, encodeProm.gauges[0].info.Labels, expectedList)
 
-	assert.Contains(t, metrics, "Packets")
-	cInfo := metrics["Packets"]
-	require.Equal(t, cInfo.input, "packets")
+	require.Equal(t, encodeProm.counters[0].info.Name, "Packets")
 	expectedList = []string{"srcAddr", "dstAddr", "dstPort"}
-	require.Equal(t, cInfo.labelNames, expectedList)
+	require.Equal(t, encodeProm.counters[0].info.Labels, expectedList)
 	entry := test.GetExtractMockEntry()
 	input := []config.GenericMap{entry}
 	encodeProm.Encode(input)
 
-	entryLabels1 := make(map[string]string, 3)
-	entryLabels2 := make(map[string]string, 3)
-	entryLabels1["srcAddr"] = "10.1.2.3"
-	entryLabels1["dstAddr"] = "10.1.2.4"
-	entryLabels1["srcPort"] = "9001"
-	entryLabels2["srcAddr"] = "10.1.2.3"
-	entryLabels2["dstAddr"] = "10.1.2.4"
-	entryLabels2["dstPort"] = "39504"
-	gEntryInfo1 := config.GenericMap{
-		"Name":   "test_Bytes",
-		"Labels": entryLabels1,
-		"value":  1234,
-	}
-	gEntryInfo2 := config.GenericMap{
-		"Name":   "test_Packets",
-		"Labels": entryLabels2,
-		"value":  34,
-	}
-	require.Contains(t, encodeProm.PrevRecords, gEntryInfo1)
-	require.Contains(t, encodeProm.PrevRecords, gEntryInfo2)
-	gaugeA, err := gInfo.promGauge.GetMetricWith(entryLabels1)
-	require.Equal(t, nil, err)
-	bytesA := testutil.ToFloat64(gaugeA)
-	require.Equal(t, gEntryInfo1["value"], int(bytesA))
-
 	// verify entries are in cache; one for the gauge and one for the counter
 	entriesMapLen := encodeProm.mCache.GetCacheLen()
 	require.Equal(t, 2, entriesMapLen)
-
-	eInfo := entrySignature{
-		Name:   "test_Bytes",
-		Labels: entryLabels1,
-	}
-
-	eInfoBytes := generateCacheKey(&eInfo)
-	_, found := encodeProm.mCache.GetCacheEntry(string(eInfoBytes))
-	require.Equal(t, true, found)
 
 	// wait a couple seconds so that the entry will expire
 	time.Sleep(2 * time.Second)
@@ -144,44 +129,182 @@ func Test_NewEncodeProm(t *testing.T) {
 	require.Equal(t, 0, entriesMapLen)
 }
 
-func Test_EncodeAggregate(t *testing.T) {
+func Test_CustomMetric(t *testing.T) {
 	metrics := []config.GenericMap{{
-		"name":       "test_aggregate",
-		"operation":  "sum",
-		"record_key": "IP",
-		"by":         "[dstIP srcIP]",
-		"aggregate":  "20.0.0.2,10.0.0.1",
-		"value":      7.0,
-		"count":      1,
+		"srcIP":   "20.0.0.2",
+		"dstIP":   "10.0.0.1",
+		"flags":   "SYN",
+		"bytes":   7,
+		"packets": 1,
+		"latency": 0.1,
+	}, {
+		"srcIP":   "20.0.0.2",
+		"dstIP":   "10.0.0.1",
+		"flags":   "RST",
+		"bytes":   1,
+		"packets": 1,
+		"latency": 0.05,
+	}, {
+		"srcIP":   "10.0.0.1",
+		"dstIP":   "30.0.0.3",
+		"flags":   "SYN",
+		"bytes":   12,
+		"packets": 2,
+		"latency": 0.2,
 	}}
 
-	newEncode := &EncodeProm{
-		port:   ":0000",
-		prefix: "test_",
-		metrics: map[string]metricInfo{
-			"gauge": {
-				input: "value",
-				filter: keyValuePair{
-					key:   "name",
-					value: "test_aggregate",
-				},
-				labelNames: []string{"by", "aggregate"},
-			},
-		},
-		mCache: utils.NewTimedCache(),
+	params := api.PromEncode{
+		Port:       9090,
+		Prefix:     "test_",
+		ExpiryTime: 60,
+		Metrics: []api.PromMetricsItem{{
+			Name:     "bytes_total",
+			Type:     "counter",
+			ValueKey: "bytes",
+			Labels:   []string{"srcIP", "dstIP"},
+		}, {
+			Name:     "packets_total",
+			Type:     "counter",
+			ValueKey: "packets",
+			Labels:   []string{"srcIP", "dstIP"},
+		}, {
+			Name:     "latency_seconds",
+			Type:     "histogram",
+			ValueKey: "latency",
+			Labels:   []string{"srcIP", "dstIP"},
+			Buckets:  []float64{},
+		}, {
+			Name:     "flows_total",
+			Type:     "counter",
+			ValueKey: "", // empty valuekey means it's a records counter
+			Labels:   []string{"srcIP", "dstIP"},
+		}},
 	}
 
-	newEncode.Encode(metrics)
+	encodeProm, cleanup, err := initPromWithServer(&params)
+	require.NoError(t, err)
+	defer cleanup()
 
-	gEntryInfo1 := config.GenericMap{
-		"Name": "test_gauge",
-		"Labels": map[string]string{
-			"by":        "[dstIP srcIP]",
-			"aggregate": "20.0.0.2,10.0.0.1",
-		},
-		"value": float64(7),
+	encodeProm.Encode(metrics)
+	time.Sleep(100 * time.Millisecond)
+
+	exposed := test.ReadExposedMetrics(t)
+
+	require.Contains(t, exposed, `test_bytes_total{dstIP="10.0.0.1",srcIP="20.0.0.2"} 8`)
+	require.Contains(t, exposed, `test_bytes_total{dstIP="30.0.0.3",srcIP="10.0.0.1"} 12`)
+	require.Contains(t, exposed, `test_packets_total{dstIP="10.0.0.1",srcIP="20.0.0.2"} 2`)
+	require.Contains(t, exposed, `test_packets_total{dstIP="30.0.0.3",srcIP="10.0.0.1"} 2`)
+	require.Contains(t, exposed, `test_latency_seconds_bucket{dstIP="10.0.0.1",srcIP="20.0.0.2",le="0.025"} 0`)
+	require.Contains(t, exposed, `test_latency_seconds_bucket{dstIP="10.0.0.1",srcIP="20.0.0.2",le="0.05"} 1`)
+	require.Contains(t, exposed, `test_latency_seconds_bucket{dstIP="10.0.0.1",srcIP="20.0.0.2",le="0.1"} 2`)
+	require.Contains(t, exposed, `test_latency_seconds_bucket{dstIP="10.0.0.1",srcIP="20.0.0.2",le="+Inf"} 2`)
+	require.Contains(t, exposed, `test_latency_seconds_sum{dstIP="10.0.0.1",srcIP="20.0.0.2"} 0.15`)
+	require.Contains(t, exposed, `test_latency_seconds_count{dstIP="10.0.0.1",srcIP="20.0.0.2"} 2`)
+	require.Contains(t, exposed, `test_latency_seconds_bucket{dstIP="30.0.0.3",srcIP="10.0.0.1",le="0.1"} 0`)
+	require.Contains(t, exposed, `test_latency_seconds_bucket{dstIP="30.0.0.3",srcIP="10.0.0.1",le="0.25"} 1`)
+	require.Contains(t, exposed, `test_latency_seconds_bucket{dstIP="30.0.0.3",srcIP="10.0.0.1",le="+Inf"} 1`)
+	require.Contains(t, exposed, `test_latency_seconds_sum{dstIP="30.0.0.3",srcIP="10.0.0.1"} 0.2`)
+	require.Contains(t, exposed, `test_latency_seconds_count{dstIP="30.0.0.3",srcIP="10.0.0.1"} 1`)
+	require.Contains(t, exposed, `test_flows_total{dstIP="10.0.0.1",srcIP="20.0.0.2"} 2`)
+	require.Contains(t, exposed, `test_flows_total{dstIP="30.0.0.3",srcIP="10.0.0.1"} 1`)
+}
+
+func Test_MetricTTL(t *testing.T) {
+	metrics := []config.GenericMap{{
+		"srcIP": "20.0.0.2",
+		"dstIP": "10.0.0.1",
+		"bytes": 7,
+	}, {
+		"srcIP": "20.0.0.2",
+		"dstIP": "10.0.0.1",
+		"bytes": 1,
+	}, {
+		"srcIP": "10.0.0.1",
+		"dstIP": "30.0.0.3",
+		"bytes": 12,
+	}}
+
+	params := api.PromEncode{
+		Port:       9090,
+		Prefix:     "test_",
+		ExpiryTime: 1,
+		Metrics: []api.PromMetricsItem{{
+			Name:     "bytes_total",
+			Type:     "counter",
+			ValueKey: "bytes",
+			Labels:   []string{"srcIP", "dstIP"},
+		}},
 	}
 
-	expectedOutput := []config.GenericMap{gEntryInfo1}
-	require.Equal(t, expectedOutput, newEncode.PrevRecords)
+	encodeProm, cleanup, err := initPromWithServer(&params)
+	require.NoError(t, err)
+	defer cleanup()
+
+	encodeProm.Encode(metrics)
+
+	exposed := test.ReadExposedMetrics(t)
+
+	require.Contains(t, exposed, `test_bytes_total{dstIP="10.0.0.1",srcIP="20.0.0.2"}`)
+	require.Contains(t, exposed, `test_bytes_total{dstIP="30.0.0.3",srcIP="10.0.0.1"}`)
+
+	// Wait for expiry
+	time.Sleep(2 * time.Second)
+
+	// Scrape a second time
+	exposed = test.ReadExposedMetrics(t)
+
+	require.NotContains(t, exposed, `test_bytes_total{dstIP="10.0.0.1",srcIP="20.0.0.2"}`)
+	require.NotContains(t, exposed, `test_bytes_total{dstIP="30.0.0.3",srcIP="10.0.0.1"}`)
+}
+
+func buildFlow() config.GenericMap {
+	return config.GenericMap{
+		"srcIP":   "10.0.0." + strconv.Itoa(rand.Intn(20)),
+		"dstIP":   "10.0.0." + strconv.Itoa(rand.Intn(20)),
+		"flags":   "SYN",
+		"bytes":   rand.Intn(100),
+		"packets": rand.Intn(10),
+		"latency": rand.Float64(),
+	}
+}
+
+func hundredFlows() []config.GenericMap {
+	flows := make([]config.GenericMap, 100)
+	for i := 0; i < 100; i++ {
+		flows[i] = buildFlow()
+	}
+	return flows
+}
+
+func BenchmarkPromEncode(b *testing.B) {
+	params := api.PromEncode{
+		Port:       9090,
+		Prefix:     "test_",
+		ExpiryTime: 60,
+		Metrics: []api.PromMetricsItem{{
+			Name:     "bytes_total",
+			Type:     "counter",
+			ValueKey: "bytes",
+			Labels:   []string{"srcIP", "dstIP"},
+		}, {
+			Name:     "packets_total",
+			Type:     "counter",
+			ValueKey: "packets",
+			Labels:   []string{"srcIP", "dstIP"},
+		}, {
+			Name:     "latency_seconds",
+			Type:     "histogram",
+			ValueKey: "latency",
+			Labels:   []string{"srcIP", "dstIP"},
+			Buckets:  []float64{},
+		}},
+	}
+
+	prom, cleanup, err := initPromWithServer(&params)
+	require.NoError(b, err)
+	defer cleanup()
+
+	for i := 0; i < b.N; i++ {
+		prom.Encode(hundredFlows())
+	}
 }
