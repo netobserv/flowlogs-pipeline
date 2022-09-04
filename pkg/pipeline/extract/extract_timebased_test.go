@@ -196,6 +196,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(1000),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.4",
 		},
 		{
 			"key":              "10.0.0.3",
@@ -204,6 +205,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(900),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.3",
 		},
 		{
 			"key":              "10.0.0.2",
@@ -212,6 +214,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(800),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.2",
 		},
 		{
 			"key":              "10.0.0.1",
@@ -220,6 +223,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(400),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.1",
 		},
 		{
 			"key":              "10.0.0.2",
@@ -228,6 +232,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(500),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.2",
 		},
 	}
 	require.Equal(t, expectedOutput, output)
@@ -247,6 +252,7 @@ func Test_ExtractTimebasedExtract2(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(1800),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.3",
 		},
 	}
 	require.Equal(t, expectedOutput, output)
@@ -266,6 +272,7 @@ func Test_ExtractTimebasedExtract3(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(0),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.4",
 		},
 	}
 	require.Equal(t, expectedOutput, output)
@@ -285,6 +292,7 @@ func Test_ExtractTimebasedExtract4(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(1000),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.4",
 		},
 	}
 	require.Equal(t, expectedOutput, output)
@@ -304,6 +312,7 @@ func Test_ExtractTimebasedExtract5(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(100),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.1",
 		},
 	}
 	require.Equal(t, expectedOutput, output)
@@ -323,6 +332,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(1200),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.1",
 		},
 		{
 			"key":              "10.0.0.2",
@@ -331,6 +341,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(1500),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.2",
 		},
 		{
 			"key":              "10.0.0.3",
@@ -339,6 +350,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(1800),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.3",
 		},
 		{
 			"key":              "10.0.0.4",
@@ -347,6 +359,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 			"operation_key":    "Bytes",
 			"operation_result": float64(1000),
 			"record_key":       "SrcAddr",
+			"SrcAddr":          "10.0.0.4",
 		},
 	}
 	for _, configMap := range expectedOutput {
