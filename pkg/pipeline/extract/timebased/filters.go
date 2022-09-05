@@ -33,13 +33,17 @@ func (fs *FilterStruct) CalculateResults(nowInSecs time.Time) {
 	oldestValidTime := nowInSecs.Add(-fs.Rule.TimeInterval.Duration)
 	for key, l := range fs.RecordKeyDataTable.dataTableMap {
 		var valueFloat64 = float64(0)
+		var err error
 		switch fs.Rule.Operation {
 		case api.FilterOperationName("FilterOperationLast"):
 			// handle empty list
 			if l.Len() == 0 {
 				continue
 			}
-			valueFloat64, _ = utils.ConvertToFloat64(l.Back().Value.(*TableEntry).entry[fs.Rule.OperationKey])
+			valueFloat64, err = utils.ConvertToFloat64(l.Back().Value.(*TableEntry).entry[fs.Rule.OperationKey])
+			if err != nil {
+				continue
+			}
 		case api.FilterOperationName("FilterOperationDiff"):
 			for e := l.Front(); e != nil; e = e.Next() {
 				cEntry := e.Value.(*TableEntry)
@@ -47,8 +51,14 @@ func (fs *FilterStruct) CalculateResults(nowInSecs time.Time) {
 					// entry is out of time range; ignore it
 					continue
 				}
-				first, _ := utils.ConvertToFloat64(e.Value.(*TableEntry).entry[fs.Rule.OperationKey])
-				last, _ := utils.ConvertToFloat64(l.Back().Value.(*TableEntry).entry[fs.Rule.OperationKey])
+				first, err := utils.ConvertToFloat64(e.Value.(*TableEntry).entry[fs.Rule.OperationKey])
+				if err != nil {
+					continue
+				}
+				last, err := utils.ConvertToFloat64(l.Back().Value.(*TableEntry).entry[fs.Rule.OperationKey])
+				if err != nil {
+					continue
+				}
 				valueFloat64 = last - first
 				break
 			}
