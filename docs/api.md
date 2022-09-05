@@ -10,7 +10,8 @@ Following is the supported API format for prometheus encode:
                      gauge: single numerical value that can arbitrarily go up and down
                      counter: monotonically increasing counter whose value can only increase
                      histogram: counts samples in configurable buckets
-                 filter: the criterion to filter entries by
+                     agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
+                 filter: an optional criterion to filter entries by
                      key: the key to match and filter by
                      value: the value to match and filter by
                  valueKey: entry key from which to resolve metric value
@@ -172,7 +173,6 @@ Following is the supported API format for specifying metrics aggregations:
          by: list of fields on which to aggregate
          operation: sum, min, max, avg or raw_values
          recordKey: internal field on which to perform the operation
-         topK: number of highest incidence to report (default - report all)
 </pre>
 ## Connection tracking API
 Following is the supported API format for specifying connection tracking:
