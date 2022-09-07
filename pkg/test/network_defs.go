@@ -79,7 +79,7 @@ extract:
       by:
         - service
       operation: sum
-      recordKey: test_record_key
+      operationKey: test_operation_key
 encode:
   type: prom
   prom:
@@ -116,7 +116,7 @@ extract:
       by:
         - service
       operation: sum
-      recordKey: test_record_key
+      operationKey: test_operation_key
 encode:
   type: prom
   prom:

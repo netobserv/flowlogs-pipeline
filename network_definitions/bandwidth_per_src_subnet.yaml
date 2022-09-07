@@ -23,7 +23,7 @@ extract:
         - srcSubnet
         - _RecordType
       operation: sum
-      recordKey: bytes
+      operationKey: bytes
   timebased:
     rules:
       - name: bandwidth_source_subnet

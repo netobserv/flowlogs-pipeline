@@ -499,13 +499,13 @@ parameters:
             - "dstIP"
             - "srcIP"
           operation: "avg"
-          recordKey: "value"
+          operationKey: "value"
 ```
 
 The output fields of the aggregates stage are:
 - `name`
 - `operation`
-- `record_key`
+- `operation_key`
 - `by`
 - `aggregate`
 - `total_value`: the total aggregate value

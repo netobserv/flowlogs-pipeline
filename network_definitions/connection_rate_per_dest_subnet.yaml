@@ -22,6 +22,7 @@ extract:
         - dstSubnet
         - _RecordType
       operation: count
+      operationKey: isNewFlow
 encode:
   type: prom
   prom:

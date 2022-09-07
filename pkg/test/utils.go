@@ -103,10 +103,10 @@ func GetExtractMockEntry() config.GenericMap {
 	return entry
 }
 
-func CreateMockAgg(name, recordKey, by, agg, op string, totalValue float64, totalCount int, rrv []float64, recentOpValue float64, recentCount int) config.GenericMap {
+func CreateMockAgg(name, operationKey, by, agg, op string, totalValue float64, totalCount int, rrv []float64, recentOpValue float64, recentCount int) config.GenericMap {
 	return config.GenericMap{
 		"name":              name,
-		"record_key":        recordKey,
+		"operation_key":     operationKey,
 		"by":                by,
 		"aggregate":         agg,
 		by:                  agg,

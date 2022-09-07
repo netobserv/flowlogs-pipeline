@@ -141,15 +141,15 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	aggregate.cache.UpdateCacheEntry(string(normalizedValues), groupState)
 
 	// update value
-	recordKey := aggregate.Definition.RecordKey
+	operationKey := aggregate.Definition.OperationKey
 	operation := aggregate.Definition.Operation
 
 	if operation == OperationCount {
 		groupState.totalValue = float64(groupState.totalCount + 1)
 		groupState.recentOpValue = float64(groupState.recentCount + 1)
 	} else {
-		if recordKey != "" {
-			value, ok := entry[recordKey]
+		if operationKey != "" {
+			value, ok := entry[operationKey]
 			if ok {
 				valueString := fmt.Sprintf("%v", value)
 				valueFloat64, _ := strconv.ParseFloat(valueString, 64)
@@ -211,7 +211,7 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 		newEntry := config.GenericMap{
 			"name":              aggregate.Definition.Name,
 			"operation":         aggregate.Definition.Operation,
-			"record_key":        aggregate.Definition.RecordKey,
+			"operation_key":     aggregate.Definition.OperationKey,
 			"by":                strings.Join(aggregate.Definition.By, ","),
 			"aggregate":         string(group.normalizedValues),
 			"total_value":       group.totalValue,

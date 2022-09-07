@@ -54,11 +54,11 @@ func (cg *ConfGen) generateOperationText(definitions aggregate.Definitions) stri
 	for _, definition := range definitions {
 		by := strings.Join(definition.By[:], ", ")
 		operation := definition.Operation
-		recordKey := definition.RecordKey
-		if recordKey != "" {
-			recordKey = fmt.Sprintf("field `%s`", recordKey)
+		operationKey := definition.OperationKey
+		if operationKey != "" {
+			operationKey = fmt.Sprintf("field `%s`", operationKey)
 		}
-		section = section + fmt.Sprintf("| **Operation** | aggregate by `%s` and `%s` %s |\n", by, operation, recordKey)
+		section = section + fmt.Sprintf("| **Operation** | aggregate by `%s` and `%s` %s |\n", by, operation, operationKey)
 	}
 
 	return section

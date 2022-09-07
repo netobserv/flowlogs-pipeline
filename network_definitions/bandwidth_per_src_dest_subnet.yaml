@@ -28,7 +28,7 @@ extract:
         - srcSubnet24
         - _RecordType
       operation: sum
-      recordKey: bytes
+      operationKey: bytes
 encode:
   type: prom
   prom:

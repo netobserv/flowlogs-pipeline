@@ -41,7 +41,7 @@ parameters:
             - "dstIP"
             - "srcIP"
           Operation: "avg"
-          RecordKey: "value"
+          OperationKey: "value"
 `
 	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)

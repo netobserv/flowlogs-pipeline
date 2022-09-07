@@ -46,19 +46,19 @@ parameters:
          by:
          - service
          operation: sum
-         recordkey: bytes
+         operationKey: bytes
 
        - name: bandwidth_count
          by:
          - service
          operation: count
-         recordkey: 
+         operationKey:
 
        - name: bandwidth_raw_values
          by:
          - service
          operation: raw_values
-         recordkey: bytes
+         operationKey: bytes
  - name: encode
    encode:
      type: prom

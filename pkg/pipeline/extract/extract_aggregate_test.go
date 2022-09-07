@@ -43,37 +43,37 @@ parameters:
           by:
           - service
           operation: count
-          recordkey: ""
+          operationKey: ""
 
         - name: bandwidth_sum
           by:
           - service
           operation: sum
-          recordkey: bytes
+          operationKey: bytes
 
         - name: bandwidth_max
           by:
           - service
           operation: max
-          recordkey: bytes
+          operationKey: bytes
 
         - name: bandwidth_min
           by:
           - service
           operation: min
-          recordkey: bytes
+          operationKey: bytes
 
         - name: bandwidth_avg
           by:
           - service
           operation: avg
-          recordkey: bytes
+          operationKey: bytes
 
         - name: bandwidth_raw_values
           by:
           - service
           operation: raw_values
-          recordkey: bytes
+          operationKey: bytes
 `
 	var err error
 

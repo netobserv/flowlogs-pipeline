@@ -23,7 +23,7 @@ extract:
         - service
         - _RecordType
       operation: sum
-      recordKey: bytes
+      operationKey: bytes
 encode:
   type: prom
   prom:

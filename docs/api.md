@@ -171,7 +171,7 @@ Following is the supported API format for specifying metrics aggregations:
          name: description of aggregation result
          by: list of fields on which to aggregate
          operation: sum, min, max, avg or raw_values
-         recordKey: internal field on which to perform the operation
+         operationKey: internal field on which to perform the operation
 </pre>
 ## Connection tracking API
 Following is the supported API format for specifying connection tracking:

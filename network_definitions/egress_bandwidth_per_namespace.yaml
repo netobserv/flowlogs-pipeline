@@ -23,7 +23,7 @@ extract:
         - srcK8S_Type
         - _RecordType
       operation: sum
-      recordKey: bytes
+      operationKey: bytes
 encode:
   type: prom
   prom:
