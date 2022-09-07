@@ -506,13 +506,13 @@ parameters:
             - "dstIP"
             - "srcIP"
           operation: "avg"
-          recordKey: "value"
+          operationKey: "value"
 ```
 
 The output fields of the aggregates stage are:
 - `name`
 - `operation`
-- `record_key`
+- `operation_key`
 - `by`
 - `aggregate`
 - `total_value`: the total aggregate value
@@ -651,6 +651,63 @@ Notice that all output records contain `_RecordType` and `_HashId` fields.
 Output fields that set `splitAB: true` (like in `Bytes`) are split into 2 fields `Bytes_AB` and `Bytes_BA` which 
 aggregate values separately based on direction A->B and B->A respectively.
 When `splitAB` is absent, its default value is `false`.
+
+### Timebased TopK
+
+It is sometimes desirable to return only a subset of records, such as those connections that use the most bandwidth.
+This information is often relevant only for recently reported records.
+This stage enables the reporting of records for the top (or bottom) K entries that have recently been processed.
+The specification of the Timebased TopK details is placed in the `extract` stage of the pipeline.
+
+For Example, assuming a set of flow-logs, with a single sample flow-log that looks like:
+```
+{"srcIP": "10.0.0.1",
+"dstIP":  "20.0.0.2",
+"srcSubnet": "10.0.0.0/16",
+"bytes":  4096,
+```
+
+It is possible to request the entries indexed by subnet with the top number of bytes.
+There may be multiple records with the same index (e.g. same srcIP or same subnet, as the case may be).
+The time interval over which to select the TopK may be specified.
+It may further be specified what operation to perform on the multiple entries of the same index that fall within the allowed time inerval.
+The allowed operations are: `sum`, `min`, `max`, `avg`, `diff`, `last`.
+To obtain the bottom K entries instead of the Top K entries, set `reversed` to `true`.
+
+A sample configuration record looks like this:
+
+```yaml
+pipeline:
+  - name: timebased1
+    follows: <something>
+parameters:
+  - name: timebased1
+    extract:
+      type: timebased
+      timebased:
+        rules:
+          - name: "Top 3 Sum of bytes per source subnet over last 10 seconds"
+            operation: sum
+            operationKey: bytes
+            recordKey: srcSubnet
+            topK: 3
+            reversed: false
+            timeInterval: 10s
+```
+
+The output fields of the aggregates stage are:
+- `name`
+- `operation`
+- `operation_key`
+- `record_key`; the field specified in the rules upon which to perform the operation
+- `key`; the value of the record_key
+- `operation_result`; (computed sum, max, min, etc, as the case may be)
+
+In addition there is a field with the
+"$record_key": "$key"
+representing the original map entry in the input flow-log.
+
+These fields are used by the next stage (for example `prom` encoder).
 
 ### Prometheus encoder
 
