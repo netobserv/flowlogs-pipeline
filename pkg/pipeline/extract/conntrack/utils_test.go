@@ -105,6 +105,11 @@ func newMockRecordEndConn(srcIP string, srcPort int, dstIP string, dstPort int, 
 		withType("endConnection")
 }
 
+func newMockRecordUpdateConn(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytes, packets, numFlowLogs float64) *mockRecord {
+	return newMockRecordConn(srcIP, srcPort, dstIP, dstPort, protocol, bytes, packets, numFlowLogs).
+		withType("updateConnection")
+}
+
 func (m *mockRecord) withHash(hashStr string) *mockRecord {
 	m.record[api.HashIdFieldName] = hashStr
 	return m

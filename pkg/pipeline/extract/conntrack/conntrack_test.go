@@ -18,6 +18,8 @@
 package conntrack
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -75,8 +77,9 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *
 					{Name: "Packets", Operation: "sum", SplitAB: splitAB},
 					{Name: "numFlowLogs", Operation: "count", SplitAB: false},
 				},
-				OutputRecordTypes:    outputRecordType,
-				EndConnectionTimeout: api.Duration{Duration: 30 * time.Second},
+				OutputRecordTypes:        outputRecordType,
+				UpdateConnectionInterval: api.Duration{Duration: 10 * time.Second},
+				EndConnectionTimeout:     api.Duration{Duration: 30 * time.Second},
 			}, // end of api.ConnTrack
 		}, // end of config.Track
 	} // end of config.StageParam
@@ -336,6 +339,153 @@ func TestEndConn_Unidirectional(t *testing.T) {
 	}
 }
 
+// TestUpdateConn_Unidirectional tests that update connection records are outputted correctly and in the right time in
+// unidirectional setting.
+// The test simulates 2 flow logs from A to B and 2 from B to A in different timestamps.
+// Then the test verifies that an update connection record is outputted only after 10 seconds from the last update
+// connection report.
+func TestUpdateConn_Unidirectional(t *testing.T) {
+	clk := clock.NewMock()
+	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "updateConnection", "endConnection"})
+	ct, err := NewConnectionTrack(*conf, clk)
+	require.NoError(t, err)
+
+	ipA := "10.0.0.1"
+	ipB := "10.0.0.2"
+	portA := 9001
+	portB := 9002
+	protocol := 6
+	hashIdAB := "705baa5149302fa1"
+	hashIdBA := "cc40f571f40f3111"
+
+	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 111, 11)
+	flAB2 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 222, 22)
+	flBA3 := newMockFlowLog(ipB, portB, ipA, portA, protocol, 333, 33)
+	startTime := clk.Now()
+	table := []struct {
+		name          string
+		time          time.Time
+		inputFlowLogs []config.GenericMap
+		expected      []config.GenericMap
+	}{
+		{
+			"start: flow AB",
+			startTime.Add(0 * time.Second),
+			[]config.GenericMap{flAB1},
+			[]config.GenericMap{
+				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
+				newMockRecordFromFlowLog(flAB1).withHash(hashIdAB).get(),
+			},
+		},
+		{
+			"5s: flow AB and BA",
+			startTime.Add(5 * time.Second),
+			[]config.GenericMap{flAB2, flBA3},
+			[]config.GenericMap{
+				newMockRecordFromFlowLog(flAB2).withHash(hashIdAB).get(),
+				newMockRecordNewConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
+				newMockRecordFromFlowLog(flBA3).withHash(hashIdBA).get(),
+			},
+		},
+		{
+			"9s: no update report",
+			startTime.Add(9 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"11s: update report AB",
+			startTime.Add(11 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
+			},
+		},
+		{
+			"14s: no update report",
+			startTime.Add(14 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"16s: update report BA",
+			startTime.Add(16 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
+			},
+		},
+		{
+			"20s: no update report",
+			startTime.Add(20 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"22s: update report AB",
+			startTime.Add(22 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
+			},
+		},
+		{
+			"25s: no update report",
+			startTime.Add(25 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"27s: update report BA",
+			startTime.Add(27 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
+			},
+		},
+		{
+			"31s: no update report",
+			startTime.Add(31 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"33s: update report AB",
+			startTime.Add(33 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
+			},
+		},
+		{
+			"34s: no end conn",
+			startTime.Add(34 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"36s: end conn AB and BA",
+			startTime.Add(36 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordEndConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
+				newMockRecordEndConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
+			},
+		},
+	}
+
+	for _, test := range table {
+		var prevTime time.Time
+		t.Run(test.name, func(t *testing.T) {
+			require.Less(t, prevTime, test.time)
+			prevTime = test.time
+			clk.Set(test.time)
+			actual := ct.Extract(test.inputFlowLogs)
+			require.Equal(t, test.expected, actual)
+		})
+	}
+}
+
 func assertConnDoesntExist(t *testing.T, store *connectionStore, hashId uint64) {
 	t.Helper()
 	conn, found := store.getConnection(hashId)
@@ -343,7 +493,7 @@ func assertConnDoesntExist(t *testing.T, store *connectionStore, hashId uint64) 
 	require.False(t, found)
 }
 
-func TestIterateOldToNew(t *testing.T) {
+func TestIterateFrontToBack(t *testing.T) {
 	// This test adds 2 connections to the store, deletes them and verifies deletion.
 	cs := newConnectionStore()
 
@@ -355,7 +505,7 @@ func TestIterateOldToNew(t *testing.T) {
 	conn2 := NewConnBuilder().Hash(conn2hash).Build()
 	cs.addConnection(conn2.getHash().hashTotal, conn2)
 
-	cs.iterateOldToNew(func(c connection) (shouldDelete, shouldStop bool) {
+	cs.iterateFrontToBack(expiryOrder, func(c connection) (shouldDelete, shouldStop bool) {
 		// Delete all
 		shouldDelete = true
 		shouldStop = false
@@ -363,4 +513,67 @@ func TestIterateOldToNew(t *testing.T) {
 	})
 	assertConnDoesntExist(t, cs, conn1.getHash().hashTotal)
 	assertConnDoesntExist(t, cs, conn2.getHash().hashTotal)
+}
+
+func TestPrepareUpdateConnectionRecords(t *testing.T) {
+	// This test tests prepareUpdateConnectionRecords().
+	// It sets the update report interval to 10 seconds and creates 3 records for the first interval and 3 records for the second interval (6 in total).
+	// Then, it calls prepareUpdateConnectionRecords() a couple of times in different times.
+	// It makes sure that only the right records are returned on each call.
+	clk := clock.NewMock()
+	conf := buildMockConnTrackConfig(false, []string{"updateConnection"})
+	interval := 10 * time.Second
+	conf.Extract.ConnTrack.UpdateConnectionInterval = api.Duration{Duration: interval}
+	extract, err := NewConnectionTrack(*conf, clk)
+	require.NoError(t, err)
+	ct := extract.(*conntrackImpl)
+	startTime := clk.Now()
+
+	reportTimes := []struct {
+		nextReportTime time.Time
+		hash           uint64
+	}{
+		{startTime.Add(1 * time.Second), 0x01},
+		{startTime.Add(2 * time.Second), 0x02},
+		{startTime.Add(3 * time.Second), 0x03},
+		{startTime.Add(interval + 1*time.Second), 0x0a},
+		{startTime.Add(interval + 2*time.Second), 0x0b},
+		{startTime.Add(interval + 3*time.Second), 0x0c},
+	}
+	for _, r := range reportTimes {
+		hash := totalHashType{hashTotal: r.hash}
+		builder := NewConnBuilder()
+		conn := builder.Hash(hash).Build()
+		ct.connStore.addConnection(hash.hashTotal, conn)
+		conn.setNextUpdateReportTime(r.nextReportTime)
+	}
+	clk.Set(startTime.Add(interval))
+	actual := ct.prepareUpdateConnectionRecords()
+	assertHashOrder(t, []uint64{0x01, 0x02, 0x03}, actual)
+
+	clk.Set(startTime.Add(2 * interval))
+	actual = ct.prepareUpdateConnectionRecords()
+	assertHashOrder(t, []uint64{0x0a, 0x0b, 0x0c}, actual)
+
+	clk.Set(startTime.Add(3 * interval))
+	actual = ct.prepareUpdateConnectionRecords()
+	assertHashOrder(t, []uint64{0x01, 0x02, 0x03}, actual)
+}
+
+func assertHashOrder(t *testing.T, expected []uint64, actualRecords []config.GenericMap) {
+	t.Helper()
+	var actual []uint64
+	for _, r := range actualRecords {
+		actual = append(actual, hex2int(r[api.HashIdFieldName].(string)))
+	}
+	require.Equal(t, expected, actual)
+}
+
+func hex2int(hexStr string) uint64 {
+	// remove 0x suffix if found in the input string
+	cleaned := strings.Replace(hexStr, "0x", "", -1)
+
+	// base 16 for hexadecimal
+	result, _ := strconv.ParseUint(cleaned, 16, 64)
+	return uint64(result)
 }

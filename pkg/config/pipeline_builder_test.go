@@ -42,7 +42,7 @@ func TestLokiPipeline(t *testing.T) {
 
 	b, err := json.Marshal(stages)
 	require.NoError(t, err)
-	require.Equal(t, `[{"name":"ingest"},{"name":"enrich","follows":"ingest"},{"name":"loki","follows":"enrich"}]`, string(b))
+	require.JSONEq(t, `[{"name":"ingest"},{"name":"enrich","follows":"ingest"},{"name":"loki","follows":"enrich"}]`, string(b))
 
 	params := pl.GetStageParams()
 	require.Len(t, params, 3)
@@ -53,11 +53,11 @@ func TestLokiPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"enrich","transform":{"type":"network","network":{"rules":[{"input":"SrcAddr","output":"SrcK8S","type":"add_kubernetes"},{"input":"DstAddr","output":"DstK8S","type":"add_kubernetes"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"enrich","transform":{"type":"network","network":{"rules":[{"input":"SrcAddr","output":"SrcK8S","type":"add_kubernetes"},{"input":"DstAddr","output":"DstK8S","type":"add_kubernetes"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/"}}}`, string(b))
+	require.JSONEq(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/"}}}`, string(b))
 }
 
 func TestGRPCPipeline(t *testing.T) {
@@ -74,22 +74,22 @@ func TestGRPCPipeline(t *testing.T) {
 
 	b, err := json.Marshal(stages)
 	require.NoError(t, err)
-	require.Equal(t, `[{"name":"grpc"},{"name":"filter","follows":"grpc"},{"name":"stdout","follows":"filter"}]`, string(b))
+	require.JSONEq(t, `[{"name":"grpc"},{"name":"filter","follows":"grpc"},{"name":"stdout","follows":"filter"}]`, string(b))
 
 	params := pl.GetStageParams()
 	require.Len(t, params, 3)
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"grpc","ingest":{"type":"grpc","grpc":{"port":9050,"bufferLength":50}}}`, string(b))
+	require.JSONEq(t, `{"name":"grpc","ingest":{"type":"grpc","grpc":{"port":9050,"bufferLength":50}}}`, string(b))
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"input":"doesnt_exist","type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"input":"doesnt_exist","type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"stdout","write":{"type":"stdout","stdout":{"format":"json"}}}`, string(b))
+	require.JSONEq(t, `{"name":"stdout","write":{"type":"stdout","stdout":{"format":"json"}}}`, string(b))
 }
 
 func TestKafkaPromPipeline(t *testing.T) {
@@ -137,30 +137,30 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err := json.Marshal(stages)
 	require.NoError(t, err)
-	require.Equal(t, `[{"name":"ingest"},{"name":"filter","follows":"ingest"},{"name":"conntrack","follows":"filter"},{"name":"aggregate","follows":"conntrack"},{"name":"prom","follows":"aggregate"}]`, string(b))
+	require.JSONEq(t, `[{"name":"ingest"},{"name":"filter","follows":"ingest"},{"name":"conntrack","follows":"filter"},{"name":"aggregate","follows":"conntrack"},{"name":"prom","follows":"aggregate"}]`, string(b))
 
 	params := pl.GetStageParams()
 	require.Len(t, params, 5)
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"ingest","ingest":{"type":"kafka","kafka":{"brokers":["http://kafka"],"topic":"netflows","groupid":"my-group","decoder":{"type":"json"},"tls":{"insecureSkipVerify":true,"caCertPath":"/ca.crt"}}}}`, string(b))
+	require.JSONEq(t, `{"name":"ingest","ingest":{"type":"kafka","kafka":{"brokers":["http://kafka"],"topic":"netflows","groupid":"my-group","decoder":{"type":"json"},"tls":{"insecureSkipVerify":true,"caCertPath":"/ca.crt"}}}}`, string(b))
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"input":"doesnt_exist","type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"input":"doesnt_exist","type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"conntrack","extract":{"type":"conntrack","conntrack":{"KeyDefinition":{"FieldGroups":null,"Hash":{"FieldGroupRefs":null,"FieldGroupARef":"","FieldGroupBRef":""}},"OutputRecordTypes":null,"OutputFields":null,"EndConnectionTimeout":"0s"}}}`, string(b))
+	require.JSONEq(t, `{"name":"conntrack","extract":{"type":"conntrack","conntrack":{"KeyDefinition":{"FieldGroups":null,"Hash":{"FieldGroupRefs":null,"FieldGroupARef":"","FieldGroupBRef":""}},"OutputRecordTypes":null,"OutputFields":null,"EndConnectionTimeout":"0s","UpdateConnectionInterval":"0s"}}}`, string(b))
 
 	b, err = json.Marshal(params[3])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"aggregate","extract":{"type":"aggregates","aggregates":[{"name":"src_as_connection_count","by":["srcAS"],"operation":"count"}]}}`, string(b))
+	require.JSONEq(t, `{"name":"aggregate","extract":{"type":"aggregates","aggregates":[{"name":"src_as_connection_count","by":["srcAS"],"operation":"count"}]}}`, string(b))
 
 	b, err = json.Marshal(params[4])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"prom","encode":{"type":"prom","prom":{"metrics":[{"name":"connections_per_source_as","type":"counter","filter":{"key":"name","value":"src_as_connection_count"},"valueKey":"recent_count","labels":["by","aggregate"],"buckets":[]}],"port":9090,"prefix":"flp_"}}}`, string(b))
+	require.JSONEq(t, `{"name":"prom","encode":{"type":"prom","prom":{"metrics":[{"name":"connections_per_source_as","type":"counter","filter":{"key":"name","value":"src_as_connection_count"},"valueKey":"recent_count","labels":["by","aggregate"],"buckets":[]}],"port":9090,"prefix":"flp_"}}}`, string(b))
 }
 
 func TestForkPipeline(t *testing.T) {
@@ -172,20 +172,20 @@ func TestForkPipeline(t *testing.T) {
 
 	b, err := json.Marshal(stages)
 	require.NoError(t, err)
-	require.Equal(t, `[{"name":"ingest"},{"name":"loki","follows":"ingest"},{"name":"stdout","follows":"ingest"}]`, string(b))
+	require.JSONEq(t, `[{"name":"ingest"},{"name":"loki","follows":"ingest"},{"name":"stdout","follows":"ingest"}]`, string(b))
 
 	params := plFork.GetStageParams()
 	require.Len(t, params, 3)
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"ingest","ingest":{"type":"collector","collector":{"hostName":"127.0.0.1","port":9999}}}`, string(b))
+	require.JSONEq(t, `{"name":"ingest","ingest":{"type":"collector","collector":{"hostName":"127.0.0.1","port":9999}}}`, string(b))
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/"}}}`, string(b))
+	require.JSONEq(t, `{"name":"loki","write":{"type":"loki","loki":{"url":"http://loki:3100/"}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"stdout","write":{"type":"stdout","stdout":{}}}`, string(b))
+	require.JSONEq(t, `{"name":"stdout","write":{"type":"stdout","stdout":{}}}`, string(b))
 }

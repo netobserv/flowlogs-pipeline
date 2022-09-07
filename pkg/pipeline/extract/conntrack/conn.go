@@ -30,17 +30,20 @@ type connection interface {
 	addAgg(fieldName string, initValue float64)
 	getAggValue(fieldName string) (float64, bool)
 	updateAggValue(fieldName string, newValueFn func(curr float64) float64)
-	setLastUpdate(t time.Time)
-	getLastUpdate() time.Time
+	setExpiryTime(t time.Time)
+	getExpiryTime() time.Time
+	setNextUpdateReportTime(t time.Time)
+	getNextUpdateReportTime() time.Time
 	toGenericMap() config.GenericMap
 	getHash() totalHashType
 }
 
 type connType struct {
-	hash       totalHashType
-	keys       config.GenericMap
-	aggFields  map[string]float64
-	lastUpdate time.Time
+	hash                 totalHashType
+	keys                 config.GenericMap
+	aggFields            map[string]float64
+	expiryTime           time.Time
+	nextUpdateReportTime time.Time
 }
 
 func (c *connType) addAgg(fieldName string, initValue float64) {
@@ -60,12 +63,20 @@ func (c *connType) updateAggValue(fieldName string, newValueFn func(curr float64
 	c.aggFields[fieldName] = newValueFn(v)
 }
 
-func (c *connType) setLastUpdate(t time.Time) {
-	c.lastUpdate = t
+func (c *connType) setExpiryTime(t time.Time) {
+	c.expiryTime = t
 }
 
-func (c *connType) getLastUpdate() time.Time {
-	return c.lastUpdate
+func (c *connType) getExpiryTime() time.Time {
+	return c.expiryTime
+}
+
+func (c *connType) setNextUpdateReportTime(t time.Time) {
+	c.nextUpdateReportTime = t
+}
+
+func (c *connType) getNextUpdateReportTime() time.Time {
+	return c.nextUpdateReportTime
 }
 
 func (c *connType) toGenericMap() config.GenericMap {
@@ -77,8 +88,6 @@ func (c *connType) toGenericMap() config.GenericMap {
 	for k, v := range c.keys {
 		gm[k] = v
 	}
-	// TODO: Add hash field
-	// TODO: Should this method add recordTypeField?
 	return gm
 }
 
@@ -86,7 +95,6 @@ func (c *connType) getHash() totalHashType {
 	return c.hash
 }
 
-// TODO: Should connBuilder get a file of its own?
 type connBuilder struct {
 	conn *connType
 }
@@ -108,7 +116,6 @@ func (cb *connBuilder) Hash(h totalHashType) *connBuilder {
 func (cb *connBuilder) KeysFrom(flowLog config.GenericMap, kd api.KeyDefinition) *connBuilder {
 	for _, fg := range kd.FieldGroups {
 		for _, f := range fg.Fields {
-			// TODO: is it correct from OOP PoV to access conn.keys directly?
 			cb.conn.keys[f] = flowLog[f]
 		}
 	}
@@ -119,6 +126,11 @@ func (cb *connBuilder) Aggregators(aggs []aggregator) *connBuilder {
 	for _, agg := range aggs {
 		agg.addField(cb.conn)
 	}
+	return cb
+}
+
+func (cb *connBuilder) NextUpdateReportTime(t time.Time) *connBuilder {
+	cb.conn.setNextUpdateReportTime(t)
 	return cb
 }
 

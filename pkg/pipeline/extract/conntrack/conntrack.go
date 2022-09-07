@@ -18,12 +18,10 @@
 package conntrack
 
 import (
-	"container/list"
 	"fmt"
 	"hash"
 	"hash/fnv"
 	"strconv"
-	"time"
 
 	"github.com/benbjohnson/clock"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -42,90 +40,20 @@ const (
 	dirBA
 )
 
-//////////////////////////
-
-// TODO: Does connectionStore deserve a file of its own?
-
-// connectionStore provides both retrieving a connection by its hash and iterating connections sorted by their last
-// update time.
-type connectionStore struct {
-	hash2conn map[uint64]*list.Element
-	connList  *list.List
-}
-
-type processConnF func(connection) (shouldDelete, shouldStop bool)
-
-func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
-	_, ok := cs.getConnection(hashId)
-	if ok {
-		log.Errorf("BUG. connection with hash %x already exists in store. %v", hashId, conn)
-	}
-	e := cs.connList.PushBack(conn)
-	cs.hash2conn[hashId] = e
-	metrics.connStoreLength.Set(float64(cs.connList.Len()))
-}
-
-func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
-	elem, ok := cs.hash2conn[hashId]
-	if ok {
-		conn := elem.Value.(connection)
-		return conn, ok
-	}
-	return nil, ok
-}
-
-func (cs *connectionStore) updateConnectionTime(hashId uint64, t time.Time) {
-	elem, ok := cs.hash2conn[hashId]
-	if !ok {
-		log.Errorf("BUG. connection hash %x doesn't exist", hashId)
-	}
-	elem.Value.(connection).setLastUpdate(t)
-	// move to end of list
-	cs.connList.MoveToBack(elem)
-}
-
-func (cs *connectionStore) iterateOldToNew(f processConnF) {
-	// How to remove element from list while iterating the same list in golang
-	// https://stackoverflow.com/a/27662823/2749989
-	var next *list.Element
-	for e := cs.connList.Front(); e != nil; e = next {
-		conn := e.Value.(connection)
-		next = e.Next()
-		shouldDelete, shouldStop := f(conn)
-		if shouldDelete {
-			delete(cs.hash2conn, conn.getHash().hashTotal)
-			cs.connList.Remove(e)
-			metrics.connStoreLength.Set(float64(cs.connList.Len()))
-		}
-		if shouldStop {
-			break
-		}
-	}
-}
-
-func newConnectionStore() *connectionStore {
-	return &connectionStore{
-		hash2conn: make(map[uint64]*list.Element),
-		connList:  list.New(),
-	}
-}
-
-//////////////////////////
-
 type conntrackImpl struct {
-	clock                     clock.Clock
-	config                    *api.ConnTrack
-	hashProvider              func() hash.Hash64
-	connStore                 *connectionStore
-	aggregators               []aggregator
-	shouldOutputFlowLogs      bool
-	shouldOutputNewConnection bool
-	shouldOutputEndConnection bool
+	clock                        clock.Clock
+	config                       *api.ConnTrack
+	hashProvider                 func() hash.Hash64
+	connStore                    *connectionStore
+	aggregators                  []aggregator
+	shouldOutputFlowLogs         bool
+	shouldOutputNewConnection    bool
+	shouldOutputEndConnection    bool
+	shouldOutputUpdateConnection bool
 }
 
 func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericMap {
-	log.Debugf("Entering Track")
-	log.Debugf("Track none, in = %v", flowLogs)
+	log.Debugf("entering Extract conntrack, in = %v", flowLogs)
 
 	var outputRecords []config.GenericMap
 	for _, fl := range flowLogs {
@@ -142,6 +70,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				Hash(computedHash).
 				KeysFrom(fl, ct.config.KeyDefinition).
 				Aggregators(ct.aggregators).
+				NextUpdateReportTime(ct.clock.Now().Add(ct.config.UpdateConnectionInterval.Duration)).
 				Build()
 			ct.connStore.addConnection(computedHash.hashTotal, conn)
 			ct.updateConnection(conn, fl, computedHash)
@@ -173,16 +102,22 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 		metrics.outputRecords.WithLabelValues("endConnection").Add(float64(len(endConnectionRecords)))
 	}
 
+	if ct.shouldOutputUpdateConnection {
+		updateConnectionRecords := ct.prepareUpdateConnectionRecords()
+		outputRecords = append(outputRecords, updateConnectionRecords...)
+		metrics.outputRecords.WithLabelValues("updateConnection").Add(float64(len(updateConnectionRecords)))
+	}
+
 	return outputRecords
 }
 
 func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 	var outputRecords []config.GenericMap
-	ct.connStore.iterateOldToNew(func(conn connection) (shouldDelete, shouldStop bool) {
-		expireTime := ct.clock.Now().Add(-ct.config.EndConnectionTimeout.Duration)
-		lastUpdate := conn.getLastUpdate()
-		if lastUpdate.Before(expireTime) {
-			// The last update time of this connection is too old. We want to pop it.
+	// Iterate over the connections by their expiry time from old to new.
+	ct.connStore.iterateFrontToBack(expiryOrder, func(conn connection) (shouldDelete, shouldStop bool) {
+		expiryTime := conn.getExpiryTime()
+		if ct.clock.Now().After(expiryTime) {
+			// The connection has expired. We want to pop it.
 			record := conn.toGenericMap()
 			addHashField(record, conn.getHash().hashTotal)
 			addTypeField(record, api.ConnTrackOutputRecordTypeName("EndConnection"))
@@ -197,12 +132,35 @@ func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 	return outputRecords
 }
 
+func (ct *conntrackImpl) prepareUpdateConnectionRecords() []config.GenericMap {
+	var outputRecords []config.GenericMap
+	// Iterate over the connections by their next update report time from old to new.
+	ct.connStore.iterateFrontToBack(nextUpdateReportTimeOrder, func(conn connection) (shouldDelete, shouldStop bool) {
+		nextUpdate := conn.getNextUpdateReportTime()
+		needToReport := ct.clock.Now().After(nextUpdate)
+		if needToReport {
+			record := conn.toGenericMap()
+			addHashField(record, conn.getHash().hashTotal)
+			addTypeField(record, api.ConnTrackOutputRecordTypeName("UpdateConnection"))
+			outputRecords = append(outputRecords, record)
+			newNextUpdate := ct.clock.Now().Add(ct.config.UpdateConnectionInterval.Duration)
+			ct.connStore.updateNextReportTime(conn.getHash().hashTotal, newNextUpdate)
+			shouldDelete, shouldStop = false, false
+		} else {
+			shouldDelete, shouldStop = false, true
+		}
+		return
+	})
+	return outputRecords
+}
+
 func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.GenericMap, flowLogHash totalHashType) {
 	d := ct.getFlowLogDirection(conn, flowLogHash)
 	for _, agg := range ct.aggregators {
 		agg.update(conn, flowLog, d)
 	}
-	ct.connStore.updateConnectionTime(flowLogHash.hashTotal, ct.clock.Now())
+	newExpiryTime := ct.clock.Now().Add(ct.config.EndConnectionTimeout.Duration)
+	ct.connStore.updateConnectionExpiryTime(flowLogHash.hashTotal, newExpiryTime)
 }
 
 func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalHashType) direction {
@@ -237,6 +195,7 @@ func NewConnectionTrack(params config.StageParam, clock clock.Clock) (extract.Ex
 	shouldOutputFlowLogs := false
 	shouldOutputNewConnection := false
 	shouldOutputEndConnection := false
+	shouldOutputUpdateConnection := false
 	for _, option := range cfg.OutputRecordTypes {
 		switch option {
 		case api.ConnTrackOutputRecordTypeName("FlowLog"):
@@ -245,20 +204,23 @@ func NewConnectionTrack(params config.StageParam, clock clock.Clock) (extract.Ex
 			shouldOutputNewConnection = true
 		case api.ConnTrackOutputRecordTypeName("EndConnection"):
 			shouldOutputEndConnection = true
+		case api.ConnTrackOutputRecordTypeName("UpdateConnection"):
+			shouldOutputUpdateConnection = true
 		default:
 			return nil, fmt.Errorf("unknown OutputRecordTypes: %v", option)
 		}
 	}
 
 	conntrack := &conntrackImpl{
-		clock:                     clock,
-		connStore:                 newConnectionStore(),
-		config:                    cfg,
-		hashProvider:              fnv.New64a,
-		aggregators:               aggregators,
-		shouldOutputFlowLogs:      shouldOutputFlowLogs,
-		shouldOutputNewConnection: shouldOutputNewConnection,
-		shouldOutputEndConnection: shouldOutputEndConnection,
+		clock:                        clock,
+		connStore:                    newConnectionStore(),
+		config:                       cfg,
+		hashProvider:                 fnv.New64a,
+		aggregators:                  aggregators,
+		shouldOutputFlowLogs:         shouldOutputFlowLogs,
+		shouldOutputNewConnection:    shouldOutputNewConnection,
+		shouldOutputEndConnection:    shouldOutputEndConnection,
+		shouldOutputUpdateConnection: shouldOutputUpdateConnection,
 	}
 	return conntrack, nil
 }
