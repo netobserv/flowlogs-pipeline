@@ -10,7 +10,8 @@ Following is the supported API format for prometheus encode:
                      gauge: single numerical value that can arbitrarily go up and down
                      counter: monotonically increasing counter whose value can only increase
                      histogram: counts samples in configurable buckets
-                 filter: the criterion to filter entries by
+                     agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
+                 filter: an optional criterion to filter entries by
                      key: the key to match and filter by
                      value: the value to match and filter by
                  valueKey: entry key from which to resolve metric value
@@ -172,7 +173,6 @@ Following is the supported API format for specifying metrics aggregations:
          by: list of fields on which to aggregate
          operation: sum, min, max, avg or raw_values
          recordKey: internal field on which to perform the operation
-         topK: number of highest incidence to report (default - report all)
 </pre>
 ## Connection tracking API
 Following is the supported API format for specifying connection tracking:
@@ -203,4 +203,24 @@ Following is the supported API format for specifying connection tracking:
                  input: The input field to base the operation on. When omitted, 'name' is used
          endConnectionTimeout: duration of time to wait from the last flow log to end a connection
          updateConnectionInterval: duration of time to wait between update reports of a connection
+</pre>
+## Time-based Filters API
+Following is the supported API format for specifying metrics time-based filters:
+
+<pre>
+ timebased:
+         rules: list of filter rules, each includes:
+                 name: description of filter result
+                 recordKey: internal field to index TopK
+                 operation: (enum) sum, min, max, avg, last or diff
+                     sum: set output field to sum of parameters fields in the time window
+                     avg: set output field to average of parameters fields in the time window
+                     min: set output field to minimum of parameters fields in the time window
+                     max: set output field to maximum of parameters fields in the time window
+                     last: set output field to last of parameters fields in the time window
+                     diff: set output field to the difference of the first and last parameters fields in the time window
+                 operationKey: internal field on which to perform the operation
+                 topK: number of highest incidence to report (default - report all)
+                 reversed: report lowest incidence instead of highest (default - false)
+                 timeInterval: time duration of data to use to compute the metric
 </pre>

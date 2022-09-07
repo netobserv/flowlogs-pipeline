@@ -28,6 +28,7 @@ const (
 	StdoutType            = "stdout"
 	LokiType              = "loki"
 	AggregateType         = "aggregates"
+	TimebasedType         = "timebased"
 	PromType              = "prom"
 	GenericType           = "generic"
 	NetworkType           = "network"
@@ -62,4 +63,5 @@ type API struct {
 	WriteStdout        WriteStdout         `yaml:"stdout" doc:"## Write Standard Output\nFollowing is the supported API format for writing to standard output:\n"`
 	ExtractAggregate   AggregateDefinition `yaml:"aggregates" doc:"## Aggregate metrics API\nFollowing is the supported API format for specifying metrics aggregations:\n"`
 	ConnectionTracking ConnTrack           `yaml:"conntrack" doc:"## Connection tracking API\nFollowing is the supported API format for specifying connection tracking:\n"`
+	ExtractTimebased   ExtractTimebased    `yaml:"timebased" doc:"## Time-based Filters API\nFollowing is the supported API format for specifying metrics time-based filters:\n"`
 }

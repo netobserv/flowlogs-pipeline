@@ -324,6 +324,8 @@ func getExtractor(params config.StageParam) (extract.Extractor, error) {
 		extractor, err = extract.NewExtractAggregate(params)
 	case api.ConnTrackType:
 		extractor, err = conntrack.NewConnectionTrack(params, clock.New())
+	case api.TimebasedType:
+		extractor, err = extract.NewExtractTimebased(params)
 	default:
 		panic(fmt.Sprintf("`extract` type %s not defined; if no extractor needed, specify `none`", params.Extract.Type))
 	}

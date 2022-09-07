@@ -16,6 +16,13 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Type** | counter | 
 
 
+### encode_prom_errors
+| **Name** | encode_prom_errors | 
+|:---|:---|
+| **Description** | Total errors during metrics generation | 
+| **Type** | counter | 
+
+
 ### conntrack_memory_connections
 | **Name** | conntrack_memory_connections | 
 |:---|:---|
