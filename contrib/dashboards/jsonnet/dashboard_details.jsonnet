@@ -49,22 +49,6 @@ dashboard.new(
   }
 )
 .addPanel(
-  graphPanel.new(
-    datasource='prometheus',
-    title="Bandwidth per source subnet",
-  )
-  .addTarget(
-    prometheus.target(
-      expr='topk(10,rate(flp_bandwidth_per_source_subnet[1m]))',
-    )
-  ), gridPos={
-    x: 0,
-    y: 0,
-    w: 25,
-    h: 20,
-  }
-)
-.addPanel(
   heatmapPanel.new(
     datasource='prometheus',
     title="Connection size in bytes heatmap",
@@ -106,7 +90,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(flp_connections_per_source_subnet[1m]))',
+      expr='topk(10,rate(flp_connections_per_source_subnet{_RecordType="newConnection"}[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -138,7 +122,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(flp_connections_per_destination_as[1m]))',
+      expr='topk(10,rate(flp_connections_per_destination_as{_RecordType="newConnection"}[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -154,7 +138,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(flp_connections_per_source_as[1m]))',
+      expr='topk(10,rate(flp_connections_per_source_as{_RecordType="newConnection"}[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -170,7 +154,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(flp_count_per_source_destination_subnet[1m]))',
+      expr='topk(10,rate(flp_count_per_source_destination_subnet{_RecordType="newConnection"}[1m]))',
     )
   ), gridPos={
     x: 0,
@@ -232,22 +216,6 @@ dashboard.new(
 )
 .addPanel(
   graphPanel.new(
-    datasource='prometheus',
-    title="Connections rate per destinationIP geo-location",
-  )
-  .addTarget(
-    prometheus.target(
-      expr='topk(10,rate(flp_connections_per_destination_location[1m]))',
-    )
-  ), gridPos={
-    x: 0,
-    y: 0,
-    w: 25,
-    h: 20,
-  }
-)
-.addPanel(
-  graphPanel.new(
     datasource='loki',
     title="Bandwidth per source namespace",
   )
@@ -285,7 +253,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='topk(10,rate(flp_service_count[1m]))',
+      expr='topk(10,rate(flp_service_count{_RecordType="newConnection"}[1m]))',
     )
   ), gridPos={
     x: 0,

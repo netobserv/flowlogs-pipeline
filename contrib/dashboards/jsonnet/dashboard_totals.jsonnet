@@ -87,7 +87,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='count(flp_service_count)',
+      expr='count(flp_service_count{_RecordType="newConnection"})',
     )
   ), gridPos={
     x: 0,

@@ -83,9 +83,6 @@ parameters:
         output: all
         type: add_if
         parameters: '>=0'
-      - input: dstIP
-        output: dstLocation
-        type: add_location
 - name: extract_conntrack
   extract:
     type: conntrack
@@ -225,11 +222,6 @@ parameters:
       - _RecordType
       operationType: raw_values
       operationKey: bytes
-    - name: dest_connection_location_count
-      groupByKeys:
-      - dstLocation_CountryName
-      - _RecordType
-      operationType: count
     - name: dest_service_count
       groupByKeys:
       - service
@@ -322,8 +314,8 @@ parameters:
           value: src_connection_count
         valueKey: recent_count
         labels:
-        - groupByKeys
-        - aggregate
+        - srcSubnet
+        - _RecordType
         buckets: []
       - name: connections_per_tcp_flags
         type: counter
@@ -342,8 +334,8 @@ parameters:
           value: dst_as_connection_count
         valueKey: recent_count
         labels:
-        - groupByKeys
-        - aggregate
+        - dstAS
+        - _RecordType
         buckets: []
       - name: connections_per_source_as
         type: counter
@@ -352,8 +344,8 @@ parameters:
           value: src_as_connection_count
         valueKey: recent_count
         labels:
-        - groupByKeys
-        - aggregate
+        - srcAS
+        - _RecordType
         buckets: []
       - name: count_per_source_destination_subnet
         type: counter
@@ -362,8 +354,9 @@ parameters:
           value: count_source_destination_subnet
         valueKey: recent_count
         labels:
-        - groupByKeys
-        - aggregate
+        - dstSubnet24
+        - srcSubnet24
+        - _RecordType
         buckets: []
       - name: egress_per_destination_subnet
         type: counter
@@ -400,16 +393,6 @@ parameters:
         - 10240
         - 102400
         - 1.048576e+06
-      - name: connections_per_destination_location
-        type: counter
-        filter:
-          key: name
-          value: dest_connection_location_count
-        valueKey: recent_count
-        labels:
-        - groupByKeys
-        - aggregate
-        buckets: []
       - name: service_count
         type: counter
         filter:
@@ -417,8 +400,8 @@ parameters:
           value: dest_service_count
         valueKey: recent_count
         labels:
-        - groupByKeys
-        - aggregate
+        - service
+        - _RecordType
         buckets: []
       port: 9102
       prefix: flp_

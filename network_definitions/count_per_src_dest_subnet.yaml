@@ -37,12 +37,13 @@ encode:
         filter: { key: name, value: count_source_destination_subnet }
         valueKey: recent_count
         labels:
-          - groupByKeys
-          - aggregate
+          - dstSubnet24
+          - srcSubnet24
+          - _RecordType
 visualization:
   type: grafana
   grafana:
-    - expr: 'topk(10,rate(flp_count_per_source_destination_subnet[1m]))'
+    - expr: 'topk(10,rate(flp_count_per_source_destination_subnet{_RecordType="newConnection"}[1m]))'
       type: graphPanel
       dashboard: details
       title:

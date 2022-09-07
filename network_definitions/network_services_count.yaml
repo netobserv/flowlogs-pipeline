@@ -33,17 +33,17 @@ encode:
         filter: { key: name, value: dest_service_count }
         valueKey: recent_count
         labels:
-          - groupByKeys
-          - aggregate
+          - service
+          - _RecordType
 visualization:
   type: grafana
   grafana:
-    - expr: 'topk(10,rate(flp_service_count[1m]))'
+    - expr: 'topk(10,rate(flp_service_count{_RecordType="newConnection"}[1m]))'
       type: graphPanel
       dashboard: details
       title:
         Network services connections rate
-    - expr: 'count(flp_service_count)'
+    - expr: 'count(flp_service_count{_RecordType="newConnection"})'
       type: singleStat
       dashboard: totals
       title:

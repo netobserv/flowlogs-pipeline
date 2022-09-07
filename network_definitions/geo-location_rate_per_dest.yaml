@@ -32,12 +32,17 @@ encode:
         filter: { key: name, value: dest_connection_location_count }
         valueKey: recent_count
         labels:
+<<<<<<< HEAD
           - groupByKeys
           - aggregate
+=======
+          - dstLocation_CountryName
+          - _RecordType
+>>>>>>> Fix metrics to use connection tracking
 visualization:
   type: grafana
   grafana:
-    - expr: 'topk(10,rate(flp_connections_per_destination_location[1m]))'
+    - expr: 'topk(10,rate(flp_connections_per_destination_location{_RecordType="newConnection"}[1m]))'
       type: graphPanel
       dashboard: details
       title:
