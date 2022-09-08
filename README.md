@@ -661,10 +661,12 @@ The specification of the Timebased TopK details is placed in the `extract` stage
 
 For Example, assuming a set of flow-logs, with a single sample flow-log that looks like:
 ```
-{"srcIP": "10.0.0.1",
-"dstIP":  "20.0.0.2",
-"srcSubnet": "10.0.0.0/16",
-"bytes":  4096,
+{
+    "srcIP": "10.0.0.1",
+    "dstIP":  "20.0.0.2",
+    "srcSubnet": "10.0.0.0/16",
+    "bytes":  4096,
+}
 ```
 
 It is possible to request the entries indexed by subnet with the top number of bytes.
