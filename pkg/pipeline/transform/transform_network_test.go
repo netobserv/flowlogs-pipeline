@@ -24,7 +24,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
-	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/network_services"
+	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )

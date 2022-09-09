@@ -20,17 +20,25 @@
 package netdb
 
 import (
+	"fmt"
+	"io"
 	"io/ioutil"
 	"strconv"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
+var slog = logrus.WithField("component", "netdb.ServicesDB")
+
+// Deprecated. Kept for performance comparison purposes and will be removed soon.
 type Protoent struct {
 	Name    string
 	Aliases []string
 	Number  int
 }
 
+// Deprecated. Kept for performance comparison purposes and will be removed soon.
 type Servent struct {
 	Name     string
 	Aliases  []string
@@ -38,8 +46,126 @@ type Servent struct {
 	Protocol *Protoent
 }
 
+type numKey struct {
+	port           int
+	protocolNumber int
+}
+
+type nameKey struct {
+	port         int
+	protocolName string
+}
+
+type ServicesDB struct {
+	protoNums map[int]struct{}
+	// key: protocol name, value: protocol number
+	protoNames  map[string]int
+	byPort      map[int]string
+	byProtoNum  map[numKey]string
+	byProtoName map[nameKey]string
+}
+
+// LoadServicesDB receives readers to the /etc/protocols and /etc/services formatted content
+// and returns a database that allow querying service names from ports and protocol information
+func LoadServicesDB(protocols, services io.Reader) (*ServicesDB, error) {
+	log := slog.WithField("method", "LoadServicesDB")
+	db := ServicesDB{
+		protoNums:   map[int]struct{}{},
+		protoNames:  map[string]int{},
+		byPort:      map[int]string{},
+		byProtoNum:  map[numKey]string{},
+		byProtoName: map[nameKey]string{},
+	}
+	// Load protocols
+	protoData, err := io.ReadAll(protocols)
+	if err != nil {
+		return nil, fmt.Errorf("reading protocols data: %w", err)
+	}
+
+	// key: proto name, value: aliases
+	protoAliases := map[string][]string{}
+
+	for i, line := range strings.Split(string(protoData), "\n") {
+		line = strings.TrimSpace(line)
+		split := strings.SplitN(line, "#", 2)
+		fields := strings.Fields(split[0])
+		if len(fields) < 2 {
+			continue
+		}
+
+		num, err := strconv.ParseInt(fields[1], 10, 32)
+		if err != nil {
+			log.WithFields(logrus.Fields{
+				logrus.ErrorKey: err,
+				"lineNum":       i,
+				"line":          line,
+			}).Debug("wrong protocol number. Ignoring entry")
+			continue
+		}
+
+		db.protoNums[int(num)] = struct{}{}
+		db.protoNames[fields[0]] = int(num)
+		for _, alias := range fields[2:] {
+			db.protoNames[alias] = int(num)
+		}
+		protoAliases[fields[0]] = fields[2:]
+	}
+
+	// Load services
+	svcData, err := io.ReadAll(services)
+	if err != nil {
+		return nil, fmt.Errorf("reading services data: %w", err)
+	}
+
+	for i, line := range strings.Split(string(svcData), "\n") {
+		line = strings.TrimSpace(line)
+		split := strings.SplitN(line, "#", 2)
+		fields := strings.Fields(split[0])
+		if len(fields) < 2 {
+			continue
+		}
+
+		svcName := fields[0]
+		portproto := strings.SplitN(fields[1], "/", 2)
+		protoName := portproto[1]
+		port, err := strconv.ParseInt(portproto[0], 10, 32)
+		if err != nil {
+			log.WithFields(logrus.Fields{
+				logrus.ErrorKey: err,
+				"lineNum":       i,
+				"line":          line,
+			}).Debug("wrong service port number. Ignoring entry")
+			continue
+		}
+		db.byPort[int(port)] = svcName
+		if protoNum, ok := db.protoNames[protoName]; ok {
+			db.byProtoNum[numKey{port: int(port), protocolNumber: protoNum}] = svcName
+		}
+		db.byProtoName[nameKey{port: int(port), protocolName: protoName}] = svcName
+		for _, alias := range protoAliases[protoName] {
+			db.byProtoName[nameKey{port: int(port), protocolName: alias}] = svcName
+		}
+	}
+	return &db, nil
+}
+
+func (db *ServicesDB) ByPortAndProtocolName(port int, nameOrAlias string) string {
+	if _, ok := db.protoNames[nameOrAlias]; ok {
+		return db.byProtoName[nameKey{port: port, protocolName: nameOrAlias}]
+	}
+	return db.byPort[port]
+}
+
+func (db *ServicesDB) ByPortAndProtocolNumber(port, protoNum int) string {
+	if _, ok := db.protoNums[protoNum]; ok {
+		return db.byProtoNum[numKey{port: port, protocolNumber: protoNum}]
+	}
+	return db.byPort[port]
+}
+
 // These variables get populated from /etc/protocols and /etc/services
 // respectively.
+// Deprecated. Kept for performance comparison purposes and will be removed soon.
 var (
 	Protocols []*Protoent
 	Services  []*Servent
@@ -153,7 +279,9 @@ func (this *Servent) Equal(other *Servent) bool {
 }
 
 // GetProtoByNumber returns the Protoent for a given protocol number.
+// Deprecated. Kept for performance comparison purposes and will be removed soon.
 func GetProtoByNumber(num int) (protoent *Protoent) {
+	// TODO: store protocols in a map where the key is the number
 	for _, protoent := range Protocols {
 		if protoent.Number == num {
 			return protoent
@@ -164,12 +292,14 @@ func GetProtoByNumber(num int) (protoent *Protoent) {
 
 // GetProtoByName returns the Protoent whose name or any of its
 // aliases matches the argument.
+// Deprecated. Kept for performance comparison purposes and will be removed soon.
 func GetProtoByName(name string) (protoent *Protoent) {
+	// TODO: store protocols in a map where key is the name
 	for _, protoent := range Protocols {
 		if protoent.Name == name {
 			return protoent
 		}
-
+		// TODO: store aliases in a map where the key is the name
 		for _, alias := range protoent.Aliases {
 			if alias == name {
 				return protoent
@@ -183,6 +313,7 @@ func GetProtoByName(name string) (protoent *Protoent) {
 // GetServByName returns the Servent for a given service name or alias
 // and protocol. If the protocol is nil, the first service matching
 // the service name is returned.
+// Deprecated. Kept for performance comparison purposes and will be removed soon.
 func GetServByName(name string, protocol *Protoent) (servent *Servent) {
 	for _, servent := range Services {
 		if !servent.Protocol.Equal(protocol) {
@@ -206,12 +337,12 @@ func GetServByName(name string, protocol *Protoent) (servent *Servent) {
 // GetServByPort returns the Servent for a given port number and
 // protocol. If the protocol is nil, the first service matching the
 // port number is returned.
+// Deprecated. Kept for performance comparison purposes and will be removed soon.
 func GetServByPort(port int, protocol *Protoent) *Servent {
 	for _, servent := range Services {
 		if servent.Port == port && servent.Protocol.Equal(protocol) {
 			return servent
 		}
 	}
-
 	return nil
 }

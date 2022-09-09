@@ -31,7 +31,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/connection_tracking"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
-	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/network_services"
+	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -52,6 +52,7 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 	// copy input entry before transform to avoid alteration on parallel stages
 	outputEntry := inputEntry.Copy()
 
+	// TODO: for efficiency and maintainability, maybe each case in the switch below should be an individual implementation of Transformer
 	for _, rule := range n.Rules {
 		switch rule.Type {
 		case api.TransformNetworkOperationName("ConnTracking"):
@@ -128,7 +129,7 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 			}
 			service := netdb.GetServByPort(portNumber, netdb.GetProtoByName(protocol))
 			if service == nil {
-				protocolAsNumber, err := strconv.Atoi(fmt.Sprintf("%v", protocol))
+				protocolAsNumber, err := strconv.Atoi(protocol)
 				if err != nil {
 					log.Debugf("Can't find service name for Port %v and protocol %v - err %v", outputEntry[rule.Input], protocol, err)
 					continue
@@ -141,7 +142,6 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 			}
 			outputEntry[rule.Output] = service.Name
 		case api.TransformNetworkOperationName("AddKubernetes"):
-			var kubeInfo *kubernetes.Info
 			kubeInfo, err := kubernetes.Data.GetInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
 			if err != nil {
 				log.Debugf("Can't find kubernetes info for IP %v err %v", outputEntry[rule.Input], err)
