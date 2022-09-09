@@ -80,38 +80,3 @@ func BenchmarkGetProtoByName(b *testing.B) {
 		db.ByPortAndProtocolName(27017, "TCP")
 	}
 }
-
-func BenchmarkGetProtoByNumber_Old(b *testing.B) {
-	b.StopTimer()
-	if err := loadOldDB(); err != nil {
-		b.Fatal(err)
-	}
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		GetServByPort(80, GetProtoByNumber(6))
-		GetServByPort(443, GetProtoByNumber(16))
-		GetServByPort(3306, GetProtoByNumber(17))
-		GetServByPort(27017, GetProtoByNumber(6))
-	}
-}
-
-func BenchmarkGetProtoByName_Old(b *testing.B) {
-	b.StopTimer()
-	if err := loadOldDB(); err != nil {
-		b.Fatal(err)
-	}
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		GetServByPort(80, GetProtoByName("tcp"))
-		GetServByPort(443, GetProtoByName("udp"))
-		GetServByPort(3306, GetProtoByName("UDP"))
-		GetServByPort(27017, GetProtoByName("TCP"))
-	}
-}
-
-func loadOldDB() error {
-	return Init(
-		path.Join("fixtures", "etcProtocols.txt"),
-		path.Join("fixtures", "etcServices.txt"),
-	)
-}

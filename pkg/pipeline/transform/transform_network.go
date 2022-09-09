@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"os"
 	"regexp"
 	"strconv"
 	"text/template"
@@ -37,6 +38,7 @@ import (
 
 type Network struct {
 	api.TransformNetwork
+	servicesDB *netdb.ServicesDB
 }
 
 func (n *Network) Transform(input []config.GenericMap) []config.GenericMap {
@@ -127,20 +129,22 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 				log.Errorf("Can't convert port to int: Port %v - err %v", outputEntry[rule.Input], err)
 				continue
 			}
-			service := netdb.GetServByPort(portNumber, netdb.GetProtoByName(protocol))
-			if service == nil {
-				protocolAsNumber, err := strconv.Atoi(protocol)
+			var serviceName string
+			protocolAsNumber, err := strconv.Atoi(protocol)
+			if err == nil {
+				// protocol has been submitted as number
+				serviceName = n.servicesDB.ByPortAndProtocolNumber(portNumber, protocolAsNumber)
+			} else {
+				// protocol has been submitted as any string
+				serviceName = n.servicesDB.ByPortAndProtocolName(portNumber, protocol)
+			}
+			if serviceName == "" {
 				if err != nil {
 					log.Debugf("Can't find service name for Port %v and protocol %v - err %v", outputEntry[rule.Input], protocol, err)
 					continue
 				}
-				service = netdb.GetServByPort(portNumber, netdb.GetProtoByNumber(protocolAsNumber))
-				if service == nil {
-					log.Debugf("Can't find service name for Port %v and protocol %v", outputEntry[rule.Input], protocol)
-					continue
-				}
 			}
-			outputEntry[rule.Output] = service.Name
+			outputEntry[rule.Output] = serviceName
 		case api.TransformNetworkOperationName("AddKubernetes"):
 			kubeInfo, err := kubernetes.Data.GetInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
 			if err != nil {
@@ -213,16 +217,27 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		}
 	}
 
+	var servicesDB *netdb.ServicesDB
 	if needToInitNetworkServices {
-		err := netdb.Init(jsonNetworkTransform.ProtocolsFile, jsonNetworkTransform.ServicesFile)
+		var err error
+		protos, err := os.Open("/etc/protocols")
+		if err != nil {
+			return nil, fmt.Errorf("opening /etc/protocols: %w", err)
+		}
+		services, err := os.Open("/etc/services")
+		if err != nil {
+			return nil, fmt.Errorf("opening /etc/services: %w", err)
+		}
+		servicesDB, err = netdb.LoadServicesDB(protos, services)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return &Network{
-		api.TransformNetwork{
+		TransformNetwork: api.TransformNetwork{
 			Rules: jsonNetworkTransform.Rules,
 		},
+		servicesDB: servicesDB,
 	}, nil
 }
