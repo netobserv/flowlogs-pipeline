@@ -20,15 +20,21 @@ package write
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const timeout = 5 * time.Second
@@ -283,5 +289,59 @@ parameters:
 		assert.Equal(t, map[string]interface{}{"foo": "bar", "baz": "bae"}, flow)
 	case <-time.After(timeout):
 		require.Fail(t, "timeout while waiting for LokiWriter to forward data")
+	}
+}
+
+func buildFlow(t time.Time) config.GenericMap {
+	return config.GenericMap{
+		"timestamp": float64(t.UnixMilli()),
+		"srcIP":     "10.0.0." + strconv.Itoa(rand.Intn(20)),
+		"dstIP":     "10.0.0." + strconv.Itoa(rand.Intn(20)),
+		"flags":     "SYN",
+		"bytes":     rand.Intn(100),
+		"packets":   rand.Intn(10),
+		"latency":   rand.Float64(),
+	}
+}
+
+func hundredFlows() []config.GenericMap {
+	flows := make([]config.GenericMap, 100)
+	t := time.Date(2022, time.August, 31, 8, 0, 0, 0, time.Local)
+	for i := 0; i < 100; i++ {
+		t = t.Add(time.Second)
+		flows[i] = buildFlow(t)
+	}
+	return flows
+}
+
+func BenchmarkWriteLoki(b *testing.B) {
+	log.SetLevel(log.ErrorLevel)
+	lokiFlows := make(chan map[string]interface{}, 256)
+	fakeLoki := httptest.NewServer(test.FakeLokiHandler(lokiFlows))
+
+	params := api.WriteLoki{
+		URL: fakeLoki.URL,
+		StaticLabels: model.LabelSet{
+			"app": "flp-benchmark",
+		},
+		Labels:         []string{"srcIP", "dstIP"},
+		TimestampLabel: "timestamp",
+		TimestampScale: "1ms",
+	}
+
+	loki, err := NewWriteLoki(config.StageParam{Write: &config.Write{Loki: &params}})
+	require.NoError(b, err)
+
+	for i := 0; i < b.N; i++ {
+		loki.Write(hundredFlows())
+	}
+
+	i := 0
+	for range lokiFlows {
+		i++
+		if i == 100*b.N {
+			close(lokiFlows)
+			break
+		}
 	}
 }

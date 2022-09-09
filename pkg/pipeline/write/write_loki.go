@@ -50,12 +50,14 @@ const channelSize = 1000
 
 // Loki record writer
 type Loki struct {
-	lokiConfig loki.Config
-	apiConfig  api.WriteLoki
-	client     emitter
-	timeNow    func() time.Time
-	in         chan config.GenericMap
-	exitChan   <-chan struct{}
+	lokiConfig     loki.Config
+	apiConfig      api.WriteLoki
+	timestampScale float64
+	saneLabels     map[string]model.LabelName
+	client         emitter
+	timeNow        func() time.Time
+	in             chan config.GenericMap
+	exitChan       <-chan struct{}
 }
 
 var recordsWritten = operationalMetrics.NewCounter(prometheus.CounterOpts{
@@ -107,33 +109,29 @@ func buildLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 	return cfg, nil
 }
 
-func (l *Loki) ProcessRecord(record config.GenericMap) error {
+func (l *Loki) ProcessRecord(in config.GenericMap) error {
 	// copy record before process to avoid alteration on parallel stages
-	recordCopy := record.Copy()
-
-	// Get timestamp from record (default: TimeFlowStart)
-	timestamp := l.extractTimestamp(recordCopy)
-
+	out := in.Copy()
 	labels := model.LabelSet{}
 
 	// Add static labels from config
 	for k, v := range l.apiConfig.StaticLabels {
 		labels[k] = v
 	}
-
-	l.addNonStaticLabels(recordCopy, labels)
+	l.addLabels(in, labels)
 
 	// Remove labels and configured ignore list from record
 	ignoreList := append(l.apiConfig.IgnoreList, l.apiConfig.Labels...)
 	for _, label := range ignoreList {
-		delete(recordCopy, label)
+		delete(out, label)
 	}
 
-	js, err := jsonIter.ConfigCompatibleWithStandardLibrary.Marshal(recordCopy)
+	js, err := jsonIter.ConfigCompatibleWithStandardLibrary.Marshal(out)
 	if err != nil {
 		return err
 	}
 
+	timestamp := l.extractTimestamp(out)
 	err = l.client.Handle(labels, timestamp, string(js))
 	if err == nil {
 		recordsWritten.Inc()
@@ -163,36 +161,28 @@ func (l *Loki) extractTimestamp(record map[string]interface{}) time.Time {
 		return l.timeNow()
 	}
 
-	timestampScale, err := time.ParseDuration(l.apiConfig.TimestampScale)
-	if err != nil {
-		log.Warnf("failed in parsing TimestampScale : %v", err)
-		return l.timeNow()
-	}
-
-	tsNanos := int64(ft * float64(timestampScale))
+	tsNanos := int64(ft * l.timestampScale)
 	return time.Unix(tsNanos/int64(time.Second), tsNanos%int64(time.Second))
 }
 
-func (l *Loki) addNonStaticLabels(record map[string]interface{}, labels model.LabelSet) {
+func (l *Loki) addLabels(record config.GenericMap, labels model.LabelSet) {
 	// Add non-static labels from record
 	for _, label := range l.apiConfig.Labels {
 		val, ok := record[label]
 		if !ok {
 			continue
 		}
-		sanitizedKey := model.LabelName(keyReplacer.Replace(label))
-		if !sanitizedKey.IsValid() {
-			log.WithFields(log.Fields{"key": label, "sanitizedKey": sanitizedKey}).
-				Debug("Invalid label. Ignoring it")
+		sanitized, ok := l.saneLabels[label]
+		if !ok {
 			continue
 		}
 		lv := model.LabelValue(fmt.Sprint(val))
 		if !lv.IsValid() {
-			log.WithFields(log.Fields{"key": label, "sanitizedKey": sanitizedKey, "value": val}).
+			log.WithFields(log.Fields{"key": label, "value": val}).
 				Debug("Invalid label value. Ignoring it")
 			continue
 		}
-		labels[sanitizedKey] = lv
+		labels[sanitized] = lv
 	}
 }
 
@@ -264,15 +254,34 @@ func NewWriteLoki(params config.StageParam) (*Loki, error) {
 		return nil, newWithLoggerErr
 	}
 
+	timestampScale, err := time.ParseDuration(lokiConfigIn.TimestampScale)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse TimestampScale: %w", err)
+	}
+
+	// Sanitize label keys
+	saneLabels := make(map[string]model.LabelName, len(lokiConfigIn.Labels))
+	for _, label := range lokiConfigIn.Labels {
+		sanitized := model.LabelName(keyReplacer.Replace(label))
+		if sanitized.IsValid() {
+			saneLabels[label] = sanitized
+		} else {
+			log.WithFields(log.Fields{"key": label, "sanitized": sanitized}).
+				Debug("Invalid label. Ignoring it")
+		}
+	}
+
 	in := make(chan config.GenericMap, channelSize)
 
 	l := &Loki{
-		lokiConfig: lokiConfig,
-		apiConfig:  lokiConfigIn,
-		client:     client,
-		timeNow:    time.Now,
-		exitChan:   pUtils.ExitChannel(),
-		in:         in,
+		lokiConfig:     lokiConfig,
+		apiConfig:      lokiConfigIn,
+		timestampScale: float64(timestampScale),
+		saneLabels:     saneLabels,
+		client:         client,
+		timeNow:        time.Now,
+		exitChan:       pUtils.ExitChannel(),
+		in:             in,
 	}
 
 	go l.processRecords()

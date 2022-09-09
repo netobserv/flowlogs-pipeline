@@ -23,6 +23,7 @@ import (
 	"net"
 	"regexp"
 	"strconv"
+	"sync"
 	"text/template"
 
 	"github.com/Knetic/govaluate"
@@ -40,9 +41,23 @@ type Network struct {
 }
 
 func (n *Network) Transform(input []config.GenericMap) []config.GenericMap {
+	entriesChan := make(chan config.GenericMap, len(input))
+	var wg sync.WaitGroup
+	wg.Add(len(input))
+
+	for _, e := range input {
+		go func(entry config.GenericMap) {
+			defer wg.Done()
+			outputEntry := n.TransformEntry(entry)
+			entriesChan <- outputEntry
+		}(e)
+	}
+
+	wg.Wait()
+	close(entriesChan)
+
 	outputEntries := make([]config.GenericMap, 0)
-	for _, entry := range input {
-		outputEntry := n.TransformEntry(entry)
+	for outputEntry := range entriesChan {
 		outputEntries = append(outputEntries, outputEntry)
 	}
 	return outputEntries
