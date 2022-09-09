@@ -28,7 +28,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var slog = logrus.WithField("component", "netdb.ServicesDB")
+var slog = logrus.WithField("component", "netdb.ServiceNames")
 
 type numKey struct {
 	port           int
@@ -40,7 +40,7 @@ type nameKey struct {
 	protocolName string
 }
 
-type ServicesDB struct {
+type ServiceNames struct {
 	protoNums map[int]struct{}
 	// key: protocol name, value: protocol number
 	protoNames  map[string]int
@@ -51,9 +51,9 @@ type ServicesDB struct {
 
 // LoadServicesDB receives readers to the /etc/protocols and /etc/services formatted content
 // and returns a database that allow querying service names from ports and protocol information
-func LoadServicesDB(protocols, services io.Reader) (*ServicesDB, error) {
+func LoadServicesDB(protocols, services io.Reader) (*ServiceNames, error) {
 	log := slog.WithField("method", "LoadServicesDB")
-	db := ServicesDB{
+	db := ServiceNames{
 		protoNums:   map[int]struct{}{},
 		protoNames:  map[string]int{},
 		byPort:      map[int]string{},
@@ -133,14 +133,20 @@ func LoadServicesDB(protocols, services io.Reader) (*ServicesDB, error) {
 	return &db, nil
 }
 
-func (db *ServicesDB) ByPortAndProtocolName(port int, nameOrAlias string) string {
+// ByPortAndProtocolName returns the service name given a port and a protocol name (or
+// its alias). If the protocol does not exist, returns the name of any service matching
+// the port number.
+func (db *ServiceNames) ByPortAndProtocolName(port int, nameOrAlias string) string {
 	if _, ok := db.protoNames[nameOrAlias]; ok {
 		return db.byProtoName[nameKey{port: port, protocolName: nameOrAlias}]
 	}
 	return db.byPort[port]
 }
 
-func (db *ServicesDB) ByPortAndProtocolNumber(port, protoNum int) string {
+// ByPortAndProtocolNumber returns the service name given a port and a protocol number.
+// If the protocol does not exist, returns the name of any service matching
+// the port number.
+func (db *ServiceNames) ByPortAndProtocolNumber(port, protoNum int) string {
 	if _, ok := db.protoNums[protoNum]; ok {
 		return db.byProtoNum[numKey{port: port, protocolNumber: protoNum}]
 	}

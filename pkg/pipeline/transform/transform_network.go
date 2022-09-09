@@ -38,7 +38,7 @@ import (
 
 type Network struct {
 	api.TransformNetwork
-	servicesDB *netdb.ServicesDB
+	svcNames *netdb.ServiceNames
 }
 
 func (n *Network) Transform(input []config.GenericMap) []config.GenericMap {
@@ -133,10 +133,10 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 			protocolAsNumber, err := strconv.Atoi(protocol)
 			if err == nil {
 				// protocol has been submitted as number
-				serviceName = n.servicesDB.ByPortAndProtocolNumber(portNumber, protocolAsNumber)
+				serviceName = n.svcNames.ByPortAndProtocolNumber(portNumber, protocolAsNumber)
 			} else {
 				// protocol has been submitted as any string
-				serviceName = n.servicesDB.ByPortAndProtocolName(portNumber, protocol)
+				serviceName = n.svcNames.ByPortAndProtocolName(portNumber, protocol)
 			}
 			if serviceName == "" {
 				if err != nil {
@@ -217,7 +217,7 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		}
 	}
 
-	var servicesDB *netdb.ServicesDB
+	var servicesDB *netdb.ServiceNames
 	if needToInitNetworkServices {
 		var err error
 		protos, err := os.Open("/etc/protocols")
@@ -238,6 +238,6 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		TransformNetwork: api.TransformNetwork{
 			Rules: jsonNetworkTransform.Rules,
 		},
-		servicesDB: servicesDB,
+		svcNames: servicesDB,
 	}, nil
 }

@@ -123,7 +123,7 @@ func getExpectedOutput() config.GenericMap {
 	}
 }
 
-func getServicesDB(t *testing.T) *netdb.ServicesDB {
+func getServicesDB(t *testing.T) *netdb.ServiceNames {
 	etcProtos, err := os.Open(path.Join("fixtures", "etcProtocols.txt"))
 	require.NoError(t, err)
 	defer etcProtos.Close()
@@ -146,7 +146,7 @@ func Test_Transform(t *testing.T) {
 		TransformNetwork: api.TransformNetwork{
 			Rules: rules,
 		},
-		servicesDB: getServicesDB(t),
+		svcNames: getServicesDB(t),
 	}
 
 	err := location.InitLocationDB()
@@ -170,7 +170,7 @@ func Test_TransformAddSubnetParseCIDRFailure(t *testing.T) {
 		TransformNetwork: api.TransformNetwork{
 			Rules: rules,
 		},
-		servicesDB: getServicesDB(t),
+		svcNames: getServicesDB(t),
 	}
 
 	err := location.InitLocationDB()
@@ -329,6 +329,7 @@ func Test_Transform_AddIfScientificNotation(t *testing.T) {
 				},
 			},
 		},
+		svcNames: getServicesDB(t),
 	}
 
 	var entry config.GenericMap

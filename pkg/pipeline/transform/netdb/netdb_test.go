@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testingServicesDB() (*ServicesDB, error) {
+func testingServicesDB() (*ServiceNames, error) {
 	etcProtos, err := os.Open(path.Join("fixtures", "etcProtocols.txt"))
 	if err != nil {
 		return nil, err
