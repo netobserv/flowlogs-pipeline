@@ -37,7 +37,7 @@ parameters:
       type: aggregates
       aggregates:
         - Name: "Avg by src and dst IP's"
-          By:
+          GroupByKeys:
             - "dstIP"
             - "srcIP"
           OperationType: "avg"

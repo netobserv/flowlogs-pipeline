@@ -18,7 +18,7 @@ extract:
   type: aggregates
   aggregates:
     - name: src_connection_count
-      by:
+      groupByKeys:
         - srcSubnet
         - _RecordType
       operationType: count
@@ -31,7 +31,7 @@ encode:
         filter: {key: name, value: src_connection_count}
         valueKey: recent_count
         labels:
-          - by
+          - groupByKeys
           - aggregate
 visualization:
   type: grafana

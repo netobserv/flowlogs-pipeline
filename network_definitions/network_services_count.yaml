@@ -20,7 +20,7 @@ extract:
   type: aggregates
   aggregates:
     - name: dest_service_count
-      by:
+      groupByKeys:
         - service
         - _RecordType
       operationType: count
@@ -33,7 +33,7 @@ encode:
         filter: { key: name, value: dest_service_count }
         valueKey: recent_count
         labels:
-          - by
+          - groupByKeys
           - aggregate
 visualization:
   type: grafana

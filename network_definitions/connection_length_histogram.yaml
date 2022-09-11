@@ -13,17 +13,17 @@ tags:
 extract:
   aggregates:
     - name: connection_bytes_hist
-      by:
+      groupByKeys:
         - _RecordType
       operationType: raw_values
       operationKey: bytes_total
     - name: connection_bytes_hist_AB
-      by:
+      groupByKeys:
         - _RecordType
       operationType: raw_values
       operationKey: bytes_AB
     - name: connection_bytes_hist_BA
-      by:
+      groupByKeys:
         - _RecordType
       operationType: raw_values
       operationKey: bytes_BA
@@ -36,7 +36,7 @@ encode:
         filter: { key: name, value: connection_bytes_hist }
         valueKey: recent_raw_values
         labels:
-          - by
+          - groupByKeys
           - aggregate
         buckets:
           - 128
@@ -49,7 +49,7 @@ encode:
         filter: { key: name, value: connection_bytes_hist_AB }
         valueKey: recent_raw_values
         labels:
-          - by
+          - groupByKeys
           - aggregate
         buckets:
           - 128
@@ -62,7 +62,7 @@ encode:
         filter: { key: name, value: connection_bytes_hist_BA }
         valueKey: recent_raw_values
         labels:
-          - by
+          - groupByKeys
           - aggregate
         buckets:
           - 128

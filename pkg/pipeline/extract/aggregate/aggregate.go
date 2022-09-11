@@ -64,7 +64,7 @@ func (aggregate Aggregate) LabelsFromEntry(entry config.GenericMap) (Labels, boo
 	allLabelsFound := true
 	labels := Labels{}
 
-	for _, key := range aggregate.Definition.By {
+	for _, key := range aggregate.Definition.GroupByKeys {
 		value, ok := entry[key]
 		if !ok {
 			allLabelsFound = false
@@ -212,17 +212,17 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 			"name":              aggregate.Definition.Name,
 			"operation":         aggregate.Definition.OperationType,
 			"operation_key":     aggregate.Definition.OperationKey,
-			"by":                strings.Join(aggregate.Definition.By, ","),
+			"by":                strings.Join(aggregate.Definition.GroupByKeys, ","),
 			"aggregate":         string(group.normalizedValues),
 			"total_value":       group.totalValue,
 			"total_count":       group.totalCount,
 			"recent_raw_values": group.recentRawValues,
 			"recent_op_value":   group.recentOpValue,
 			"recent_count":      group.recentCount,
-			strings.Join(aggregate.Definition.By, "_"): string(group.normalizedValues),
+			strings.Join(aggregate.Definition.GroupByKeys, "_"): string(group.normalizedValues),
 		}
-		// add the items in aggregate.Definition.By individually to the entry
-		for _, key := range aggregate.Definition.By {
+		// add the items in aggregate.Definition.GroupByKeys individually to the entry
+		for _, key := range aggregate.Definition.GroupByKeys {
 			newEntry[key] = group.labels[key]
 		}
 		metrics = append(metrics, newEntry)

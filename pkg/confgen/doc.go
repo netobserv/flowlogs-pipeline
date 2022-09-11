@@ -52,7 +52,7 @@ func (cg *ConfGen) generatePromEncodeText(metrics api.PromMetricsItems) string {
 func (cg *ConfGen) generateOperationText(definitions aggregate.Definitions) string {
 	section := ""
 	for _, definition := range definitions {
-		by := strings.Join(definition.By[:], ", ")
+		by := strings.Join(definition.GroupByKeys[:], ", ")
 		operation := definition.OperationType
 		operationKey := definition.OperationKey
 		if operationKey != "" {

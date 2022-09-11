@@ -32,7 +32,7 @@ func GetMockAggregate() Aggregate {
 	aggregate := Aggregate{
 		Definition: api.AggregateDefinition{
 			Name:          "Avg by src and dst IP's",
-			By:            api.AggregateBy{"dstIP", "srcIP"},
+			GroupByKeys:   api.AggregateBy{"dstIP", "srcIP"},
 			OperationType: "avg",
 			OperationKey:  "value",
 		},
@@ -78,7 +78,7 @@ func Test_getNormalizedValues(t *testing.T) {
 func Test_LabelsFromEntry(t *testing.T) {
 	aggregate := Aggregate{
 		Definition: api.AggregateDefinition{
-			By:            api.AggregateBy{"dstIP", "srcIP"},
+			GroupByKeys:   api.AggregateBy{"dstIP", "srcIP"},
 			OperationType: "count",
 			OperationKey:  "",
 		},

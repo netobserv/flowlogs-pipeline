@@ -22,7 +22,7 @@ type AggregateOperation string
 
 type AggregateDefinition struct {
 	Name          string             `yaml:"name,omitempty" json:"name,omitempty" doc:"description of aggregation result"`
-	By            AggregateBy        `yaml:"by,omitempty" json:"by,omitempty" doc:"list of fields on which to aggregate"`
+	GroupByKeys   AggregateBy        `yaml:"groupByKeys,omitempty" json:"groupByKeys,omitempty" doc:"list of fields on which to aggregate"`
 	OperationType AggregateOperation `yaml:"operationType,omitempty" json:"operationType,omitempty" doc:"sum, min, max, avg or raw_values"`
 	OperationKey  string             `yaml:"operationKey,omitempty" json:"operationKey,omitempty" doc:"internal field on which to perform the operation"`
 }

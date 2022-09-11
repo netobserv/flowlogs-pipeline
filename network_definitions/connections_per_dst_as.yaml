@@ -13,7 +13,7 @@ extract:
   type: aggregates
   aggregates:
     - name: dst_as_connection_count
-      by:
+      groupByKeys:
         - dstAS
         - _RecordType
       operationType: count
@@ -26,7 +26,7 @@ encode:
         filter: { key: name, value: dst_as_connection_count }
         valueKey: recent_count
         labels:
-          - by
+          - groupByKeys
           - aggregate
 visualization:
   type: grafana

@@ -18,7 +18,7 @@ extract:
   type: aggregates
   aggregates:
     - name: dest_connection_subnet_count
-      by:
+      groupByKeys:
         - dstSubnet
         - _RecordType
       operationType: count

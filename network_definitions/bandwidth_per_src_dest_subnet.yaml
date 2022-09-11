@@ -23,7 +23,7 @@ transform:
 extract:
   aggregates:
     - name: bandwidth_source_destination_subnet
-      by:
+      groupByKeys:
         - dstSubnet24
         - srcSubnet24
         - _RecordType
@@ -38,7 +38,7 @@ encode:
         filter: {key: name, value: bandwidth_source_destination_subnet}
         valueKey: recent_op_value
         labels:
-          - by
+          - groupByKeys
           - aggregate
 visualization:
   type: grafana

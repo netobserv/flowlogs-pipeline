@@ -19,7 +19,7 @@ transform:
 extract:
   aggregates:
     - name: bandwidth_source_subnet
-      by:
+      groupByKeys:
         - srcSubnet
         - _RecordType
       operationType: sum

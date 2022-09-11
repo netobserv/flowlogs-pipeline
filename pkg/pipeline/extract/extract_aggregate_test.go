@@ -40,37 +40,37 @@ parameters:
       type: aggregates
       aggregates:
         - name: bandwidth_count
-          by:
+          groupByKeys:
           - service
           operationType: count
           operationKey: ""
 
         - name: bandwidth_sum
-          by:
+          groupByKeys:
           - service
           operationType: sum
           operationKey: bytes
 
         - name: bandwidth_max
-          by:
+          groupByKeys:
           - service
           operationType: max
           operationKey: bytes
 
         - name: bandwidth_min
-          by:
+          groupByKeys:
           - service
           operationType: min
           operationKey: bytes
 
         - name: bandwidth_avg
-          by:
+          groupByKeys:
           - service
           operationType: avg
           operationKey: bytes
 
         - name: bandwidth_raw_values
-          by:
+          groupByKeys:
           - service
           operationType: raw_values
           operationKey: bytes

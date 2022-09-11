@@ -19,7 +19,7 @@ extract:
   type: aggregates
   aggregates:
     - name: dest_connection_location_count
-      by:
+      groupByKeys:
         - dstLocation_CountryName
         - _RecordType
       operationType: count
@@ -32,7 +32,7 @@ encode:
         filter: { key: name, value: dest_connection_location_count }
         valueKey: recent_count
         labels:
-          - by
+          - groupByKeys
           - aggregate
 visualization:
   type: grafana

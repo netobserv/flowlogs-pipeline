@@ -132,7 +132,7 @@ func Test_RunShortConfGen(t *testing.T) {
 	require.Len(t, out.Parameters[2].Extract.Aggregates, 1)
 	require.Equal(t, api.AggregateDefinition{
 		Name:          "test_aggregates",
-		By:            api.AggregateBy{"service"},
+		GroupByKeys:   api.AggregateBy{"service"},
 		OperationType: "sum",
 		OperationKey:  "test_operation_key",
 	}, out.Parameters[2].Extract.Aggregates[0])
@@ -147,7 +147,7 @@ func Test_RunShortConfGen(t *testing.T) {
 			Type:     "gauge",
 			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
 			ValueKey: "test_aggregates_value",
-			Labels:   []string{"by", "aggregate"},
+			Labels:   []string{"groupByKeys", "aggregate"},
 			Buckets:  []float64{},
 		}},
 	}, out.Parameters[3].Encode.Prom)
@@ -305,13 +305,13 @@ func Test_RunLongConfGen(t *testing.T) {
 	require.Len(t, out.Parameters[3].Extract.Aggregates, 2)
 	require.Equal(t, api.AggregateDefinition{
 		Name:          "test_aggregates",
-		By:            api.AggregateBy{"service"},
+		GroupByKeys:   api.AggregateBy{"service"},
 		OperationType: "sum",
 		OperationKey:  "test_operation_key",
 	}, out.Parameters[3].Extract.Aggregates[0])
 	require.Equal(t, api.AggregateDefinition{
 		Name:          "test_agg_histo",
-		By:            api.AggregateBy{"service"},
+		GroupByKeys:   api.AggregateBy{"service"},
 		OperationType: "sum",
 		OperationKey:  "test_operation_key",
 	}, out.Parameters[3].Extract.Aggregates[1])
@@ -326,14 +326,14 @@ func Test_RunLongConfGen(t *testing.T) {
 			Type:     "gauge",
 			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
 			ValueKey: "test_aggregates_value",
-			Labels:   []string{"by", "aggregate"},
+			Labels:   []string{"groupByKeys", "aggregate"},
 			Buckets:  []float64{},
 		}, {
 			Name:     "test_histo",
 			Type:     "agg_histogram",
 			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
 			ValueKey: "test_aggregates_value",
-			Labels:   []string{"by", "aggregate"},
+			Labels:   []string{"groupByKeys", "aggregate"},
 			Buckets:  []float64{},
 		}},
 	}, out.Parameters[4].Encode.Prom)
@@ -361,7 +361,7 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 	require.Len(t, params[0].Extract.Aggregates, 1)
 	require.Equal(t, api.AggregateDefinition{
 		Name:          "test_aggregates",
-		By:            api.AggregateBy{"service"},
+		GroupByKeys:   api.AggregateBy{"service"},
 		OperationType: "sum",
 		OperationKey:  "test_operation_key",
 	}, params[0].Extract.Aggregates[0])
@@ -374,7 +374,7 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 			Type:     "gauge",
 			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
 			ValueKey: "test_aggregates_value",
-			Labels:   []string{"by", "aggregate"},
+			Labels:   []string{"groupByKeys", "aggregate"},
 		}},
 	}, params[1].Encode.Prom)
 }

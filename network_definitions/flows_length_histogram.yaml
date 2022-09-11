@@ -19,7 +19,7 @@ transform:
 extract:
   aggregates:
     - name: flows_bytes_hist
-      by:
+      groupByKeys:
         - all_Evaluate
         - _RecordType
       operationType: raw_values
@@ -33,7 +33,7 @@ encode:
         filter: { key: name, value: flows_bytes_hist }
         valueKey: recent_raw_values
         labels:
-          - by
+          - groupByKeys
           - aggregate
         buckets:
           - 128

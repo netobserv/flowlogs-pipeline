@@ -19,7 +19,7 @@ transform:
 extract:
   aggregates:
     - name: bandwidth_network_service
-      by:
+      groupByKeys:
         - service
         - _RecordType
       operationType: sum
@@ -33,7 +33,7 @@ encode:
         filter: {key: name, value: bandwidth_network_service}
         valueKey: recent_op_value
         labels:
-          - by
+          - groupByKeys
           - aggregate
 visualization:
   type: grafana

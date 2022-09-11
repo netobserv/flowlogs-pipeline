@@ -76,7 +76,7 @@ transform:
 extract:
   aggregates:
     - name: test_aggregates
-      by:
+      groupByKeys:
         - service
       operationType: sum
       operationKey: test_operation_key
@@ -88,7 +88,7 @@ encode:
         type: gauge
         valueKey: test_aggregates_value
         labels:
-          - by
+          - groupByKeys
           - aggregate
 visualization:
   type: grafana
@@ -113,7 +113,7 @@ tags:
 extract:
   aggregates:
     - name: test_agg_histo
-      by:
+      groupByKeys:
         - service
       operationType: sum
       operationKey: test_operation_key
@@ -125,7 +125,7 @@ encode:
         type: histogram
         valueKey: test_aggregates_value
         labels:
-          - by
+          - groupByKeys
           - aggregate
 `
 

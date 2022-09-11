@@ -169,7 +169,7 @@ Following is the supported API format for specifying metrics aggregations:
 <pre>
  aggregates:
          name: description of aggregation result
-         by: list of fields on which to aggregate
+         groupByKeys: list of fields on which to aggregate
          operationType: sum, min, max, avg or raw_values
          operationKey: internal field on which to perform the operation
 </pre>
