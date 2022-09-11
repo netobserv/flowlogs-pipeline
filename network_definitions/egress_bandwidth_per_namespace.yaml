@@ -22,7 +22,7 @@ extract:
         - srcK8S_Namespace
         - srcK8S_Type
         - _RecordType
-      operation: sum
+      operationType: sum
       operationKey: bytes
 encode:
   type: prom

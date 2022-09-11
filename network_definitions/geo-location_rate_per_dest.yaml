@@ -22,7 +22,7 @@ extract:
       by:
         - dstLocation_CountryName
         - _RecordType
-      operation: count
+      operationType: count
 encode:
   type: prom
   prom:

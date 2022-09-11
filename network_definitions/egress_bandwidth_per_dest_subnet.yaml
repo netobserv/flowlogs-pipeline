@@ -22,7 +22,7 @@ extract:
       by:
         - dstSubnet
         - _RecordType
-      operation: sum
+      operationType: sum
       operationKey: bytes
 encode:
   type: prom

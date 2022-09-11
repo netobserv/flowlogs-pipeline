@@ -131,10 +131,10 @@ func Test_RunShortConfGen(t *testing.T) {
 	// Expects aggregates
 	require.Len(t, out.Parameters[2].Extract.Aggregates, 1)
 	require.Equal(t, api.AggregateDefinition{
-		Name:         "test_aggregates",
-		By:           api.AggregateBy{"service"},
-		Operation:    "sum",
-		OperationKey: "test_operation_key",
+		Name:          "test_aggregates",
+		By:            api.AggregateBy{"service"},
+		OperationType: "sum",
+		OperationKey:  "test_operation_key",
 	}, out.Parameters[2].Extract.Aggregates[0])
 
 	// Expects prom encode
@@ -304,16 +304,16 @@ func Test_RunLongConfGen(t *testing.T) {
 	// Expects aggregates
 	require.Len(t, out.Parameters[3].Extract.Aggregates, 2)
 	require.Equal(t, api.AggregateDefinition{
-		Name:         "test_aggregates",
-		By:           api.AggregateBy{"service"},
-		Operation:    "sum",
-		OperationKey: "test_operation_key",
+		Name:          "test_aggregates",
+		By:            api.AggregateBy{"service"},
+		OperationType: "sum",
+		OperationKey:  "test_operation_key",
 	}, out.Parameters[3].Extract.Aggregates[0])
 	require.Equal(t, api.AggregateDefinition{
-		Name:         "test_agg_histo",
-		By:           api.AggregateBy{"service"},
-		Operation:    "sum",
-		OperationKey: "test_operation_key",
+		Name:          "test_agg_histo",
+		By:            api.AggregateBy{"service"},
+		OperationType: "sum",
+		OperationKey:  "test_operation_key",
 	}, out.Parameters[3].Extract.Aggregates[1])
 
 	// Expects prom encode; make sure type "histogram" is changed to "agg_histogram"
@@ -360,10 +360,10 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 	// Expects aggregates
 	require.Len(t, params[0].Extract.Aggregates, 1)
 	require.Equal(t, api.AggregateDefinition{
-		Name:         "test_aggregates",
-		By:           api.AggregateBy{"service"},
-		Operation:    "sum",
-		OperationKey: "test_operation_key",
+		Name:          "test_aggregates",
+		By:            api.AggregateBy{"service"},
+		OperationType: "sum",
+		OperationKey:  "test_operation_key",
 	}, params[0].Extract.Aggregates[0])
 
 	// Expects prom encode

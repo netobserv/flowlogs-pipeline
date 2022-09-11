@@ -27,7 +27,7 @@ extract:
         - dstSubnet24
         - srcSubnet24
         - _RecordType
-      operation: count
+      operationType: count
 encode:
   type: prom
   prom:

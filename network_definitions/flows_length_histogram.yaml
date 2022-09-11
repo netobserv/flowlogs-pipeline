@@ -22,7 +22,7 @@ extract:
       by:
         - all_Evaluate
         - _RecordType
-      operation: raw_values
+      operationType: raw_values
       operationKey: bytes
 encode:
   type: prom

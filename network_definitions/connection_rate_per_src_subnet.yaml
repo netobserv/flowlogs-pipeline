@@ -21,7 +21,7 @@ extract:
       by:
         - srcSubnet
         - _RecordType
-      operation: count
+      operationType: count
 encode:
   type: prom
   prom:

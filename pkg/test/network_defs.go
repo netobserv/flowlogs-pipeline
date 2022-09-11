@@ -78,7 +78,7 @@ extract:
     - name: test_aggregates
       by:
         - service
-      operation: sum
+      operationType: sum
       operationKey: test_operation_key
 encode:
   type: prom
@@ -115,7 +115,7 @@ extract:
     - name: test_agg_histo
       by:
         - service
-      operation: sum
+      operationType: sum
       operationKey: test_operation_key
 encode:
   type: prom

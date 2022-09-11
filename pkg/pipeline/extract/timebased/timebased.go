@@ -79,7 +79,7 @@ func CreateRecordKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*Re
 				rStruct.maxTimeInterval = filterRule.TimeInterval.Duration
 			}
 		}
-		// verify the validity of the Operation field in the filterRule
+		// verify the validity of the OperationType field in the filterRule
 		switch filterRule.Operation {
 		case api.FilterOperationName("FilterOperationLast"),
 			api.FilterOperationName("FilterOperationDiff"),

@@ -40,7 +40,7 @@ parameters:
           By:
             - "dstIP"
             - "srcIP"
-          Operation: "avg"
+          OperationType: "avg"
           OperationKey: "value"
 `
 	v, cfg := test.InitConfig(t, yamlConfig)

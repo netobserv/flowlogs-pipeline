@@ -31,10 +31,10 @@ import (
 func GetMockAggregate() Aggregate {
 	aggregate := Aggregate{
 		Definition: api.AggregateDefinition{
-			Name:         "Avg by src and dst IP's",
-			By:           api.AggregateBy{"dstIP", "srcIP"},
-			Operation:    "avg",
-			OperationKey: "value",
+			Name:          "Avg by src and dst IP's",
+			By:            api.AggregateBy{"dstIP", "srcIP"},
+			OperationType: "avg",
+			OperationKey:  "value",
 		},
 		cache:      utils.NewTimedCache(),
 		mutex:      &sync.Mutex{},
@@ -78,9 +78,9 @@ func Test_getNormalizedValues(t *testing.T) {
 func Test_LabelsFromEntry(t *testing.T) {
 	aggregate := Aggregate{
 		Definition: api.AggregateDefinition{
-			By:           api.AggregateBy{"dstIP", "srcIP"},
-			Operation:    "count",
-			OperationKey: "",
+			By:            api.AggregateBy{"dstIP", "srcIP"},
+			OperationType: "count",
+			OperationKey:  "",
 		},
 	}
 	expectedLabels := getMockLabels(false)

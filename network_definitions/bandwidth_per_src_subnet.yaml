@@ -22,7 +22,7 @@ extract:
       by:
         - srcSubnet
         - _RecordType
-      operation: sum
+      operationType: sum
       operationKey: bytes
   timebased:
     rules:

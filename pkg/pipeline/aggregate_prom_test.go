@@ -45,19 +45,19 @@ parameters:
        - name: bandwidth_sum
          by:
          - service
-         operation: sum
+         operationType: sum
          operationKey: bytes
 
        - name: bandwidth_count
          by:
          - service
-         operation: count
+         operationType: count
          operationKey:
 
        - name: bandwidth_raw_values
          by:
          - service
-         operation: raw_values
+         operationType: raw_values
          operationKey: bytes
  - name: encode
    encode:

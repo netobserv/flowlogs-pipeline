@@ -37,7 +37,7 @@ func TestNewAggregator_Invalid(t *testing.T) {
 	})
 	require.NotNil(t, err)
 
-	// unknown Operation
+	// unknown OperationType
 	_, err = newAggregator(api.OutputField{
 		Name:      "MyAgg",
 		Operation: "unknown",
@@ -69,22 +69,22 @@ func TestNewAggregator_Valid(t *testing.T) {
 			expected:    &aSum{aggregateBase{"MyInput", "MyAgg", false, 0}},
 		},
 		{
-			name:        "Operation sum",
+			name:        "OperationType sum",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "sum"},
 			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", false, 0}},
 		},
 		{
-			name:        "Operation count",
+			name:        "OperationType count",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "count"},
 			expected:    &aCount{aggregateBase{"MyAgg", "MyAgg", false, 0}},
 		},
 		{
-			name:        "Operation max",
+			name:        "OperationType max",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "max"},
 			expected:    &aMax{aggregateBase{"MyAgg", "MyAgg", false, -math.MaxFloat64}},
 		},
 		{
-			name:        "Operation min",
+			name:        "OperationType min",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "min"},
 			expected:    &aMin{aggregateBase{"MyAgg", "MyAgg", false, math.MaxFloat64}},
 		},

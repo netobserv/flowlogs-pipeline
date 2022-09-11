@@ -15,17 +15,17 @@ extract:
     - name: connection_bytes_hist
       by:
         - _RecordType
-      operation: raw_values
+      operationType: raw_values
       operationKey: bytes_total
     - name: connection_bytes_hist_AB
       by:
         - _RecordType
-      operation: raw_values
+      operationType: raw_values
       operationKey: bytes_AB
     - name: connection_bytes_hist_BA
       by:
         - _RecordType
-      operation: raw_values
+      operationType: raw_values
       operationKey: bytes_BA
 encode:
   type: prom

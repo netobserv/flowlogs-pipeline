@@ -129,10 +129,10 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	oldEntry, ok := aggregate.cache.GetCacheEntry(string(normalizedValues))
 	if !ok {
 		groupState = &GroupState{normalizedValues: normalizedValues, labels: labels}
-		initVal := getInitValue(string(aggregate.Definition.Operation))
+		initVal := getInitValue(string(aggregate.Definition.OperationType))
 		groupState.totalValue = initVal
 		groupState.recentOpValue = initVal
-		if aggregate.Definition.Operation == OperationRawValues {
+		if aggregate.Definition.OperationType == OperationRawValues {
 			groupState.recentRawValues = make([]float64, 0)
 		}
 	} else {
@@ -142,7 +142,7 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 
 	// update value
 	operationKey := aggregate.Definition.OperationKey
-	operation := aggregate.Definition.Operation
+	operation := aggregate.Definition.OperationType
 
 	if operation == OperationCount {
 		groupState.totalValue = float64(groupState.totalCount + 1)
@@ -210,7 +210,7 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 		group := value.(*GroupState)
 		newEntry := config.GenericMap{
 			"name":              aggregate.Definition.Name,
-			"operation":         aggregate.Definition.Operation,
+			"operation":         aggregate.Definition.OperationType,
 			"operation_key":     aggregate.Definition.OperationKey,
 			"by":                strings.Join(aggregate.Definition.By, ","),
 			"aggregate":         string(group.normalizedValues),
@@ -227,11 +227,11 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 		}
 		metrics = append(metrics, newEntry)
 		// Once reported, we reset the recentXXX fields
-		if aggregate.Definition.Operation == OperationRawValues {
+		if aggregate.Definition.OperationType == OperationRawValues {
 			group.recentRawValues = make([]float64, 0)
 		}
 		group.recentCount = 0
-		group.recentOpValue = getInitValue(string(aggregate.Definition.Operation))
+		group.recentOpValue = getInitValue(string(aggregate.Definition.OperationType))
 	})
 
 	return metrics
