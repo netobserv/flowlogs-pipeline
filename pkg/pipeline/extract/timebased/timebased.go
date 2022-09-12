@@ -80,7 +80,7 @@ func CreateRecordKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*Re
 			}
 		}
 		// verify the validity of the OperationType field in the filterRule
-		switch filterRule.Operation {
+		switch filterRule.OperationType {
 		case api.FilterOperationName("FilterOperationLast"),
 			api.FilterOperationName("FilterOperationDiff"),
 			api.FilterOperationName("FilterOperationAvg"),
@@ -89,7 +89,7 @@ func CreateRecordKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*Re
 			api.FilterOperationName("FilterOperationSum"):
 			// OK; nothing to do
 		default:
-			log.Errorf("illegal operation type %s", filterRule.Operation)
+			log.Errorf("illegal operation type %s", filterRule.OperationType)
 			continue
 		}
 		tmpFilter := FilterStruct{

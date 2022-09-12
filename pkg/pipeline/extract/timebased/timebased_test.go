@@ -30,29 +30,29 @@ import (
 func getTimebasedRules() []api.TimebasedFilterRule {
 	rules := []api.TimebasedFilterRule{
 		{
-			Name:         "Top2_sum",
-			RecordKey:    "SrcAddr",
-			Operation:    "sum",
-			OperationKey: "Bytes",
-			TopK:         2,
-			TimeInterval: api.Duration{Duration: 1 * time.Second},
+			Name:          "Top2_sum",
+			RecordKey:     "SrcAddr",
+			OperationType: "sum",
+			OperationKey:  "Bytes",
+			TopK:          2,
+			TimeInterval:  api.Duration{Duration: 1 * time.Second},
 		},
 		{
-			Name:         "Bot2_last",
-			RecordKey:    "SrcAddr",
-			Operation:    "last",
-			OperationKey: "Bytes",
-			Reversed:     true,
-			TimeInterval: api.Duration{Duration: 3 * time.Second},
+			Name:          "Bot2_last",
+			RecordKey:     "SrcAddr",
+			OperationType: "last",
+			OperationKey:  "Bytes",
+			Reversed:      true,
+			TimeInterval:  api.Duration{Duration: 3 * time.Second},
 		},
 		{
-			Name:         "Top4_max",
-			RecordKey:    "DstAddr",
-			Operation:    "max",
-			OperationKey: "Bytes",
-			TopK:         4,
-			Reversed:     false,
-			TimeInterval: api.Duration{Duration: 1 * time.Second},
+			Name:          "Top4_max",
+			RecordKey:     "DstAddr",
+			OperationType: "max",
+			OperationKey:  "Bytes",
+			TopK:          4,
+			Reversed:      false,
+			TimeInterval:  api.Duration{Duration: 1 * time.Second},
 		},
 	}
 	return rules
@@ -75,12 +75,12 @@ func Test_CreateRecordKeysAndFilters(t *testing.T) {
 func Test_CreateRecordKeysAndFiltersError(t *testing.T) {
 	rules := []api.TimebasedFilterRule{
 		{
-			Name:         "filter1",
-			RecordKey:    "",
-			Operation:    "sum",
-			OperationKey: "operationKey1",
-			TopK:         2,
-			TimeInterval: api.Duration{Duration: 10 * time.Second},
+			Name:          "filter1",
+			RecordKey:     "",
+			OperationType: "sum",
+			OperationKey:  "operationKey1",
+			TopK:          2,
+			TimeInterval:  api.Duration{Duration: 10 * time.Second},
 		},
 	}
 	recordKeyStructs, filters := CreateRecordKeysAndFilters(rules)

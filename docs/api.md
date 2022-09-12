@@ -211,7 +211,7 @@ Following is the supported API format for specifying metrics time-based filters:
          rules: list of filter rules, each includes:
                  name: description of filter result
                  recordKey: internal field to index TopK
-                 operation: (enum) sum, min, max, avg, last or diff
+                 operationType: (enum) sum, min, max, avg, last or diff
                      sum: set output field to sum of parameters fields in the time window
                      avg: set output field to average of parameters fields in the time window
                      min: set output field to minimum of parameters fields in the time window

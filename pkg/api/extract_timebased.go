@@ -35,11 +35,11 @@ type ExtractTimebased struct {
 }
 
 type TimebasedFilterRule struct {
-	Name         string   `yaml:"name,omitempty" json:"name,omitempty" doc:"description of filter result"`
-	RecordKey    string   `yaml:"recordKey,omitempty" json:"recordKey,omitempty" doc:"internal field to index TopK"`
-	Operation    string   `yaml:"operation,omitempty" json:"operation,omitempty" enum:"FilterOperationEnum" doc:"sum, min, max, avg, last or diff"`
-	OperationKey string   `yaml:"operationKey,omitempty" json:"operationKey,omitempty" doc:"internal field on which to perform the operation"`
-	TopK         int      `yaml:"topK,omitempty" json:"topK,omitempty" doc:"number of highest incidence to report (default - report all)"`
-	Reversed     bool     `yaml:"reversed,omitempty" json:"reversed,omitempty" doc:"report lowest incidence instead of highest (default - false)"`
-	TimeInterval Duration `yaml:"timeInterval,omitempty" json:"timeInterval,omitempty" doc:"time duration of data to use to compute the metric"`
+	Name          string   `yaml:"name,omitempty" json:"name,omitempty" doc:"description of filter result"`
+	RecordKey     string   `yaml:"recordKey,omitempty" json:"recordKey,omitempty" doc:"internal field to index TopK"`
+	OperationType string   `yaml:"operationType,omitempty" json:"operationType,omitempty" enum:"FilterOperationEnum" doc:"sum, min, max, avg, last or diff"`
+	OperationKey  string   `yaml:"operationKey,omitempty" json:"operationKey,omitempty" doc:"internal field on which to perform the operation"`
+	TopK          int      `yaml:"topK,omitempty" json:"topK,omitempty" doc:"number of highest incidence to report (default - report all)"`
+	Reversed      bool     `yaml:"reversed,omitempty" json:"reversed,omitempty" doc:"report lowest incidence instead of highest (default - false)"`
+	TimeInterval  Duration `yaml:"timeInterval,omitempty" json:"timeInterval,omitempty" doc:"time duration of data to use to compute the metric"`
 }
