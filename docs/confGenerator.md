@@ -95,10 +95,10 @@ extract: (8)
   type: aggregates (8.1)
   aggregates:
     - name: aggregate_name (8.2)
-      by: (8.3)
+      groupByKeys: (8.3)
         - aggregateField1
         - aggregateField2
-      operation: operation (8.4)
+      operationType: operation (8.4)
 encode: (9)
   type: prom (9.1)
   prom:
@@ -133,7 +133,7 @@ As needed, (7.4) adds additional parameters to the operation.
 > on the fields refer to [api.md](api.md#transform-network-api). 
 
 (8) Next, the transformed log lines are aggregated using **mathematical 
-operation** (8.4) based on the `by` fields (8.3) - 
+operation** (8.4) based on the `groupByKeys` fields (8.3) - 
 this actually moves the data from being log lines into being a metric named (8.2)  
 > For additional details on `extract aggregates`
 > refer to [README.md](../README.md#aggregates).  

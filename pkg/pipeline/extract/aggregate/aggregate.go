@@ -210,7 +210,7 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 		group := value.(*GroupState)
 		newEntry := config.GenericMap{
 			"name":              aggregate.Definition.Name,
-			"operation":         aggregate.Definition.OperationType,
+			"operation_type":    aggregate.Definition.OperationType,
 			"operation_key":     aggregate.Definition.OperationKey,
 			"by":                strings.Join(aggregate.Definition.GroupByKeys, ","),
 			"aggregate":         string(group.normalizedValues),

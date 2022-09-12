@@ -82,80 +82,80 @@ data:
             - name: bandwidth_network_service
               by:
                 - service
-              operation: sum
+              operationType: sum
               operationKey: bytes
             - name: bandwidth_source_destination_subnet
               by:
                 - dstSubnet24
                 - srcSubnet24
-              operation: sum
+              operationType: sum
               operationKey: bytes
             - name: bandwidth_source_subnet
               by:
                 - srcSubnet
-              operation: sum
+              operationType: sum
               operationKey: bytes
             - name: dest_connection_subnet_count
               by:
                 - dstSubnet
-              operation: sum
+              operationType: sum
               operationKey: isNewFlow
             - name: src_connection_count
               by:
                 - srcSubnet
-              operation: count
+              operationType: count
               operationKey: ""
             - name: TCPFlags_count
               by:
                 - TCPFlags
-              operation: count
+              operationType: count
               operationKey: ""
             - name: dst_as_connection_count
               by:
                 - dstAS
-              operation: count
+              operationType: count
               operationKey: ""
             - name: src_as_connection_count
               by:
                 - srcAS
-              operation: count
+              operationType: count
               operationKey: ""
             - name: count_source_destination_subnet
               by:
                 - dstSubnet24
                 - srcSubnet24
-              operation: count
+              operationType: count
               operationKey: ""
             - name: bandwidth_destination_subnet
               by:
                 - dstSubnet
-              operation: sum
+              operationType: sum
               operationKey: bytes
             - name: bandwidth_namespace
               by:
                 - srcK8S_Namespace
                 - srcK8S_Type
-              operation: sum
+              operationType: sum
               operationKey: bytes
             - name: dest_connection_location_count
               by:
                 - dstLocation_CountryName
-              operation: count
+              operationType: count
               operationKey: ""
             - name: mice_count
               by:
                 - mice_Evaluate
-              operation: count
+              operationType: count
               operationKey: ""
             - name: elephant_count
               by:
                 - elephant_Evaluate
-              operation: count
+              operationType: count
               operationKey: ""
             - name: dest_service_count
               by:
                 - service
-              operation: count
+              operationType: count
               operationKey: ""
           type: aggregates
         name: extract_aggregate
