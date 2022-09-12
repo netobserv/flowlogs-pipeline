@@ -27,10 +27,10 @@ import (
 )
 
 type FilterStruct struct {
-	Rule               api.TimebasedFilterRule
-	RecordKeyDataTable *RecordKeyTable
-	Results            filterOperationResults
-	Output             []filterOperationResult
+	Rule              api.TimebasedFilterRule
+	IndexKeyDataTable *IndexKeyTable
+	Results           filterOperationResults
+	Output            []filterOperationResult
 }
 
 type filterOperationResults map[string]*filterOperationResult
@@ -42,7 +42,7 @@ type filterOperationResult struct {
 
 type DataTableMap map[string]*list.List
 
-type RecordKeyTable struct {
+type IndexKeyTable struct {
 	maxTimeInterval time.Duration
 	dataTableMap    DataTableMap
 }
@@ -52,28 +52,28 @@ type TableEntry struct {
 	entry     config.GenericMap
 }
 
-// CreateRecordKeysAndFilters creates structures for each RecordKey that appears in the rules.
-// Note that the same RecordKey might appear in more than one Rule.
-// Connect RecordKey structure to its filters.
-// For each RecordKey, we need a table of history to handle the largest TimeInterval.
-func CreateRecordKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*RecordKeyTable, []FilterStruct) {
-	tmpRecordKeyStructs := make(map[string]*RecordKeyTable)
+// CreateIndexKeysAndFilters creates structures for each IndexKey that appears in the rules.
+// Note that the same IndexKey might appear in more than one Rule.
+// Connect IndexKey structure to its filters.
+// For each IndexKey, we need a table of history to handle the largest TimeInterval.
+func CreateIndexKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*IndexKeyTable, []FilterStruct) {
+	tmpIndexKeyStructs := make(map[string]*IndexKeyTable)
 	tmpFilters := make([]FilterStruct, 0)
 	for _, filterRule := range rules {
-		log.Debugf("CreateRecordKeysAndFilters: filterRule = %v", filterRule)
-		// verify there is a valid RecordKey
-		if filterRule.RecordKey == "" {
-			log.Errorf("missing RecordKey for filter %s", filterRule.Name)
+		log.Debugf("CreateIndexKeysAndFilters: filterRule = %v", filterRule)
+		// verify there is a valid IndexKey
+		if filterRule.IndexKey == "" {
+			log.Errorf("missing IndexKey for filter %s", filterRule.Name)
 			continue
 		}
-		rStruct, ok := tmpRecordKeyStructs[filterRule.RecordKey]
+		rStruct, ok := tmpIndexKeyStructs[filterRule.IndexKey]
 		if !ok {
-			rStruct = &RecordKeyTable{
+			rStruct = &IndexKeyTable{
 				maxTimeInterval: filterRule.TimeInterval.Duration,
 				dataTableMap:    make(DataTableMap),
 			}
-			tmpRecordKeyStructs[filterRule.RecordKey] = rStruct
-			log.Debugf("new RecordKeyTable: name = %s = %v", filterRule.RecordKey, *rStruct)
+			tmpIndexKeyStructs[filterRule.IndexKey] = rStruct
+			log.Debugf("new IndexKeyTable: name = %s = %v", filterRule.IndexKey, *rStruct)
 		} else {
 			if filterRule.TimeInterval.Duration > rStruct.maxTimeInterval {
 				rStruct.maxTimeInterval = filterRule.TimeInterval.Duration
@@ -93,12 +93,12 @@ func CreateRecordKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*Re
 			continue
 		}
 		tmpFilter := FilterStruct{
-			Rule:               filterRule,
-			RecordKeyDataTable: rStruct,
-			Results:            make(filterOperationResults),
+			Rule:              filterRule,
+			IndexKeyDataTable: rStruct,
+			Results:           make(filterOperationResults),
 		}
 		log.Debugf("new Rule = %v", tmpFilter)
 		tmpFilters = append(tmpFilters, tmpFilter)
 	}
-	return tmpRecordKeyStructs, tmpFilters
+	return tmpIndexKeyStructs, tmpFilters
 }

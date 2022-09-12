@@ -27,8 +27,8 @@ import (
 )
 
 type ExtractTimebased struct {
-	Filters          []timebased.FilterStruct
-	RecordKeyStructs map[string]*timebased.RecordKeyTable
+	Filters         []timebased.FilterStruct
+	IndexKeyStructs map[string]*timebased.IndexKeyTable
 }
 
 // Extract extracts a flow before being stored
@@ -38,7 +38,7 @@ func (et *ExtractTimebased) Extract(entries []config.GenericMap) []config.Generi
 	// Populate the Table with the current entries
 	for _, entry := range entries {
 		log.Debugf("ExtractTimebased Extract, entry = %v", entry)
-		timebased.AddEntryToTables(et.RecordKeyStructs, entry, nowInSecs)
+		timebased.AddEntryToTables(et.IndexKeyStructs, entry, nowInSecs)
 	}
 
 	output := make([]config.GenericMap, 0)
@@ -52,7 +52,7 @@ func (et *ExtractTimebased) Extract(entries []config.GenericMap) []config.Generi
 	log.Debugf("output of extract timebased: %v", output)
 
 	// delete entries from tables that are outside time windows
-	timebased.DeleteOldEntriesFromTables(et.RecordKeyStructs, nowInSecs)
+	timebased.DeleteOldEntriesFromTables(et.IndexKeyStructs, nowInSecs)
 
 	return output
 }
@@ -65,10 +65,10 @@ func NewExtractTimebased(params config.StageParam) (Extractor, error) {
 	}
 	log.Debugf("NewExtractTimebased; rules = %v", rules)
 
-	tmpRecordKeyStructs, tmpFilters := timebased.CreateRecordKeysAndFilters(rules)
+	tmpIndexKeyStructs, tmpFilters := timebased.CreateIndexKeysAndFilters(rules)
 
 	return &ExtractTimebased{
-		Filters:          tmpFilters,
-		RecordKeyStructs: tmpRecordKeyStructs,
+		Filters:         tmpFilters,
+		IndexKeyStructs: tmpIndexKeyStructs,
 	}, nil
 }

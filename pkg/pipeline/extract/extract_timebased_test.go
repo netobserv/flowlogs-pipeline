@@ -33,7 +33,7 @@ func GetMockTimebased1() ExtractTimebased {
 		Filters: []timebased.FilterStruct{
 			{Rule: api.TimebasedFilterRule{
 				Name:          "TopK_Bytes1",
-				RecordKey:     "SrcAddr",
+				IndexKey:      "SrcAddr",
 				OperationType: "last",
 				OperationKey:  "Bytes",
 				TopK:          3,
@@ -41,7 +41,7 @@ func GetMockTimebased1() ExtractTimebased {
 			}},
 			{Rule: api.TimebasedFilterRule{
 				Name:          "BotK_Bytes1",
-				RecordKey:     "SrcAddr",
+				IndexKey:      "SrcAddr",
 				OperationType: "avg",
 				OperationKey:  "Bytes",
 				TopK:          2,
@@ -49,7 +49,7 @@ func GetMockTimebased1() ExtractTimebased {
 				TimeInterval:  api.Duration{Duration: 15 * time.Second},
 			}},
 		},
-		RecordKeyStructs: map[string]*timebased.RecordKeyTable{},
+		IndexKeyStructs: map[string]*timebased.IndexKeyTable{},
 	}
 	return tb
 }
@@ -66,13 +66,13 @@ parameters:
           - name: TopK_Bytes1
             operationType: last
             operationKey: Bytes
-            recordKey: SrcAddr
+            indexKey: SrcAddr
             topK: 3
             timeInterval: 10s
           - name: BotK_Bytes1
             operationType: avg
             operationKey: Bytes
-            recordKey: SrcAddr
+            indexKey: SrcAddr
             topK: 2
             reversed: true
             timeInterval: 15s
@@ -90,7 +90,7 @@ parameters:
           - name: TopK_Bytes2
             operationType: sum
             operationKey: Bytes
-            recordKey: SrcAddr
+            indexKey: SrcAddr
             topK: 1
             timeInterval: 10s
 `
@@ -107,7 +107,7 @@ parameters:
           - name: BotK_Bytes3
             operationType: diff
             operationKey: Bytes
-            recordKey: SrcAddr
+            indexKey: SrcAddr
             topK: 1
             reversed: true
             timeInterval: 10s
@@ -125,7 +125,7 @@ parameters:
           - name: TopK_Bytes4
             operationType: max
             operationKey: Bytes
-            recordKey: SrcAddr
+            indexKey: SrcAddr
             topK: 1
             timeInterval: 10s
 `
@@ -142,7 +142,7 @@ parameters:
           - name: BotK_Bytes5
             operationType: min
             operationKey: Bytes
-            recordKey: SrcAddr
+            indexKey: SrcAddr
             topK: 1
             reversed: true
             timeInterval: 10s
@@ -160,7 +160,7 @@ parameters:
           - name: All_Bytes6
             operationType: sum
             operationKey: Bytes
-            recordKey: SrcAddr
+            indexKey: SrcAddr
             timeInterval: 10s
 `
 
@@ -195,7 +195,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"operation":        "last",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1000),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.4",
 		},
 		{
@@ -204,7 +204,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"operation":        "last",
 			"operation_key":    "Bytes",
 			"operation_result": float64(900),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.3",
 		},
 		{
@@ -213,7 +213,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"operation":        "last",
 			"operation_key":    "Bytes",
 			"operation_result": float64(800),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.2",
 		},
 		{
@@ -222,7 +222,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"operation":        "avg",
 			"operation_key":    "Bytes",
 			"operation_result": float64(400),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.1",
 		},
 		{
@@ -231,7 +231,7 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 			"operation":        "avg",
 			"operation_key":    "Bytes",
 			"operation_result": float64(500),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.2",
 		},
 	}
@@ -251,7 +251,7 @@ func Test_ExtractTimebasedExtract2(t *testing.T) {
 			"operation":        "sum",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1800),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.3",
 		},
 	}
@@ -271,7 +271,7 @@ func Test_ExtractTimebasedExtract3(t *testing.T) {
 			"operation":        "diff",
 			"operation_key":    "Bytes",
 			"operation_result": float64(0),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.4",
 		},
 	}
@@ -291,7 +291,7 @@ func Test_ExtractTimebasedExtract4(t *testing.T) {
 			"operation":        "max",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1000),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.4",
 		},
 	}
@@ -311,7 +311,7 @@ func Test_ExtractTimebasedExtract5(t *testing.T) {
 			"operation":        "min",
 			"operation_key":    "Bytes",
 			"operation_result": float64(100),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.1",
 		},
 	}
@@ -331,7 +331,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 			"operation":        "sum",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1200),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.1",
 		},
 		{
@@ -340,7 +340,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 			"operation":        "sum",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1500),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.2",
 		},
 		{
@@ -349,7 +349,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 			"operation":        "sum",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1800),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.3",
 		},
 		{
@@ -358,7 +358,7 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 			"operation":        "sum",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1000),
-			"record_key":       "SrcAddr",
+			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.4",
 		},
 	}

@@ -31,7 +31,7 @@ func getTimebasedRules() []api.TimebasedFilterRule {
 	rules := []api.TimebasedFilterRule{
 		{
 			Name:          "Top2_sum",
-			RecordKey:     "SrcAddr",
+			IndexKey:      "SrcAddr",
 			OperationType: "sum",
 			OperationKey:  "Bytes",
 			TopK:          2,
@@ -39,7 +39,7 @@ func getTimebasedRules() []api.TimebasedFilterRule {
 		},
 		{
 			Name:          "Bot2_last",
-			RecordKey:     "SrcAddr",
+			IndexKey:      "SrcAddr",
 			OperationType: "last",
 			OperationKey:  "Bytes",
 			Reversed:      true,
@@ -47,7 +47,7 @@ func getTimebasedRules() []api.TimebasedFilterRule {
 		},
 		{
 			Name:          "Top4_max",
-			RecordKey:     "DstAddr",
+			IndexKey:      "DstAddr",
 			OperationType: "max",
 			OperationKey:  "Bytes",
 			TopK:          4,
@@ -58,57 +58,57 @@ func getTimebasedRules() []api.TimebasedFilterRule {
 	return rules
 }
 
-func Test_CreateRecordKeysAndFilters(t *testing.T) {
+func Test_CreateIndexKeysAndFilters(t *testing.T) {
 	rules := getTimebasedRules()
-	recordKeyStructs, filters := CreateRecordKeysAndFilters(rules)
-	require.Equal(t, 2, len(recordKeyStructs))
+	indexKeyStructs, filters := CreateIndexKeysAndFilters(rules)
+	require.Equal(t, 2, len(indexKeyStructs))
 	require.Equal(t, 3, len(filters))
-	require.Contains(t, recordKeyStructs, "SrcAddr")
-	require.Contains(t, recordKeyStructs, "DstAddr")
-	require.Equal(t, time.Duration(3*time.Second), recordKeyStructs["SrcAddr"].maxTimeInterval)
-	require.Equal(t, time.Duration(1*time.Second), recordKeyStructs["DstAddr"].maxTimeInterval)
-	require.Equal(t, filters[0].RecordKeyDataTable, recordKeyStructs["SrcAddr"])
-	require.Equal(t, filters[1].RecordKeyDataTable, recordKeyStructs["SrcAddr"])
-	require.Equal(t, filters[2].RecordKeyDataTable, recordKeyStructs["DstAddr"])
+	require.Contains(t, indexKeyStructs, "SrcAddr")
+	require.Contains(t, indexKeyStructs, "DstAddr")
+	require.Equal(t, time.Duration(3*time.Second), indexKeyStructs["SrcAddr"].maxTimeInterval)
+	require.Equal(t, time.Duration(1*time.Second), indexKeyStructs["DstAddr"].maxTimeInterval)
+	require.Equal(t, filters[0].IndexKeyDataTable, indexKeyStructs["SrcAddr"])
+	require.Equal(t, filters[1].IndexKeyDataTable, indexKeyStructs["SrcAddr"])
+	require.Equal(t, filters[2].IndexKeyDataTable, indexKeyStructs["DstAddr"])
 }
 
-func Test_CreateRecordKeysAndFiltersError(t *testing.T) {
+func Test_CreateIndexKeysAndFiltersError(t *testing.T) {
 	rules := []api.TimebasedFilterRule{
 		{
 			Name:          "filter1",
-			RecordKey:     "",
+			IndexKey:      "",
 			OperationType: "sum",
 			OperationKey:  "operationKey1",
 			TopK:          2,
 			TimeInterval:  api.Duration{Duration: 10 * time.Second},
 		},
 	}
-	recordKeyStructs, filters := CreateRecordKeysAndFilters(rules)
-	require.Equal(t, 0, len(recordKeyStructs))
+	indexKeyStructs, filters := CreateIndexKeysAndFilters(rules)
+	require.Equal(t, 0, len(indexKeyStructs))
 	require.Equal(t, 0, len(filters))
 }
 
 func Test_AddAndDeleteEntryToTables(t *testing.T) {
 	rules := getTimebasedRules()
-	recordKeyStructs, _ := CreateRecordKeysAndFilters(rules)
+	indexKeyStructs, _ := CreateIndexKeysAndFilters(rules)
 	entries := test.GetExtractMockEntries2()
 	nowInSecs := time.Now()
 	for _, entry := range entries {
-		AddEntryToTables(recordKeyStructs, entry, nowInSecs)
+		AddEntryToTables(indexKeyStructs, entry, nowInSecs)
 	}
-	require.Equal(t, 4, len(recordKeyStructs["SrcAddr"].dataTableMap))
-	require.Equal(t, 1, len(recordKeyStructs["DstAddr"].dataTableMap))
-	require.Contains(t, recordKeyStructs["SrcAddr"].dataTableMap, "10.0.0.1")
-	require.Contains(t, recordKeyStructs["SrcAddr"].dataTableMap, "10.0.0.2")
-	require.Contains(t, recordKeyStructs["SrcAddr"].dataTableMap, "10.0.0.3")
-	require.Contains(t, recordKeyStructs["DstAddr"].dataTableMap, "11.0.0.1")
+	require.Equal(t, 4, len(indexKeyStructs["SrcAddr"].dataTableMap))
+	require.Equal(t, 1, len(indexKeyStructs["DstAddr"].dataTableMap))
+	require.Contains(t, indexKeyStructs["SrcAddr"].dataTableMap, "10.0.0.1")
+	require.Contains(t, indexKeyStructs["SrcAddr"].dataTableMap, "10.0.0.2")
+	require.Contains(t, indexKeyStructs["SrcAddr"].dataTableMap, "10.0.0.3")
+	require.Contains(t, indexKeyStructs["DstAddr"].dataTableMap, "11.0.0.1")
 
 	// wait for timeout and test that items were deleted from table
 	fmt.Printf("going to sleep for timeout value \n")
 	time.Sleep(2 * time.Second)
 	fmt.Printf("after sleep for timeout value \n")
 	nowInSecs = time.Now()
-	DeleteOldEntriesFromTables(recordKeyStructs, nowInSecs)
-	require.Equal(t, 0, recordKeyStructs["DstAddr"].dataTableMap["11.0.0.1"].Len())
-	require.Equal(t, 3, recordKeyStructs["SrcAddr"].dataTableMap["10.0.0.1"].Len())
+	DeleteOldEntriesFromTables(indexKeyStructs, nowInSecs)
+	require.Equal(t, 0, indexKeyStructs["DstAddr"].dataTableMap["11.0.0.1"].Len())
+	require.Equal(t, 3, indexKeyStructs["SrcAddr"].dataTableMap["10.0.0.1"].Len())
 }
