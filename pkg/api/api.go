@@ -35,7 +35,6 @@ const (
 	FilterType            = "filter"
 	ConnTrackType         = "conntrack"
 	NoneType              = "none"
-	ConnTrackingRuleType  = "conn_tracking"
 	AddRegExIfRuleType    = "add_regex_if"
 	AddIfRuleType         = "add_if"
 	AddSubnetRuleType     = "add_subnet"

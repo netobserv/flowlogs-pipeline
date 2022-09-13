@@ -71,10 +71,6 @@ parameters:
         output: srcSubnet
         type: add_subnet
         parameters: /16
-      - input: '{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.proto}}'
-        output: isNewFlow
-        type: conn_tracking
-        parameters: "1"
       - input: dstIP
         output: dstSubnet
         type: add_subnet
@@ -100,10 +96,12 @@ parameters:
           fields:
           - srcIP
           - srcPort
+          - srcSubnet
         - name: dst
           fields:
           - dstIP
           - dstPort
+          - dstSubnet
         - name: protocol
           fields:
           - proto
@@ -181,7 +179,6 @@ parameters:
       - dstSubnet
       - _RecordType
       operation: count
-      recordKey: isNewFlow
     - name: src_connection_count
       by:
       - srcSubnet
@@ -324,8 +321,8 @@ parameters:
           value: dest_connection_subnet_count
         valueKey: recent_count
         labels:
-        - by
-        - aggregate
+        - _RecordType
+        - dstSubnet
         buckets: []
       - name: connections_per_source_subnet
         type: counter

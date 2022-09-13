@@ -2,7 +2,7 @@
 description:
   This metric observes network connections rate per destination subnet
 details:
-  Counts the number of connections per subnet with network prefix length /16 (using conn_tracking sum isNewFlow field)
+  Counts the number of connections per subnet with network prefix length /16
 usage:
   Evaluate network connections per subnet
 tags:
@@ -10,10 +10,6 @@ tags:
   - subnet
 transform:
   rules:
-    - input: "{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.proto}}"
-      output: isNewFlow
-      type: conn_tracking
-      parameters: "1"
     - input: dstIP
       output: dstSubnet
       type: add_subnet
@@ -26,7 +22,6 @@ extract:
         - dstSubnet
         - _RecordType
       operation: count
-      recordKey: isNewFlow
 encode:
   type: prom
   prom:
@@ -36,12 +31,12 @@ encode:
         filter: {key: name, value: dest_connection_subnet_count}
         valueKey: recent_count
         labels:
-          - by
-          - aggregate
+          - _RecordType
+          - dstSubnet
 visualization:
   type: grafana
   grafana:
-    - expr: 'topk(10,rate(flp_connections_per_destination_subnet[1m]))'
+    - expr: 'topk(10,rate(flp_connections_per_destination_subnet{_RecordType="newConnection"}[1m]))'
       type: graphPanel
       dashboard: details
       title:
