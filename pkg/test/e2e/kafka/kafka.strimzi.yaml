@@ -1,10 +1,12 @@
+# Based on
+# https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.31.0/examples/kafka/kafka-ephemeral.yaml
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
   name: my-cluster
 spec:
   kafka:
-    version: 3.1.0
+    version: 3.2.1
     replicas: 1
     listeners:
       - name: plain
@@ -15,17 +17,13 @@ spec:
         port: 9093
         type: internal
         tls: true
-      - name: external
-        port: 9094
-        type: nodeport
-        tls: false
     config:
       offsets.topic.replication.factor: 1
       transaction.state.log.replication.factor: 1
       transaction.state.log.min.isr: 1
       default.replication.factor: 1
       min.insync.replicas: 1
-      inter.broker.protocol.version: "3.1"
+      inter.broker.protocol.version: "3.2"
     storage:
       type: ephemeral
   zookeeper:
