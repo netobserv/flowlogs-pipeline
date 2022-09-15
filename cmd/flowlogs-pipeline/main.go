@@ -26,6 +26,8 @@ import (
 	"strings"
 	"time"
 
+	_ "net/http/pprof"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational/health"
