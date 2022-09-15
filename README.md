@@ -48,6 +48,7 @@ Usage:
 Flags:  
       --config string        config file (default is $HOME/.flowlogs-pipeline)  
       --health.port string   Health server port (default "8080")  
+      --profile.port int     Go Pprof listen port (default disabled)
   -h, --help                 help for flowlogs-pipeline  
       --log-level string     Log level: debug, info, warning, error (default "error")  
       --parameters string    json of config file parameters field  

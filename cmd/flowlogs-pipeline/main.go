@@ -20,6 +20,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -135,6 +136,7 @@ func initFlags() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", fmt.Sprintf("config file (default is $HOME/%s)", defaultLogFileName))
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "error", "Log level: debug, info, warning, error")
 	rootCmd.PersistentFlags().StringVar(&opts.Health.Port, "health.port", "8080", "Health server port")
+	rootCmd.PersistentFlags().IntVar(&opts.Profile.Port, "profile.port", 0, "Go pprof tool port (default: disabled)")
 	rootCmd.PersistentFlags().StringVar(&opts.PipeLine, "pipeline", "", "json of config file pipeline field")
 	rootCmd.PersistentFlags().StringVar(&opts.Parameters, "parameters", "", "json of config file parameters field")
 }
@@ -176,6 +178,14 @@ func run() {
 	if err != nil {
 		log.Fatalf("failed to initialize pipeline %s", err)
 		os.Exit(1)
+	}
+
+	if opts.Profile.Port != 0 {
+		go func() {
+			log.WithField("port", opts.Profile.Port).Info("starting PProf HTTP listener")
+			log.WithError(http.ListenAndServe(fmt.Sprintf(":%d", opts.Profile.Port), nil)).
+				Error("PProf HTTP listener stopped working")
+		}()
 	}
 
 	// Start health report server
