@@ -46,7 +46,6 @@ type ingestKafka struct {
 	batchMaxLength int
 }
 
-const channelSizeKafka = 1000
 const defaultBatchReadTimeout = int64(1000)
 const defaultKafkaBatchMaxLength = 500
 const defaultKafkaCommitInterval = 500
@@ -219,7 +218,7 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		dialer.TLS = tlsConfig
 	}
 
-	kafkaReader := kafkago.NewReader(kafkago.ReaderConfig{
+	readerConfig := kafkago.ReaderConfig{
 		Brokers:        jsonIngestKafka.Brokers,
 		Topic:          jsonIngestKafka.Topic,
 		GroupID:        jsonIngestKafka.GroupId,
@@ -227,7 +226,17 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		StartOffset:    startOffset,
 		CommitInterval: time.Duration(commitInterval) * time.Millisecond,
 		Dialer:         dialer,
-	})
+	}
+
+	if jsonIngestKafka.PullQueueCapacity > 0 {
+		readerConfig.QueueCapacity = jsonIngestKafka.PullQueueCapacity
+	}
+
+	if jsonIngestKafka.PullMaxBytes > 0 {
+		readerConfig.MaxBytes = jsonIngestKafka.PullMaxBytes
+	}
+
+	kafkaReader := kafkago.NewReader(readerConfig)
 	if kafkaReader == nil {
 		errMsg := "NewIngestKafka: failed to create kafka-go reader"
 		log.Errorf("%s", errMsg)
@@ -250,7 +259,7 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		kafkaReader:    kafkaReader,
 		decoder:        decoder,
 		exitChan:       utils.ExitChannel(),
-		in:             make(chan string, channelSizeKafka),
+		in:             make(chan string, 2*bml),
 		prevRecords:    make([]config.GenericMap, 0),
 		batchMaxLength: bml,
 	}, nil
