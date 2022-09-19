@@ -51,7 +51,9 @@ func FakeLokiHandler(flowsData chan<- map[string]interface{}) http.HandlerFunc {
 					return
 				}
 				// TODO: decorate the flow map with extra metadata from the stream entry
-				flowsData <- flowData
+				go func() {
+					flowsData <- flowData
+				}()
 			}
 		}
 		rw.WriteHeader(http.StatusOK)

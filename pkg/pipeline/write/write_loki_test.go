@@ -335,13 +335,4 @@ func BenchmarkWriteLoki(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		loki.Write(hundredFlows())
 	}
-
-	i := 0
-	for range lokiFlows {
-		i++
-		if i == 100*b.N {
-			close(lokiFlows)
-			break
-		}
-	}
 }
