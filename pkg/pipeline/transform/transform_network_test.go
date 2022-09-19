@@ -221,41 +221,6 @@ func InitNewTransformNetwork(t *testing.T, configFile string) Transformer {
 	return newTransform
 }
 
-func Test_ConnTrackingTransformNetwork(t *testing.T) {
-	var yamlConfig = []byte(`
-log-level: debug
-pipeline:
-  - name: transform1
-  - name: write1
-    follows: transform1
-parameters:
-  - name: transform1
-    transform:
-      type: network
-      network:
-        rules:
-        - input: "{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.protocol}}"
-          output: isNewFlow
-          type: conn_tracking
-          parameters: "777"
-  - name: write1
-    write:
-      type: stdout
-`)
-	newNetworkTransform := InitNewTransformNetwork(t, string(yamlConfig)).(*Network)
-	require.NotNil(t, newNetworkTransform)
-
-	// first time flow is new
-	entry := test.GetIngestMockEntry(false)
-	output := newNetworkTransform.Transform([]config.GenericMap{entry})
-	require.Equal(t, "777", output[0]["isNewFlow"])
-
-	// second time, same flow is not new
-	entry = test.GetIngestMockEntry(false)
-	output = newNetworkTransform.Transform([]config.GenericMap{entry})
-	require.Equal(t, nil, output[0]["isNewFlow"])
-}
-
 func Test_TransformNetworkDependentRulesAddRegExIf(t *testing.T) {
 	var yamlConfig = []byte(`
 log-level: debug

@@ -28,7 +28,7 @@ var TestEnv env.Environment
 
 var manifestDeployDefinitions = e2e.ManifestDeployDefinitions{
 	e2e.ManifestDeployDefinition{
-		YamlFile: "strimzi.yaml",
+		YamlFile: "strimzi-cluster-operator-0.31.0.yaml",
 	},
 	e2e.ManifestDeployDefinition{
 		YamlFile:     "kafka.strimzi.yaml",

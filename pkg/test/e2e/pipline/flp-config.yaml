@@ -56,10 +56,6 @@ data:
                 output: srcSubnet
                 type: add_subnet
                 parameters: /16
-              - input: '{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.proto}}'
-                output: isNewFlow
-                type: conn_tracking
-                parameters: "1"
               - input: dstIP
                 output: dstSubnet
                 type: add_subnet

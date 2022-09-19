@@ -193,7 +193,11 @@ func deployManifest(ctx context.Context, cfg *envconf.Config, namespace string, 
 	cmd := fmt.Sprintf("cat %s | kubectl apply -n %s -f -", yamlFileName, namespace)
 	out, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
-		fmt.Printf("deployManifest %s error :: %v", yamlFileName, out)
+		fmt.Printf("deployManifest %s error :: %v\n", yamlFileName, err)
+		fmt.Printf("  Stdeout: %v\n", string(out))
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			fmt.Printf("  Stderror: %v\n", string(exitErr.Stderr))
+		}
 	}
 
 	fmt.Printf("====> Done.\n")

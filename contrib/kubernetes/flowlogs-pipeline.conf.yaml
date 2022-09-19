@@ -10,8 +10,10 @@ pipeline:
   follows: transform_network
 - name: extract_aggregate
   follows: extract_conntrack
-- name: encode_prom
+- name: extract_timebased
   follows: extract_aggregate
+- name: encode_prom
+  follows: extract_timebased
 - name: write_loki
   follows: extract_conntrack
 parameters:
@@ -71,10 +73,6 @@ parameters:
         output: srcSubnet
         type: add_subnet
         parameters: /16
-      - input: '{{.srcIP}},{{.srcPort}},{{.dstIP}},{{.dstPort}},{{.proto}}'
-        output: isNewFlow
-        type: conn_tracking
-        parameters: "1"
       - input: dstIP
         output: dstSubnet
         type: add_subnet
@@ -100,10 +98,12 @@ parameters:
           fields:
           - srcIP
           - srcPort
+          - srcSubnet
         - name: dst
           fields:
           - dstIP
           - dstPort
+          - dstSubnet
         - name: protocol
           fields:
           - proto
@@ -181,7 +181,6 @@ parameters:
       - dstSubnet
       - _RecordType
       operation: count
-      recordKey: isNewFlow
     - name: src_connection_count
       by:
       - srcSubnet
@@ -237,6 +236,17 @@ parameters:
       - service
       - _RecordType
       operation: count
+- name: extract_timebased
+  extract:
+    type: timebased
+    timebased:
+      rules:
+      - name: bandwidth_source_subnet
+        recordKey: srcSubnet
+        operation: sum
+        operationKey: total_value
+        topK: 5
+        timeInterval: 1m0s
 - name: encode_prom
   encode:
     type: prom
@@ -263,17 +273,16 @@ parameters:
         - aggregate
         buckets: []
       - name: bandwidth_per_source_subnet
-        type: counter
+        type: gauge
         filter:
           key: name
           value: bandwidth_source_subnet
-        valueKey: recent_op_value
+        valueKey: operation_result
         labels:
-        - by
-        - aggregate
+        - srcSubnet
         buckets: []
       - name: connection_size_histogram
-        type: histogram
+        type: agg_histogram
         filter:
           key: name
           value: connection_bytes_hist
@@ -288,7 +297,7 @@ parameters:
         - 102400
         - 1.048576e+06
       - name: connection_size_histogram_ab
-        type: histogram
+        type: agg_histogram
         filter:
           key: name
           value: connection_bytes_hist_AB
@@ -303,7 +312,7 @@ parameters:
         - 102400
         - 1.048576e+06
       - name: connection_size_histogram_ba
-        type: histogram
+        type: agg_histogram
         filter:
           key: name
           value: connection_bytes_hist_BA
@@ -324,8 +333,8 @@ parameters:
           value: dest_connection_subnet_count
         valueKey: recent_count
         labels:
-        - by
-        - aggregate
+        - _RecordType
+        - dstSubnet
         buckets: []
       - name: connections_per_source_subnet
         type: counter
@@ -398,7 +407,7 @@ parameters:
         - aggregate
         buckets: []
       - name: flows_length_histogram
-        type: histogram
+        type: agg_histogram
         filter:
           key: name
           value: flows_bytes_hist
