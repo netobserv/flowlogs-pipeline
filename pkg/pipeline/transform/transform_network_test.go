@@ -124,10 +124,10 @@ func getExpectedOutput() config.GenericMap {
 }
 
 func getServicesDB(t *testing.T) *netdb.ServiceNames {
-	etcProtos, err := os.Open(path.Join("netdb", "fixtures", "etcProtocols.txt"))
+	etcProtos, err := os.Open(path.Join("netdb", "testdata", "etcProtocols.txt"))
 	require.NoError(t, err)
 	defer etcProtos.Close()
-	etcSvcs, err := os.Open(path.Join("netdb", "fixtures", "etcServices.txt"))
+	etcSvcs, err := os.Open(path.Join("netdb", "testdata", "etcServices.txt"))
 	require.NoError(t, err)
 	defer etcSvcs.Close()
 

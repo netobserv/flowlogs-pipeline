@@ -10,12 +10,12 @@ import (
 )
 
 func testingServicesDB() (*ServiceNames, error) {
-	etcProtos, err := os.Open(path.Join("fixtures", "etcProtocols.txt"))
+	etcProtos, err := os.Open(path.Join("testdata", "etcProtocols.txt"))
 	if err != nil {
 		return nil, err
 	}
 	defer etcProtos.Close()
-	etcSvcs, err := os.Open(path.Join("fixtures", "etcServices.txt"))
+	etcSvcs, err := os.Open(path.Join("testdata", "etcServices.txt"))
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func TestServicesDB(t *testing.T) {
 	// verify it also finds service name by protocol alias
 	assert.Equal(t, "netbios-dgm", db.ByPortAndProtocolName(138, "TCP"))
 
-	// verify multiple ports can be associated to the same protocol
+	// verify multiple protocols can be associated to the same port
 	assert.Equal(t, "ms-sql-s", db.ByPortAndProtocolNumber(1433, 6))
 	assert.Equal(t, "ms-sql-s", db.ByPortAndProtocolName(1433, "tcp"))
 	assert.Equal(t, "ms-sql-s", db.ByPortAndProtocolName(1433, "TCP"))

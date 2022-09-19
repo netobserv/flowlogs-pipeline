@@ -190,14 +190,16 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	var servicesDB *netdb.ServiceNames
 	if needToInitNetworkServices {
 		var err error
-		protos, err := os.Open("/etc/protocols")
+		protos, err := os.Open(jsonNetworkTransform.ProtocolsFile)
 		if err != nil {
-			return nil, fmt.Errorf("opening /etc/protocols: %w", err)
+			return nil, fmt.Errorf("opening %q: %w", jsonNetworkTransform.ProtocolsFile, err)
 		}
-		services, err := os.Open("/etc/services")
+		defer protos.Close()
+		services, err := os.Open(jsonNetworkTransform.ServicesFile)
 		if err != nil {
-			return nil, fmt.Errorf("opening /etc/services: %w", err)
+			return nil, fmt.Errorf("opening %q: %w", jsonNetworkTransform.ServicesFile, err)
 		}
+		defer services.Close()
 		servicesDB, err = netdb.LoadServicesDB(protos, services)
 		if err != nil {
 			return nil, err
