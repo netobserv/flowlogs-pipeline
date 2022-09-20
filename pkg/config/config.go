@@ -29,6 +29,7 @@ type Options struct {
 	PipeLine   string
 	Parameters string
 	Health     Health
+	Profile    Profile
 }
 
 type ConfigFileStruct struct {
@@ -39,6 +40,10 @@ type ConfigFileStruct struct {
 
 type Health struct {
 	Port string
+}
+
+type Profile struct {
+	Port int
 }
 
 type Stage struct {
