@@ -10,10 +10,8 @@ pipeline:
   follows: transform_network
 - name: extract_aggregate
   follows: extract_conntrack
-- name: extract_timebased
-  follows: extract_aggregate
 - name: encode_prom
-  follows: extract_timebased
+  follows: extract_aggregate
 - name: write_loki
   follows: extract_conntrack
 parameters:
@@ -118,24 +116,24 @@ parameters:
       - endConnection
       outputFields:
       - name: bytes_total
-        operationType: sum
+        operation: sum
         input: bytes
       - name: bytes
-        operationType: sum
+        operation: sum
         splitAB: true
       - name: packets_total
-        operationType: sum
+        operation: sum
         input: packets
       - name: packets
-        operationType: sum
+        operation: sum
         splitAB: true
       - name: numFlowLogs
-        operationType: count
+        operation: count
       - name: timeStart
-        operationType: min
+        operation: min
         input: timeReceived
       - name: timeEnd
-        operationType: max
+        operation: max
         input: timeReceived
       endConnectionTimeout: 30s
 - name: extract_aggregate
@@ -143,111 +141,100 @@ parameters:
     type: aggregates
     aggregates:
     - name: bandwidth_network_service
-      by:
+      groupByKeys:
       - service
       - _RecordType
       operationType: sum
       operationKey: bytes
     - name: bandwidth_source_destination_subnet
-      by:
+      groupByKeys:
       - dstSubnet24
       - srcSubnet24
       - _RecordType
       operationType: sum
       operationKey: bytes
     - name: bandwidth_source_subnet
-      by:
+      groupByKeys:
       - srcSubnet
       - _RecordType
       operationType: sum
       operationKey: bytes
     - name: connection_bytes_hist
-      by:
+      groupByKeys:
       - _RecordType
       operationType: raw_values
       operationKey: bytes_total
     - name: connection_bytes_hist_AB
-      by:
+      groupByKeys:
       - _RecordType
       operationType: raw_values
       operationKey: bytes_AB
     - name: connection_bytes_hist_BA
-      by:
+      groupByKeys:
       - _RecordType
       operationType: raw_values
       operationKey: bytes_BA
     - name: dest_connection_subnet_count
-      by:
+      groupByKeys:
       - dstSubnet
       - _RecordType
       operationType: count
       operationKey: isNewFlow
     - name: src_connection_count
-      by:
+      groupByKeys:
       - srcSubnet
       - _RecordType
       operationType: count
     - name: TCPFlags_count
-      by:
+      groupByKeys:
       - TCPFlags
       - _RecordType
       operationType: count
     - name: dst_as_connection_count
-      by:
+      groupByKeys:
       - dstAS
       - _RecordType
       operationType: count
     - name: src_as_connection_count
-      by:
+      groupByKeys:
       - srcAS
       - _RecordType
       operationType: count
     - name: count_source_destination_subnet
-      by:
+      groupByKeys:
       - dstSubnet24
       - srcSubnet24
       - _RecordType
       operationType: count
     - name: bandwidth_destination_subnet
-      by:
+      groupByKeys:
       - dstSubnet
       - _RecordType
       operationType: sum
       operationKey: bytes
     - name: bandwidth_namespace
-      by:
+      groupByKeys:
       - srcK8S_Namespace
       - srcK8S_Type
       - _RecordType
       operationType: sum
       operationKey: bytes
     - name: flows_bytes_hist
-      by:
+      groupByKeys:
       - all_Evaluate
       - _RecordType
       operationType: raw_values
       operationKey: bytes
     - name: dest_connection_location_count
-      by:
+      groupByKeys:
       - dstLocation_CountryName
       - _RecordType
       operationType: count
     - name: dest_service_count
-      by:
+      groupByKeys:
       - service
       - _RecordType
       operationType: count
-- name: extract_timebased
-  extract:
-    type: timebased
-    timebased:
-      rules:
-      - name: bandwidth_source_subnet
-        recordKey: srcSubnet
-        operation: sum
-        operationKey: total_value
-        topK: 5
-        timeInterval: 1m0s
 - name: encode_prom
   encode:
     type: prom
@@ -260,7 +247,7 @@ parameters:
           value: bandwidth_network_service
         valueKey: recent_op_value
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets: []
       - name: bandwidth_per_source_destination_subnet
@@ -270,17 +257,8 @@ parameters:
           value: bandwidth_source_destination_subnet
         valueKey: recent_op_value
         labels:
-        - by
+        - groupByKeys
         - aggregate
-        buckets: []
-      - name: bandwidth_per_source_subnet
-        type: gauge
-        filter:
-          key: name
-          value: bandwidth_source_subnet
-        valueKey: operation_result
-        labels:
-        - srcSubnet
         buckets: []
       - name: connection_size_histogram
         type: agg_histogram
@@ -289,7 +267,7 @@ parameters:
           value: connection_bytes_hist
         valueKey: recent_raw_values
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets:
         - 128
@@ -304,7 +282,7 @@ parameters:
           value: connection_bytes_hist_AB
         valueKey: recent_raw_values
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets:
         - 128
@@ -319,7 +297,7 @@ parameters:
           value: connection_bytes_hist_BA
         valueKey: recent_raw_values
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets:
         - 128
@@ -344,7 +322,7 @@ parameters:
           value: src_connection_count
         valueKey: recent_count
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets: []
       - name: connections_per_tcp_flags
@@ -354,7 +332,7 @@ parameters:
           value: TCPFlags_count
         valueKey: recent_count
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets: []
       - name: connections_per_destination_as
@@ -364,7 +342,7 @@ parameters:
           value: dst_as_connection_count
         valueKey: recent_count
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets: []
       - name: connections_per_source_as
@@ -374,7 +352,7 @@ parameters:
           value: src_as_connection_count
         valueKey: recent_count
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets: []
       - name: count_per_source_destination_subnet
@@ -384,7 +362,7 @@ parameters:
           value: count_source_destination_subnet
         valueKey: recent_count
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets: []
       - name: egress_per_destination_subnet
@@ -394,7 +372,7 @@ parameters:
           value: bandwidth_destination_subnet
         valueKey: recent_op_value
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets: []
       - name: egress_per_namespace
@@ -404,7 +382,7 @@ parameters:
           value: bandwidth_namespace
         valueKey: recent_op_value
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets: []
       - name: flows_length_histogram
@@ -414,7 +392,7 @@ parameters:
           value: flows_bytes_hist
         valueKey: recent_raw_values
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets:
         - 128
@@ -429,7 +407,7 @@ parameters:
           value: dest_connection_location_count
         valueKey: recent_count
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets: []
       - name: service_count
@@ -439,7 +417,7 @@ parameters:
           value: dest_service_count
         valueKey: recent_count
         labels:
-        - by
+        - groupByKeys
         - aggregate
         buckets: []
       port: 9102

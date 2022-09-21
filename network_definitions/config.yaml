@@ -61,24 +61,24 @@ extract:
         fieldGroupBRef: dst
     outputFields:
       - name: bytes_total
-        operationType: sum
+        operation: sum
         input: bytes
       - name: bytes
-        operationType: sum
+        operation: sum
         splitAB: true
       - name: packets_total
-        operationType: sum
+        operation: sum
         input: packets
       - name: packets
-        operationType: sum
+        operation: sum
         splitAB: true
       - name: numFlowLogs
-        operationType: count
+        operation: count
       - name: timeStart
-        operationType: min
+        operation: min
         input: timeReceived
       - name: timeEnd
-        operationType: max
+        operation: max
         input: timeReceived
 encode:
   prom:
