@@ -73,6 +73,8 @@ Following is the supported API format for the kafka ingest:
                  json: JSON decoder
                  protobuf: Protobuf decoder
          batchMaxLen: the number of accumulated flows before being forwarded for processing
+         pullBatchLen: the capacity of the queue use to store pulled flows
+         pullMaxBytes: the maximum number of bytes being pulled from kafka
          commitInterval: the interval (in milliseconds) at which offsets are committed to the broker.  If 0, commits will be handled synchronously.
          tls: TLS client configuration (optional)
              insecureSkipVerify: skip client verifying the server's certificate chain and host name
