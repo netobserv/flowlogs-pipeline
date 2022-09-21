@@ -113,9 +113,9 @@ func TestKafkaPromPipeline(t *testing.T) {
 		KeyDefinition: api.KeyDefinition{},
 	})
 	pl = pl.Aggregate("aggregate", []api.AggregateDefinition{{
-		Name:      "src_as_connection_count",
-		By:        api.AggregateBy{"srcAS"},
-		Operation: "count",
+		Name:          "src_as_connection_count",
+		GroupByKeys:   api.AggregateBy{"srcAS"},
+		OperationType: "count",
 	}})
 	pl = pl.EncodePrometheus("prom", api.PromEncode{
 		Metrics: api.PromMetricsItems{{
@@ -156,7 +156,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[3])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"aggregate","extract":{"type":"aggregates","aggregates":[{"name":"src_as_connection_count","by":["srcAS"],"operation":"count"}]}}`, string(b))
+	require.JSONEq(t, `{"name":"aggregate","extract":{"type":"aggregates","aggregates":[{"name":"src_as_connection_count","groupByKeys":["srcAS"],"operationType":"count"}]}}`, string(b))
 
 	b, err = json.Marshal(params[4])
 	require.NoError(t, err)

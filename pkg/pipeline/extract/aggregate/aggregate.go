@@ -64,7 +64,7 @@ func (aggregate Aggregate) LabelsFromEntry(entry config.GenericMap) (Labels, boo
 	allLabelsFound := true
 	labels := Labels{}
 
-	for _, key := range aggregate.Definition.By {
+	for _, key := range aggregate.Definition.GroupByKeys {
 		value, ok := entry[key]
 		if !ok {
 			allLabelsFound = false
@@ -129,10 +129,10 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	oldEntry, ok := aggregate.cache.GetCacheEntry(string(normalizedValues))
 	if !ok {
 		groupState = &GroupState{normalizedValues: normalizedValues, labels: labels}
-		initVal := getInitValue(string(aggregate.Definition.Operation))
+		initVal := getInitValue(string(aggregate.Definition.OperationType))
 		groupState.totalValue = initVal
 		groupState.recentOpValue = initVal
-		if aggregate.Definition.Operation == OperationRawValues {
+		if aggregate.Definition.OperationType == OperationRawValues {
 			groupState.recentRawValues = make([]float64, 0)
 		}
 	} else {
@@ -141,15 +141,15 @@ func (aggregate Aggregate) UpdateByEntry(entry config.GenericMap, normalizedValu
 	aggregate.cache.UpdateCacheEntry(string(normalizedValues), groupState)
 
 	// update value
-	recordKey := aggregate.Definition.RecordKey
-	operation := aggregate.Definition.Operation
+	operationKey := aggregate.Definition.OperationKey
+	operation := aggregate.Definition.OperationType
 
 	if operation == OperationCount {
 		groupState.totalValue = float64(groupState.totalCount + 1)
 		groupState.recentOpValue = float64(groupState.recentCount + 1)
 	} else {
-		if recordKey != "" {
-			value, ok := entry[recordKey]
+		if operationKey != "" {
+			value, ok := entry[operationKey]
 			if ok {
 				valueString := fmt.Sprintf("%v", value)
 				valueFloat64, _ := strconv.ParseFloat(valueString, 64)
@@ -210,28 +210,28 @@ func (aggregate Aggregate) GetMetrics() []config.GenericMap {
 		group := value.(*GroupState)
 		newEntry := config.GenericMap{
 			"name":              aggregate.Definition.Name,
-			"operation":         aggregate.Definition.Operation,
-			"record_key":        aggregate.Definition.RecordKey,
-			"by":                strings.Join(aggregate.Definition.By, ","),
+			"operation_type":    aggregate.Definition.OperationType,
+			"operation_key":     aggregate.Definition.OperationKey,
+			"by":                strings.Join(aggregate.Definition.GroupByKeys, ","),
 			"aggregate":         string(group.normalizedValues),
 			"total_value":       group.totalValue,
 			"total_count":       group.totalCount,
 			"recent_raw_values": group.recentRawValues,
 			"recent_op_value":   group.recentOpValue,
 			"recent_count":      group.recentCount,
-			strings.Join(aggregate.Definition.By, "_"): string(group.normalizedValues),
+			strings.Join(aggregate.Definition.GroupByKeys, "_"): string(group.normalizedValues),
 		}
-		// add the items in aggregate.Definition.By individually to the entry
-		for _, key := range aggregate.Definition.By {
+		// add the items in aggregate.Definition.GroupByKeys individually to the entry
+		for _, key := range aggregate.Definition.GroupByKeys {
 			newEntry[key] = group.labels[key]
 		}
 		metrics = append(metrics, newEntry)
 		// Once reported, we reset the recentXXX fields
-		if aggregate.Definition.Operation == OperationRawValues {
+		if aggregate.Definition.OperationType == OperationRawValues {
 			group.recentRawValues = make([]float64, 0)
 		}
 		group.recentCount = 0
-		group.recentOpValue = getInitValue(string(aggregate.Definition.Operation))
+		group.recentOpValue = getInitValue(string(aggregate.Definition.OperationType))
 	})
 
 	return metrics

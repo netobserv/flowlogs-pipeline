@@ -44,17 +44,17 @@ func Test_dedupeNetworkTransformRules(t *testing.T) {
 
 func Test_dedupeAggregateDefinitions(t *testing.T) {
 	slice := aggregate.Definitions{
-		api.AggregateDefinition{Name: "n1", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o1")},
-		api.AggregateDefinition{Name: "n1", By: api.AggregateBy{"a"}, Operation: api.AggregateOperation("o1")},
-		api.AggregateDefinition{Name: "n2", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o2")},
-		api.AggregateDefinition{Name: "n3", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o3")},
-		api.AggregateDefinition{Name: "n2", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o2")},
+		api.AggregateDefinition{Name: "n1", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o1")},
+		api.AggregateDefinition{Name: "n1", GroupByKeys: api.AggregateBy{"a"}, OperationType: api.AggregateOperation("o1")},
+		api.AggregateDefinition{Name: "n2", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o2")},
+		api.AggregateDefinition{Name: "n3", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o3")},
+		api.AggregateDefinition{Name: "n2", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o2")},
 	}
 	expected := aggregate.Definitions{
-		api.AggregateDefinition{Name: "n1", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o1")},
-		api.AggregateDefinition{Name: "n1", By: api.AggregateBy{"a"}, Operation: api.AggregateOperation("o1")},
-		api.AggregateDefinition{Name: "n2", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o2")},
-		api.AggregateDefinition{Name: "n3", By: api.AggregateBy{"a", "b"}, Operation: api.AggregateOperation("o3")},
+		api.AggregateDefinition{Name: "n1", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o1")},
+		api.AggregateDefinition{Name: "n1", GroupByKeys: api.AggregateBy{"a"}, OperationType: api.AggregateOperation("o1")},
+		api.AggregateDefinition{Name: "n2", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o2")},
+		api.AggregateDefinition{Name: "n3", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o3")},
 	}
 	actual := dedupeAggregateDefinitions(slice)
 

@@ -76,10 +76,10 @@ transform:
 extract:
   aggregates:
     - name: test_aggregates
-      by:
+      groupByKeys:
         - service
-      operation: sum
-      recordKey: test_record_key
+      operationType: sum
+      operationKey: test_operation_key
 encode:
   type: prom
   prom:
@@ -88,7 +88,7 @@ encode:
         type: gauge
         valueKey: test_aggregates_value
         labels:
-          - by
+          - groupByKeys
           - aggregate
 visualization:
   type: grafana
@@ -113,10 +113,10 @@ tags:
 extract:
   aggregates:
     - name: test_agg_histo
-      by:
+      groupByKeys:
         - service
-      operation: sum
-      recordKey: test_record_key
+      operationType: sum
+      operationKey: test_operation_key
 encode:
   type: prom
   prom:
@@ -125,7 +125,7 @@ encode:
         type: histogram
         valueKey: test_aggregates_value
         labels:
-          - by
+          - groupByKeys
           - aggregate
 `
 

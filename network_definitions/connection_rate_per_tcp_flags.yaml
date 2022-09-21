@@ -12,10 +12,10 @@ extract:
   type: aggregates
   aggregates:
     - name: TCPFlags_count
-      by:
+      groupByKeys:
         - TCPFlags
         - _RecordType
-      operation: count
+      operationType: count
 encode:
   type: prom
   prom:
@@ -25,7 +25,7 @@ encode:
         filter: { key: name, value: TCPFlags_count }
         valueKey: recent_count
         labels:
-          - by
+          - groupByKeys
           - aggregate
 visualization:
   type: grafana

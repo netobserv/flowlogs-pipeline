@@ -26,8 +26,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func AddEntryToTables(recordKeyStructs map[string]*RecordKeyTable, entry config.GenericMap, nowInSecs time.Time) {
-	for key, recordTable := range recordKeyStructs {
+func AddEntryToTables(indexKeyStructs map[string]*IndexKeyTable, entry config.GenericMap, nowInSecs time.Time) {
+	for key, recordTable := range indexKeyStructs {
 		log.Debugf("ExtractTimebased addEntryToTables: key = %s, recordTable = %v", key, recordTable)
 		if val, ok := entry[key]; ok {
 			cEntry := &TableEntry{
@@ -49,8 +49,8 @@ func AddEntryToTable(cEntry *TableEntry, tableList *list.List) {
 	tableList.PushBack(cEntry)
 }
 
-func DeleteOldEntriesFromTables(recordKeyStructs map[string]*RecordKeyTable, nowInSecs time.Time) {
-	for _, recordTable := range recordKeyStructs {
+func DeleteOldEntriesFromTables(indexKeyStructs map[string]*IndexKeyTable, nowInSecs time.Time) {
+	for _, recordTable := range indexKeyStructs {
 		oldestTime := nowInSecs.Add(-recordTable.maxTimeInterval)
 		for _, tableMap := range recordTable.dataTableMap {
 			for {

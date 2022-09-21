@@ -31,10 +31,10 @@ import (
 func (fs *FilterStruct) CalculateResults(nowInSecs time.Time) {
 	log.Debugf("CalculateResults nowInSecs = %v", nowInSecs)
 	oldestValidTime := nowInSecs.Add(-fs.Rule.TimeInterval.Duration)
-	for key, l := range fs.RecordKeyDataTable.dataTableMap {
+	for key, l := range fs.IndexKeyDataTable.dataTableMap {
 		var valueFloat64 = float64(0)
 		var err error
-		switch fs.Rule.Operation {
+		switch fs.Rule.OperationType {
 		case api.FilterOperationName("FilterOperationLast"):
 			// handle empty list
 			if l.Len() == 0 {
@@ -75,7 +75,7 @@ func (fs *FilterStruct) CalculateResults(nowInSecs time.Time) {
 
 func (fs *FilterStruct) CalculateValue(l *list.List, oldestValidTime time.Time) float64 {
 	log.Debugf("CalculateValue nowInSecs = %v", oldestValidTime)
-	currentValue := getInitValue(fs.Rule.Operation)
+	currentValue := getInitValue(fs.Rule.OperationType)
 	nItems := 0
 	for e := l.Front(); e != nil; e = e.Next() {
 		cEntry := e.Value.(*TableEntry)
@@ -85,7 +85,7 @@ func (fs *FilterStruct) CalculateValue(l *list.List, oldestValidTime time.Time) 
 		}
 		valueFloat64, _ := utils.ConvertToFloat64(cEntry.entry[fs.Rule.OperationKey])
 		nItems++
-		switch fs.Rule.Operation {
+		switch fs.Rule.OperationType {
 		case api.FilterOperationName("FilterOperationSum"), api.FilterOperationName("FilterOperationAvg"):
 			currentValue += valueFloat64
 		case api.FilterOperationName("FilterOperationMax"):
@@ -94,7 +94,7 @@ func (fs *FilterStruct) CalculateValue(l *list.List, oldestValidTime time.Time) 
 			currentValue = math.Min(currentValue, valueFloat64)
 		}
 	}
-	if fs.Rule.Operation == api.FilterOperationName("FilterOperationAvg") && nItems > 0 {
+	if fs.Rule.OperationType == api.FilterOperationName("FilterOperationAvg") && nItems > 0 {
 		currentValue = currentValue / float64(nItems)
 	}
 	return currentValue
@@ -142,13 +142,13 @@ func (fs *FilterStruct) CreateGenericMap() []config.GenericMap {
 	for _, result := range fs.Output {
 		t := config.GenericMap{
 			"name":             fs.Rule.Name,
-			"record_key":       fs.Rule.RecordKey,
-			"operation":        fs.Rule.Operation,
+			"index_key":        fs.Rule.IndexKey,
+			"operation":        fs.Rule.OperationType,
 			"operation_key":    fs.Rule.OperationKey,
 			"key":              result.key,
 			"operation_result": result.operationResult,
 		}
-		t[fs.Rule.RecordKey] = result.key
+		t[fs.Rule.IndexKey] = result.key
 		log.Debugf("FilterStruct CreateGenericMap: %v", t)
 		output = append(output, t)
 	}

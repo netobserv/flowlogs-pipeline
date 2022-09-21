@@ -18,12 +18,12 @@ transform:
 extract:
   aggregates:
     - name: bandwidth_namespace
-      by:
+      groupByKeys:
         - srcK8S_Namespace
         - srcK8S_Type
         - _RecordType
-      operation: sum
-      recordKey: bytes
+      operationType: sum
+      operationKey: bytes
 encode:
   type: prom
   prom:
@@ -33,7 +33,7 @@ encode:
         filter: { key: name, value: bandwidth_namespace }
         valueKey: recent_op_value
         labels:
-          - by
+          - groupByKeys
           - aggregate
 visualization:
   type: grafana

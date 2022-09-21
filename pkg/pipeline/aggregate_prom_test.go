@@ -43,22 +43,22 @@ parameters:
      type: aggregates
      aggregates:
        - name: bandwidth_sum
-         by:
+         groupByKeys:
          - service
-         operation: sum
-         recordkey: bytes
+         operationType: sum
+         operationKey: bytes
 
        - name: bandwidth_count
-         by:
+         groupByKeys:
          - service
-         operation: count
-         recordkey: 
+         operationType: count
+         operationKey:
 
        - name: bandwidth_raw_values
-         by:
+         groupByKeys:
          - service
-         operation: raw_values
-         recordkey: bytes
+         operationType: raw_values
+         operationKey: bytes
  - name: encode
    encode:
      type: prom

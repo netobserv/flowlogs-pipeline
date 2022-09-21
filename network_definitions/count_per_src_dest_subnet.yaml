@@ -23,11 +23,11 @@ transform:
 extract:
   aggregates:
     - name: count_source_destination_subnet
-      by:
+      groupByKeys:
         - dstSubnet24
         - srcSubnet24
         - _RecordType
-      operation: count
+      operationType: count
 encode:
   type: prom
   prom:
@@ -37,7 +37,7 @@ encode:
         filter: { key: name, value: count_source_destination_subnet }
         valueKey: recent_count
         labels:
-          - by
+          - groupByKeys
           - aggregate
 visualization:
   type: grafana

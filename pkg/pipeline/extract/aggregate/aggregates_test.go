@@ -37,11 +37,11 @@ parameters:
       type: aggregates
       aggregates:
         - Name: "Avg by src and dst IP's"
-          By:
+          GroupByKeys:
             - "dstIP"
             - "srcIP"
-          Operation: "avg"
-          RecordKey: "value"
+          OperationType: "avg"
+          OperationKey: "value"
 `
 	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)

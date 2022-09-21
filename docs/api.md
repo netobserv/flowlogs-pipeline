@@ -73,6 +73,8 @@ Following is the supported API format for the kafka ingest:
                  json: JSON decoder
                  protobuf: Protobuf decoder
          batchMaxLen: the number of accumulated flows before being forwarded for processing
+         pullBatchLen: the capacity of the queue use to store pulled flows
+         pullMaxBytes: the maximum number of bytes being pulled from kafka
          commitInterval: the interval (in milliseconds) at which offsets are committed to the broker.  If 0, commits will be handled synchronously.
          tls: TLS client configuration (optional)
              insecureSkipVerify: skip client verifying the server's certificate chain and host name
@@ -169,9 +171,9 @@ Following is the supported API format for specifying metrics aggregations:
 <pre>
  aggregates:
          name: description of aggregation result
-         by: list of fields on which to aggregate
-         operation: sum, min, max, avg or raw_values
-         recordKey: internal field on which to perform the operation
+         groupByKeys: list of fields on which to aggregate
+         operationType: sum, min, max, avg or raw_values
+         operationKey: internal field on which to perform the operation
 </pre>
 ## Connection tracking API
 Following is the supported API format for specifying connection tracking:
@@ -210,8 +212,8 @@ Following is the supported API format for specifying metrics time-based filters:
  timebased:
          rules: list of filter rules, each includes:
                  name: description of filter result
-                 recordKey: internal field to index TopK
-                 operation: (enum) sum, min, max, avg, last or diff
+                 indexKey: internal field to index TopK
+                 operationType: (enum) sum, min, max, avg, last or diff
                      sum: set output field to sum of parameters fields in the time window
                      avg: set output field to average of parameters fields in the time window
                      min: set output field to minimum of parameters fields in the time window
