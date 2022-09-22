@@ -4,16 +4,16 @@ pipeline:
 - name: ingest_collector
 - name: transform_generic
   follows: ingest_collector
-- name: transform_network
-  follows: transform_generic
 - name: extract_conntrack
-  follows: transform_network
-- name: extract_aggregate
+  follows: transform_generic
+- name: transform_network
   follows: extract_conntrack
+- name: extract_aggregate
+  follows: transform_network
 - name: encode_prom
   follows: extract_aggregate
 - name: write_loki
-  follows: extract_conntrack
+  follows: transform_network
 parameters:
 - name: ingest_collector
   ingest:
@@ -50,39 +50,6 @@ parameters:
         output: packets
       - input: TimeReceived
         output: timeReceived
-- name: transform_network
-  transform:
-    type: network
-    network:
-      rules:
-      - input: dstPort
-        output: service
-        type: add_service
-        parameters: proto
-      - input: dstIP
-        output: dstSubnet24
-        type: add_subnet
-        parameters: /24
-      - input: srcIP
-        output: srcSubnet24
-        type: add_subnet
-        parameters: /24
-      - input: srcIP
-        output: srcSubnet
-        type: add_subnet
-        parameters: /16
-      - input: dstIP
-        output: dstSubnet
-        type: add_subnet
-        parameters: /16
-      - input: srcIP
-        output: srcK8S
-        type: add_kubernetes
-        parameters: srcK8S_labels
-      - input: bytes
-        output: all
-        type: add_if
-        parameters: '>=0'
 - name: extract_conntrack
   extract:
     type: conntrack
@@ -93,12 +60,10 @@ parameters:
           fields:
           - srcIP
           - srcPort
-          - srcSubnet
         - name: dst
           fields:
           - dstIP
           - dstPort
-          - dstSubnet
         - name: protocol
           fields:
           - proto
@@ -133,6 +98,39 @@ parameters:
         operation: max
         input: timeReceived
       endConnectionTimeout: 30s
+- name: transform_network
+  transform:
+    type: network
+    network:
+      rules:
+      - input: dstPort
+        output: service
+        type: add_service
+        parameters: proto
+      - input: dstIP
+        output: dstSubnet24
+        type: add_subnet
+        parameters: /24
+      - input: srcIP
+        output: srcSubnet24
+        type: add_subnet
+        parameters: /24
+      - input: srcIP
+        output: srcSubnet
+        type: add_subnet
+        parameters: /16
+      - input: dstIP
+        output: dstSubnet
+        type: add_subnet
+        parameters: /16
+      - input: srcIP
+        output: srcK8S
+        type: add_kubernetes
+        parameters: srcK8S_labels
+      - input: bytes
+        output: all
+        type: add_if
+        parameters: '>=0'
 - name: extract_aggregate
   extract:
     type: aggregates
