@@ -36,7 +36,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var Data KubeData
+var Data kubeDataInterface = &KubeData{}
 
 const (
 	kubeConfigEnvVariable = "KUBECONFIG"
@@ -47,7 +47,13 @@ const (
 	typeService           = "Service"
 )
 
+type kubeDataInterface interface {
+	GetInfo(string) (*Info, error)
+	InitFromConfig(string) error
+}
+
 type KubeData struct {
+	kubeDataInterface
 	ipInformers        map[string]cache.SharedIndexInformer
 	replicaSetInformer cache.SharedIndexInformer
 	stopChan           chan struct{}
