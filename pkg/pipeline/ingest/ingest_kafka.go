@@ -26,12 +26,12 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 	"github.com/prometheus/client_golang/prometheus"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"google.golang.org/protobuf/proto"
 )
 
 type kafkaReadMessage interface {
