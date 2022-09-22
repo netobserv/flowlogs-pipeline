@@ -21,7 +21,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,14 +34,13 @@ const timeout = 5 * time.Second
 func TestIngest(t *testing.T) {
 	collectorPort, err := test.UDPPort()
 	require.NoError(t, err)
-	ic := &ingestCollector{
-		hostname:       "0.0.0.0",
-		port:           collectorPort,
-		batchFlushTime: 10 * time.Millisecond,
-		exitChan:       make(chan struct{}),
-	}
+	stage := config.NewCollectorPipeline("ingest-ipfix", api.IngestCollector{
+		HostName: "0.0.0.0",
+		Port:     collectorPort,
+	})
+	ic, err := NewIngestCollector(operational.NewMetrics(&config.MetricsSettings{}), stage.GetStageParams()[0])
+	require.NoError(t, err)
 	forwarded := make(chan []config.GenericMap)
-	//defer close(forwarded)
 
 	// GIVEN an IPFIX collector Ingester
 	go ic.Ingest(forwarded)

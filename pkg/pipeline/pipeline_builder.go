@@ -8,7 +8,7 @@ import (
 	"github.com/benbjohnson/clock"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/conntrack"
@@ -43,6 +43,8 @@ type builder struct {
 	createdStages    map[string]interface{}
 	startNodes       []*node.Init
 	terminalNodes    []*node.Terminal
+	opMetrics        *operational.Metrics
+	stageDuration    *prometheus.HistogramVec
 }
 
 type pipelineEntry struct {
@@ -55,18 +57,25 @@ type pipelineEntry struct {
 	Writer      write.Writer
 }
 
-var stageDuration = operationalMetrics.NewHistogramVec(prometheus.HistogramOpts{
-	Name:    "stage_duration_ms",
-	Help:    "Pipeline stage duration in milliseconds",
-	Buckets: []float64{.001, .01, .1, 1, 10, 100, 1000, 10000},
-}, []string{"name"})
+var (
+	stageDurationDef = operational.DefineMetric(
+		"stage_duration_ms",
+		"Pipeline stage duration in milliseconds",
+		operational.TypeHistogram,
+		"stage",
+	)
+)
 
-func newBuilder(params []config.StageParam, stages []config.Stage) *builder {
+func newBuilder(params []config.StageParam, stages []config.Stage, opMetrics *operational.Metrics) *builder {
+	stageDuration := opMetrics.NewHistogramVec(&stageDurationDef, []float64{.001, .01, .1, 1, 10, 100, 1000, 10000})
+
 	return &builder{
 		pipelineEntryMap: map[string]*pipelineEntry{},
 		createdStages:    map[string]interface{}{},
 		configStages:     stages,
 		configParams:     params,
+		opMetrics:        opMetrics,
+		stageDuration:    stageDuration,
 	}
 }
 
@@ -81,15 +90,15 @@ func (b *builder) readStages() error {
 		var err error
 		switch pEntry.stageType {
 		case StageIngest:
-			pEntry.Ingester, err = getIngester(param)
+			pEntry.Ingester, err = getIngester(b.opMetrics, param)
 		case StageTransform:
-			pEntry.Transformer, err = getTransformer(param)
+			pEntry.Transformer, err = getTransformer(b.opMetrics, param)
 		case StageExtract:
-			pEntry.Extractor, err = getExtractor(param)
+			pEntry.Extractor, err = getExtractor(b.opMetrics, param)
 		case StageEncode:
-			pEntry.Encoder, err = getEncoder(param)
+			pEntry.Encoder, err = getEncoder(b.opMetrics, param)
 		case StageWrite:
-			pEntry.Writer, err = getWriter(param)
+			pEntry.Writer, err = getWriter(b.opMetrics, param)
 		default:
 			err = fmt.Errorf("invalid stage type: %v, stage name: %v", pEntry.stageType, pEntry.stageName)
 		}
@@ -180,6 +189,7 @@ func (b *builder) build() (*Pipeline, error) {
 		startNodes:     b.startNodes,
 		terminalNodes:  b.terminalNodes,
 		pipelineStages: b.pipelineStages,
+		Metrics:        b.opMetrics,
 	}, nil
 }
 
@@ -217,11 +227,11 @@ func isSender(p *pipelineEntry) bool {
 	return p.stageType != StageWrite && p.stageType != StageEncode
 }
 
-func runMeasured(name string, f func()) {
+func (b *builder) runMeasured(name string, f func()) {
 	start := time.Now()
 	f()
 	duration := time.Since(start)
-	stageDuration.WithLabelValues(name).Observe(float64(duration.Milliseconds()))
+	b.stageDuration.WithLabelValues(name).Observe(float64(duration.Milliseconds()))
 }
 
 func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, error) {
@@ -238,8 +248,9 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 		stage = init
 	case StageWrite:
 		term := node.AsTerminal(func(in <-chan []config.GenericMap) {
+			b.opMetrics.CreateInQueueSizeGauge(stageID, func() int { return len(in) })
 			for i := range in {
-				runMeasured(stageID, func() {
+				b.runMeasured(stageID, func() {
 					pe.Writer.Write(i)
 				})
 			}
@@ -248,8 +259,9 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 		stage = term
 	case StageEncode:
 		encode := node.AsTerminal(func(in <-chan []config.GenericMap) {
+			b.opMetrics.CreateInQueueSizeGauge(stageID, func() int { return len(in) })
 			for i := range in {
-				runMeasured(stageID, func() {
+				b.runMeasured(stageID, func() {
 					pe.Encoder.Encode(i)
 				})
 			}
@@ -258,16 +270,20 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 		stage = encode
 	case StageTransform:
 		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
+			b.opMetrics.CreateInQueueSizeGauge(stageID, func() int { return len(in) })
+			b.opMetrics.CreateOutQueueSizeGauge(stageID, func() int { return len(out) })
 			for i := range in {
-				runMeasured(stageID, func() {
+				b.runMeasured(stageID, func() {
 					out <- pe.Transformer.Transform(i)
 				})
 			}
 		})
 	case StageExtract:
 		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
+			b.opMetrics.CreateInQueueSizeGauge(stageID, func() int { return len(in) })
+			b.opMetrics.CreateOutQueueSizeGauge(stageID, func() int { return len(out) })
 			for i := range in {
-				runMeasured(stageID, func() {
+				b.runMeasured(stageID, func() {
 					out <- pe.Extractor.Extract(i)
 				})
 			}
@@ -282,18 +298,18 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 	return stage, nil
 }
 
-func getIngester(params config.StageParam) (ingest.Ingester, error) {
+func getIngester(opMetrics *operational.Metrics, params config.StageParam) (ingest.Ingester, error) {
 	var ingester ingest.Ingester
 	var err error
 	switch params.Ingest.Type {
 	case api.FileType, api.FileLoopType, api.FileChunksType:
 		ingester, err = ingest.NewIngestFile(params)
 	case api.CollectorType:
-		ingester, err = ingest.NewIngestCollector(params)
+		ingester, err = ingest.NewIngestCollector(opMetrics, params)
 	case api.KafkaType:
-		ingester, err = ingest.NewIngestKafka(params)
+		ingester, err = ingest.NewIngestKafka(opMetrics, params)
 	case api.GRPCType:
-		ingester, err = ingest.NewGRPCProtobuf(params)
+		ingester, err = ingest.NewGRPCProtobuf(opMetrics, params)
 	case api.FakeType:
 		ingester, err = ingest.NewIngestFake(params)
 	default:
@@ -302,7 +318,7 @@ func getIngester(params config.StageParam) (ingest.Ingester, error) {
 	return ingester, err
 }
 
-func getWriter(params config.StageParam) (write.Writer, error) {
+func getWriter(opMetrics *operational.Metrics, params config.StageParam) (write.Writer, error) {
 	var writer write.Writer
 	var err error
 	switch params.Write.Type {
@@ -311,7 +327,7 @@ func getWriter(params config.StageParam) (write.Writer, error) {
 	case api.NoneType:
 		writer, err = write.NewWriteNone()
 	case api.LokiType:
-		writer, err = write.NewWriteLoki(params)
+		writer, err = write.NewWriteLoki(opMetrics, params)
 	case api.FakeType:
 		writer, err = write.NewWriteFake(params)
 	default:
@@ -320,7 +336,7 @@ func getWriter(params config.StageParam) (write.Writer, error) {
 	return writer, err
 }
 
-func getTransformer(params config.StageParam) (transform.Transformer, error) {
+func getTransformer(opMetrics *operational.Metrics, params config.StageParam) (transform.Transformer, error) {
 	var transformer transform.Transformer
 	var err error
 	switch params.Transform.Type {
@@ -338,7 +354,7 @@ func getTransformer(params config.StageParam) (transform.Transformer, error) {
 	return transformer, err
 }
 
-func getExtractor(params config.StageParam) (extract.Extractor, error) {
+func getExtractor(opMetrics *operational.Metrics, params config.StageParam) (extract.Extractor, error) {
 	var extractor extract.Extractor
 	var err error
 	switch params.Extract.Type {
@@ -347,7 +363,7 @@ func getExtractor(params config.StageParam) (extract.Extractor, error) {
 	case api.AggregateType:
 		extractor, err = extract.NewExtractAggregate(params)
 	case api.ConnTrackType:
-		extractor, err = conntrack.NewConnectionTrack(params, clock.New())
+		extractor, err = conntrack.NewConnectionTrack(opMetrics, params, clock.New())
 	case api.TimebasedType:
 		extractor, err = extract.NewExtractTimebased(params)
 	default:
@@ -356,14 +372,14 @@ func getExtractor(params config.StageParam) (extract.Extractor, error) {
 	return extractor, err
 }
 
-func getEncoder(params config.StageParam) (encode.Encoder, error) {
+func getEncoder(opMetrics *operational.Metrics, params config.StageParam) (encode.Encoder, error) {
 	var encoder encode.Encoder
 	var err error
 	switch params.Encode.Type {
 	case api.PromType:
-		encoder, err = encode.NewEncodeProm(params)
+		encoder, err = encode.NewEncodeProm(opMetrics, params)
 	case api.KafkaType:
-		encoder, err = encode.NewEncodeKafka(params)
+		encoder, err = encode.NewEncodeKafka(opMetrics, params)
 	case api.NoneType:
 		encoder, _ = encode.NewEncodeNone()
 	default:

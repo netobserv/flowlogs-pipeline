@@ -29,6 +29,7 @@ import (
 
 	test2 "github.com/mariomac/guara/pkg/test"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
@@ -61,7 +62,7 @@ func Test_transformToLoki(t *testing.T) {
 
 	v, cfg := test.InitConfig(t, yamlConfigNoParams)
 	require.NotNil(t, v)
-	loki, err := write.NewWriteLoki(cfg.Parameters[0])
+	loki, err := write.NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 	loki.Write(transformed)
 }
@@ -209,7 +210,7 @@ parameters:
 	require.True(t, scanner.Scan())
 	capturedRecord := map[string]interface{}{}
 	bytes := scanner.Bytes()
-	require.NoError(t, json.Unmarshal(bytes, &capturedRecord))
+	require.NoError(t, json.Unmarshal(bytes, &capturedRecord), string(bytes))
 
 	assert.NotZero(t, capturedRecord["TimeReceived"])
 	delete(capturedRecord, "TimeReceived")

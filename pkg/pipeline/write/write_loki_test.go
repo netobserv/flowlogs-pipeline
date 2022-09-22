@@ -28,6 +28,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
@@ -72,7 +73,7 @@ parameters:
 	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
 
-	loki, err := NewWriteLoki(cfg.Parameters[0])
+	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://foo:8888/loki/api/v1/push", loki.lokiConfig.URL.String())
@@ -109,7 +110,7 @@ parameters:
 	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
 
-	loki, err := NewWriteLoki(cfg.Parameters[0])
+	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 
 	fe := fakeEmitter{}
@@ -163,7 +164,7 @@ parameters:
 			v, cfg := test.InitConfig(t, yamlConf)
 			require.NotNil(t, v)
 
-			loki, err := NewWriteLoki(cfg.Parameters[0])
+			loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 			require.NoError(t, err)
 
 			fe := fakeEmitter{}
@@ -204,7 +205,7 @@ func TestTimestampExtraction_LocalTime(t *testing.T) {
 			v, cfg := test.InitConfig(t, yamlConfigNoParams)
 			require.NotNil(t, v)
 
-			loki, err := NewWriteLoki(cfg.Parameters[0])
+			loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 			require.NoError(t, err)
 
 			loki.apiConfig.TimestampLabel = testCase.tsLabel
@@ -246,7 +247,7 @@ parameters:
 	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
 
-	loki, err := NewWriteLoki(cfg.Parameters[0])
+	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 
 	fe := fakeEmitter{}
@@ -279,7 +280,7 @@ parameters:
         url: %s
 `, fakeLoki.URL)
 	_, cfg := test.InitConfig(t, yamlConfig)
-	loki, err := NewWriteLoki(cfg.Parameters[0])
+	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 
 	require.NoError(t, loki.ProcessRecord(map[string]interface{}{"foo": "bar", "baz": "bae"}))
@@ -329,7 +330,7 @@ func BenchmarkWriteLoki(b *testing.B) {
 		TimestampScale: "1ms",
 	}
 
-	loki, err := NewWriteLoki(config.StageParam{Write: &config.Write{Loki: &params}})
+	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), config.StageParam{Write: &config.Write{Loki: &params}})
 	require.NoError(b, err)
 
 	for i := 0; i < b.N; i++ {

@@ -20,8 +20,8 @@ package pipeline
 import (
 	"fmt"
 
-	"github.com/heptiolabs/healthcheck"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/gopipes/pkg/node"
 	log "github.com/sirupsen/logrus"
 )
@@ -43,6 +43,7 @@ type Pipeline struct {
 	// TODO: this field is only used for test verification. We should rewrite the build process
 	// to be able to remove it from here
 	pipelineStages []*pipelineEntry
+	Metrics        *operational.Metrics
 }
 
 // NewPipeline defines the pipeline elements
@@ -54,7 +55,10 @@ func NewPipeline(cfg *config.ConfigFileStruct) (*Pipeline, error) {
 	configParams := cfg.Parameters
 	log.Debugf("configParams = %v ", configParams)
 
-	build := newBuilder(configParams, stages)
+	// Get global metrics settings
+	om := operational.NewMetrics(&cfg.MetricsSettings)
+
+	build := newBuilder(configParams, stages, om)
 	if err := build.readStages(); err != nil {
 		return nil, err
 	}
@@ -75,20 +79,16 @@ func (p *Pipeline) Run() {
 	p.IsRunning = false
 }
 
-func (p *Pipeline) IsReady() healthcheck.Check {
-	return func() error {
-		if !p.IsRunning {
-			return fmt.Errorf("pipeline is not running")
-		}
-		return nil
+func (p *Pipeline) IsReady() error {
+	if !p.IsRunning {
+		return fmt.Errorf("pipeline is not running")
 	}
+	return nil
 }
 
-func (p *Pipeline) IsAlive() healthcheck.Check {
-	return func() error {
-		if !p.IsRunning {
-			return fmt.Errorf("pipeline is not running")
-		}
-		return nil
+func (p *Pipeline) IsAlive() error {
+	if !p.IsRunning {
+		return fmt.Errorf("pipeline is not running")
 	}
+	return nil
 }

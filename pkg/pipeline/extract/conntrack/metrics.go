@@ -18,16 +18,31 @@
 package conntrack
 
 import (
-	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const (
-	classificationLabel = "classification"
-	typeLabel           = "type"
-)
+var (
+	connStoreLengthDef = operational.DefineMetric(
+		"conntrack_memory_connections",
+		"The total number of tracked connections in memory.",
+		operational.TypeGauge,
+	)
 
-var metrics = newMetrics()
+	inputRecordsDef = operational.DefineMetric(
+		"conntrack_input_records",
+		"The total number of input records per classification.",
+		operational.TypeCounter,
+		"classification",
+	)
+
+	outputRecordsDef = operational.DefineMetric(
+		"conntrack_output_records",
+		"The total number of output records.",
+		operational.TypeCounter,
+		"type",
+	)
+)
 
 type metricsType struct {
 	connStoreLength prometheus.Gauge
@@ -35,23 +50,10 @@ type metricsType struct {
 	outputRecords   *prometheus.CounterVec
 }
 
-func newMetrics() *metricsType {
-	var m metricsType
-
-	m.connStoreLength = operationalMetrics.NewGauge(prometheus.GaugeOpts{
-		Name: "conntrack_memory_connections",
-		Help: "The total number of tracked connections in memory.",
-	})
-
-	m.inputRecords = operationalMetrics.NewCounterVec(prometheus.CounterOpts{
-		Name: "conntrack_input_records",
-		Help: "The total number of input records per classification.",
-	}, []string{classificationLabel})
-
-	m.outputRecords = operationalMetrics.NewCounterVec(prometheus.CounterOpts{
-		Name: "conntrack_output_records",
-		Help: "The total number of output records.",
-	}, []string{typeLabel})
-
-	return &m
+func newMetrics(opMetrics *operational.Metrics) *metricsType {
+	return &metricsType{
+		connStoreLength: opMetrics.NewGauge(&connStoreLengthDef),
+		inputRecords:    opMetrics.NewCounterVec(&inputRecordsDef),
+		outputRecords:   opMetrics.NewCounterVec(&outputRecordsDef),
+	}
 }

@@ -23,6 +23,8 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/kafka-go"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
@@ -39,9 +41,9 @@ type kafkaWriteMessage interface {
 }
 
 type encodeKafka struct {
-	kafkaParams api.EncodeKafka
-	kafkaWriter kafkaWriteMessage
-	prevRecords []config.GenericMap
+	kafkaParams    api.EncodeKafka
+	kafkaWriter    kafkaWriteMessage
+	recordsWritten prometheus.Counter
 }
 
 // Encode writes entries to kafka topic
@@ -60,12 +62,13 @@ func (r *encodeKafka) Encode(in []config.GenericMap) {
 	err := r.kafkaWriter.WriteMessages(context.Background(), msgs...)
 	if err != nil {
 		log.Errorf("encodeKafka error: %v", err)
+	} else {
+		r.recordsWritten.Add(float64(len(msgs)))
 	}
-	r.prevRecords = in
 }
 
 // NewEncodeKafka create a new writer to kafka
-func NewEncodeKafka(params config.StageParam) (Encoder, error) {
+func NewEncodeKafka(opMetrics *operational.Metrics, params config.StageParam) (Encoder, error) {
 	log.Debugf("entering NewEncodeKafka")
 	config := api.EncodeKafka{}
 	if params.Encode != nil && params.Encode.Kafka != nil {
@@ -124,7 +127,8 @@ func NewEncodeKafka(params config.StageParam) (Encoder, error) {
 	}
 
 	return &encodeKafka{
-		kafkaParams: config,
-		kafkaWriter: &kafkaWriter,
+		kafkaParams:    config,
+		kafkaWriter:    &kafkaWriter,
+		recordsWritten: opMetrics.CreateRecordsWrittenCounter(params.Name),
 	}, nil
 }

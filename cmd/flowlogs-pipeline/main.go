@@ -30,7 +30,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/operational/health"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
@@ -44,7 +44,7 @@ var (
 	BuildDate          string
 	cfgFile            string
 	logLevel           string
-	envPrefix          = "FLOWLOGS-PIPILNE"
+	envPrefix          = "FLOWLOGS-PIPELINE"
 	defaultLogFileName = ".flowlogs-pipeline"
 	opts               config.Options
 )
@@ -141,6 +141,7 @@ func initFlags() {
 	rootCmd.PersistentFlags().IntVar(&opts.Profile.Port, "profile.port", 0, "Go pprof tool port (default: disabled)")
 	rootCmd.PersistentFlags().StringVar(&opts.PipeLine, "pipeline", "", "json of config file pipeline field")
 	rootCmd.PersistentFlags().StringVar(&opts.Parameters, "parameters", "", "json of config file parameters field")
+	rootCmd.PersistentFlags().StringVar(&opts.MetricsSettings, "metrics-settings", "", "json for global metrics settings")
 }
 
 func main() {
@@ -191,7 +192,7 @@ func run() {
 	}
 
 	// Start health report server
-	health.NewHealthServer(&opts, mainPipeline)
+	operational.NewHealthServer(&opts, mainPipeline.IsAlive, mainPipeline.IsReady)
 
 	// Starts the flows pipeline
 	mainPipeline.Run()
@@ -200,5 +201,4 @@ func run() {
 	time.Sleep(time.Second)
 	log.Debugf("exiting main run")
 	os.Exit(0)
-
 }

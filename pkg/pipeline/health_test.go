@@ -15,7 +15,7 @@
  *
  */
 
-package health
+package pipeline
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,7 +34,7 @@ func TestNewHealthServer(t *testing.T) {
 	livePath := "/live"
 
 	type args struct {
-		pipeline pipeline.Pipeline
+		pipeline Pipeline
 		port     string
 	}
 	type want struct {
@@ -46,8 +46,8 @@ func TestNewHealthServer(t *testing.T) {
 		args args
 		want want
 	}{
-		{name: "pipeline running", args: args{pipeline: pipeline.Pipeline{IsRunning: true}, port: "7000"}, want: want{statusCode: 200}},
-		{name: "pipeline not running", args: args{pipeline: pipeline.Pipeline{IsRunning: false}, port: "7001"}, want: want{statusCode: 503}},
+		{name: "pipeline running", args: args{pipeline: Pipeline{IsRunning: true}, port: "7000"}, want: want{statusCode: 200}},
+		{name: "pipeline not running", args: args{pipeline: Pipeline{IsRunning: false}, port: "7001"}, want: want{statusCode: 503}},
 	}
 
 	for _, tt := range tests {
@@ -55,9 +55,9 @@ func TestNewHealthServer(t *testing.T) {
 
 			opts := config.Options{Health: config.Health{Port: tt.args.port}}
 			expectedAddr := fmt.Sprintf("0.0.0.0:%s", opts.Health.Port)
-			server := NewHealthServer(&opts, &tt.args.pipeline)
+			server := operational.NewHealthServer(&opts, tt.args.pipeline.IsAlive, tt.args.pipeline.IsReady)
 			require.NotNil(t, server)
-			require.Equal(t, expectedAddr, server.address)
+			require.Equal(t, expectedAddr, server.Address)
 
 			client := &http.Client{}
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/grpc"
@@ -41,9 +42,10 @@ var (
 type GRPCProtobuf struct {
 	collector   *grpc.CollectorServer
 	flowPackets chan *pbflow.Records
+	metrics     *metrics
 }
 
-func NewGRPCProtobuf(params config.StageParam) (*GRPCProtobuf, error) {
+func NewGRPCProtobuf(opMetrics *operational.Metrics, params config.StageParam) (*GRPCProtobuf, error) {
 	netObserv := api.IngestGRPCProto{}
 	if params.Ingest != nil && params.Ingest.GRPC != nil {
 		netObserv = *params.Ingest.GRPC
@@ -56,18 +58,22 @@ func NewGRPCProtobuf(params config.StageParam) (*GRPCProtobuf, error) {
 		bufLen = defaultBufferLen
 	}
 	flowPackets := make(chan *pbflow.Records, bufLen)
+	metrics := newMetrics(opMetrics, params.Name, func() int { return len(flowPackets) })
+	counter := func(inc int) { metrics.flowsProcessed.Add(float64(inc)) }
 	collector, err := grpc.StartCollector(netObserv.Port, flowPackets,
-		grpc.WithGRPCServerOptions(grpc2.UnaryInterceptor(instrumentGRPC(netObserv.Port))))
+		grpc.WithGRPCServerOptions(grpc2.UnaryInterceptor(instrumentGRPC(netObserv.Port, counter))))
 	if err != nil {
 		return nil, err
 	}
 	return &GRPCProtobuf{
 		collector:   collector,
 		flowPackets: flowPackets,
+		metrics:     metrics,
 	}, nil
 }
 
 func (no *GRPCProtobuf) Ingest(out chan<- []config.GenericMap) {
+	no.metrics.createOutQueueLen(out)
 	go func() {
 		<-utils.ExitChannel()
 		close(no.flowPackets)
@@ -86,7 +92,7 @@ func (no *GRPCProtobuf) Close() error {
 	return err
 }
 
-func instrumentGRPC(port int) grpc2.UnaryServerInterceptor {
+func instrumentGRPC(port int, counter func(int)) grpc2.UnaryServerInterceptor {
 	localPort := strconv.Itoa(port)
 	return func(
 		ctx context.Context,
@@ -111,7 +117,7 @@ func instrumentGRPC(port int) grpc2.UnaryServerInterceptor {
 			prometheus.Labels{"worker": "", "name": decoderName}).Inc()
 
 		// instruments number of processed individual flows
-		linesProcessed.Add(float64(len(flowRecords.Entries)))
+		counter(len(flowRecords.Entries))
 
 		// extract sender IP address
 		remoteIP := "unknown"

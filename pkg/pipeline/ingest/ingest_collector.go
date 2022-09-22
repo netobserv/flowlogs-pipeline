@@ -27,14 +27,13 @@ import (
 	ms "github.com/mitchellh/mapstructure"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	goflowFormat "github.com/netsampler/goflow2/format"
 	goflowCommonFormat "github.com/netsampler/goflow2/format/common"
 	_ "github.com/netsampler/goflow2/format/protobuf"
 	goflowpb "github.com/netsampler/goflow2/pb"
 	"github.com/netsampler/goflow2/utils"
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
@@ -53,22 +52,13 @@ type ingestCollector struct {
 	batchFlushTime time.Duration
 	batchMaxLength int
 	exitChan       <-chan struct{}
+	metrics        *metrics
 }
 
 // TransportWrapper is an implementation of the goflow2 transport interface
 type TransportWrapper struct {
 	c chan map[string]interface{}
 }
-
-var queueLength = operationalMetrics.NewGauge(prometheus.GaugeOpts{
-	Name: "ingest_collector_queue_length",
-	Help: "Queue length",
-})
-
-var linesProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
-	Name: "ingest_collector_flow_logs_processed",
-	Help: "Number of log lines (flow logs) processed",
-})
 
 func NewWrapper(c chan map[string]interface{}) *TransportWrapper {
 	tw := TransportWrapper{c: c}
@@ -114,7 +104,7 @@ func (w *TransportWrapper) Send(_, data []byte) error {
 // Ingest ingests entries from a network collector using goflow2 library (https://github.com/netsampler/goflow2)
 func (ingestC *ingestCollector) Ingest(out chan<- []config.GenericMap) {
 	ctx := context.Background()
-	ingestC.in = make(chan map[string]interface{}, channelSize)
+	ingestC.metrics.createOutQueueLen(out)
 
 	// initialize background listeners (a.k.a.netflow+legacy collector)
 	ingestC.initCollectorListener(ctx)
@@ -172,8 +162,7 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) 
 			records = append(records, record)
 			if len(records) >= ingestC.batchMaxLength {
 				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
-				linesProcessed.Add(float64(len(records)))
-				queueLength.Set(float64(len(out)))
+				ingestC.metrics.flowsProcessed.Add(float64(len(records)))
 				log.Debugf("ingestCollector records = %v", records)
 				out <- records
 				records = []config.GenericMap{}
@@ -188,8 +177,7 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) 
 					}
 				}
 				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
-				linesProcessed.Add(float64(len(records)))
-				queueLength.Set(float64(len(out)))
+				ingestC.metrics.flowsProcessed.Add(float64(len(records)))
 				log.Debugf("ingestCollector records = %v", records)
 				out <- records
 				records = []config.GenericMap{}
@@ -199,7 +187,7 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) 
 }
 
 // NewIngestCollector create a new ingester
-func NewIngestCollector(params config.StageParam) (Ingester, error) {
+func NewIngestCollector(opMetrics *operational.Metrics, params config.StageParam) (Ingester, error) {
 	jsonIngestCollector := api.IngestCollector{}
 	if params.Ingest != nil && params.Ingest.Collector != nil {
 		jsonIngestCollector = *params.Ingest.Collector
@@ -220,6 +208,9 @@ func NewIngestCollector(params config.StageParam) (Ingester, error) {
 		bml = jsonIngestCollector.BatchMaxLen
 	}
 
+	in := make(chan map[string]interface{}, channelSize)
+	metrics := newMetrics(opMetrics, params.Name, func() int { return len(in) })
+
 	return &ingestCollector{
 		hostname:       jsonIngestCollector.HostName,
 		port:           jsonIngestCollector.Port,
@@ -227,5 +218,7 @@ func NewIngestCollector(params config.StageParam) (Ingester, error) {
 		exitChan:       pUtils.ExitChannel(),
 		batchFlushTime: defaultBatchFlushTime,
 		batchMaxLength: bml,
+		in:             in,
+		metrics:        metrics,
 	}, nil
 }

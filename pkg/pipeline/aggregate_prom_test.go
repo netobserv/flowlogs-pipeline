@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
@@ -96,7 +97,7 @@ parameters:
 	extractAggregate, err := extract.NewExtractAggregate(cfg.Parameters[0])
 	require.NoError(t, err)
 
-	promEncode, err := encode.NewEncodeProm(cfg.Parameters[1])
+	promEncode, err := encode.NewEncodeProm(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[1])
 	require.Equal(t, err, nil)
 
 	// Test cases

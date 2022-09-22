@@ -32,7 +32,8 @@ const (
 // connectionStore provides both retrieving a connection by its hash and iterating connections sorted by their last
 // update time.
 type connectionStore struct {
-	mom *utils.MultiOrderedMap
+	mom     *utils.MultiOrderedMap
+	metrics *metricsType
 }
 
 type processConnF func(connection) (shouldDelete, shouldStop bool)
@@ -42,7 +43,7 @@ func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
 	if err != nil {
 		log.Errorf("BUG. connection with hash %x already exists in store. %v", hashId, conn)
 	}
-	metrics.connStoreLength.Set(float64(cs.mom.Len()))
+	cs.metrics.connStoreLength.Set(float64(cs.mom.Len()))
 }
 
 func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
@@ -89,11 +90,12 @@ func (cs *connectionStore) iterateFrontToBack(orderID utils.OrderID, f processCo
 		shouldDelete, shouldStop = f(r.(connection))
 		return
 	})
-	metrics.connStoreLength.Set(float64(cs.mom.Len()))
+	cs.metrics.connStoreLength.Set(float64(cs.mom.Len()))
 }
 
-func newConnectionStore() *connectionStore {
+func newConnectionStore(metrics *metricsType) *connectionStore {
 	return &connectionStore{
-		mom: utils.NewMultiOrderedMap(expiryOrder, nextUpdateReportTimeOrder),
+		mom:     utils.NewMultiOrderedMap(expiryOrder, nextUpdateReportTimeOrder),
+		metrics: metrics,
 	}
 }

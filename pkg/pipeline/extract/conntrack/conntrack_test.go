@@ -26,8 +26,12 @@ import (
 	"github.com/benbjohnson/clock"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
+
+var opMetrics = operational.NewMetrics(&config.MetricsSettings{})
 
 func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *config.StageParam {
 	splitAB := isBidirectional
@@ -149,12 +153,13 @@ func TestTrack(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
-		t.Run(test.name, func(t *testing.T) {
-			ct, err := NewConnectionTrack(*test.conf, clock.NewMock())
+	for _, testt := range table {
+		t.Run(testt.name, func(t *testing.T) {
+			test.ResetPromRegistry()
+			ct, err := NewConnectionTrack(opMetrics, *testt.conf, clock.NewMock())
 			require.NoError(t, err)
-			actual := ct.Extract(test.inputFlowLogs)
-			require.Equal(t, test.expected, actual)
+			actual := ct.Extract(testt.inputFlowLogs)
+			require.Equal(t, testt.expected, actual)
 		})
 	}
 }
@@ -164,9 +169,10 @@ func TestTrack(t *testing.T) {
 // The test simulates 2 flow logs from A to B and 2 from B to A in different timestamps.
 // Then the test verifies that an end connection record is outputted only after 30 seconds from the last flow log.
 func TestEndConn_Bidirectional(t *testing.T) {
+	test.ResetPromRegistry()
 	clk := clock.NewMock()
 	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"})
-	ct, err := NewConnectionTrack(*conf, clk)
+	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
 	ipA := "10.0.0.1"
@@ -246,9 +252,10 @@ func TestEndConn_Bidirectional(t *testing.T) {
 // The test simulates 2 flow logs from A to B and 2 from B to A in different timestamps.
 // Then the test verifies that an end connection record is outputted only after 30 seconds from the last flow log.
 func TestEndConn_Unidirectional(t *testing.T) {
+	test.ResetPromRegistry()
 	clk := clock.NewMock()
 	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "endConnection"})
-	ct, err := NewConnectionTrack(*conf, clk)
+	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
 	ipA := "10.0.0.1"
@@ -345,9 +352,10 @@ func TestEndConn_Unidirectional(t *testing.T) {
 // Then the test verifies that an update connection record is outputted only after 10 seconds from the last update
 // connection report.
 func TestUpdateConn_Unidirectional(t *testing.T) {
+	test.ResetPromRegistry()
 	clk := clock.NewMock()
 	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "updateConnection", "endConnection"})
-	ct, err := NewConnectionTrack(*conf, clk)
+	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
 	ipA := "10.0.0.1"
@@ -494,8 +502,9 @@ func assertConnDoesntExist(t *testing.T, store *connectionStore, hashId uint64) 
 }
 
 func TestIterateFrontToBack(t *testing.T) {
+	test.ResetPromRegistry()
 	// This test adds 2 connections to the store, deletes them and verifies deletion.
-	cs := newConnectionStore()
+	cs := newConnectionStore(newMetrics(operational.NewMetrics(&config.MetricsSettings{})))
 
 	conn1hash := totalHashType{0x10, 0x11, 0x12}
 	conn1 := NewConnBuilder().Hash(conn1hash).Build()
@@ -520,11 +529,12 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 	// It sets the update report interval to 10 seconds and creates 3 records for the first interval and 3 records for the second interval (6 in total).
 	// Then, it calls prepareUpdateConnectionRecords() a couple of times in different times.
 	// It makes sure that only the right records are returned on each call.
+	test.ResetPromRegistry()
 	clk := clock.NewMock()
 	conf := buildMockConnTrackConfig(false, []string{"updateConnection"})
 	interval := 10 * time.Second
 	conf.Extract.ConnTrack.UpdateConnectionInterval = api.Duration{Duration: interval}
-	extract, err := NewConnectionTrack(*conf, clk)
+	extract, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 	ct := extract.(*conntrackImpl)
 	startTime := clk.Now()

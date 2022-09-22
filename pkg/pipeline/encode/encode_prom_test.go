@@ -28,6 +28,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
@@ -80,7 +81,8 @@ func initPromWithServer(params *api.PromEncode) (*EncodeProm, func(), error) {
 	prometheus.DefaultRegisterer = reg
 	prometheus.DefaultGatherer = reg
 	http.DefaultServeMux = http.NewServeMux()
-	enc, err := NewEncodeProm(config.StageParam{Encode: &config.Encode{Prom: params}})
+	opMetrics := operational.NewMetrics(&config.MetricsSettings{})
+	enc, err := NewEncodeProm(opMetrics, config.StageParam{Encode: &config.Encode{Prom: params}})
 	if err != nil {
 		return nil, nil, err
 	}

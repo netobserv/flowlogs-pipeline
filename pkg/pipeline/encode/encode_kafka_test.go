@@ -23,6 +23,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	kafkago "github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/mock"
@@ -58,7 +59,7 @@ func initNewEncodeKafka(t *testing.T) Encoder {
 	v, cfg := test.InitConfig(t, testKafkaConfig)
 	require.NotNil(t, v)
 
-	newEncode, err := NewEncodeKafka(cfg.Parameters[0])
+	newEncode, err := NewEncodeKafka(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 	return newEncode
 }
@@ -93,18 +94,20 @@ func Test_EncodeKafka(t *testing.T) {
 }
 
 func Test_TLSConfigEmpty(t *testing.T) {
+	test.ResetPromRegistry()
 	pipeline := config.NewCollectorPipeline("ingest", api.IngestCollector{})
 	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
 		Address: "any",
 		Topic:   "topic",
 	})
-	newEncode, err := NewEncodeKafka(pipeline.GetStageParams()[1])
+	newEncode, err := NewEncodeKafka(operational.NewMetrics(&config.MetricsSettings{}), pipeline.GetStageParams()[1])
 	require.NoError(t, err)
 	tlsConfig := newEncode.(*encodeKafka).kafkaWriter.(*kafkago.Writer).Transport.(*kafkago.Transport).TLS
 	require.Nil(t, tlsConfig)
 }
 
 func Test_TLSConfigCA(t *testing.T) {
+	test.ResetPromRegistry()
 	ca, cleanup := test.CreateCACert(t)
 	defer cleanup()
 	pipeline := config.NewCollectorPipeline("ingest", api.IngestCollector{})
@@ -115,7 +118,7 @@ func Test_TLSConfigCA(t *testing.T) {
 			CACertPath: ca,
 		},
 	})
-	newEncode, err := NewEncodeKafka(pipeline.GetStageParams()[1])
+	newEncode, err := NewEncodeKafka(operational.NewMetrics(&config.MetricsSettings{}), pipeline.GetStageParams()[1])
 	require.NoError(t, err)
 	tlsConfig := newEncode.(*encodeKafka).kafkaWriter.(*kafkago.Writer).Transport.(*kafkago.Transport).TLS
 
@@ -125,6 +128,7 @@ func Test_TLSConfigCA(t *testing.T) {
 }
 
 func Test_MutualTLSConfig(t *testing.T) {
+	test.ResetPromRegistry()
 	ca, user, userKey, cleanup := test.CreateAllCerts(t)
 	defer cleanup()
 	pipeline := config.NewCollectorPipeline("ingest", api.IngestCollector{})
@@ -137,7 +141,7 @@ func Test_MutualTLSConfig(t *testing.T) {
 			UserKeyPath:  userKey,
 		},
 	})
-	newEncode, err := NewEncodeKafka(pipeline.GetStageParams()[1])
+	newEncode, err := NewEncodeKafka(operational.NewMetrics(&config.MetricsSettings{}), pipeline.GetStageParams()[1])
 	require.NoError(t, err)
 
 	tlsConfig := newEncode.(*encodeKafka).kafkaWriter.(*kafkago.Writer).Transport.(*kafkago.Transport).TLS

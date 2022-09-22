@@ -83,6 +83,7 @@ func Test_RunShortConfGen(t *testing.T) {
 		DestConfFile:             configOut,
 		DestDocFile:              docOut,
 		DestGrafanaJsonnetFolder: jsonnetOut,
+		GlobalMetricsPrefix:      "flp_",
 	})
 	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(test.ConfgenShortConfig), 0644)
 	require.NoError(t, err)

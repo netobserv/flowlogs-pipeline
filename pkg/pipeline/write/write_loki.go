@@ -25,9 +25,8 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
-	"github.com/prometheus/client_golang/prometheus"
 
 	logAdapter "github.com/go-kit/kit/log/logrus"
 	jsonIter "github.com/json-iterator/go"
@@ -58,12 +57,8 @@ type Loki struct {
 	timeNow        func() time.Time
 	in             chan config.GenericMap
 	exitChan       <-chan struct{}
+	metrics        *metrics
 }
-
-var recordsWritten = operationalMetrics.NewCounter(prometheus.CounterOpts{
-	Name: "loki_records_written",
-	Help: "Number of records written to loki",
-})
 
 func buildLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 	batchWait, err := time.ParseDuration(c.BatchWait)
@@ -134,7 +129,7 @@ func (l *Loki) ProcessRecord(in config.GenericMap) error {
 	timestamp := l.extractTimestamp(out)
 	err = l.client.Handle(labels, timestamp, string(js))
 	if err == nil {
-		recordsWritten.Inc()
+		l.metrics.recordsWritten.Inc()
 	}
 	return err
 }
@@ -232,7 +227,7 @@ func (l *Loki) processRecords() {
 }
 
 // NewWriteLoki creates a Loki writer from configuration
-func NewWriteLoki(params config.StageParam) (*Loki, error) {
+func NewWriteLoki(opMetrics *operational.Metrics, params config.StageParam) (*Loki, error) {
 	log.Debugf("entering NewWriteLoki")
 	lokiConfigIn := api.WriteLoki{}
 	if params.Write != nil && params.Write.Loki != nil {
@@ -271,7 +266,9 @@ func NewWriteLoki(params config.StageParam) (*Loki, error) {
 		}
 	}
 
+	// TODO / FIXME / FIGUREOUT: seems like we have 2 input channels for Loki? (this one, and see also pipeline_builder.go / getStageNode / StageWrite)
 	in := make(chan config.GenericMap, channelSize)
+	opMetrics.CreateInQueueSizeGauge(params.Name+"-2", func() int { return len(in) })
 
 	l := &Loki{
 		lokiConfig:     lokiConfig,
@@ -282,6 +279,7 @@ func NewWriteLoki(params config.StageParam) (*Loki, error) {
 		timeNow:        time.Now,
 		exitChan:       pUtils.ExitChannel(),
 		in:             in,
+		metrics:        newMetrics(opMetrics, params.Name),
 	}
 
 	go l.processRecords()
