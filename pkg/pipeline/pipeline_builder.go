@@ -3,10 +3,12 @@ package pipeline
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/benbjohnson/clock"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/conntrack"
@@ -14,6 +16,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
 	"github.com/netobserv/gopipes/pkg/node"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -51,6 +54,12 @@ type pipelineEntry struct {
 	Encoder     encode.Encoder
 	Writer      write.Writer
 }
+
+var stageDuration = operationalMetrics.NewHistogramVec(prometheus.HistogramOpts{
+	Name:    "stage_duration_ms",
+	Help:    "Pipeline stage duration in milliseconds",
+	Buckets: []float64{.001, .01, .1, 1, 10, 100, 1000, 10000},
+}, []string{"name"})
 
 func newBuilder(params []config.StageParam, stages []config.Stage) *builder {
 	return &builder{
@@ -208,6 +217,13 @@ func isSender(p *pipelineEntry) bool {
 	return p.stageType != StageWrite && p.stageType != StageEncode
 }
 
+func runMeasured(name string, f func()) {
+	start := time.Now()
+	f()
+	duration := time.Since(start)
+	stageDuration.WithLabelValues(name).Observe(float64(duration.Milliseconds()))
+}
+
 func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, error) {
 	if stg, ok := b.createdStages[stageID]; ok {
 		return stg, nil
@@ -223,7 +239,9 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 	case StageWrite:
 		term := node.AsTerminal(func(in <-chan []config.GenericMap) {
 			for i := range in {
-				pe.Writer.Write(i)
+				runMeasured(stageID, func() {
+					pe.Writer.Write(i)
+				})
 			}
 		})
 		b.terminalNodes = append(b.terminalNodes, term)
@@ -231,7 +249,9 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 	case StageEncode:
 		encode := node.AsTerminal(func(in <-chan []config.GenericMap) {
 			for i := range in {
-				pe.Encoder.Encode(i)
+				runMeasured(stageID, func() {
+					pe.Encoder.Encode(i)
+				})
 			}
 		})
 		b.terminalNodes = append(b.terminalNodes, encode)
@@ -239,13 +259,17 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 	case StageTransform:
 		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
 			for i := range in {
-				out <- pe.Transformer.Transform(i)
+				runMeasured(stageID, func() {
+					out <- pe.Transformer.Transform(i)
+				})
 			}
 		})
 	case StageExtract:
 		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
 			for i := range in {
-				out <- pe.Extractor.Extract(i)
+				runMeasured(stageID, func() {
+					out <- pe.Extractor.Extract(i)
+				})
 			}
 		})
 	default:

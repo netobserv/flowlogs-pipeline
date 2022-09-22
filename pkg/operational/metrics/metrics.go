@@ -59,6 +59,15 @@ func NewGauge(opts prometheus.GaugeOpts) prometheus.Gauge {
 	return promauto.NewGauge(opts)
 }
 
+func NewHistogramVec(opts prometheus.HistogramOpts, labels []string) *prometheus.HistogramVec {
+	metricsOpts = append(metricsOpts, metricDefinition{
+		Name: opts.Name,
+		Help: opts.Help,
+		Type: "histogram",
+	})
+	return promauto.NewHistogramVec(opts, labels)
+}
+
 func GetDocumentation() string {
 	doc := ""
 	for _, opts := range metricsOpts {
