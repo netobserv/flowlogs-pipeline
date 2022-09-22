@@ -20,6 +20,7 @@ package transform
 import (
 	"fmt"
 	"net"
+	"os"
 	"regexp"
 	"strconv"
 
@@ -28,12 +29,13 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
-	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/network_services"
+	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
 	log "github.com/sirupsen/logrus"
 )
 
 type Network struct {
 	api.TransformNetwork
+	svcNames *netdb.ServiceNames
 }
 
 func (n *Network) Transform(input []config.GenericMap) []config.GenericMap {
@@ -49,6 +51,7 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 	// copy input entry before transform to avoid alteration on parallel stages
 	outputEntry := inputEntry.Copy()
 
+	// TODO: for efficiency and maintainability, maybe each case in the switch below should be an individual implementation of Transformer
 	for _, rule := range n.Rules {
 		switch rule.Type {
 		case api.TransformNetworkOperationName("AddRegExIf"):
@@ -103,22 +106,23 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 				log.Errorf("Can't convert port to int: Port %v - err %v", outputEntry[rule.Input], err)
 				continue
 			}
-			service := netdb.GetServByPort(portNumber, netdb.GetProtoByName(protocol))
-			if service == nil {
-				protocolAsNumber, err := strconv.Atoi(fmt.Sprintf("%v", protocol))
+			var serviceName string
+			protocolAsNumber, err := strconv.Atoi(protocol)
+			if err == nil {
+				// protocol has been submitted as number
+				serviceName = n.svcNames.ByPortAndProtocolNumber(portNumber, protocolAsNumber)
+			} else {
+				// protocol has been submitted as any string
+				serviceName = n.svcNames.ByPortAndProtocolName(portNumber, protocol)
+			}
+			if serviceName == "" {
 				if err != nil {
 					log.Debugf("Can't find service name for Port %v and protocol %v - err %v", outputEntry[rule.Input], protocol, err)
 					continue
 				}
-				service = netdb.GetServByPort(portNumber, netdb.GetProtoByNumber(protocolAsNumber))
-				if service == nil {
-					log.Debugf("Can't find service name for Port %v and protocol %v", outputEntry[rule.Input], protocol)
-					continue
-				}
 			}
-			outputEntry[rule.Output] = service.Name
+			outputEntry[rule.Output] = serviceName
 		case api.TransformNetworkOperationName("AddKubernetes"):
-			var kubeInfo *kubernetes.Info
 			kubeInfo, err := kubernetes.Data.GetInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
 			if err != nil {
 				log.Debugf("Can't find kubernetes info for IP %v err %v", outputEntry[rule.Input], err)
@@ -183,16 +187,29 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		}
 	}
 
+	var servicesDB *netdb.ServiceNames
 	if needToInitNetworkServices {
-		err := netdb.Init(jsonNetworkTransform.ProtocolsFile, jsonNetworkTransform.ServicesFile)
+		var err error
+		protos, err := os.Open(jsonNetworkTransform.ProtocolsFile)
+		if err != nil {
+			return nil, fmt.Errorf("opening %q: %w", jsonNetworkTransform.ProtocolsFile, err)
+		}
+		defer protos.Close()
+		services, err := os.Open(jsonNetworkTransform.ServicesFile)
+		if err != nil {
+			return nil, fmt.Errorf("opening %q: %w", jsonNetworkTransform.ServicesFile, err)
+		}
+		defer services.Close()
+		servicesDB, err = netdb.LoadServicesDB(protos, services)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return &Network{
-		api.TransformNetwork{
+		TransformNetwork: api.TransformNetwork{
 			Rules: jsonNetworkTransform.Rules,
 		},
+		svcNames: servicesDB,
 	}, nil
 }
