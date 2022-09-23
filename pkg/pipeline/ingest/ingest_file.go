@@ -48,7 +48,7 @@ func (ingestF *IngestFile) Ingest(out chan<- []config.GenericMap) {
 	if ingestF.params.File != nil {
 		filename = ingestF.params.File.Filename
 	}
-	lines := make([]interface{}, 0)
+	var lines [][]byte
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -61,7 +61,7 @@ func (ingestF *IngestFile) Ingest(out chan<- []config.GenericMap) {
 	for scanner.Scan() {
 		text := scanner.Text()
 		log.Debugf("%s", text)
-		lines = append(lines, text)
+		lines = append(lines, []byte(text))
 	}
 	decoded := ingestF.decoder.Decode(lines)
 	log.Debugf("IngestFile decoded = %v", decoded)

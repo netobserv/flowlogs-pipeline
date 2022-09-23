@@ -8,6 +8,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 var pflog = logrus.WithField("component", "Protobuf")
@@ -22,19 +23,26 @@ func NewProtobuf() (*Protobuf, error) {
 	return &Protobuf{}, nil
 }
 
-// Decode decodes input strings to a list of flow entries
-func (p *Protobuf) Decode(in []interface{}) []config.GenericMap {
-	if len(in) == 0 {
-		pflog.Warn("empty input. Skipping")
-		return []config.GenericMap{}
+// Decode decodes the protobuf raw flows and returns a list of GenericMaps representing all
+// the flows there
+func (p *Protobuf) Decode(rawFlows [][]byte) []config.GenericMap {
+	flows := make([]config.GenericMap, 0, len(rawFlows))
+	for _, pbRaw := range rawFlows {
+		record := pbflow.Record{}
+		if err := proto.Unmarshal(pbRaw, &record); err != nil {
+			pflog.WithError(err).Debug("can't unmarshall received protobuf flow. Ignoring")
+			continue
+		}
+		flows = append(flows, pbFlowToMap(&record))
 	}
-	pb, ok := in[0].(*pbflow.Records)
-	if !ok {
-		pflog.WithField("type", fmt.Sprintf("%T", pb)).
-			Warn("expecting input to be *pbflow.Records. Skipping")
-	}
-	out := make([]config.GenericMap, 0, len(pb.Entries))
-	for _, entry := range pb.Entries {
+	return flows
+}
+
+// PBRecordsAsMaps transform all the flows in a pbflow.Records entry into a slice
+// of GenericMaps
+func PBRecordsAsMaps(flow *pbflow.Records) []config.GenericMap {
+	out := make([]config.GenericMap, 0, len(flow.Entries))
+	for _, entry := range flow.Entries {
 		out = append(out, pbFlowToMap(entry))
 	}
 	return out

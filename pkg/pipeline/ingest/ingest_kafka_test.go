@@ -130,9 +130,9 @@ func Test_IngestKafka(t *testing.T) {
 	record3 := "{\"Bytes\":20803,\"DstAddr\":\"10.130.2.3\",\"DstPort\":36936,\"Packets\":403,\"SrcAddr\":\"10.130.2.13\",\"SrcPort\":3100}"
 
 	inChan := ingestKafka.in
-	inChan <- record1
-	inChan <- record2
-	inChan <- record3
+	inChan <- []byte(record1)
+	inChan <- []byte(record2)
+	inChan <- []byte(record3)
 
 	// wait for the data to have been processed
 	receivedEntries := <-ingestOutput

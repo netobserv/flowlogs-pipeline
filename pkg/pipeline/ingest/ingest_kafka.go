@@ -25,6 +25,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+
 	"github.com/prometheus/client_golang/prometheus"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
@@ -40,10 +41,11 @@ type ingestKafka struct {
 	kafkaParams    api.IngestKafka
 	kafkaReader    kafkaReadMessage
 	decoder        decode.Decoder
-	in             chan string
+	in             chan []byte
 	exitChan       <-chan struct{}
 	prevRecords    []config.GenericMap // copy of most recently sent records; for testing and debugging
 	batchMaxLength int
+	canLogMessages bool
 }
 
 const defaultBatchReadTimeout = int64(1000)
@@ -72,8 +74,11 @@ func (ingestK *ingestKafka) kafkaListener() {
 			kafkaMessage, err := ingestK.kafkaReader.ReadMessage(context.Background())
 			if err != nil {
 				log.Errorln(err)
+				continue
 			}
-			log.Debugf("string(kafkaMessage) = %s\n", string(kafkaMessage.Value))
+			if ingestK.canLogMessages {
+				log.Debugf("string(kafkaMessage) = %s\n", string(kafkaMessage.Value))
+			}
 			messageLen := len(kafkaMessage.Value)
 			if messageLen > 0 {
 				trafficLabels := prometheus.Labels{
@@ -83,7 +88,7 @@ func (ingestK *ingestKafka) kafkaListener() {
 					"local_port": "0",
 				}
 				flowTrafficBytesSum.With(trafficLabels).Observe(float64(messageLen))
-				ingestK.in <- string(kafkaMessage.Value)
+				ingestK.in <- kafkaMessage.Value
 			}
 		}
 	}()
@@ -105,7 +110,7 @@ func processRecordDelay(record config.GenericMap) {
 	processDelaySummary.Observe(delay)
 }
 
-func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records []interface{}) {
+func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records [][]byte) {
 	log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
 
 	// Decode batch
@@ -129,7 +134,7 @@ func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records
 
 // read items from ingestKafka input channel, pool them, and send down the pipeline
 func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
-	var records []interface{}
+	var records [][]byte
 	duration := time.Duration(ingestK.kafkaParams.BatchReadTimeout) * time.Millisecond
 	flushRecords := time.NewTicker(duration)
 	for {
@@ -141,7 +146,7 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 			records = append(records, record)
 			if len(records) >= ingestK.batchMaxLength {
 				ingestK.processBatch(out, records)
-				records = []interface{}{}
+				records = [][]byte{}
 			}
 		case <-flushRecords.C: // Maximum batch time for each batch
 			// Process batch of records (if not empty)
@@ -153,7 +158,7 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 					}
 				}
 				ingestK.processBatch(out, records)
-				records = []interface{}{}
+				records = [][]byte{}
 			}
 		}
 	}
@@ -259,8 +264,9 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		kafkaReader:    kafkaReader,
 		decoder:        decoder,
 		exitChan:       utils.ExitChannel(),
-		in:             make(chan string, 2*bml),
+		in:             make(chan []byte, 2*bml),
 		prevRecords:    make([]config.GenericMap, 0),
 		batchMaxLength: bml,
+		canLogMessages: jsonIngestKafka.Decoder.Type == api.DecoderName("JSON"),
 	}, nil
 }
