@@ -41,7 +41,6 @@ var (
 type GRPCProtobuf struct {
 	collector   *grpc.CollectorServer
 	flowPackets chan *pbflow.Records
-	decoder     *decode.Protobuf
 }
 
 func NewGRPCProtobuf(params config.StageParam) (*GRPCProtobuf, error) {
@@ -62,14 +61,9 @@ func NewGRPCProtobuf(params config.StageParam) (*GRPCProtobuf, error) {
 	if err != nil {
 		return nil, err
 	}
-	decoder, err := decode.NewProtobuf()
-	if err != nil {
-		return nil, err
-	}
 	return &GRPCProtobuf{
 		collector:   collector,
 		flowPackets: flowPackets,
-		decoder:     decoder,
 	}, nil
 }
 
@@ -80,7 +74,7 @@ func (no *GRPCProtobuf) Ingest(out chan<- []config.GenericMap) {
 		no.collector.Close()
 	}()
 	for fp := range no.flowPackets {
-		records := no.decoder.Decode([]interface{}{fp})
+		records := decode.PBRecordsAsMaps(fp)
 		log.Debugf("GRPCProtobuf records = %v", records)
 		out <- records
 	}

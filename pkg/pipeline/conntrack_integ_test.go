@@ -141,10 +141,10 @@ func ingestFile(t *testing.T, in chan<- []config.GenericMap, filepath string) {
 	defer func() {
 		_ = file.Close()
 	}()
-	lines := make([]interface{}, 0)
+	var lines [][]byte
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		text := scanner.Text()
+		text := scanner.Bytes()
 		lines = append(lines, text)
 	}
 	decoder, err := decode.NewDecodeJson()

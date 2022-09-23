@@ -26,17 +26,17 @@ import (
 )
 
 type DecodeJson struct {
-	PrevRecords []interface{}
 }
 
 // Decode decodes input strings to a list of flow entries
-func (c *DecodeJson) Decode(in []interface{}) []config.GenericMap {
+func (c *DecodeJson) Decode(in [][]byte) []config.GenericMap {
 	out := make([]config.GenericMap, 0)
 	for _, line := range in {
-		log.Debugf("decodeJson: line = %v", line)
-		line2 := []byte(line.(string))
+		if log.IsLevelEnabled(log.DebugLevel) {
+			log.Debugf("decodeJson: line = %v", string(line))
+		}
 		var decodedLine map[string]interface{}
-		err := json.Unmarshal(line2, &decodedLine)
+		err := json.Unmarshal(line, &decodedLine)
 		if err != nil {
 			log.Errorf("decodeJson Decode: error unmarshalling a line: %v", err)
 			log.Errorf("line = %s", line)
@@ -54,7 +54,6 @@ func (c *DecodeJson) Decode(in []interface{}) []config.GenericMap {
 		}
 		out = append(out, decodedLine2)
 	}
-	c.PrevRecords = in
 	return out
 }
 

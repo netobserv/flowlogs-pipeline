@@ -26,20 +26,16 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 
-	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 	"github.com/prometheus/client_golang/prometheus"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"google.golang.org/protobuf/proto"
 )
 
 type kafkaReadMessage interface {
 	ReadMessage(ctx context.Context) (kafkago.Message, error)
 	Config() kafkago.ReaderConfig
 }
-
-type entriesProcessor func(out chan<- []config.GenericMap)
 
 type ingestKafka struct {
 	kafkaParams    api.IngestKafka
@@ -50,7 +46,6 @@ type ingestKafka struct {
 	prevRecords    []config.GenericMap // copy of most recently sent records; for testing and debugging
 	batchMaxLength int
 	canLogMessages bool
-	process        entriesProcessor
 }
 
 const defaultBatchReadTimeout = int64(1000)
@@ -65,7 +60,7 @@ func (ingestK *ingestKafka) Ingest(out chan<- []config.GenericMap) {
 	ingestK.kafkaListener()
 
 	// forever process log lines received by collector
-	ingestK.process(out)
+	ingestK.processLogLines(out)
 }
 
 // background thread to read kafka messages; place received items into ingestKafka input channel
@@ -115,7 +110,7 @@ func processRecordDelay(record config.GenericMap) {
 	processDelaySummary.Observe(delay)
 }
 
-func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records []interface{}) {
+func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records [][]byte) {
 	log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
 
 	// Decode batch
@@ -138,8 +133,8 @@ func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records
 }
 
 // read items from ingestKafka input channel, pool them, and send down the pipeline
-func (ingestK *ingestKafka) processJSONLines(out chan<- []config.GenericMap) {
-	var records []interface{}
+func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
+	var records [][]byte
 	duration := time.Duration(ingestK.kafkaParams.BatchReadTimeout) * time.Millisecond
 	flushRecords := time.NewTicker(duration)
 	for {
@@ -148,10 +143,10 @@ func (ingestK *ingestKafka) processJSONLines(out chan<- []config.GenericMap) {
 			log.Debugf("exiting ingestKafka because of signal")
 			return
 		case record := <-ingestK.in:
-			records = append(records, string(record))
+			records = append(records, record)
 			if len(records) >= ingestK.batchMaxLength {
 				ingestK.processBatch(out, records)
-				records = []interface{}{}
+				records = [][]byte{}
 			}
 		case <-flushRecords.C: // Maximum batch time for each batch
 			// Process batch of records (if not empty)
@@ -159,33 +154,12 @@ func (ingestK *ingestKafka) processJSONLines(out chan<- []config.GenericMap) {
 				if len(ingestK.in) > 0 {
 					for len(records) < ingestK.batchMaxLength && len(ingestK.in) > 0 {
 						record := <-ingestK.in
-						records = append(records, string(record))
+						records = append(records, record)
 					}
 				}
 				ingestK.processBatch(out, records)
-				records = []interface{}{}
+				records = [][]byte{}
 			}
-		}
-	}
-}
-
-// like processJSONLines but it does not append lines to any buffer because they are already
-// received as batches, in the case of Protobuf messages
-func (ingestK *ingestKafka) processProtobufBatches(out chan<- []config.GenericMap) {
-	for {
-		select {
-		case <-ingestK.exitChan:
-			log.Debugf("exiting ingestKafka because of signal")
-			return
-		case rawBytes := <-ingestK.in:
-			var records pbflow.Records
-			if err := proto.Unmarshal(rawBytes, &records); err != nil {
-				log.WithError(err).Debug("can't unmarshall received protobuf flows. Ignoring")
-				continue
-			}
-			// Protobuf decoder actually requires a pbflow.Records entry to be pre-decoded, so they
-			// can convert it to maps
-			ingestK.processBatch(out, []interface{}{&records})
 		}
 	}
 }
@@ -285,7 +259,7 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		bml = jsonIngestKafka.BatchMaxLen
 	}
 
-	ik := ingestKafka{
+	return &ingestKafka{
 		kafkaParams:    jsonIngestKafka,
 		kafkaReader:    kafkaReader,
 		decoder:        decoder,
@@ -293,16 +267,6 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		in:             make(chan []byte, 2*bml),
 		prevRecords:    make([]config.GenericMap, 0),
 		batchMaxLength: bml,
-	}
-
-	switch jsonIngestKafka.Decoder.Type {
-	case api.DecoderName("JSON"):
-		ik.canLogMessages = true
-		ik.process = ik.processJSONLines
-	case api.DecoderName("Protobuf"):
-		ik.canLogMessages = false
-		ik.process = ik.processProtobufBatches
-	}
-
-	return &ik, nil
+		canLogMessages: jsonIngestKafka.Decoder.Type == api.DecoderName("JSON"),
+	}, nil
 }

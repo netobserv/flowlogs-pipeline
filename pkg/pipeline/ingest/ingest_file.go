@@ -48,7 +48,7 @@ func (ingestF *IngestFile) Ingest(out chan<- []config.GenericMap) {
 	if ingestF.params.File != nil {
 		filename = ingestF.params.File.Filename
 	}
-	lines := make([]interface{}, 0)
+	var lines [][]byte
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -59,8 +59,8 @@ func (ingestF *IngestFile) Ingest(out chan<- []config.GenericMap) {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		text := scanner.Text()
-		log.Debugf("%s", text)
+		text := scanner.Bytes()
+		log.Debugf("%s", string(text))
 		lines = append(lines, text)
 	}
 	decoded := ingestF.decoder.Decode(lines)
