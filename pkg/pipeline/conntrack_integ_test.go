@@ -144,8 +144,8 @@ func ingestFile(t *testing.T, in chan<- []config.GenericMap, filepath string) {
 	var lines [][]byte
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		text := scanner.Bytes()
-		lines = append(lines, text)
+		text := scanner.Text()
+		lines = append(lines, []byte(text))
 	}
 	decoder, err := decode.NewDecodeJson()
 	require.NoError(t, err)

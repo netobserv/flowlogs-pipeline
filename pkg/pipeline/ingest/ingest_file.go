@@ -59,9 +59,9 @@ func (ingestF *IngestFile) Ingest(out chan<- []config.GenericMap) {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		text := scanner.Bytes()
-		log.Debugf("%s", string(text))
-		lines = append(lines, text)
+		text := scanner.Text()
+		log.Debugf("%s", text)
+		lines = append(lines, []byte(text))
 	}
 	decoded := ingestF.decoder.Decode(lines)
 	log.Debugf("IngestFile decoded = %v", decoded)
