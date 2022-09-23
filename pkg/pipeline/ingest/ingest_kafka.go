@@ -148,7 +148,7 @@ func (ingestK *ingestKafka) processJSONLines(out chan<- []config.GenericMap) {
 			log.Debugf("exiting ingestKafka because of signal")
 			return
 		case record := <-ingestK.in:
-			records = append(records, record)
+			records = append(records, string(record))
 			if len(records) >= ingestK.batchMaxLength {
 				ingestK.processBatch(out, records)
 				records = []interface{}{}
@@ -159,7 +159,7 @@ func (ingestK *ingestKafka) processJSONLines(out chan<- []config.GenericMap) {
 				if len(ingestK.in) > 0 {
 					for len(records) < ingestK.batchMaxLength && len(ingestK.in) > 0 {
 						record := <-ingestK.in
-						records = append(records, record)
+						records = append(records, string(record))
 					}
 				}
 				ingestK.processBatch(out, records)
