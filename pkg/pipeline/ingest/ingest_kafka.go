@@ -203,12 +203,13 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 	if jsonIngestKafka.BatchReadTimeout == 0 {
 		jsonIngestKafka.BatchReadTimeout = defaultBatchReadTimeout
 	}
-	log.Infof("BatchReadTimeout = %d", jsonIngestKafka.BatchReadTimeout)
+	log.Infof("batchReadTimeout = %d", jsonIngestKafka.BatchReadTimeout)
 
 	commitInterval := int64(defaultKafkaCommitInterval)
 	if jsonIngestKafka.CommitInterval != 0 {
 		commitInterval = jsonIngestKafka.CommitInterval
 	}
+	log.Infof("commitInterval = %d", jsonIngestKafka.CommitInterval)
 
 	dialer := &kafkago.Dialer{
 		Timeout:   kafkago.DefaultDialer.Timeout,
@@ -234,10 +235,12 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 	}
 
 	if jsonIngestKafka.PullQueueCapacity > 0 {
+		log.Infof("pullQueueCapacity = %d", jsonIngestKafka.PullQueueCapacity)
 		readerConfig.QueueCapacity = jsonIngestKafka.PullQueueCapacity
 	}
 
 	if jsonIngestKafka.PullMaxBytes > 0 {
+		log.Infof("pullMaxBytes = %d", jsonIngestKafka.PullMaxBytes)
 		readerConfig.MaxBytes = jsonIngestKafka.PullMaxBytes
 	}
 
