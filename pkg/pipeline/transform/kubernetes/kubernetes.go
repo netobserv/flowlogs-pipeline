@@ -18,6 +18,7 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -29,6 +30,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -36,7 +38,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var Data kubeDataInterface = &KubeData{}
+var Data kubeDataInterface = &KubeData{ips: map[string]*Info{}}
 
 const (
 	kubeConfigEnvVariable = "KUBECONFIG"
@@ -57,6 +59,7 @@ type KubeData struct {
 	ipInformers        map[string]cache.SharedIndexInformer
 	replicaSetInformer cache.SharedIndexInformer
 	stopChan           chan struct{}
+	ips                map[string]*Info
 }
 
 type Owner struct {
@@ -76,22 +79,15 @@ type Info struct {
 }
 
 func (k *KubeData) GetInfo(ip string) (*Info, error) {
+	if info, ok := k.ips[ip]; ok {
+		info.HostName = k.getHostName(info.HostIP)
+		return info, nil
+	}
 	for objType, informer := range k.ipInformers {
 		objs, err := informer.GetIndexer().ByIndex(IndexIP, ip)
 		if err == nil && len(objs) > 0 {
 			var info *Info
 			switch objType {
-			case typePod:
-				pod := objs[0].(*v1.Pod)
-				info = &Info{
-					Type:            typePod,
-					Name:            pod.Name,
-					Namespace:       pod.Namespace,
-					Labels:          pod.Labels,
-					OwnerReferences: pod.OwnerReferences,
-					HostIP:          pod.Status.HostIP,
-					HostName:        k.getHostName(pod.Status.HostIP),
-				}
 			case typeNode:
 				node := objs[0].(*v1.Node)
 				info = &Info{
@@ -177,33 +173,68 @@ func (k *KubeData) NewNodeInformer(informerFactory informers.SharedInformerFacto
 			return ips, nil
 		},
 	})
-
 	k.ipInformers[typeNode] = nodes
 	return err
 }
 
-func (k *KubeData) NewPodInformer(informerFactory informers.SharedInformerFactory) error {
-	pods := informerFactory.Core().V1().Pods().Informer()
-	err := pods.AddIndexers(map[string]cache.IndexFunc{
-		IndexIP: func(obj interface{}) ([]string, error) {
-			pod := obj.(*v1.Pod)
-			ips := make([]string, 0, len(pod.Status.PodIPs))
-			for _, ip := range pod.Status.PodIPs {
-				// ignoring host-networked Pod IPs
-				if ip.IP != pod.Status.HostIP {
-					ips = append(ips, ip.IP)
-				}
+func (k *KubeData) NewPodInformer(ctx context.Context, client kubernetes.Interface) error {
+	go func() {
+		pods, err := client.CoreV1().Pods(metav1.NamespaceAll).Watch(ctx, metav1.ListOptions{})
+		if err != nil {
+			log.WithError(err).Warnf("can't start pods informer")
+			return
+		}
+		// TODO: handle reconnect
+		for event := range pods.ResultChan() {
+			pod, ok := event.Object.(*v1.Pod)
+			if !ok {
+				log.Debugf("ignoring non-Pod %q object from informer", event.Object.GetObjectKind().GroupVersionKind())
+				continue
 			}
-			return ips, nil
-		},
-	})
+			ips := getPodIPs(pod)
+			switch event.Type {
+			case watch.Added, watch.Modified:
+				podInfo := getPodInfo(pod)
+				for _, ip := range ips {
+					k.ips[ip] = podInfo
+				}
+			case watch.Deleted:
+				for _, ip := range ips {
+					delete(k.ips, ip)
+				}
+			default:
+				// TODO: what to do with Bookmark & error event types?
+			}
+		}
+	}()
+	return nil
+}
 
-	k.ipInformers[typePod] = pods
-	return err
+func getPodIPs(pod *v1.Pod) []string {
+	ips := make([]string, 0, len(pod.Status.PodIPs))
+	for _, ip := range pod.Status.PodIPs {
+		// ignoring host-networked Pod IPs
+		if ip.IP != pod.Status.HostIP {
+			ips = append(ips, ip.IP)
+		}
+	}
+	return ips
+}
+
+func getPodInfo(pod *v1.Pod) *Info {
+	return &Info{
+		Type:            typePod,
+		Name:            pod.Name,
+		Namespace:       pod.Namespace,
+		Labels:          pod.Labels,
+		OwnerReferences: pod.OwnerReferences,
+		HostIP:          pod.Status.HostIP,
+	}
 }
 
 func (k *KubeData) NewServiceInformer(informerFactory informers.SharedInformerFactory) error {
 	services := informerFactory.Core().V1().Services().Informer()
+	services.AddEventHandlerWithResyncPeriod(
 	err := services.AddIndexers(map[string]cache.IndexFunc{
 		IndexIP: func(obj interface{}) ([]string, error) {
 			service := obj.(*v1.Service)
@@ -280,7 +311,7 @@ func (k *KubeData) initInformers(client kubernetes.Interface) error {
 	if err != nil {
 		return err
 	}
-	err = k.NewPodInformer(informerFactory)
+	err = k.NewPodInformer(context.TODO(), client)
 	if err != nil {
 		return err
 	}
