@@ -196,10 +196,14 @@ func (e *EncodeProm) prepareAggHisto(flow config.GenericMap, info *api.PromMetri
 
 func (e *EncodeProm) extractGenericValue(flow config.GenericMap, info *api.PromMetricsItem) interface{} {
 	if info.Filter.Key != "" {
-		val, found := flow[info.Filter.Key]
-		shouldKeepRecord := found && val == info.Filter.Value
-		if !shouldKeepRecord {
-			return nil
+		if val, found := flow[info.Filter.Key]; found {
+			sVal, ok := val.(string)
+			if !ok {
+				sVal = fmt.Sprint(val)
+			}
+			if sVal != info.Filter.Value {
+				return nil
+			}
 		}
 	}
 	if info.ValueKey == "" {

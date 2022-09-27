@@ -41,42 +41,43 @@ const (
 
 	LatencyLabel = "filename"
 	HostLabel    = "host"
+	MetricPrefix = "netobserv"
 )
 
 var (
 	encodedBytes = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "promtail",
-		Name:      "encoded_bytes_total",
+		Namespace: MetricPrefix,
+		Name:      "loki_encoded_bytes_total",
 		Help:      "Number of bytes encoded and ready to send.",
 	}, []string{HostLabel})
 	sentBytes = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "promtail",
-		Name:      "sent_bytes_total",
+		Namespace: MetricPrefix,
+		Name:      "loki_sent_bytes_total",
 		Help:      "Number of bytes sent.",
 	}, []string{HostLabel})
 	droppedBytes = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "promtail",
-		Name:      "dropped_bytes_total",
+		Namespace: MetricPrefix,
+		Name:      "loki_dropped_bytes_total",
 		Help:      "Number of bytes dropped because failed to be sent to the ingester after all retries.",
 	}, []string{HostLabel})
 	sentEntries = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "promtail",
-		Name:      "sent_entries_total",
+		Namespace: MetricPrefix,
+		Name:      "loki_sent_entries_total",
 		Help:      "Number of log entries sent to the ingester.",
 	}, []string{HostLabel})
 	droppedEntries = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "promtail",
-		Name:      "dropped_entries_total",
+		Namespace: MetricPrefix,
+		Name:      "loki_dropped_entries_total",
 		Help:      "Number of log entries dropped because failed to be sent to the ingester after all retries.",
 	}, []string{HostLabel})
 	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "promtail",
-		Name:      "request_duration_seconds",
+		Namespace: MetricPrefix,
+		Name:      "loki_request_duration_seconds",
 		Help:      "Duration of send requests.",
 	}, []string{"status_code", HostLabel})
 	batchRetries = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "promtail",
-		Name:      "batch_retries_total",
+		Namespace: MetricPrefix,
+		Name:      "loki_batch_retries_total",
 		Help:      "Number of times batches has had to be retried.",
 	}, []string{HostLabel})
 	streamLag *metric.Gauges
@@ -97,7 +98,7 @@ func init() {
 	prometheus.MustRegister(requestDuration)
 	prometheus.MustRegister(batchRetries)
 	var err error
-	streamLag, err = metric.NewGauges("promtail_stream_lag_seconds",
+	streamLag, err = metric.NewGauges(MetricPrefix+"_loki_stream_lag_seconds",
 		"Difference between current time and last batch timestamp for successful sends",
 		metric.GaugeConfig{Action: "set"},
 		int64(1*time.Minute.Seconds()), // This strips out files which update slowly and reduces noise in this metric.
