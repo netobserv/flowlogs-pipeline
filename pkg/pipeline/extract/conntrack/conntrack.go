@@ -26,6 +26,7 @@ import (
 	"github.com/benbjohnson/clock"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
 	log "github.com/sirupsen/logrus"
 )
@@ -50,6 +51,7 @@ type conntrackImpl struct {
 	shouldOutputNewConnection    bool
 	shouldOutputEndConnection    bool
 	shouldOutputUpdateConnection bool
+	metrics                      *metricsType
 }
 
 func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericMap {
@@ -60,7 +62,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 		computedHash, err := ComputeHash(fl, ct.config.KeyDefinition, ct.hashProvider())
 		if err != nil {
 			log.Warningf("skipping flow log %v: %v", fl, err)
-			metrics.inputRecords.WithLabelValues("rejected").Inc()
+			ct.metrics.inputRecords.WithLabelValues("rejected").Inc()
 			continue
 		}
 		conn, exists := ct.connStore.getConnection(computedHash.hashTotal)
@@ -74,17 +76,17 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				Build()
 			ct.connStore.addConnection(computedHash.hashTotal, conn)
 			ct.updateConnection(conn, fl, computedHash)
-			metrics.inputRecords.WithLabelValues("newConnection").Inc()
+			ct.metrics.inputRecords.WithLabelValues("newConnection").Inc()
 			if ct.shouldOutputNewConnection {
 				record := conn.toGenericMap()
 				addHashField(record, computedHash.hashTotal)
 				addTypeField(record, api.ConnTrackOutputRecordTypeName("NewConnection"))
 				outputRecords = append(outputRecords, record)
-				metrics.outputRecords.WithLabelValues("newConnection").Inc()
+				ct.metrics.outputRecords.WithLabelValues("newConnection").Inc()
 			}
 		} else {
 			ct.updateConnection(conn, fl, computedHash)
-			metrics.inputRecords.WithLabelValues("update").Inc()
+			ct.metrics.inputRecords.WithLabelValues("update").Inc()
 		}
 
 		if ct.shouldOutputFlowLogs {
@@ -92,20 +94,20 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 			addHashField(record, computedHash.hashTotal)
 			addTypeField(record, api.ConnTrackOutputRecordTypeName("FlowLog"))
 			outputRecords = append(outputRecords, record)
-			metrics.outputRecords.WithLabelValues("flowLog").Inc()
+			ct.metrics.outputRecords.WithLabelValues("flowLog").Inc()
 		}
 	}
 
 	endConnectionRecords := ct.popEndConnections()
 	if ct.shouldOutputEndConnection {
 		outputRecords = append(outputRecords, endConnectionRecords...)
-		metrics.outputRecords.WithLabelValues("endConnection").Add(float64(len(endConnectionRecords)))
+		ct.metrics.outputRecords.WithLabelValues("endConnection").Add(float64(len(endConnectionRecords)))
 	}
 
 	if ct.shouldOutputUpdateConnection {
 		updateConnectionRecords := ct.prepareUpdateConnectionRecords()
 		outputRecords = append(outputRecords, updateConnectionRecords...)
-		metrics.outputRecords.WithLabelValues("updateConnection").Add(float64(len(updateConnectionRecords)))
+		ct.metrics.outputRecords.WithLabelValues("updateConnection").Add(float64(len(updateConnectionRecords)))
 	}
 
 	return outputRecords
@@ -178,7 +180,7 @@ func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalH
 }
 
 // NewConnectionTrack creates a new connection track instance
-func NewConnectionTrack(params config.StageParam, clock clock.Clock) (extract.Extractor, error) {
+func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam, clock clock.Clock) (extract.Extractor, error) {
 	cfg := params.Extract.ConnTrack
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("ConnectionTrack config is invalid: %w", err)
@@ -211,9 +213,10 @@ func NewConnectionTrack(params config.StageParam, clock clock.Clock) (extract.Ex
 		}
 	}
 
+	metrics := newMetrics(opMetrics)
 	conntrack := &conntrackImpl{
 		clock:                        clock,
-		connStore:                    newConnectionStore(),
+		connStore:                    newConnectionStore(metrics),
 		config:                       cfg,
 		hashProvider:                 fnv.New64a,
 		aggregators:                  aggregators,
@@ -221,6 +224,7 @@ func NewConnectionTrack(params config.StageParam, clock clock.Clock) (extract.Ex
 		shouldOutputNewConnection:    shouldOutputNewConnection,
 		shouldOutputEndConnection:    shouldOutputEndConnection,
 		shouldOutputUpdateConnection: shouldOutputUpdateConnection,
+		metrics:                      metrics,
 	}
 	return conntrack, nil
 }

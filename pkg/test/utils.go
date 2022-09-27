@@ -32,6 +32,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
@@ -58,6 +59,7 @@ func GetIngestMockEntry(missingKey bool) config.GenericMap {
 }
 
 func InitConfig(t *testing.T, conf string) (*viper.Viper, *config.ConfigFileStruct) {
+	ResetPromRegistry()
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	yamlConfig := []byte(conf)
 	v := viper.New()
@@ -189,4 +191,10 @@ func GetExtractMockEntries2() []config.GenericMap {
 		{"SrcAddr": "10.0.0.4", "DstAddr": "11.0.0.1", "Bytes": 1000, "Packets": 1},
 	}
 	return entries
+}
+
+func ResetPromRegistry() {
+	reg := prometheus.NewRegistry()
+	prometheus.DefaultRegisterer = reg
+	prometheus.DefaultGatherer = reg
 }

@@ -15,7 +15,7 @@
  *
  */
 
-package health
+package operational
 
 import (
 	"net"
@@ -24,7 +24,6 @@ import (
 
 	"github.com/heptiolabs/healthcheck"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,28 +31,28 @@ const defaultServerHost = "0.0.0.0"
 
 type Server struct {
 	handler healthcheck.Handler
-	address string
+	Address string
 }
 
 func (hs *Server) Serve() {
 	for {
-		err := http.ListenAndServe(hs.address, hs.handler)
+		err := http.ListenAndServe(hs.Address, hs.handler)
 		log.Errorf("http.ListenAndServe error %v", err)
 		time.Sleep(60 * time.Second)
 	}
 }
 
-func NewHealthServer(opts *config.Options, pipeline *pipeline.Pipeline) *Server {
+func NewHealthServer(opts *config.Options, isAlive healthcheck.Check, isReady healthcheck.Check) *Server {
 
 	handler := healthcheck.NewHandler()
 	address := net.JoinHostPort(defaultServerHost, opts.Health.Port)
 
-	handler.AddLivenessCheck("PipelineCheck", pipeline.IsAlive())
-	handler.AddReadinessCheck("PipelineCheck", pipeline.IsReady())
+	handler.AddLivenessCheck("PipelineCheck", isAlive)
+	handler.AddReadinessCheck("PipelineCheck", isReady)
 
 	server := &Server{
 		handler: handler,
-		address: address,
+		Address: address,
 	}
 
 	go server.Serve()

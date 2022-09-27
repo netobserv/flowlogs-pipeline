@@ -24,6 +24,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	kafkago "github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/mock"
@@ -70,10 +71,11 @@ parameters:
 `
 
 func initNewIngestKafka(t *testing.T, configTemplate string) Ingester {
+	test.ResetPromRegistry()
 	v, cfg := test.InitConfig(t, configTemplate)
 	require.NotNil(t, v)
 
-	newIngest, err := NewIngestKafka(cfg.Parameters[0])
+	newIngest, err := NewIngestKafka(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 	return newIngest
 }
@@ -255,18 +257,20 @@ func Test_BatchTimeout(t *testing.T) {
 }
 
 func Test_TLSConfigEmpty(t *testing.T) {
+	test.ResetPromRegistry()
 	stage := config.NewKafkaPipeline("ingest-kafka", api.IngestKafka{
 		Brokers: []string{"any"},
 		Topic:   "topic",
 		Decoder: api.Decoder{Type: "json"},
 	})
-	newIngest, err := NewIngestKafka(stage.GetStageParams()[0])
+	newIngest, err := NewIngestKafka(operational.NewMetrics(&config.MetricsSettings{}), stage.GetStageParams()[0])
 	require.NoError(t, err)
 	tlsConfig := newIngest.(*ingestKafka).kafkaReader.Config().Dialer.TLS
 	require.Nil(t, tlsConfig)
 }
 
 func Test_TLSConfigCA(t *testing.T) {
+	test.ResetPromRegistry()
 	ca, cleanup := test.CreateCACert(t)
 	defer cleanup()
 	stage := config.NewKafkaPipeline("ingest-kafka", api.IngestKafka{
@@ -277,7 +281,7 @@ func Test_TLSConfigCA(t *testing.T) {
 			CACertPath: ca,
 		},
 	})
-	newIngest, err := NewIngestKafka(stage.GetStageParams()[0])
+	newIngest, err := NewIngestKafka(operational.NewMetrics(&config.MetricsSettings{}), stage.GetStageParams()[0])
 	require.NoError(t, err)
 
 	tlsConfig := newIngest.(*ingestKafka).kafkaReader.Config().Dialer.TLS
@@ -288,6 +292,7 @@ func Test_TLSConfigCA(t *testing.T) {
 }
 
 func Test_MutualTLSConfig(t *testing.T) {
+	test.ResetPromRegistry()
 	ca, user, userKey, cleanup := test.CreateAllCerts(t)
 	defer cleanup()
 	stage := config.NewKafkaPipeline("ingest-kafka", api.IngestKafka{
@@ -300,7 +305,7 @@ func Test_MutualTLSConfig(t *testing.T) {
 			UserKeyPath:  userKey,
 		},
 	})
-	newIngest, err := NewIngestKafka(stage.GetStageParams()[0])
+	newIngest, err := NewIngestKafka(operational.NewMetrics(&config.MetricsSettings{}), stage.GetStageParams()[0])
 	require.NoError(t, err)
 
 	tlsConfig := newIngest.(*ingestKafka).kafkaReader.Config().Dialer.TLS

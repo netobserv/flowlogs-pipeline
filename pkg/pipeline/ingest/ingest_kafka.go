@@ -23,6 +23,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 
@@ -43,8 +44,8 @@ type ingestKafka struct {
 	decoder        decode.Decoder
 	in             chan []byte
 	exitChan       <-chan struct{}
-	prevRecords    []config.GenericMap // copy of most recently sent records; for testing and debugging
 	batchMaxLength int
+	metrics        *metrics
 	canLogMessages bool
 }
 
@@ -55,6 +56,7 @@ const defaultKafkaCommitInterval = 500
 // Ingest ingests entries from kafka topic
 func (ingestK *ingestKafka) Ingest(out chan<- []config.GenericMap) {
 	log.Debugf("entering ingestKafka.Ingest")
+	ingestK.metrics.createOutQueueLen(out)
 
 	// initialize background listener
 	ingestK.kafkaListener()
@@ -119,16 +121,13 @@ func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records
 	// Update metrics
 	flowDecoderCount.With(
 		prometheus.Labels{"worker": "", "name": ingestK.kafkaParams.Decoder.Type}).Inc()
-	linesProcessed.Add(float64(len(records)))
-	queueLength.Set(float64(len(out)))
-	ingestK.prevRecords = decoded
+	ingestK.metrics.flowsProcessed.Add(float64(len(records)))
 
 	for _, record := range decoded {
 		processRecordDelay(record)
 	}
 
 	// Send batch
-	log.Debugf("prevRecords = %v", ingestK.prevRecords)
 	out <- decoded
 }
 
@@ -165,7 +164,7 @@ func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 }
 
 // NewIngestKafka create a new ingester
-func NewIngestKafka(params config.StageParam) (Ingester, error) {
+func NewIngestKafka(opMetrics *operational.Metrics, params config.StageParam) (Ingester, error) {
 	log.Debugf("entering NewIngestKafka")
 	jsonIngestKafka := api.IngestKafka{}
 	if params.Ingest != nil && params.Ingest.Kafka != nil {
@@ -262,14 +261,17 @@ func NewIngestKafka(params config.StageParam) (Ingester, error) {
 		bml = jsonIngestKafka.BatchMaxLen
 	}
 
+	in := make(chan []byte, 2*bml)
+	metrics := newMetrics(opMetrics, params.Name, func() int { return len(in) })
+
 	return &ingestKafka{
 		kafkaParams:    jsonIngestKafka,
 		kafkaReader:    kafkaReader,
 		decoder:        decoder,
 		exitChan:       utils.ExitChannel(),
-		in:             make(chan []byte, 2*bml),
-		prevRecords:    make([]config.GenericMap, 0),
+		in:             in,
 		batchMaxLength: bml,
+		metrics:        metrics,
 		canLogMessages: jsonIngestKafka.Decoder.Type == api.DecoderName("JSON"),
 	}, nil
 }

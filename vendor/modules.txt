@@ -165,7 +165,7 @@ github.com/mwitkow/go-conntrack
 github.com/netobserv/gopipes/pkg/internal/connect
 github.com/netobserv/gopipes/pkg/internal/refl
 github.com/netobserv/gopipes/pkg/node
-# github.com/netobserv/loki-client-go v0.0.0-20211018150932-cb17208397a9
+# github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500
 ## explicit; go 1.15
 github.com/netobserv/loki-client-go/loki
 github.com/netobserv/loki-client-go/pkg/backoff
@@ -209,7 +209,6 @@ github.com/pmezard/go-difflib/difflib
 ## explicit; go 1.13
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
-github.com/prometheus/client_golang/prometheus/promauto
 github.com/prometheus/client_golang/prometheus/promhttp
 # github.com/prometheus/client_model v0.2.0
 ## explicit; go 1.9

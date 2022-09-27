@@ -28,7 +28,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -53,26 +53,33 @@ type histoInfo struct {
 }
 
 type EncodeProm struct {
-	gauges     []gaugeInfo
-	counters   []counterInfo
-	histos     []histoInfo
-	aggHistos  []histoInfo
-	expiryTime int64
-	mCache     *utils.TimedCache
-	exitChan   <-chan struct{}
-	server     *http.Server
-	tlsConfig  *api.PromTLSConf
+	gauges           []gaugeInfo
+	counters         []counterInfo
+	histos           []histoInfo
+	aggHistos        []histoInfo
+	expiryTime       int64
+	mCache           *utils.TimedCache
+	exitChan         <-chan struct{}
+	server           *http.Server
+	tlsConfig        *api.PromTLSConf
+	metricsProcessed prometheus.Counter
+	errorsCounter    *prometheus.CounterVec
 }
 
-var metricsProcessed = operationalMetrics.NewCounter(prometheus.CounterOpts{
-	Name: "encode_prom_metrics_processed",
-	Help: "Number of metrics processed",
-})
-
-var errorsCounter = operationalMetrics.NewCounterVec(prometheus.CounterOpts{
-	Name: "encode_prom_errors",
-	Help: "Total errors during metrics generation",
-}, []string{"error", "metric", "key"})
+var (
+	metricsProcessed = operational.DefineMetric(
+		"metrics_processed",
+		"Number of metrics processed",
+		operational.TypeCounter,
+		"stage",
+	)
+	encodePromErrors = operational.DefineMetric(
+		"encode_prom_errors",
+		"Total errors during metrics generation",
+		operational.TypeCounter,
+		"error", "metric", "key",
+	)
+)
 
 // Encode encodes a metric before being stored
 func (e *EncodeProm) Encode(metrics []config.GenericMap) {
@@ -95,11 +102,11 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) {
 		m, err := mInfo.counter.GetMetricWith(labels)
 		if err != nil {
 			log.Errorf("labels registering error on %s: %v", mInfo.info.Name, err)
-			errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
+			e.errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
 			continue
 		}
 		m.Add(value)
-		metricsProcessed.Inc()
+		e.metricsProcessed.Inc()
 	}
 
 	// Process gauges
@@ -111,11 +118,11 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) {
 		m, err := mInfo.gauge.GetMetricWith(labels)
 		if err != nil {
 			log.Errorf("labels registering error on %s: %v", mInfo.info.Name, err)
-			errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
+			e.errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
 			continue
 		}
 		m.Set(value)
-		metricsProcessed.Inc()
+		e.metricsProcessed.Inc()
 	}
 
 	// Process histograms
@@ -127,11 +134,11 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) {
 		m, err := mInfo.histo.GetMetricWith(labels)
 		if err != nil {
 			log.Errorf("labels registering error on %s: %v", mInfo.info.Name, err)
-			errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
+			e.errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
 			continue
 		}
 		m.Observe(value)
-		metricsProcessed.Inc()
+		e.metricsProcessed.Inc()
 	}
 
 	// Process pre-aggregated histograms
@@ -143,13 +150,13 @@ func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) {
 		m, err := mInfo.histo.GetMetricWith(labels)
 		if err != nil {
 			log.Errorf("labels registering error on %s: %v", mInfo.info.Name, err)
-			errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
+			e.errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
 			continue
 		}
 		for _, v := range values {
 			m.Observe(v)
 		}
-		metricsProcessed.Inc()
+		e.metricsProcessed.Inc()
 	}
 }
 
@@ -160,7 +167,7 @@ func (e *EncodeProm) prepareMetric(flow config.GenericMap, info *api.PromMetrics
 	}
 	floatVal, err := utils.ConvertToFloat64(val)
 	if err != nil {
-		errorsCounter.WithLabelValues("ValueConversionError", info.Name, info.ValueKey).Inc()
+		e.errorsCounter.WithLabelValues("ValueConversionError", info.Name, info.ValueKey).Inc()
 		return nil, 0
 	}
 
@@ -177,7 +184,7 @@ func (e *EncodeProm) prepareAggHisto(flow config.GenericMap, info *api.PromMetri
 	}
 	values, ok := val.([]float64)
 	if !ok {
-		errorsCounter.WithLabelValues("HistoValueConversionError", info.Name, info.ValueKey).Inc()
+		e.errorsCounter.WithLabelValues("HistoValueConversionError", info.Name, info.ValueKey).Inc()
 		return nil, nil
 	}
 
@@ -189,10 +196,14 @@ func (e *EncodeProm) prepareAggHisto(flow config.GenericMap, info *api.PromMetri
 
 func (e *EncodeProm) extractGenericValue(flow config.GenericMap, info *api.PromMetricsItem) interface{} {
 	if info.Filter.Key != "" {
-		val, found := flow[info.Filter.Key]
-		shouldKeepRecord := found && val == info.Filter.Value
-		if !shouldKeepRecord {
-			return nil
+		if val, found := flow[info.Filter.Key]; found {
+			sVal, ok := val.(string)
+			if !ok {
+				sVal = fmt.Sprint(val)
+			}
+			if sVal != info.Filter.Value {
+				return nil
+			}
 		}
 	}
 	if info.ValueKey == "" {
@@ -201,7 +212,7 @@ func (e *EncodeProm) extractGenericValue(flow config.GenericMap, info *api.PromM
 	}
 	val, found := flow[info.ValueKey]
 	if !found {
-		errorsCounter.WithLabelValues("RecordKeyMissing", info.Name, info.ValueKey).Inc()
+		e.errorsCounter.WithLabelValues("RecordKeyMissing", info.Name, info.ValueKey).Inc()
 		return nil
 	}
 	return val
@@ -265,7 +276,7 @@ func (e *EncodeProm) closeServer(ctx context.Context) error {
 	return e.server.Shutdown(ctx)
 }
 
-func NewEncodeProm(params config.StageParam) (Encoder, error) {
+func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (Encoder, error) {
 	cfg := api.PromEncode{}
 	if params.Encode != nil && params.Encode.Prom != nil {
 		cfg = *params.Encode.Prom
@@ -356,14 +367,16 @@ func NewEncodeProm(params config.StageParam) (Encoder, error) {
 				MinVersion: tls.VersionTLS12,
 			},
 		},
-		tlsConfig:  cfg.TLS,
-		counters:   counters,
-		gauges:     gauges,
-		histos:     histos,
-		aggHistos:  aggHistos,
-		expiryTime: expiryTime,
-		mCache:     utils.NewTimedCache(),
-		exitChan:   utils.ExitChannel(),
+		tlsConfig:        cfg.TLS,
+		counters:         counters,
+		gauges:           gauges,
+		histos:           histos,
+		aggHistos:        aggHistos,
+		expiryTime:       expiryTime,
+		mCache:           utils.NewTimedCache(),
+		exitChan:         utils.ExitChannel(),
+		metricsProcessed: opMetrics.NewCounter(&metricsProcessed, params.Name),
+		errorsCounter:    opMetrics.NewCounterVec(&encodePromErrors),
 	}
 	go w.startServer()
 	go w.cleanupExpiredEntriesLoop()

@@ -28,6 +28,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
@@ -80,7 +81,8 @@ func initPromWithServer(params *api.PromEncode) (*EncodeProm, func(), error) {
 	prometheus.DefaultRegisterer = reg
 	prometheus.DefaultGatherer = reg
 	http.DefaultServeMux = http.NewServeMux()
-	enc, err := NewEncodeProm(config.StageParam{Encode: &config.Encode{Prom: params}})
+	opMetrics := operational.NewMetrics(&config.MetricsSettings{})
+	enc, err := NewEncodeProm(opMetrics, config.StageParam{Encode: &config.Encode{Prom: params}})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -134,6 +136,7 @@ func Test_CustomMetric(t *testing.T) {
 		"srcIP":   "20.0.0.2",
 		"dstIP":   "10.0.0.1",
 		"flags":   "SYN",
+		"dir":     float64(0),
 		"bytes":   7,
 		"packets": 1,
 		"latency": 0.1,
@@ -141,6 +144,7 @@ func Test_CustomMetric(t *testing.T) {
 		"srcIP":   "20.0.0.2",
 		"dstIP":   "10.0.0.1",
 		"flags":   "RST",
+		"dir":     int(0),
 		"bytes":   1,
 		"packets": 1,
 		"latency": 0.05,
@@ -148,6 +152,7 @@ func Test_CustomMetric(t *testing.T) {
 		"srcIP":   "10.0.0.1",
 		"dstIP":   "30.0.0.3",
 		"flags":   "SYN",
+		"dir":     1,
 		"bytes":   12,
 		"packets": 2,
 		"latency": 0.2,
@@ -178,6 +183,16 @@ func Test_CustomMetric(t *testing.T) {
 			Type:     "counter",
 			ValueKey: "", // empty valuekey means it's a records counter
 			Labels:   []string{"srcIP", "dstIP"},
+		}, {
+			Name:     "flows_incoming",
+			Type:     "counter",
+			Filter:   api.PromMetricsFilter{Key: "dir", Value: "0"},
+			ValueKey: "", // empty valuekey means it's a records counter
+		}, {
+			Name:     "flows_outgoing",
+			Type:     "counter",
+			Filter:   api.PromMetricsFilter{Key: "dir", Value: "1"},
+			ValueKey: "", // empty valuekey means it's a records counter
 		}},
 	}
 
@@ -207,6 +222,8 @@ func Test_CustomMetric(t *testing.T) {
 	require.Contains(t, exposed, `test_latency_seconds_count{dstIP="30.0.0.3",srcIP="10.0.0.1"} 1`)
 	require.Contains(t, exposed, `test_flows_total{dstIP="10.0.0.1",srcIP="20.0.0.2"} 2`)
 	require.Contains(t, exposed, `test_flows_total{dstIP="30.0.0.3",srcIP="10.0.0.1"} 1`)
+	require.Contains(t, exposed, `test_flows_incoming 2`)
+	require.Contains(t, exposed, `test_flows_outgoing 1`)
 }
 
 func Test_MetricTTL(t *testing.T) {

@@ -20,7 +20,7 @@ package main
 import (
 	"fmt"
 
-	operationalMetrics "github.com/netobserv/flowlogs-pipeline/pkg/operational/metrics"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
 )
 
@@ -32,15 +32,13 @@ func main() {
 
 	header := `
 > Note: this file was automatically generated, to update execute "make docs"  
-  
+	 
 # flowlogs-pipeline Operational Metrics  
-  
+	 
 Each table below provides documentation for an exported flowlogs-pipeline operational metric. 
-  
-  
 
 	`
-	doc := operationalMetrics.GetDocumentation()
+	doc := operational.GetDocumentation()
 	data := fmt.Sprintf("%s\n%s\n", header, doc)
 	fmt.Printf("%s", data)
 }
