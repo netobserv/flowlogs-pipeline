@@ -247,7 +247,7 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 		b.startNodes = append(b.startNodes, init)
 		stage = init
 	case StageWrite:
-		term := node.AsTerminal(func(in <-chan []config.GenericMap) {
+		term := node.AsTerminal(func(in <-chan config.GenericMap) {
 			b.opMetrics.CreateInQueueSizeGauge(stageID, func() int { return len(in) })
 			for i := range in {
 				b.runMeasured(stageID, func() {
@@ -258,7 +258,7 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 		b.terminalNodes = append(b.terminalNodes, term)
 		stage = term
 	case StageEncode:
-		encode := node.AsTerminal(func(in <-chan []config.GenericMap) {
+		encode := node.AsTerminal(func(in <-chan config.GenericMap) {
 			b.opMetrics.CreateInQueueSizeGauge(stageID, func() int { return len(in) })
 			for i := range in {
 				b.runMeasured(stageID, func() {
@@ -269,22 +269,27 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 		b.terminalNodes = append(b.terminalNodes, encode)
 		stage = encode
 	case StageTransform:
-		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
+		stage = node.AsMiddle(func(in <-chan config.GenericMap, out chan<- config.GenericMap) {
 			b.opMetrics.CreateInQueueSizeGauge(stageID, func() int { return len(in) })
 			b.opMetrics.CreateOutQueueSizeGauge(stageID, func() int { return len(out) })
 			for i := range in {
 				b.runMeasured(stageID, func() {
-					out <- pe.Transformer.Transform(i)
+					if transformed, ok := pe.Transformer.Transform(i); ok {
+						out <- transformed
+					}
 				})
 			}
 		})
 	case StageExtract:
-		stage = node.AsMiddle(func(in <-chan []config.GenericMap, out chan<- []config.GenericMap) {
+		stage = node.AsMiddle(func(in <-chan config.GenericMap, out chan<- config.GenericMap) {
 			b.opMetrics.CreateInQueueSizeGauge(stageID, func() int { return len(in) })
 			b.opMetrics.CreateOutQueueSizeGauge(stageID, func() int { return len(out) })
 			for i := range in {
 				b.runMeasured(stageID, func() {
-					out <- pe.Extractor.Extract(i)
+					outs := pe.Extractor.Extract([]config.GenericMap{i})
+					for _, o := range outs {
+						out <- o
+					}
 				})
 			}
 		})

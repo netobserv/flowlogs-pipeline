@@ -30,7 +30,6 @@ import (
 	test2 "github.com/mariomac/guara/pkg/test"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
@@ -54,12 +53,10 @@ parameters:
 `
 
 func Test_transformToLoki(t *testing.T) {
-	var transformed []config.GenericMap
-	input := []config.GenericMap{{"key": "value"}}
+	input := config.GenericMap{"key": "value"}
 	transform, err := transform.NewTransformNone()
 	require.NoError(t, err)
-	transformed = append(transformed, transform.Transform(input)...)
-
+	transformed, _ := transform.Transform(input)
 	v, cfg := test.InitConfig(t, yamlConfigNoParams)
 	require.NotNil(t, v)
 	loki, err := write.NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
@@ -118,9 +115,7 @@ func Test_SimplePipeline(t *testing.T) {
 	// So we don't need to run it in a separate go-routine
 	mainPipeline.Run()
 	// What is there left to check? Check length of saved data of each stage in private structure.
-	ingester := mainPipeline.pipelineStages[0].Ingester.(*ingest.IngestFile)
 	writer := mainPipeline.pipelineStages[2].Writer.(*write.WriteNone)
-	require.Equal(t, len(ingester.PrevRecords), len(writer.PrevRecords))
 
 	// values checked from the first line of the ../../hack/examples/ocp-ipfix-flowlogs.json file
 	require.Equal(t, config.GenericMap{
@@ -130,7 +125,7 @@ func Test_SimplePipeline(t *testing.T) {
 		"flp_packets": float64(400),
 		"flp_srcAddr": "10.130.2.13",
 		"flp_srcPort": float64(3100),
-	}, writer.PrevRecords[0])
+	}, writer.PrevRecord)
 }
 
 func TestGRPCProtobuf(t *testing.T) {

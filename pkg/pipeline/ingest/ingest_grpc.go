@@ -72,7 +72,7 @@ func NewGRPCProtobuf(opMetrics *operational.Metrics, params config.StageParam) (
 	}, nil
 }
 
-func (no *GRPCProtobuf) Ingest(out chan<- []config.GenericMap) {
+func (no *GRPCProtobuf) Ingest(out chan<- config.GenericMap) {
 	no.metrics.createOutQueueLen(out)
 	go func() {
 		<-utils.ExitChannel()
@@ -80,9 +80,10 @@ func (no *GRPCProtobuf) Ingest(out chan<- []config.GenericMap) {
 		no.collector.Close()
 	}()
 	for fp := range no.flowPackets {
-		records := decode.PBRecordsAsMaps(fp)
-		log.Debugf("GRPCProtobuf records = %v", records)
-		out <- records
+		log.Debugf("GRPCProtobuf records len = %v", len(fp.Entries))
+		for _, entry := range fp.Entries {
+			out <- decode.PBFlowToMap(entry)
+		}
 	}
 }
 

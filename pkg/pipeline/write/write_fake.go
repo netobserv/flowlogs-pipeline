@@ -28,12 +28,9 @@ type WriteFake struct {
 }
 
 // Write stores in memory all records.
-func (w *WriteFake) Write(in []config.GenericMap) {
-	log.Debugf("entering writeFake Write")
-	log.Debugf("writeFake: number of entries = %d", len(in))
-	for _, r := range in {
-		w.AllRecords = append(w.AllRecords, r.Copy())
-	}
+func (w *WriteFake) Write(in config.GenericMap) {
+	log.Trace("entering writeFake Write")
+	w.AllRecords = append(w.AllRecords, in.Copy())
 	close(w.wait)
 }
 

@@ -28,48 +28,39 @@ type Filter struct {
 }
 
 // Transform transforms a flow
-func (f *Filter) Transform(input []config.GenericMap) []config.GenericMap {
-	log.Debugf("f = %v", f)
-	output := make([]config.GenericMap, 0)
-	for _, entry := range input {
-		// copy input entry before transform to avoid alteration on parallel stages
-		outputEntry := entry.Copy()
-		addToOutput := true
-		for _, rule := range f.Rules {
-			log.Debugf("rule = %v", rule)
-			switch rule.Type {
-			case api.TransformFilterOperationName("RemoveField"):
-				delete(outputEntry, rule.Input)
-			case api.TransformFilterOperationName("RemoveEntryIfExists"):
-				if _, ok := entry[rule.Input]; ok {
-					addToOutput = false
-				}
-			case api.TransformFilterOperationName("RemoveEntryIfDoesntExist"):
-				if _, ok := entry[rule.Input]; !ok {
-					addToOutput = false
-				}
-			case api.TransformFilterOperationName("RemoveEntryIfEqual"):
-				if val, ok := entry[rule.Input]; ok {
-					if val == rule.Value {
-						addToOutput = false
-					}
-				}
-			case api.TransformFilterOperationName("RemoveEntryIfNotEqual"):
-				if val, ok := entry[rule.Input]; ok {
-					if val != rule.Value {
-						addToOutput = false
-					}
-				}
-			default:
-				log.Panicf("unknown type %s for transform.Filter rule: %v", rule.Type, rule)
+func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
+	log.Tracef("f = %v", f)
+	outputEntry := entry.Copy()
+	for _, rule := range f.Rules {
+		log.Debugf("rule = %v", rule)
+		switch rule.Type {
+		case api.TransformFilterOperationName("RemoveField"):
+			delete(outputEntry, rule.Input)
+		case api.TransformFilterOperationName("RemoveEntryIfExists"):
+			if _, ok := entry[rule.Input]; ok {
+				return nil, false
 			}
-		}
-		if addToOutput {
-			output = append(output, outputEntry)
-			log.Debugf("Transform.GenericMap = %v", outputEntry)
+		case api.TransformFilterOperationName("RemoveEntryIfDoesntExist"):
+			if _, ok := entry[rule.Input]; !ok {
+				return nil, false
+			}
+		case api.TransformFilterOperationName("RemoveEntryIfEqual"):
+			if val, ok := entry[rule.Input]; ok {
+				if val == rule.Value {
+					return nil, false
+				}
+			}
+		case api.TransformFilterOperationName("RemoveEntryIfNotEqual"):
+			if val, ok := entry[rule.Input]; ok {
+				if val != rule.Value {
+					return nil, false
+				}
+			}
+		default:
+			log.Panicf("unknown type %s for transform.Filter rule: %v", rule.Type, rule)
 		}
 	}
-	return output
+	return outputEntry, true
 }
 
 // NewTransformFilter create a new filter transform

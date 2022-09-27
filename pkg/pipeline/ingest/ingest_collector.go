@@ -22,7 +22,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
-	"time"
 
 	ms "github.com/mitchellh/mapstructure"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -39,20 +38,16 @@ import (
 )
 
 const (
-	channelSize           = 1000
-	defaultBatchFlushTime = time.Second
-	defaultBatchMaxLength = 500
+	channelSize = 1000
 )
 
 type ingestCollector struct {
-	hostname       string
-	port           int
-	portLegacy     int
-	in             chan map[string]interface{}
-	batchFlushTime time.Duration
-	batchMaxLength int
-	exitChan       <-chan struct{}
-	metrics        *metrics
+	hostname   string
+	port       int
+	portLegacy int
+	in         chan map[string]interface{}
+	exitChan   <-chan struct{}
+	metrics    *metrics
 }
 
 // TransportWrapper is an implementation of the goflow2 transport interface
@@ -102,7 +97,7 @@ func (w *TransportWrapper) Send(_, data []byte) error {
 }
 
 // Ingest ingests entries from a network collector using goflow2 library (https://github.com/netsampler/goflow2)
-func (ingestC *ingestCollector) Ingest(out chan<- []config.GenericMap) {
+func (ingestC *ingestCollector) Ingest(out chan<- config.GenericMap) {
 	ctx := context.Background()
 	ingestC.metrics.createOutQueueLen(out)
 
@@ -148,40 +143,15 @@ func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
 	}
 }
 
-func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) {
-	var records []config.GenericMap
-	// Maximum batch time for each batch
-	flushRecords := time.NewTicker(ingestC.batchFlushTime)
-	defer flushRecords.Stop()
+func (ingestC *ingestCollector) processLogLines(out chan<- config.GenericMap) {
 	for {
 		select {
 		case <-ingestC.exitChan:
 			log.Debugf("exiting ingestCollector because of signal")
 			return
 		case record := <-ingestC.in:
-			records = append(records, record)
-			if len(records) >= ingestC.batchMaxLength {
-				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
-				ingestC.metrics.flowsProcessed.Add(float64(len(records)))
-				log.Debugf("ingestCollector records = %v", records)
-				out <- records
-				records = []config.GenericMap{}
-			}
-		case <-flushRecords.C:
-			// Process batch of records (if not empty)
-			if len(records) > 0 {
-				if len(ingestC.in) > 0 {
-					for len(records) < ingestC.batchMaxLength && len(ingestC.in) > 0 {
-						record := <-ingestC.in
-						records = append(records, record)
-					}
-				}
-				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
-				ingestC.metrics.flowsProcessed.Add(float64(len(records)))
-				log.Debugf("ingestCollector records = %v", records)
-				out <- records
-				records = []config.GenericMap{}
-			}
+			ingestC.metrics.flowsProcessed.Inc()
+			out <- record
 		}
 	}
 }
@@ -203,22 +173,15 @@ func NewIngestCollector(opMetrics *operational.Metrics, params config.StageParam
 	log.Infof("port = %d", jsonIngestCollector.Port)
 	log.Infof("portLegacy = %d", jsonIngestCollector.PortLegacy)
 
-	bml := defaultBatchMaxLength
-	if jsonIngestCollector.BatchMaxLen != 0 {
-		bml = jsonIngestCollector.BatchMaxLen
-	}
-
 	in := make(chan map[string]interface{}, channelSize)
 	metrics := newMetrics(opMetrics, params.Name, func() int { return len(in) })
 
 	return &ingestCollector{
-		hostname:       jsonIngestCollector.HostName,
-		port:           jsonIngestCollector.Port,
-		portLegacy:     jsonIngestCollector.PortLegacy,
-		exitChan:       pUtils.ExitChannel(),
-		batchFlushTime: defaultBatchFlushTime,
-		batchMaxLength: bml,
-		in:             in,
-		metrics:        metrics,
+		hostname:   jsonIngestCollector.HostName,
+		port:       jsonIngestCollector.Port,
+		portLegacy: jsonIngestCollector.PortLegacy,
+		exitChan:   pUtils.ExitChannel(),
+		in:         in,
+		metrics:    metrics,
 	}, nil
 }

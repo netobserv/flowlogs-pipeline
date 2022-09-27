@@ -48,10 +48,10 @@ type fakeKafkaWriter struct {
 	mock.Mock
 }
 
-var receivedData []interface{}
+var receivedData []kafkago.Message
 
-func (f *fakeKafkaWriter) WriteMessages(ctx context.Context, msg ...kafkago.Message) error {
-	receivedData = append(receivedData, msg)
+func (f *fakeKafkaWriter) WriteMessages(_ context.Context, msg ...kafkago.Message) error {
+	receivedData = append(receivedData, msg...)
 	return nil
 }
 
@@ -73,24 +73,17 @@ func Test_EncodeKafka(t *testing.T) {
 	fw := fakeKafkaWriter{}
 	encodeKafka.kafkaWriter = &fw
 
-	receivedData = make([]interface{}, 0)
 	entry1 := test.GetExtractMockEntry()
 	entry2 := test.GetIngestMockEntry(false)
-	in := []config.GenericMap{entry1, entry2}
-	newEncode.Encode(in)
-	var expectedOutputString1 []byte
-	var expectedOutputString2 []byte
-	expectedOutputString1, _ = json.Marshal(entry1)
-	expectedOutputString2, _ = json.Marshal(entry2)
+	newEncode.Encode(entry1)
+	newEncode.Encode(entry2)
+	expectedOutputString1, _ := json.Marshal(entry1)
+	expectedOutputString2, _ := json.Marshal(entry2)
 	expectedOutput := []kafkago.Message{
-		{
-			Value: expectedOutputString1,
-		},
-		{
-			Value: expectedOutputString2,
-		},
+		{Value: expectedOutputString1},
+		{Value: expectedOutputString2},
 	}
-	require.Equal(t, expectedOutput, receivedData[0])
+	require.Equal(t, expectedOutput, receivedData)
 }
 
 func Test_TLSConfigEmpty(t *testing.T) {

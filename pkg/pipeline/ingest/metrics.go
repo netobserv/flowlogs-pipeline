@@ -21,6 +21,6 @@ func newMetrics(opMetrics *operational.Metrics, stage string, inGaugeFunc func()
 	}
 }
 
-func (m *metrics) createOutQueueLen(out chan<- []config.GenericMap) {
+func (m *metrics) createOutQueueLen(out chan<- config.GenericMap) {
 	m.CreateOutQueueSizeGauge(m.stage, func() int { return len(out) })
 }

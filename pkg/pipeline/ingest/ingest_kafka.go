@@ -54,7 +54,7 @@ const defaultKafkaBatchMaxLength = 500
 const defaultKafkaCommitInterval = 500
 
 // Ingest ingests entries from kafka topic
-func (ingestK *ingestKafka) Ingest(out chan<- []config.GenericMap) {
+func (ingestK *ingestKafka) Ingest(out chan<- config.GenericMap) {
 	log.Debugf("entering ingestKafka.Ingest")
 	ingestK.metrics.createOutQueueLen(out)
 
@@ -112,53 +112,34 @@ func processRecordDelay(record config.GenericMap) {
 	processDelaySummary.Observe(delay)
 }
 
-func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records [][]byte) {
-	log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
-
+func (ingestK *ingestKafka) processRecord(record []byte, out chan<- config.GenericMap) {
 	// Decode batch
-	decoded := ingestK.decoder.Decode(records)
+	decoded, err := ingestK.decoder.Decode(record)
+	if err != nil {
+		log.WithError(err).Warnf("ignoring flow")
+		return
+	}
 
 	// Update metrics
 	flowDecoderCount.With(
 		prometheus.Labels{"worker": "", "name": ingestK.kafkaParams.Decoder.Type}).Inc()
-	ingestK.metrics.flowsProcessed.Add(float64(len(records)))
+	ingestK.metrics.flowsProcessed.Add(float64(len(record)))
 
-	for _, record := range decoded {
-		processRecordDelay(record)
-	}
+	processRecordDelay(decoded)
 
 	// Send batch
 	out <- decoded
 }
 
 // read items from ingestKafka input channel, pool them, and send down the pipeline
-func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
-	var records [][]byte
-	duration := time.Duration(ingestK.kafkaParams.BatchReadTimeout) * time.Millisecond
-	flushRecords := time.NewTicker(duration)
+func (ingestK *ingestKafka) processLogLines(out chan<- config.GenericMap) {
 	for {
 		select {
 		case <-ingestK.exitChan:
 			log.Debugf("exiting ingestKafka because of signal")
 			return
 		case record := <-ingestK.in:
-			records = append(records, record)
-			if len(records) >= ingestK.batchMaxLength {
-				ingestK.processBatch(out, records)
-				records = [][]byte{}
-			}
-		case <-flushRecords.C: // Maximum batch time for each batch
-			// Process batch of records (if not empty)
-			if len(records) > 0 {
-				if len(ingestK.in) > 0 {
-					for len(records) < ingestK.batchMaxLength && len(ingestK.in) > 0 {
-						record := <-ingestK.in
-						records = append(records, record)
-					}
-				}
-				ingestK.processBatch(out, records)
-				records = [][]byte{}
-			}
+			ingestK.processRecord(record, out)
 		}
 	}
 }

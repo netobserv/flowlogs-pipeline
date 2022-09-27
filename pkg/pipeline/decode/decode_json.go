@@ -29,32 +29,26 @@ type DecodeJson struct {
 }
 
 // Decode decodes input strings to a list of flow entries
-func (c *DecodeJson) Decode(in [][]byte) []config.GenericMap {
-	out := make([]config.GenericMap, 0)
-	for _, line := range in {
-		if log.IsLevelEnabled(log.DebugLevel) {
-			log.Debugf("decodeJson: line = %v", string(line))
-		}
-		var decodedLine map[string]interface{}
-		err := json.Unmarshal(line, &decodedLine)
-		if err != nil {
-			log.Errorf("decodeJson Decode: error unmarshalling a line: %v", err)
-			log.Errorf("line = %s", line)
+func (c *DecodeJson) Decode(line []byte) (config.GenericMap, error) {
+
+	if log.IsLevelEnabled(log.DebugLevel) {
+		log.Debugf("decodeJson: line = %v", string(line))
+	}
+	var decodedLine map[string]interface{}
+	if err := json.Unmarshal(line, &decodedLine); err != nil {
+		return nil, err
+	}
+	decodedLine2 := make(config.GenericMap, len(decodedLine))
+	// flows directly ingested by flp-transformer won't have this field, so we need to add it
+	// here. If the received line already contains the field, it will be overridden later
+	decodedLine2["TimeReceived"] = time.Now().Unix()
+	for k, v := range decodedLine {
+		if v == nil {
 			continue
 		}
-		decodedLine2 := make(config.GenericMap, len(decodedLine))
-		// flows directly ingested by flp-transformer won't have this field, so we need to add it
-		// here. If the received line already contains the field, it will be overridden later
-		decodedLine2["TimeReceived"] = time.Now().Unix()
-		for k, v := range decodedLine {
-			if v == nil {
-				continue
-			}
-			decodedLine2[k] = v
-		}
-		out = append(out, decodedLine2)
+		decodedLine2[k] = v
 	}
-	return out
+	return decodedLine2, nil
 }
 
 // NewDecodeJson create a new decode

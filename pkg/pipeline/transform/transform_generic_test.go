@@ -113,9 +113,10 @@ func TestNewTransformGenericMaintainFalse(t *testing.T) {
 	require.Len(t, transformGeneric.rules, 6)
 
 	input := test.GetIngestMockEntry(false)
-	output := transformGeneric.Transform([]config.GenericMap{input})
+	output, ok := transformGeneric.Transform(input)
+	require.True(t, ok)
 	expectedOutput := getGenericExpectedOutputShort()
-	require.Equal(t, expectedOutput, output[0])
+	require.Equal(t, expectedOutput, output)
 }
 
 func TestNewTransformGenericMaintainTrue(t *testing.T) {
@@ -124,9 +125,10 @@ func TestNewTransformGenericMaintainTrue(t *testing.T) {
 	require.Len(t, transformGeneric.rules, 6)
 
 	input := test.GetIngestMockEntry(false)
-	output := transformGeneric.Transform([]config.GenericMap{input})
+	output, ok := transformGeneric.Transform(input)
+	require.True(t, ok)
 	expectedOutput := getGenericExpectedOutputLong()
-	require.Equal(t, expectedOutput, output[0])
+	require.Equal(t, expectedOutput, output)
 }
 
 func InitNewTransformGeneric(t *testing.T, configFile string) Transformer {

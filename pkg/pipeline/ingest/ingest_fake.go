@@ -27,12 +27,12 @@ import (
 
 type IngestFake struct {
 	params   config.Ingest
-	In       chan []config.GenericMap
+	In       chan config.GenericMap
 	exitChan <-chan struct{}
 }
 
 // Ingest reads records from an input channel and writes them as-is to the output channel
-func (inf *IngestFake) Ingest(out chan<- []config.GenericMap) {
+func (inf *IngestFake) Ingest(out chan<- config.GenericMap) {
 	for {
 		select {
 		case <-inf.exitChan:
@@ -53,7 +53,7 @@ func NewIngestFake(params config.StageParam) (Ingester, error) {
 
 	return &IngestFake{
 		params:   *params.Ingest,
-		In:       make(chan []config.GenericMap),
+		In:       make(chan config.GenericMap),
 		exitChan: utils.ExitChannel(),
 	}, nil
 }

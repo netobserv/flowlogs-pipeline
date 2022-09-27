@@ -117,8 +117,7 @@ func Test_NewEncodeProm(t *testing.T) {
 	expectedList = []string{"srcAddr", "dstAddr", "dstPort"}
 	require.Equal(t, encodeProm.counters[0].info.Labels, expectedList)
 	entry := test.GetExtractMockEntry()
-	input := []config.GenericMap{entry}
-	encodeProm.Encode(input)
+	encodeProm.Encode(entry)
 
 	// verify entries are in cache; one for the gauge and one for the counter
 	entriesMapLen := encodeProm.mCache.GetCacheLen()
@@ -199,8 +198,9 @@ func Test_CustomMetric(t *testing.T) {
 	encodeProm, cleanup, err := initPromWithServer(&params)
 	require.NoError(t, err)
 	defer cleanup()
-
-	encodeProm.Encode(metrics)
+	for _, metric := range metrics {
+		encodeProm.Encode(metric)
+	}
 	time.Sleep(100 * time.Millisecond)
 
 	exposed := test.ReadExposedMetrics(t)
@@ -257,8 +257,9 @@ func Test_MetricTTL(t *testing.T) {
 	require.NoError(t, err)
 	defer cleanup()
 
-	encodeProm.Encode(metrics)
-
+	for _, metric := range metrics {
+		encodeProm.Encode(metric)
+	}
 	exposed := test.ReadExposedMetrics(t)
 
 	require.Contains(t, exposed, `test_bytes_total{dstIP="10.0.0.1",srcIP="20.0.0.2"}`)
@@ -322,6 +323,8 @@ func BenchmarkPromEncode(b *testing.B) {
 	defer cleanup()
 
 	for i := 0; i < b.N; i++ {
-		prom.Encode(hundredFlows())
+		for _, metric := range hundredFlows() {
+			prom.Encode(metric)
+		}
 	}
 }

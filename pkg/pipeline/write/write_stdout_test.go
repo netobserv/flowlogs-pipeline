@@ -26,7 +26,7 @@ import (
 
 func Test_WriteStdout(t *testing.T) {
 	ws := writeStdout{}
-	ws.Write([]config.GenericMap{{"key": "test"}})
+	ws.Write(config.GenericMap{"key": "test"})
 }
 
 func Test_NewWriteStdout(t *testing.T) {

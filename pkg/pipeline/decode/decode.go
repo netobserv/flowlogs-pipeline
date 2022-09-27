@@ -25,7 +25,7 @@ import (
 )
 
 type Decoder interface {
-	Decode(in [][]byte) []config.GenericMap
+	Decode(in []byte) (config.GenericMap, error)
 }
 
 func GetDecoder(params api.Decoder) (Decoder, error) {

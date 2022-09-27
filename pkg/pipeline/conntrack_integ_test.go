@@ -111,7 +111,7 @@ func TestConnTrack(t *testing.T) {
 	// Wait a moment to make the connections expired
 	time.Sleep(2 * time.Second)
 	// Send an empty list to the pipeline to allow the connection tracking output end connection records
-	in <- []config.GenericMap{}
+	in <- config.GenericMap{}
 	writer.Wait()
 
 	// Verify that the output records contain an expected end connection record.
@@ -134,7 +134,7 @@ func TestConnTrack(t *testing.T) {
 	require.Containsf(t, writer.AllRecords, expected, "The output records don't include the expected record %v", expected)
 }
 
-func ingestFile(t *testing.T, in chan<- []config.GenericMap, filepath string) {
+func ingestFile(t *testing.T, in chan<- config.GenericMap, filepath string) {
 	t.Helper()
 	file, err := os.Open(filepath)
 	require.NoError(t, err)
@@ -149,6 +149,9 @@ func ingestFile(t *testing.T, in chan<- []config.GenericMap, filepath string) {
 	}
 	decoder, err := decode.NewDecodeJson()
 	require.NoError(t, err)
-	decoded := decoder.Decode(lines)
-	in <- decoded
+	for _, line := range lines {
+		line, err := decoder.Decode(line)
+		require.NoError(t, err)
+		in <- line
+	}
 }

@@ -26,7 +26,7 @@ import (
 
 func Test_Write(t *testing.T) {
 	wn := WriteNone{}
-	wn.Write([]config.GenericMap{{"key": "test"}})
+	wn.Write(config.GenericMap{"key": "test"})
 }
 
 func Test_NewWriteNone(t *testing.T) {

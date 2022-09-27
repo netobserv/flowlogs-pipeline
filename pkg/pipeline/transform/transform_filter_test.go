@@ -121,9 +121,10 @@ func TestNewTransformFilterRemoveField(t *testing.T) {
 	require.Len(t, transformFilter.Rules, 2)
 
 	input := test.GetIngestMockEntry(false)
-	output := transformFilter.Transform([]config.GenericMap{input})
+	output, ok := transformFilter.Transform(input)
+	require.True(t, ok)
 	expectedOutput := getFilterExpectedOutput()
-	require.Equal(t, expectedOutput, output[0])
+	require.Equal(t, expectedOutput, output)
 }
 
 func TestNewTransformFilterRemoveEntryIfExists(t *testing.T) {
@@ -132,8 +133,8 @@ func TestNewTransformFilterRemoveEntryIfExists(t *testing.T) {
 	require.Len(t, transformFilter.Rules, 1)
 
 	input := test.GetIngestMockEntry(false)
-	output := transformFilter.Transform([]config.GenericMap{input})
-	require.Equal(t, output, []config.GenericMap{})
+	_, ok := transformFilter.Transform(input)
+	require.False(t, ok)
 }
 
 func TestNewTransformFilterRemoveEntryIfDoesntExists(t *testing.T) {
@@ -142,8 +143,8 @@ func TestNewTransformFilterRemoveEntryIfDoesntExists(t *testing.T) {
 	require.Len(t, transformFilter.Rules, 1)
 
 	input := test.GetIngestMockEntry(false)
-	output := transformFilter.Transform([]config.GenericMap{input})
-	require.Equal(t, output, []config.GenericMap{})
+	_, ok := transformFilter.Transform(input)
+	require.False(t, ok)
 }
 
 func TestNewTransformFilterRemoveEntryIfEqual(t *testing.T) {
@@ -153,18 +154,17 @@ func TestNewTransformFilterRemoveEntryIfEqual(t *testing.T) {
 
 	input := test.GetIngestMockEntry(false)
 
-	output := transformFilter.Transform([]config.GenericMap{input})
-	require.Equal(t, 0, len(output))
+	_, ok := transformFilter.Transform(input)
+	require.False(t, ok)
 
 	input["message"] = "dummy message"
-	output = transformFilter.Transform([]config.GenericMap{input})
-	require.Equal(t, 1, len(output))
-	require.Contains(t, output[0], "message")
-	require.Equal(t, output[0]["message"], "dummy message")
+	output, ok := transformFilter.Transform(input)
+	require.True(t, ok)
+	require.Equal(t, output["message"], "dummy message")
 
 	input["value"] = 8.0
-	output = transformFilter.Transform([]config.GenericMap{input})
-	require.Equal(t, 0, len(output))
+	_, ok = transformFilter.Transform(input)
+	require.False(t, ok)
 }
 
 func TestNewTransformFilterRemoveEntryIfNotEqual(t *testing.T) {
@@ -174,14 +174,13 @@ func TestNewTransformFilterRemoveEntryIfNotEqual(t *testing.T) {
 
 	input := test.GetIngestMockEntry(false)
 
-	output := transformFilter.Transform([]config.GenericMap{input})
-	require.Equal(t, 1, len(output))
-	require.Contains(t, output[0], "message")
-	require.Equal(t, output[0]["message"], "test message")
+	output, ok := transformFilter.Transform(input)
+	require.True(t, ok)
+	require.Equal(t, output["message"], "test message")
 
 	input["message"] = "dummy message"
-	output = transformFilter.Transform([]config.GenericMap{input})
-	require.Equal(t, 0, len(output))
+	_, ok = transformFilter.Transform(input)
+	require.False(t, ok)
 }
 
 func InitNewTransformFilter(t *testing.T, configFile string) Transformer {

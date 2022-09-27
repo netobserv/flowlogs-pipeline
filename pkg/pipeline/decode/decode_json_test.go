@@ -20,7 +20,6 @@ package decode
 import (
 	"testing"
 
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,27 +32,20 @@ func initNewDecodeJson(t *testing.T) Decoder {
 func TestDecodeJson(t *testing.T) {
 	newDecode := initNewDecodeJson(t)
 	decodeJson := newDecode.(*DecodeJson)
-	inputString1 := "{\"varInt\": 12, \"varString\":\"testString\", \"varBool\":false}"
-	inputString2 := "{\"varInt\": 14, \"varString\":\"testString2\", \"varBool\":true, \"TimeReceived\":12345}"
-	inputString3 := "{}"
-	inputStringErr := "{\"varInt\": 14, \"varString\",\"testString2\", \"varBool\":true}"
-	var in [][]byte
-	var out []config.GenericMap
-	out = decodeJson.Decode(in)
-	require.Equal(t, 0, len(out))
-	in = append(in, []byte(inputString1))
-	in = append(in, []byte(inputString2))
-	in = append(in, []byte(inputString3))
-	in = append(in, []byte(inputStringErr))
-	out = decodeJson.Decode(in)
-	require.Equal(t, len(out), 3)
-	require.Equal(t, float64(12), out[0]["varInt"])
-	require.Equal(t, "testString", out[0]["varString"])
-	require.Equal(t, false, out[0]["varBool"])
+
+	out, err := decodeJson.Decode([]byte(
+		"{\"varInt\": 12, \"varString\":\"testString\", \"varBool\":false}"))
+	require.NoError(t, err)
+	require.Equal(t, float64(12), out["varInt"])
+	require.Equal(t, "testString", out["varString"])
+	require.Equal(t, false, out["varBool"])
 	// TimeReceived is added if it does not exist
-	require.NotZero(t, out[0]["TimeReceived"])
+	require.NotZero(t, out["TimeReceived"])
+
+	out, err = decodeJson.Decode([]byte(
+		"{\"varInt\": 14, \"varString\":\"testString2\", \"varBool\":true, \"TimeReceived\":12345}"))
 	// TimeReceived is kept if it already existed
-	require.EqualValues(t, 12345, out[1]["TimeReceived"])
+	require.EqualValues(t, 12345, out["TimeReceived"])
 
 	// TODO: Check for more complicated json structures
 }
@@ -61,13 +53,7 @@ func TestDecodeJson(t *testing.T) {
 func TestDecodeJsonTimestamps(t *testing.T) {
 	newDecode := initNewDecodeJson(t)
 	decodeJson := newDecode.(*DecodeJson)
-	inputString1 := "{\"unixTime\": 1645104030 }"
-	var in [][]byte
-	var out []config.GenericMap
-	out = decodeJson.Decode(in)
-	require.Equal(t, 0, len(out))
-	in = append(in, []byte(inputString1))
-	out = decodeJson.Decode(in)
-	require.Equal(t, len(out), 1)
-	require.Equal(t, float64(1645104030), out[0]["unixTime"])
+	out, err := decodeJson.Decode([]byte("{\"unixTime\": 1645104030 }"))
+	require.NoError(t, err)
+	require.Equal(t, float64(1645104030), out["unixTime"])
 }

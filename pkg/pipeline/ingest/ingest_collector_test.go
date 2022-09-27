@@ -40,7 +40,7 @@ func TestIngest(t *testing.T) {
 	})
 	ic, err := NewIngestCollector(operational.NewMetrics(&config.MetricsSettings{}), stage.GetStageParams()[0])
 	require.NoError(t, err)
-	forwarded := make(chan []config.GenericMap)
+	forwarded := make(chan config.GenericMap)
 
 	// GIVEN an IPFIX collector Ingester
 	go ic.Ingest(forwarded)
@@ -48,9 +48,8 @@ func TestIngest(t *testing.T) {
 	client, err := test.NewIPFIXClient(collectorPort)
 	require.NoError(t, err)
 
-	received := waitForFlows(t, client, forwarded)
-	require.NotEmpty(t, received)
-	flow := received[0]
+	flow := waitForFlow(t, client, forwarded)
+	require.NotEmpty(t, flow)
 	assert.EqualValues(t, 12345678, flow["TimeFlowStart"])
 	assert.EqualValues(t, 12345678, flow["TimeFlowEnd"])
 	assert.Equal(t, "1.2.3.4", flow["SrcAddr"])
@@ -58,7 +57,7 @@ func TestIngest(t *testing.T) {
 
 // The IPFIX client might send information before the Ingester is actually listening,
 // so we might need to repeat the submission until the ingest starts forwarding logs
-func waitForFlows(t *testing.T, client *test.IPFIXClient, forwarded chan []config.GenericMap) []config.GenericMap {
+func waitForFlow(t *testing.T, client *test.IPFIXClient, forwarded chan config.GenericMap) config.GenericMap {
 	var start = time.Now()
 	for {
 		if client.SendTemplate() == nil &&

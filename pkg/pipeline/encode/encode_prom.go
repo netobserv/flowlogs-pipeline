@@ -82,15 +82,7 @@ var (
 )
 
 // Encode encodes a metric before being stored
-func (e *EncodeProm) Encode(metrics []config.GenericMap) {
-	log.Debugf("entering EncodeProm Encode")
-	for _, metric := range metrics {
-		e.EncodeMetric(metric)
-	}
-	log.Debugf("cache = %v", e.mCache)
-}
-
-func (e *EncodeProm) EncodeMetric(metricRecord config.GenericMap) {
+func (e *EncodeProm) Encode(metricRecord config.GenericMap) {
 	log.Debugf("entering EncodeMetric. metricRecord = %v", metricRecord)
 
 	// Process counters
