@@ -65,9 +65,8 @@ type Owner struct {
 }
 
 type Info struct {
+	metav1.ObjectMeta
 	Type            string
-	Name            string
-	Namespace       string
 	Labels          map[string]string
 	OwnerReferences []metav1.OwnerReference
 	Owner           Owner
@@ -91,18 +90,22 @@ func (k *KubeData) GetInfo(ip string) (*Info, error) {
 			case typeNode:
 				node := objs[0].(*v1.Node)
 				info = &Info{
-					Type:      typeNode,
-					Name:      node.Name,
-					Namespace: node.Namespace,
-					Labels:    node.Labels,
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      node.Name,
+						Namespace: node.Namespace,
+					},
+					Type:   typeNode,
+					Labels: node.Labels,
 				}
 			case typeService:
 				service := objs[0].(*v1.Service)
 				info = &Info{
-					Type:      typeService,
-					Name:      service.Name,
-					Namespace: service.Namespace,
-					Labels:    service.Labels,
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      service.Name,
+						Namespace: service.Namespace,
+					},
+					Type:   typeService,
+					Labels: service.Labels,
 				}
 			}
 
@@ -192,9 +195,11 @@ func (k *KubeData) NewPodInformer(informerFactory informers.SharedInformerFactor
 			}
 		}
 		return &Info{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      pod.Name,
+				Namespace: pod.Namespace,
+			},
 			Type:            typePod,
-			Name:            pod.Name,
-			Namespace:       pod.Namespace,
 			Labels:          pod.Labels,
 			OwnerReferences: pod.OwnerReferences,
 			HostIP:          pod.Status.HostIP,
@@ -211,6 +216,7 @@ func (k *KubeData) NewPodInformer(informerFactory informers.SharedInformerFactor
 	if err != nil {
 		return fmt.Errorf("can't add %s indexer to Pods informer: %w", IndexIP, err)
 	}
+
 	k.ipInformers[typePod] = pods
 	return err
 }
