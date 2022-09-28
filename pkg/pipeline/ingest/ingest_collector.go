@@ -102,24 +102,24 @@ func (w *TransportWrapper) Send(_, data []byte) error {
 }
 
 // Ingest ingests entries from a network collector using goflow2 library (https://github.com/netsampler/goflow2)
-func (ingestC *ingestCollector) Ingest(out chan<- []config.GenericMap) {
+func (c *ingestCollector) Ingest(out chan<- []config.GenericMap) {
 	ctx := context.Background()
-	ingestC.metrics.createOutQueueLen(out)
+	c.metrics.createOutQueueLen(out)
 
 	// initialize background listeners (a.k.a.netflow+legacy collector)
-	ingestC.initCollectorListener(ctx)
+	c.initCollectorListener(ctx)
 
 	// forever process log lines received by collector
-	ingestC.processLogLines(out)
+	c.processLogLines(out)
 }
 
-func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
-	transporter := NewWrapper(ingestC.in)
+func (c *ingestCollector) initCollectorListener(ctx context.Context) {
+	transporter := NewWrapper(c.in)
 	formatter, err := goflowFormat.FindFormat(ctx, "pb")
 	if err != nil {
 		log.Fatal(err)
 	}
-	if ingestC.port > 0 {
+	if c.port > 0 {
 		go func() {
 			sNF := &utils.StateNetFlow{
 				Format:    formatter,
@@ -127,13 +127,13 @@ func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
 				Logger:    log.StandardLogger(),
 			}
 
-			log.Infof("listening for netflow on host %s, port = %d", ingestC.hostname, ingestC.port)
-			err = sNF.FlowRoutine(1, ingestC.hostname, ingestC.port, false)
+			log.Infof("listening for netflow on host %s, port = %d", c.hostname, c.port)
+			err = sNF.FlowRoutine(1, c.hostname, c.port, false)
 			log.Fatal(err)
 		}()
 	}
 
-	if ingestC.portLegacy > 0 {
+	if c.portLegacy > 0 {
 		go func() {
 			sLegacyNF := &utils.StateNFLegacy{
 				Format:    formatter,
@@ -141,28 +141,28 @@ func (ingestC *ingestCollector) initCollectorListener(ctx context.Context) {
 				Logger:    log.StandardLogger(),
 			}
 
-			log.Infof("listening for legacy netflow on host %s, port = %d", ingestC.hostname, ingestC.portLegacy)
-			err = sLegacyNF.FlowRoutine(1, ingestC.hostname, ingestC.portLegacy, false)
+			log.Infof("listening for legacy netflow on host %s, port = %d", c.hostname, c.portLegacy)
+			err = sLegacyNF.FlowRoutine(1, c.hostname, c.portLegacy, false)
 			log.Fatal(err)
 		}()
 	}
 }
 
-func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) {
+func (c *ingestCollector) processLogLines(out chan<- []config.GenericMap) {
 	var records []config.GenericMap
 	// Maximum batch time for each batch
-	flushRecords := time.NewTicker(ingestC.batchFlushTime)
+	flushRecords := time.NewTicker(c.batchFlushTime)
 	defer flushRecords.Stop()
 	for {
 		select {
-		case <-ingestC.exitChan:
+		case <-c.exitChan:
 			log.Debugf("exiting ingestCollector because of signal")
 			return
-		case record := <-ingestC.in:
+		case record := <-c.in:
 			records = append(records, record)
-			if len(records) >= ingestC.batchMaxLength {
-				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
-				ingestC.metrics.flowsProcessed.Add(float64(len(records)))
+			if len(records) >= c.batchMaxLength {
+				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(c.in))
+				c.metrics.batchSize.Observe(float64(len(records)))
 				log.Debugf("ingestCollector records = %v", records)
 				out <- records
 				records = []config.GenericMap{}
@@ -170,14 +170,14 @@ func (ingestC *ingestCollector) processLogLines(out chan<- []config.GenericMap) 
 		case <-flushRecords.C:
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
-				if len(ingestC.in) > 0 {
-					for len(records) < ingestC.batchMaxLength && len(ingestC.in) > 0 {
-						record := <-ingestC.in
+				if len(c.in) > 0 {
+					for len(records) < c.batchMaxLength && len(c.in) > 0 {
+						record := <-c.in
 						records = append(records, record)
 					}
 				}
-				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(ingestC.in))
-				ingestC.metrics.flowsProcessed.Add(float64(len(records)))
+				log.Debugf("ingestCollector sending %d entries, %d entries waiting", len(records), len(c.in))
+				c.metrics.batchSize.Observe(float64(len(records)))
 				log.Debugf("ingestCollector records = %v", records)
 				out <- records
 				records = []config.GenericMap{}
@@ -209,7 +209,7 @@ func NewIngestCollector(opMetrics *operational.Metrics, params config.StageParam
 	}
 
 	in := make(chan map[string]interface{}, channelSize)
-	metrics := newMetrics(opMetrics, params.Name, func() int { return len(in) })
+	metrics := newMetrics(opMetrics, params.Name, params.Ingest.Type, func() int { return len(in) })
 
 	return &ingestCollector{
 		hostname:       jsonIngestCollector.HostName,

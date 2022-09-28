@@ -27,7 +27,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 
-	"github.com/prometheus/client_golang/prometheus"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -39,14 +38,14 @@ type kafkaReadMessage interface {
 }
 
 type ingestKafka struct {
-	kafkaParams    api.IngestKafka
-	kafkaReader    kafkaReadMessage
-	decoder        decode.Decoder
-	in             chan []byte
-	exitChan       <-chan struct{}
-	batchMaxLength int
-	metrics        *metrics
-	canLogMessages bool
+	kafkaReader      kafkaReadMessage
+	decoder          decode.Decoder
+	in               chan []byte
+	exitChan         <-chan struct{}
+	batchReadTimeout int64
+	batchMaxLength   int
+	metrics          *metrics
+	canLogMessages   bool
 }
 
 const defaultBatchReadTimeout = int64(1000)
@@ -66,97 +65,95 @@ func (ingestK *ingestKafka) Ingest(out chan<- []config.GenericMap) {
 }
 
 // background thread to read kafka messages; place received items into ingestKafka input channel
-func (ingestK *ingestKafka) kafkaListener() {
+func (k *ingestKafka) kafkaListener() {
 	log.Debugf("entering kafkaListener")
 
 	go func() {
 		for {
 			// block until a message arrives
 			log.Debugf("before ReadMessage")
-			kafkaMessage, err := ingestK.kafkaReader.ReadMessage(context.Background())
+			kafkaMessage, err := k.kafkaReader.ReadMessage(context.Background())
 			if err != nil {
 				log.Errorln(err)
 				continue
 			}
-			if ingestK.canLogMessages {
+			if k.canLogMessages {
 				log.Debugf("string(kafkaMessage) = %s\n", string(kafkaMessage.Value))
 			}
 			messageLen := len(kafkaMessage.Value)
 			if messageLen > 0 {
-				trafficLabels := prometheus.Labels{
-					"type":       ingestK.kafkaParams.Decoder.Type,
-					"remote_ip":  ingestK.kafkaParams.Brokers[0],
-					"local_ip":   "0.0.0.0",
-					"local_port": "0",
-				}
-				flowTrafficBytesSum.With(trafficLabels).Observe(float64(messageLen))
-				ingestK.in <- kafkaMessage.Value
+				k.metrics.packetsSize.Observe(float64(messageLen))
+				// process message
+				k.in <- kafkaMessage.Value
 			}
 		}
 	}()
 
 }
 
-func processRecordDelay(record config.GenericMap) {
+func (k *ingestKafka) processRecordDelay(record config.GenericMap) {
 	TimeFlowEndInterface, ok := record["TimeFlowEnd"]
 	if !ok {
-		flowErrors.With(prometheus.Labels{"router": "", "error": "No TimeFlowEnd found"}).Inc()
+		k.metrics.error("TimeFlowEnd missing")
 		return
 	}
 	TimeFlowEnd, ok := TimeFlowEndInterface.(float64)
 	if !ok {
-		flowErrors.With(prometheus.Labels{"router": "", "error": "Cannot parse TimeFlowEnd"}).Inc()
+		k.metrics.error("Cannot parse TimeFlowEnd")
 		return
 	}
 	delay := time.Since(time.Unix(int64(TimeFlowEnd), 0)).Seconds()
-	processDelaySummary.Observe(delay)
+	k.metrics.latency.Observe(delay)
 }
 
-func (ingestK *ingestKafka) processBatch(out chan<- []config.GenericMap, records [][]byte) {
-	log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(ingestK.in))
+func (k *ingestKafka) processBatch(out chan<- []config.GenericMap, records [][]byte, timer *operational.Timer) {
+	log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(k.in))
 
 	// Decode batch
-	decoded := ingestK.decoder.Decode(records)
+	decoded := k.decoder.Decode(records)
 
-	// Update metrics
-	flowDecoderCount.With(
-		prometheus.Labels{"worker": "", "name": ingestK.kafkaParams.Decoder.Type}).Inc()
-	ingestK.metrics.flowsProcessed.Add(float64(len(records)))
+	// instrument batch size distribution (which also instruments total flows counter under the hood)
+	k.metrics.batchSize.Observe(float64(len(records)))
 
 	for _, record := range decoded {
-		processRecordDelay(record)
+		k.processRecordDelay(record)
 	}
+
+	// Stage duration
+	timer.ObserveMilliseconds()
 
 	// Send batch
 	out <- decoded
 }
 
 // read items from ingestKafka input channel, pool them, and send down the pipeline
-func (ingestK *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
+func (k *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
 	var records [][]byte
-	duration := time.Duration(ingestK.kafkaParams.BatchReadTimeout) * time.Millisecond
+	timer := k.metrics.stageDurationTimer()
+	duration := time.Duration(k.batchReadTimeout) * time.Millisecond
 	flushRecords := time.NewTicker(duration)
 	for {
 		select {
-		case <-ingestK.exitChan:
+		case <-k.exitChan:
 			log.Debugf("exiting ingestKafka because of signal")
 			return
-		case record := <-ingestK.in:
+		case record := <-k.in:
+			timer.StartOnce()
 			records = append(records, record)
-			if len(records) >= ingestK.batchMaxLength {
-				ingestK.processBatch(out, records)
+			if len(records) >= k.batchMaxLength {
+				k.processBatch(out, records, timer)
 				records = [][]byte{}
 			}
 		case <-flushRecords.C: // Maximum batch time for each batch
 			// Process batch of records (if not empty)
 			if len(records) > 0 {
-				if len(ingestK.in) > 0 {
-					for len(records) < ingestK.batchMaxLength && len(ingestK.in) > 0 {
-						record := <-ingestK.in
+				if len(k.in) > 0 {
+					for len(records) < k.batchMaxLength && len(k.in) > 0 {
+						record := <-k.in
 						records = append(records, record)
 					}
 				}
-				ingestK.processBatch(out, records)
+				k.processBatch(out, records, timer)
 				records = [][]byte{}
 			}
 		}
@@ -199,10 +196,11 @@ func NewIngestKafka(opMetrics *operational.Metrics, params config.StageParam) (I
 		}
 	}
 
-	if jsonIngestKafka.BatchReadTimeout == 0 {
-		jsonIngestKafka.BatchReadTimeout = defaultBatchReadTimeout
+	batchReadTimeout := defaultBatchReadTimeout
+	if jsonIngestKafka.BatchReadTimeout != 0 {
+		batchReadTimeout = jsonIngestKafka.BatchReadTimeout
 	}
-	log.Infof("batchReadTimeout = %d", jsonIngestKafka.BatchReadTimeout)
+	log.Infof("batchReadTimeout = %d", batchReadTimeout)
 
 	commitInterval := int64(defaultKafkaCommitInterval)
 	if jsonIngestKafka.CommitInterval != 0 {
@@ -262,16 +260,16 @@ func NewIngestKafka(opMetrics *operational.Metrics, params config.StageParam) (I
 	}
 
 	in := make(chan []byte, 2*bml)
-	metrics := newMetrics(opMetrics, params.Name, func() int { return len(in) })
+	metrics := newMetrics(opMetrics, params.Name, params.Ingest.Type, func() int { return len(in) })
 
 	return &ingestKafka{
-		kafkaParams:    jsonIngestKafka,
-		kafkaReader:    kafkaReader,
-		decoder:        decoder,
-		exitChan:       utils.ExitChannel(),
-		in:             in,
-		batchMaxLength: bml,
-		metrics:        metrics,
-		canLogMessages: jsonIngestKafka.Decoder.Type == api.DecoderName("JSON"),
+		kafkaReader:      kafkaReader,
+		decoder:          decoder,
+		exitChan:         utils.ExitChannel(),
+		in:               in,
+		batchMaxLength:   bml,
+		batchReadTimeout: batchReadTimeout,
+		metrics:          metrics,
+		canLogMessages:   jsonIngestKafka.Decoder.Type == api.DecoderName("JSON"),
 	}, nil
 }

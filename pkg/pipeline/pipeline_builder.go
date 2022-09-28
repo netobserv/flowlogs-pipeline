@@ -57,17 +57,8 @@ type pipelineEntry struct {
 	Writer      write.Writer
 }
 
-var (
-	stageDurationDef = operational.DefineMetric(
-		"stage_duration_ms",
-		"Pipeline stage duration in milliseconds",
-		operational.TypeHistogram,
-		"stage",
-	)
-)
-
 func newBuilder(params []config.StageParam, stages []config.Stage, opMetrics *operational.Metrics) *builder {
-	stageDuration := opMetrics.NewHistogramVec(&stageDurationDef, []float64{.001, .01, .1, 1, 10, 100, 1000, 10000})
+	stageDuration := opMetrics.GetOrCreateStageDurationHisto()
 
 	return &builder{
 		pipelineEntryMap: map[string]*pipelineEntry{},
