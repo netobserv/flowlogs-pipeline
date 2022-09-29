@@ -78,8 +78,8 @@ func TestGetInfoPods(t *testing.T) {
 	him := InformerMock{}
 	him.On("GetIndexer").Return(&hidx)
 
-	kubeData.ipInformers.pods = &pim
-	kubeData.ipInformers.nodes = &him
+	kubeData.pods = &pim
+	kubeData.nodes = &him
 	info, err := kubeData.GetInfo("1.2.3.4")
 	require.NoError(t, err)
 
