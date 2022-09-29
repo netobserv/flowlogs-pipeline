@@ -31,7 +31,7 @@ import (
 )
 
 func getMockNetworkTransformRules() api.NetworkTransformRules {
-	rules := api.NetworkTransformRules{
+	return api.NetworkTransformRules{
 		api.NetworkTransformRule{
 			Input:      "srcIP",
 			Output:     "subnet16SrcIP",
@@ -85,14 +85,16 @@ func getMockNetworkTransformRules() api.NetworkTransformRules {
 			Output: "8888IP_location",
 			Type:   "add_location",
 		},
+	}
+}
+func getK8sTransformRules() api.NetworkTransformRules {
+	return api.NetworkTransformRules{
 		api.NetworkTransformRule{
 			Input:  "srcIP",
 			Output: "srcIP_k8s",
 			Type:   "add_kubernetes",
 		},
 	}
-
-	return rules
 }
 
 func getExpectedOutput() config.GenericMap {

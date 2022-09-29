@@ -22,7 +22,6 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 )
@@ -44,48 +43,54 @@ type InformerInterface interface {
 }
 
 func (indexMock *IndexerMock) ByIndex(indexName, indexedValue string) ([]interface{}, error) {
-	pod := fakePod("podName", "podNamespace", "podHostIP")
-	podInterface := interface{}(pod)
-	return []interface{}{podInterface}, nil
-}
-
-func fakePod(name, ns, host string) *v1.Pod {
-	return &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: ns,
-		},
-		Status: v1.PodStatus{
-			HostIP: host,
-		},
-	}
+	args := indexMock.Called(indexName, indexedValue)
+	return args.Get(0).([]interface{}), args.Error(1)
 }
 
 func (informerMock *InformerMock) GetIndexer() cache.Indexer {
-	informerMock.Mock.Called()
-	return &IndexerMock{}
+	args := informerMock.Called()
+	return args.Get(0).(cache.Indexer)
 }
 
-func TestKubeData_getInfo(t *testing.T) {
-	// Test with no informer
+func TestGetInfoPods(t *testing.T) {
 	kubeData := KubeData{}
-	info, err := kubeData.GetInfo("1.2.3.4")
-	require.EqualError(t, err, "can't find ip")
-	require.Nil(t, info)
+	// pods informer
+	pidx := IndexerMock{}
+	pidx.On("ByIndex", IndexIP, "1.2.3.4").Return([]interface{}{&Info{
+		Type: "Pod",
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "podName",
+			Namespace: "podNamespace",
+		},
+		HostIP: "10.0.0.1",
+		Owner:  Owner{Name: "podName", Type: "Pod"},
+	}}, nil)
+	pim := InformerMock{}
+	pim.On("GetIndexer").Return(&pidx)
+	// nodes informer
+	hidx := IndexerMock{}
+	hidx.On("ByIndex", IndexIP, "10.0.0.1").Return([]interface{}{&Info{
+		Type: "Node",
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "nodeName",
+		},
+	}}, nil)
+	him := InformerMock{}
+	him.On("GetIndexer").Return(&hidx)
 
-	// Test with mock pod informer
-	expectedInfo := &Info{
-		Type:      "Pod",
-		Name:      "podName",
-		Namespace: "podNamespace",
-		HostIP:    "podHostIP",
-		Owner:     Owner{Name: "podName", Type: "Pod"},
-	}
-	kubeData = KubeData{ipInformers: map[string]cache.SharedIndexInformer{}}
-	informerMock := &InformerMock{}
-	informerMock.On("GetIndexer", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	kubeData.ipInformers["Pod"] = informerMock
-	info, err = kubeData.GetInfo("1.2.3.4")
+	kubeData.ipInformers.pods = &pim
+	kubeData.ipInformers.nodes = &him
+	info, err := kubeData.GetInfo("1.2.3.4")
 	require.NoError(t, err)
-	require.Equal(t, info, expectedInfo)
+
+	require.Equal(t, *info, Info{
+		Type: "Pod",
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "podName",
+			Namespace: "podNamespace",
+		},
+		HostName: "nodeName",
+		HostIP:   "10.0.0.1",
+		Owner:    Owner{Name: "podName", Type: "Pod"},
+	})
 }
