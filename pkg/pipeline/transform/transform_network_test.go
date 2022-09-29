@@ -87,15 +87,6 @@ func getMockNetworkTransformRules() api.NetworkTransformRules {
 		},
 	}
 }
-func getK8sTransformRules() api.NetworkTransformRules {
-	return api.NetworkTransformRules{
-		api.NetworkTransformRule{
-			Input:  "srcIP",
-			Output: "srcIP_k8s",
-			Type:   "add_kubernetes",
-		},
-	}
-}
 
 func getExpectedOutput() config.GenericMap {
 	return config.GenericMap{
