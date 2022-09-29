@@ -976,7 +976,7 @@
          "bars": false,
          "dashLength": 10,
          "dashes": false,
-         "datasource": "loki",
+         "datasource": "prometheus",
          "fill": 1,
          "fillGradient": 0,
          "gridPos": {
@@ -986,6 +986,91 @@
             "y": 0
          },
          "id": 14,
+         "legend": {
+            "alignAsTable": false,
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "rightSide": false,
+            "show": true,
+            "sideWidth": null,
+            "total": false,
+            "values": false
+         },
+         "lines": true,
+         "linewidth": 1,
+         "links": [ ],
+         "nullPointMode": "null",
+         "percentage": false,
+         "pointradius": 5,
+         "points": false,
+         "renderer": "flot",
+         "repeat": null,
+         "seriesOverrides": [ ],
+         "spaceLength": 10,
+         "stack": false,
+         "steppedLine": false,
+         "targets": [
+            {
+               "expr": "topk(10,rate(flp_connections_per_destination_location{_RecordType=\"newConnection\"}[1m]))",
+               "format": "time_series",
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "A"
+            }
+         ],
+         "thresholds": [ ],
+         "timeFrom": null,
+         "timeShift": null,
+         "title": "Connections rate per destinationIP geo-location",
+         "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+         },
+         "type": "graph",
+         "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": [ ]
+         },
+         "yaxes": [
+            {
+               "format": "short",
+               "label": null,
+               "logBase": 1,
+               "max": null,
+               "min": null,
+               "show": true
+            },
+            {
+               "format": "short",
+               "label": null,
+               "logBase": 1,
+               "max": null,
+               "min": null,
+               "show": true
+            }
+         ]
+      },
+      {
+         "aliasColors": { },
+         "bars": false,
+         "dashLength": 10,
+         "dashes": false,
+         "datasource": "loki",
+         "fill": 1,
+         "fillGradient": 0,
+         "gridPos": {
+            "h": 20,
+            "w": 25,
+            "x": 0,
+            "y": 0
+         },
+         "id": 15,
          "legend": {
             "alignAsTable": false,
             "avg": false,
@@ -1070,7 +1155,7 @@
             "x": 0,
             "y": 0
          },
-         "id": 15,
+         "id": 16,
          "legend": {
             "alignAsTable": false,
             "avg": false,
@@ -1155,7 +1240,7 @@
             "x": 0,
             "y": 0
          },
-         "id": 16,
+         "id": 17,
          "legend": {
             "alignAsTable": false,
             "avg": false,

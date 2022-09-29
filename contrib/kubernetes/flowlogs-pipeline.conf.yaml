@@ -60,10 +60,12 @@ parameters:
           fields:
           - srcIP
           - srcPort
+          - srcAS
         - name: dst
           fields:
           - dstIP
           - dstPort
+          - dstAS
         - name: protocol
           fields:
           - proto
@@ -131,6 +133,9 @@ parameters:
         output: all
         type: add_if
         parameters: '>=0'
+      - input: dstIP
+        output: dstLocation
+        type: add_location
 - name: extract_aggregate
   extract:
     type: aggregates
@@ -220,6 +225,11 @@ parameters:
       - _RecordType
       operationType: raw_values
       operationKey: bytes
+    - name: dest_connection_location_count
+      groupByKeys:
+      - dstLocation_CountryName
+      - _RecordType
+      operationType: count
     - name: dest_service_count
       groupByKeys:
       - service
@@ -391,6 +401,16 @@ parameters:
         - 10240
         - 102400
         - 1.048576e+06
+      - name: connections_per_destination_location
+        type: counter
+        filter:
+          key: name
+          value: dest_connection_location_count
+        valueKey: recent_count
+        labels:
+        - dstLocation_CountryName
+        - _RecordType
+        buckets: []
       - name: service_count
         type: counter
         filter:

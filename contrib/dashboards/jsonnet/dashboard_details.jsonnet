@@ -216,6 +216,22 @@ dashboard.new(
 )
 .addPanel(
   graphPanel.new(
+    datasource='prometheus',
+    title="Connections rate per destinationIP geo-location",
+  )
+  .addTarget(
+    prometheus.target(
+      expr='topk(10,rate(flp_connections_per_destination_location{_RecordType="newConnection"}[1m]))',
+    )
+  ), gridPos={
+    x: 0,
+    y: 0,
+    w: 25,
+    h: 20,
+  }
+)
+.addPanel(
+  graphPanel.new(
     datasource='loki',
     title="Bandwidth per source namespace",
   )

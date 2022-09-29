@@ -163,6 +163,18 @@ and the transformation to generate the exported metric.
 |||  
 
 
+### geo location rate per dest
+| **Description** | This metric observes connections geo-location rate per destination IP | 
+|:---|:---|
+| **Details** | Counts the number of connections per geo-location based on destination IP | 
+| **Usage** | Evaluate network connections geo-location | 
+| **Tags** | rate, connections-count, geo-location, destinationIP |
+| **OperationType** | aggregate by `dstLocation_CountryName, _RecordType` and `count`  |
+| **Exposed as** | `flp_connections_per_destination_location` of type `counter` |
+| **Visualized as** | "Connections rate per destinationIP geo-location" on dashboard `details` |
+|||  
+
+
 ### loki bandwidth per namespace
 | **Description** | This metric observes the bandwidth per namespace (from Loki) | 
 |:---|:---|
