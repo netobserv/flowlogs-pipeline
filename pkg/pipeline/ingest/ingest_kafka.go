@@ -80,15 +80,16 @@ func (k *ingestKafka) kafkaListener() {
 			if k.canLogMessages {
 				log.Debugf("string(kafkaMessage) = %s\n", string(kafkaMessage.Value))
 			}
+			// We don't know how many messages were in kafka internal batches, so just increment per-message
+			k.metrics.batchSize.Observe(1)
 			messageLen := len(kafkaMessage.Value)
+			k.metrics.batchSizeBytes.Observe(float64(messageLen) + float64(len(kafkaMessage.Key)))
 			if messageLen > 0 {
-				k.metrics.packetsSize.Observe(float64(messageLen))
 				// process message
 				k.in <- kafkaMessage.Value
 			}
 		}
 	}()
-
 }
 
 func (k *ingestKafka) processRecordDelay(record config.GenericMap) {
@@ -111,9 +112,6 @@ func (k *ingestKafka) processBatch(out chan<- []config.GenericMap, records [][]b
 
 	// Decode batch
 	decoded := k.decoder.Decode(records)
-
-	// instrument batch size distribution (which also instruments total flows counter under the hood)
-	k.metrics.batchSize.Observe(float64(len(records)))
 
 	for _, record := range decoded {
 		k.processRecordDelay(record)

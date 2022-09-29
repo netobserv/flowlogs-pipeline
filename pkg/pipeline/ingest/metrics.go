@@ -15,13 +15,13 @@ var (
 	)
 	batchSizeSummary = operational.DefineMetric(
 		"ingest_flows_processed", // This is intentionally named to emphasize its utility for flows counting, despite being a batch size distribution
-		"Provides number of flows processed, batches processed, and batch size stats",
+		"Provides number of flows processed, batches processed, and batch size stats (in number of flows)",
 		operational.TypeSummary,
 		"stage",
 	)
-	packetsSizeSummary = operational.DefineMetric(
-		"ingest_packets_size_bytes",
-		"Ingested packets size distribution, in bytes",
+	batchSizeBytesSummary = operational.DefineMetric(
+		"ingest_batch_size_bytes",
+		"Ingested batch size distribution, in bytes",
 		operational.TypeSummary,
 		"stage",
 	)
@@ -35,26 +35,26 @@ var (
 
 type metrics struct {
 	*operational.Metrics
-	stage         string
-	stageType     string
-	stageDuration prometheus.Observer
-	latency       prometheus.Histogram
-	batchSize     prometheus.Summary
-	packetsSize   prometheus.Summary
-	errors        *prometheus.CounterVec
+	stage          string
+	stageType      string
+	stageDuration  prometheus.Observer
+	latency        prometheus.Histogram
+	batchSize      prometheus.Summary
+	batchSizeBytes prometheus.Summary
+	errors         *prometheus.CounterVec
 }
 
 func newMetrics(opMetrics *operational.Metrics, stage, stageType string, inGaugeFunc func() int) *metrics {
 	opMetrics.CreateInQueueSizeGauge(stage, inGaugeFunc)
 	return &metrics{
-		Metrics:       opMetrics,
-		stage:         stage,
-		stageType:     stageType,
-		latency:       opMetrics.NewHistogram(&latencyHistogram, []float64{.001, .01, .1, 1, 10, 100, 1000, 10000}, stage),
-		stageDuration: opMetrics.GetOrCreateStageDurationHisto().WithLabelValues(stage),
-		batchSize:     opMetrics.NewSummary(&batchSizeSummary, stage),
-		packetsSize:   opMetrics.NewSummary(&packetsSizeSummary, stage),
-		errors:        opMetrics.NewCounterVec(&errorsCounter),
+		Metrics:        opMetrics,
+		stage:          stage,
+		stageType:      stageType,
+		latency:        opMetrics.NewHistogram(&latencyHistogram, []float64{.001, .01, .1, 1, 10, 100, 1000, 10000}, stage),
+		stageDuration:  opMetrics.GetOrCreateStageDurationHisto().WithLabelValues(stage),
+		batchSize:      opMetrics.NewSummary(&batchSizeSummary, stage),
+		batchSizeBytes: opMetrics.NewSummary(&batchSizeBytesSummary, stage),
+		errors:         opMetrics.NewCounterVec(&errorsCounter),
 	}
 }
 

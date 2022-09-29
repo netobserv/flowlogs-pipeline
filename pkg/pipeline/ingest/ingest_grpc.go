@@ -98,7 +98,7 @@ func instrumentGRPC(port int, m *metrics) grpc2.UnaryServerInterceptor {
 		m.batchSize.Observe(float64(len(flowRecords.Entries)))
 
 		// instrument message bytes
-		m.packetsSize.Observe(float64(proto.Size(flowRecords)))
+		m.batchSizeBytes.Observe(float64(proto.Size(flowRecords)))
 
 		resp, err = handler(ctx, req)
 		if err != nil {

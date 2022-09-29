@@ -39,6 +39,14 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Labels** | error, metric, key | 
 
 
+### ingest_batch_size_bytes
+| **Name** | ingest_batch_size_bytes | 
+|:---|:---|
+| **Description** | Ingested batch size distribution, in bytes | 
+| **Type** | summary | 
+| **Labels** | stage | 
+
+
 ### ingest_errors
 | **Name** | ingest_errors | 
 |:---|:---|
@@ -50,7 +58,7 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 ### ingest_flows_processed
 | **Name** | ingest_flows_processed | 
 |:---|:---|
-| **Description** | Provides number of flows processed, batches processed, and batch size stats | 
+| **Description** | Provides number of flows processed, batches processed, and batch size stats (in number of flows) | 
 | **Type** | summary | 
 | **Labels** | stage | 
 
@@ -60,14 +68,6 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 |:---|:---|
 | **Description** | Latency between flow end time and ingest time, in milliseconds | 
 | **Type** | histogram | 
-| **Labels** | stage | 
-
-
-### ingest_packets_size_bytes
-| **Name** | ingest_packets_size_bytes | 
-|:---|:---|
-| **Description** | Ingested packets size distribution, in bytes | 
-| **Type** | summary | 
 | **Labels** | stage | 
 
 
