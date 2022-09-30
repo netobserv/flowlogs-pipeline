@@ -18,6 +18,7 @@
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -54,9 +55,13 @@ type kubeDataInterface interface {
 
 type KubeData struct {
 	kubeDataInterface
-	ipInformers        map[string]cache.SharedIndexInformer
-	replicaSetInformer cache.SharedIndexInformer
-	stopChan           chan struct{}
+	// pods, nodes and services cache the different object types as *Info pointers
+	pods     cache.SharedIndexInformer
+	nodes    cache.SharedIndexInformer
+	services cache.SharedIndexInformer
+	// replicaSets caches the ReplicaSets as partially-filled *ObjectMeta pointers
+	replicaSets cache.SharedIndexInformer
+	stopChan    chan struct{}
 }
 
 type Owner struct {
@@ -64,85 +69,94 @@ type Owner struct {
 	Name string
 }
 
+// Info contains precollected metadata for Pods, Nodes and Services.
+// Not all the fields are populated for all the above types. To save
+// memory, we just keep in memory the necessary data for each Type.
+// For more information about which fields are set for each type, please
+// refer to the instantiation function of the respective informers.
 type Info struct {
-	Type            string
-	Name            string
-	Namespace       string
-	Labels          map[string]string
-	OwnerReferences []metav1.OwnerReference
-	Owner           Owner
-	HostName        string
-	HostIP          string
+	// Informers need that internal object is an ObjectMeta instance
+	metav1.ObjectMeta
+	Type     string
+	Owner    Owner
+	HostName string
+	HostIP   string
+	ips      []string
+}
+
+var commonIndexers = map[string]cache.IndexFunc{
+	IndexIP: func(obj interface{}) ([]string, error) {
+		return obj.(*Info).ips, nil
+	},
 }
 
 func (k *KubeData) GetInfo(ip string) (*Info, error) {
-	for objType, informer := range k.ipInformers {
-		objs, err := informer.GetIndexer().ByIndex(IndexIP, ip)
-		if err == nil && len(objs) > 0 {
-			var info *Info
-			switch objType {
-			case typePod:
-				pod := objs[0].(*v1.Pod)
-				info = &Info{
-					Type:            typePod,
-					Name:            pod.Name,
-					Namespace:       pod.Namespace,
-					Labels:          pod.Labels,
-					OwnerReferences: pod.OwnerReferences,
-					HostIP:          pod.Status.HostIP,
-					HostName:        k.getHostName(pod.Status.HostIP),
-				}
-			case typeNode:
-				node := objs[0].(*v1.Node)
-				info = &Info{
-					Type:      typeNode,
-					Name:      node.Name,
-					Namespace: node.Namespace,
-					Labels:    node.Labels,
-				}
-			case typeService:
-				service := objs[0].(*v1.Service)
-				info = &Info{
-					Type:      typeService,
-					Name:      service.Name,
-					Namespace: service.Namespace,
-					Labels:    service.Labels,
-				}
-			}
-
+	if info, ok := k.fetchInformers(ip); ok {
+		// Owner data might be discovered after the owned, so we fetch it
+		// at the last moment
+		if info.Owner.Name == "" {
 			info.Owner = k.getOwner(info)
-			return info, nil
 		}
+		return info, nil
 	}
 
-	return nil, fmt.Errorf("can't find ip")
+	return nil, fmt.Errorf("informers can't find IP %s", ip)
+}
+
+func (k *KubeData) fetchInformers(ip string) (*Info, bool) {
+	if info, ok := infoForIP(k.pods.GetIndexer(), ip); ok {
+		// it might happen that the Host is discovered after the Pod
+		if info.HostName == "" {
+			info.HostName = k.getHostName(info.HostIP)
+		}
+		return info, true
+	}
+	if info, ok := infoForIP(k.nodes.GetIndexer(), ip); ok {
+		return info, true
+	}
+	if info, ok := infoForIP(k.services.GetIndexer(), ip); ok {
+		return info, true
+	}
+	return nil, false
+}
+
+func infoForIP(idx cache.Indexer, ip string) (*Info, bool) {
+	objs, err := idx.ByIndex(IndexIP, ip)
+	if err != nil {
+		log.WithError(err).WithField("ip", ip).Debug("error accessing index. Ignoring")
+		return nil, false
+	}
+	if len(objs) == 0 {
+		return nil, false
+	}
+	return objs[0].(*Info), true
 }
 
 func (k *KubeData) getOwner(info *Info) Owner {
-	if info.OwnerReferences != nil && len(info.OwnerReferences) > 0 {
+	if len(info.OwnerReferences) != 0 {
 		ownerReference := info.OwnerReferences[0]
-		if ownerReference.Kind == "ReplicaSet" {
-			item, ok, err := k.replicaSetInformer.GetIndexer().GetByKey(info.Namespace + "/" + ownerReference.Name)
-			if err != nil {
-				panic(err)
-			}
-			if ok {
-				replicaSet := item.(*appsv1.ReplicaSet)
-				if len(replicaSet.OwnerReferences) > 0 {
-					return Owner{
-						Name: replicaSet.OwnerReferences[0].Name,
-						Type: replicaSet.OwnerReferences[0].Kind,
-					}
-				}
-			}
-		} else {
+		if ownerReference.Kind != "ReplicaSet" {
 			return Owner{
 				Name: ownerReference.Name,
 				Type: ownerReference.Kind,
 			}
 		}
-	}
 
+		item, ok, err := k.replicaSets.GetIndexer().GetByKey(info.Namespace + "/" + ownerReference.Name)
+		if err != nil {
+			log.WithError(err).WithField("key", info.Namespace+"/"+ownerReference.Name).
+				Debug("can't get ReplicaSet info from informer. Ignoring")
+		} else if ok {
+			rsInfo := item.(*metav1.ObjectMeta)
+			if len(rsInfo.OwnerReferences) > 0 {
+				return Owner{
+					Name: rsInfo.OwnerReferences[0].Name,
+					Type: rsInfo.OwnerReferences[0].Kind,
+				}
+			}
+		}
+	}
+	// If no owner references found, return itself as owner
 	return Owner{
 		Name: info.Name,
 		Type: info.Type,
@@ -150,84 +164,145 @@ func (k *KubeData) getOwner(info *Info) Owner {
 }
 
 func (k *KubeData) getHostName(hostIP string) string {
-	if k.ipInformers[typeNode] != nil && len(hostIP) > 0 {
-		objs, err := k.ipInformers[typeNode].GetIndexer().ByIndex(IndexIP, hostIP)
-		if err == nil && len(objs) > 0 {
-			return objs[0].(*v1.Node).Name
+	if hostIP != "" {
+		if info, ok := infoForIP(k.nodes.GetIndexer(), hostIP); ok {
+			return info.Name
 		}
 	}
 	return ""
 }
 
-func (k *KubeData) NewNodeInformer(informerFactory informers.SharedInformerFactory) error {
+func (k *KubeData) initNodeInformer(informerFactory informers.SharedInformerFactory) error {
 	nodes := informerFactory.Core().V1().Nodes().Informer()
-	err := nodes.AddIndexers(map[string]cache.IndexFunc{
-		IndexIP: func(obj interface{}) ([]string, error) {
-			node := obj.(*v1.Node)
-			ips := make([]string, 0, len(node.Status.Addresses))
-			for _, address := range node.Status.Addresses {
-				ip := net.ParseIP(address.Address)
-				if ip != nil {
-					ips = append(ips, ip.String())
-				}
+	// Transform any *v1.Node instance into a *Info instance to save space
+	// in the informer's cache
+	if err := nodes.SetTransform(func(i interface{}) (interface{}, error) {
+		node, ok := i.(*v1.Node)
+		if !ok {
+			return nil, fmt.Errorf("was expecting a Node. Got: %T", i)
+		}
+		ips := make([]string, 0, len(node.Status.Addresses))
+		for _, address := range node.Status.Addresses {
+			ip := net.ParseIP(address.Address)
+			if ip != nil {
+				ips = append(ips, ip.String())
 			}
-			// CNI-dependent logic (must work regardless of whether the CNI is installed)
-			ips = cni.AddOvnIPs(ips, node)
+		}
+		// CNI-dependent logic (must work regardless of whether the CNI is installed)
+		ips = cni.AddOvnIPs(ips, node)
 
-			return ips, nil
-		},
-	})
-
-	k.ipInformers[typeNode] = nodes
-	return err
+		return &Info{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      node.Name,
+				Namespace: node.Namespace,
+				Labels:    node.Labels,
+			},
+			ips:  ips,
+			Type: typeNode,
+		}, nil
+	}); err != nil {
+		return fmt.Errorf("can't set nodes transform: %w", err)
+	}
+	if err := nodes.AddIndexers(commonIndexers); err != nil {
+		return fmt.Errorf("can't add %s indexer to Nodes informer: %w", IndexIP, err)
+	}
+	k.nodes = nodes
+	return nil
 }
 
-func (k *KubeData) NewPodInformer(informerFactory informers.SharedInformerFactory) error {
+func (k *KubeData) initPodInformer(informerFactory informers.SharedInformerFactory) error {
 	pods := informerFactory.Core().V1().Pods().Informer()
-	err := pods.AddIndexers(map[string]cache.IndexFunc{
-		IndexIP: func(obj interface{}) ([]string, error) {
-			pod := obj.(*v1.Pod)
-			ips := make([]string, 0, len(pod.Status.PodIPs))
-			for _, ip := range pod.Status.PodIPs {
-				// ignoring host-networked Pod IPs
-				if ip.IP != pod.Status.HostIP {
-					ips = append(ips, ip.IP)
-				}
+	// Transform any *v1.Pod instance into a *Info instance to save space
+	// in the informer's cache
+	if err := pods.SetTransform(func(i interface{}) (interface{}, error) {
+		pod, ok := i.(*v1.Pod)
+		if !ok {
+			return nil, fmt.Errorf("was expecting a Pod. Got: %T", i)
+		}
+		ips := make([]string, 0, len(pod.Status.PodIPs))
+		for _, ip := range pod.Status.PodIPs {
+			// ignoring host-networked Pod IPs
+			if ip.IP != pod.Status.HostIP {
+				ips = append(ips, ip.IP)
 			}
-			return ips, nil
-		},
-	})
+		}
+		return &Info{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            pod.Name,
+				Namespace:       pod.Namespace,
+				Labels:          pod.Labels,
+				OwnerReferences: pod.OwnerReferences,
+			},
+			Type:   typePod,
+			HostIP: pod.Status.HostIP,
+			ips:    ips,
+		}, nil
+	}); err != nil {
+		return fmt.Errorf("can't set pods transform: %w", err)
+	}
+	if err := pods.AddIndexers(commonIndexers); err != nil {
+		return fmt.Errorf("can't add %s indexer to Pods informer: %w", IndexIP, err)
+	}
 
-	k.ipInformers[typePod] = pods
-	return err
+	k.pods = pods
+	return nil
 }
 
-func (k *KubeData) NewServiceInformer(informerFactory informers.SharedInformerFactory) error {
+func (k *KubeData) initServiceInformer(informerFactory informers.SharedInformerFactory) error {
 	services := informerFactory.Core().V1().Services().Informer()
-	err := services.AddIndexers(map[string]cache.IndexFunc{
-		IndexIP: func(obj interface{}) ([]string, error) {
-			service := obj.(*v1.Service)
-			ips := service.Spec.ClusterIPs
-			if service.Spec.ClusterIP == v1.ClusterIPNone {
-				return []string{}, nil
-			}
-			return ips, nil
-		},
-	})
+	// Transform any *v1.Service instance into a *Info instance to save space
+	// in the informer's cache
+	if err := services.SetTransform(func(i interface{}) (interface{}, error) {
+		svc, ok := i.(*v1.Service)
+		if !ok {
+			return nil, fmt.Errorf("was expecting a Service. Got: %T", i)
+		}
+		if svc.Spec.ClusterIP == v1.ClusterIPNone {
+			return nil, errors.New("not indexing service without ClusterIP")
+		}
+		return &Info{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      svc.Name,
+				Namespace: svc.Namespace,
+				Labels:    svc.Labels,
+			},
+			Type: typeService,
+			ips:  svc.Spec.ClusterIPs,
+		}, nil
+	}); err != nil {
+		return fmt.Errorf("can't set services transform: %w", err)
+	}
+	if err := services.AddIndexers(commonIndexers); err != nil {
+		return fmt.Errorf("can't add %s indexer to Pods informer: %w", IndexIP, err)
+	}
 
-	k.ipInformers[typeService] = services
-	return err
+	k.services = services
+	return nil
 }
 
-func (k *KubeData) NewReplicaSetInformer(informerFactory informers.SharedInformerFactory) error {
-	k.replicaSetInformer = informerFactory.Apps().V1().ReplicaSets().Informer()
+func (k *KubeData) initReplicaSetInformer(informerFactory informers.SharedInformerFactory) error {
+	k.replicaSets = informerFactory.Apps().V1().ReplicaSets().Informer()
+	// To save space, instead of storing a complete *appvs1.Replicaset instance, the
+	// informer's cache will store a *metav1.ObjectMeta with the minimal required fields
+	if err := k.replicaSets.SetTransform(func(i interface{}) (interface{}, error) {
+		rs, ok := i.(*appsv1.ReplicaSet)
+		if !ok {
+			return nil, fmt.Errorf("was expecting a ReplicaSet. Got: %T", i)
+		}
+		return &metav1.ObjectMeta{
+			Name:            rs.Name,
+			Namespace:       rs.Namespace,
+			OwnerReferences: rs.OwnerReferences,
+		}, nil
+	}); err != nil {
+		return fmt.Errorf("can't set ReplicaSets transform: %w", err)
+	}
 	return nil
 }
 
 func (k *KubeData) InitFromConfig(kubeConfigPath string) error {
 	// Initialization variables
 	k.stopChan = make(chan struct{})
-	k.ipInformers = map[string]cache.SharedIndexInformer{}
 
 	config, err := LoadConfig(kubeConfigPath)
 	if err != nil {
@@ -276,19 +351,19 @@ func LoadConfig(kubeConfigPath string) (*rest.Config, error) {
 
 func (k *KubeData) initInformers(client kubernetes.Interface) error {
 	informerFactory := informers.NewSharedInformerFactory(client, syncTime)
-	err := k.NewNodeInformer(informerFactory)
+	err := k.initNodeInformer(informerFactory)
 	if err != nil {
 		return err
 	}
-	err = k.NewPodInformer(informerFactory)
+	err = k.initPodInformer(informerFactory)
 	if err != nil {
 		return err
 	}
-	err = k.NewServiceInformer(informerFactory)
+	err = k.initServiceInformer(informerFactory)
 	if err != nil {
 		return err
 	}
-	err = k.NewReplicaSetInformer(informerFactory)
+	err = k.initReplicaSetInformer(informerFactory)
 	if err != nil {
 		return err
 	}
