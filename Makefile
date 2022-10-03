@@ -99,7 +99,8 @@ clean: ## Clean
 TEST_OPTS := -race -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out
 .PHONY: tests-unit
 tests-unit: validate_go ## Unit tests
-	go test -p 1 $(TEST_OPTS) $$(go list ./... | grep -v /e2e)
+	# enabling CGO is required for -race flag
+	CGO_ENABLED=1 go test -p 1 $(TEST_OPTS) $$(go list ./... | grep -v /e2e)
 
 .PHONY: tests-fast
 tests-fast: TEST_OPTS=
@@ -107,7 +108,7 @@ tests-fast: tests-unit ## Fast unit tests (no race tests / coverage)
 
 .PHONY: tests-e2e
 tests-e2e: validate_go $(KIND)  ## End-to-end tests
-	go test -p 1 -v -timeout 20m -race $$(go list ./... | grep  /e2e)
+	go test -p 1 -v -timeout 20m $$(go list ./... | grep  /e2e)
 
 .PHONY: tests-all
 tests-all: validate_go tests-unit tests-e2e ## All tests
