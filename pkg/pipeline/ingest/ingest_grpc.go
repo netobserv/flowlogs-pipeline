@@ -43,7 +43,7 @@ func NewGRPCProtobuf(opMetrics *operational.Metrics, params config.StageParam) (
 	flowPackets := make(chan *pbflow.Records, bufLen)
 	metrics := newMetrics(opMetrics, params.Name, params.Ingest.Type, func() int { return len(flowPackets) })
 	collector, err := grpc.StartCollector(netObserv.Port, flowPackets,
-		grpc.WithGRPCServerOptions(grpc2.UnaryInterceptor(instrumentGRPC(netObserv.Port, metrics))))
+		grpc.WithGRPCServerOptions(grpc2.UnaryInterceptor(instrumentGRPC(metrics))))
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (no *GRPCProtobuf) Close() error {
 	return err
 }
 
-func instrumentGRPC(port int, m *metrics) grpc2.UnaryServerInterceptor {
+func instrumentGRPC(m *metrics) grpc2.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},
@@ -96,10 +96,10 @@ func instrumentGRPC(port int, m *metrics) grpc2.UnaryServerInterceptor {
 		}
 
 		// instrument batch size distribution (which also instruments total flows counter under the hood)
-		m.flowsProcessed.Add(float64(len(flowRecords.Entries)))
+		m.batchSize.Observe(float64(len(flowRecords.Entries)))
 
 		// instrument message bytes
-		m.ingestBytes.Add(float64(proto.Size(flowRecords)))
+		m.batchSizeBytes.Observe(float64(proto.Size(flowRecords)))
 
 		resp, err = handler(ctx, req)
 		if err != nil {

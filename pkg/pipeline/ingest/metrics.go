@@ -13,16 +13,16 @@ var (
 		operational.TypeHistogram,
 		"stage",
 	)
-	flowsProcessed = operational.DefineMetric(
+	batchSizeSummary = operational.DefineMetric(
 		"ingest_flows_processed", // This is intentionally named to emphasize its utility for flows counting, despite being a batch size distribution
-		"Provides number of flows processed",
-		operational.TypeCounter,
+		"Provides number of flows processed, batches processed, and batch size stats (in number of flows)",
+		operational.TypeSummary,
 		"stage",
 	)
-	ingestBytes = operational.DefineMetric(
-		"ingest_bytes",
-		"Ingested size of the processed flows, in bytes",
-		operational.TypeCounter,
+	batchSizeBytesSummary = operational.DefineMetric(
+		"ingest_batch_size_bytes",
+		"Ingested batch size distribution, in bytes",
+		operational.TypeSummary,
 		"stage",
 	)
 	errorsCounter = operational.DefineMetric(
@@ -39,8 +39,8 @@ type metrics struct {
 	stageType      string
 	stageDuration  prometheus.Observer
 	latency        prometheus.Histogram
-	flowsProcessed prometheus.Counter
-	ingestBytes    prometheus.Counter
+	batchSize      prometheus.Summary
+	batchSizeBytes prometheus.Summary
 	errors         *prometheus.CounterVec
 }
 
@@ -52,8 +52,8 @@ func newMetrics(opMetrics *operational.Metrics, stage, stageType string, inGauge
 		stageType:      stageType,
 		latency:        opMetrics.NewHistogram(&latencyHistogram, []float64{.001, .01, .1, 1, 10, 100, 1000, 10000}, stage),
 		stageDuration:  opMetrics.GetOrCreateStageDurationHisto().WithLabelValues(stage),
-		flowsProcessed: opMetrics.NewCounter(&flowsProcessed, stage),
-		ingestBytes:    opMetrics.NewCounter(&ingestBytes, stage),
+		batchSize:      opMetrics.NewSummary(&batchSizeSummary, stage),
+		batchSizeBytes: opMetrics.NewSummary(&batchSizeBytesSummary, stage),
 		errors:         opMetrics.NewCounterVec(&errorsCounter),
 	}
 }
