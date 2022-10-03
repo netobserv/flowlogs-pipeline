@@ -39,11 +39,35 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Labels** | error, metric, key | 
 
 
+### ingest_batch_size_bytes
+| **Name** | ingest_batch_size_bytes | 
+|:---|:---|
+| **Description** | Ingested batch size distribution, in bytes | 
+| **Type** | summary | 
+| **Labels** | stage | 
+
+
+### ingest_errors
+| **Name** | ingest_errors | 
+|:---|:---|
+| **Description** | Counter of errors during ingestion | 
+| **Type** | counter | 
+| **Labels** | stage, type, code | 
+
+
 ### ingest_flows_processed
 | **Name** | ingest_flows_processed | 
 |:---|:---|
-| **Description** | Number of flow logs processed by the ingester | 
-| **Type** | counter | 
+| **Description** | Provides number of flows processed, batches processed, and batch size stats (in number of flows) | 
+| **Type** | summary | 
+| **Labels** | stage | 
+
+
+### ingest_latency_ms
+| **Name** | ingest_latency_ms | 
+|:---|:---|
+| **Description** | Latency between flow end time and ingest time, in milliseconds | 
+| **Type** | histogram | 
 | **Labels** | stage | 
 
 

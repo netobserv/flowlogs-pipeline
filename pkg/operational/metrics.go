@@ -36,9 +36,10 @@ type MetricDefinition struct {
 
 type metricType string
 
-const TypeCounter = "counter"
-const TypeGauge = "gauge"
-const TypeHistogram = "histogram"
+const TypeCounter metricType = "counter"
+const TypeGauge metricType = "gauge"
+const TypeHistogram metricType = "histogram"
+const TypeSummary metricType = "summary"
 
 var allMetrics = []MetricDefinition{}
 
@@ -54,12 +55,6 @@ func DefineMetric(name, help string, t metricType, labels ...string) MetricDefin
 }
 
 var (
-	ingestFlowsProcessed = DefineMetric(
-		"ingest_flows_processed",
-		"Number of flow logs processed by the ingester",
-		TypeCounter,
-		"stage",
-	)
 	recordsWritten = DefineMetric(
 		"records_written",
 		"Number of output records written",
@@ -78,6 +73,12 @@ var (
 		TypeGauge,
 		"stage",
 	)
+	stageDuration = DefineMetric(
+		"stage_duration_ms",
+		"Pipeline stage duration in milliseconds",
+		TypeHistogram,
+		"stage",
+	)
 )
 
 func (def *MetricDefinition) mapLabels(labels []string) prometheus.Labels {
@@ -92,7 +93,8 @@ func (def *MetricDefinition) mapLabels(labels []string) prometheus.Labels {
 }
 
 type Metrics struct {
-	settings *config.MetricsSettings
+	settings           *config.MetricsSettings
+	stageDurationHisto *prometheus.HistogramVec
 }
 
 func NewMetrics(settings *config.MetricsSettings) *Metrics {
@@ -153,6 +155,18 @@ func (o *Metrics) NewGaugeFunc(def *MetricDefinition, f func() float64, labels .
 	o.register(c, fullName)
 }
 
+func (o *Metrics) NewHistogram(def *MetricDefinition, buckets []float64, labels ...string) prometheus.Histogram {
+	fullName := o.settings.Prefix + def.Name
+	c := prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:        fullName,
+		Help:        def.Help,
+		Buckets:     buckets,
+		ConstLabels: def.mapLabels(labels),
+	})
+	o.register(c, fullName)
+	return c
+}
+
 func (o *Metrics) NewHistogramVec(def *MetricDefinition, buckets []float64) *prometheus.HistogramVec {
 	fullName := o.settings.Prefix + def.Name
 	c := prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -164,8 +178,20 @@ func (o *Metrics) NewHistogramVec(def *MetricDefinition, buckets []float64) *pro
 	return c
 }
 
-func (o *Metrics) CreateFlowsProcessedCounter(stage string) prometheus.Counter {
-	return o.NewCounter(&ingestFlowsProcessed, stage)
+func (o *Metrics) NewSummary(def *MetricDefinition, labels ...string) prometheus.Summary {
+	fullName := o.settings.Prefix + def.Name
+	c := prometheus.NewSummary(prometheus.SummaryOpts{
+		Name:        fullName,
+		Help:        def.Help,
+		ConstLabels: def.mapLabels(labels),
+		// arbitrary objectives for now
+		Objectives: map[float64]float64{
+			0.5:  0.02,
+			0.95: 0.01,
+		},
+	})
+	o.register(c, fullName)
+	return c
 }
 
 func (o *Metrics) CreateRecordsWrittenCounter(stage string) prometheus.Counter {
@@ -178,6 +204,13 @@ func (o *Metrics) CreateInQueueSizeGauge(stage string, f func() int) {
 
 func (o *Metrics) CreateOutQueueSizeGauge(stage string, f func() int) {
 	o.NewGaugeFunc(&stageOutQueueSize, func() float64 { return float64(f()) }, stage)
+}
+
+func (o *Metrics) GetOrCreateStageDurationHisto() *prometheus.HistogramVec {
+	if o.stageDurationHisto == nil {
+		o.stageDurationHisto = o.NewHistogramVec(&stageDuration, []float64{.001, .01, .1, 1, 10, 100, 1000, 10000})
+	}
+	return o.stageDurationHisto
 }
 
 func GetDocumentation() string {

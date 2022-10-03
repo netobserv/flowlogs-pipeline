@@ -83,13 +83,13 @@ func initNewIngestKafka(t *testing.T, configTemplate string) Ingester {
 func Test_NewIngestKafka1(t *testing.T) {
 	newIngest := initNewIngestKafka(t, testConfig1)
 	ingestKafka := newIngest.(*ingestKafka)
-	require.Equal(t, "topic1", ingestKafka.kafkaParams.Topic)
-	require.Equal(t, "group1", ingestKafka.kafkaParams.GroupId)
+	require.Equal(t, "topic1", ingestKafka.kafkaReader.Config().Topic)
+	require.Equal(t, "group1", ingestKafka.kafkaReader.Config().GroupID)
 	expectedBrokers := []string{"1.1.1.1:9092"}
-	require.Equal(t, expectedBrokers, ingestKafka.kafkaParams.Brokers)
-	require.Equal(t, "FirstOffset", ingestKafka.kafkaParams.StartOffset)
+	require.Equal(t, expectedBrokers, ingestKafka.kafkaReader.Config().Brokers)
+	require.Equal(t, int64(-2), ingestKafka.kafkaReader.Config().StartOffset)
 	require.Equal(t, 2, len(ingestKafka.kafkaReader.Config().GroupBalancers))
-	require.Equal(t, int64(300), ingestKafka.kafkaParams.BatchReadTimeout)
+	require.Equal(t, int64(300), ingestKafka.batchReadTimeout)
 	require.Equal(t, int(500), ingestKafka.batchMaxLength)
 	require.Equal(t, time.Duration(500)*time.Millisecond, ingestKafka.kafkaReader.Config().CommitInterval)
 }
@@ -97,13 +97,13 @@ func Test_NewIngestKafka1(t *testing.T) {
 func Test_NewIngestKafka2(t *testing.T) {
 	newIngest := initNewIngestKafka(t, testConfig2)
 	ingestKafka := newIngest.(*ingestKafka)
-	require.Equal(t, "topic2", ingestKafka.kafkaParams.Topic)
-	require.Equal(t, "group2", ingestKafka.kafkaParams.GroupId)
+	require.Equal(t, "topic2", ingestKafka.kafkaReader.Config().Topic)
+	require.Equal(t, "group2", ingestKafka.kafkaReader.Config().GroupID)
 	expectedBrokers := []string{"1.1.1.2:9092"}
-	require.Equal(t, expectedBrokers, ingestKafka.kafkaParams.Brokers)
-	require.Equal(t, "LastOffset", ingestKafka.kafkaParams.StartOffset)
+	require.Equal(t, expectedBrokers, ingestKafka.kafkaReader.Config().Brokers)
+	require.Equal(t, int64(-1), ingestKafka.kafkaReader.Config().StartOffset)
 	require.Equal(t, 1, len(ingestKafka.kafkaReader.Config().GroupBalancers))
-	require.Equal(t, defaultBatchReadTimeout, ingestKafka.kafkaParams.BatchReadTimeout)
+	require.Equal(t, defaultBatchReadTimeout, ingestKafka.batchReadTimeout)
 	require.Equal(t, int(1000), ingestKafka.batchMaxLength)
 	require.Equal(t, time.Duration(1000)*time.Millisecond, ingestKafka.kafkaReader.Config().CommitInterval)
 }
