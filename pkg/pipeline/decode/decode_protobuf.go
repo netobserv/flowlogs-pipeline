@@ -7,11 +7,8 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
-
-var pflog = logrus.WithField("component", "Protobuf")
 
 // Protobuf decodes protobuf flow records definitions, as forwarded by
 // ingest.NetObservAgent, into a Generic Map that follows the same naming conventions
