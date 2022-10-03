@@ -44,6 +44,7 @@ func TestDecodeJson(t *testing.T) {
 
 	out, err = decodeJson.Decode([]byte(
 		"{\"varInt\": 14, \"varString\":\"testString2\", \"varBool\":true, \"TimeReceived\":12345}"))
+	require.NoError(t, err)
 	// TimeReceived is kept if it already existed
 	require.EqualValues(t, 12345, out["TimeReceived"])
 
