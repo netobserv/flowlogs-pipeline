@@ -130,7 +130,7 @@ func TestConnTrack(t *testing.T) {
 		"_RecordType":   "endConnection",
 		"numFlowLogs":   5.0,
 	}
-	test2.Eventually(t, 10*time.Second, func(t require.TestingT) {
+	test2.Eventually(t, 30*time.Second, func(t require.TestingT) {
 		require.Containsf(t, writer.AllRecords(), expected,
 			"The output records don't include the expected record %v", expected)
 	})

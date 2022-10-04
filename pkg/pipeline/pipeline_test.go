@@ -118,14 +118,16 @@ func Test_SimplePipeline(t *testing.T) {
 	writer := mainPipeline.pipelineStages[2].Writer.(*write.WriteNone)
 
 	// values checked from the first line of the ../../hack/examples/ocp-ipfix-flowlogs.json file
-	require.Equal(t, config.GenericMap{
-		"flp_bytes":   float64(20800),
-		"flp_dstAddr": "10.130.2.2",
-		"flp_dstPort": float64(36936),
-		"flp_packets": float64(400),
-		"flp_srcAddr": "10.130.2.13",
-		"flp_srcPort": float64(3100),
-	}, writer.PrevRecord)
+	test2.Eventually(t, 30*time.Second, func(t require.TestingT) {
+		require.Contains(t, writer.PrevRecords(), config.GenericMap{
+			"flp_bytes":   float64(20800),
+			"flp_dstAddr": "10.130.2.2",
+			"flp_dstPort": float64(36936),
+			"flp_packets": float64(400),
+			"flp_srcAddr": "10.130.2.13",
+			"flp_srcPort": float64(3100),
+		})
+	})
 }
 
 func TestGRPCProtobuf(t *testing.T) {
