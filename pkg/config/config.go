@@ -39,7 +39,7 @@ type ConfigFileStruct struct {
 	Pipeline        []Stage         `yaml:"pipeline,omitempty" json:"pipeline,omitempty"`
 	Parameters      []StageParam    `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 	MetricsSettings MetricsSettings `yaml:"metricsSettings,omitempty" json:"metricsSettings,omitempty"`
-	PerfSettings    PerfSettings    `yaml:"perfSettings,omitempty" json:"perf,omitempty"`
+	PerfSettings    PerfSettings    `yaml:"perfSettings,omitempty" json:"perfSettings,omitempty"`
 }
 
 type Health struct {

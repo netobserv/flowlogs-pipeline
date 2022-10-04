@@ -24,6 +24,9 @@ func Batcher(
 			log.Debug("exiting due to closeCh")
 			return
 		case <-invokeTicker.C:
+			if len(entries) == 0 {
+				continue
+			}
 			log.Debugf("ticker signal: invoking action with %d entries", len(entries))
 			es := entries
 			entries = nil
