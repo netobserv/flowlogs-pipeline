@@ -31,24 +31,11 @@ type WriteFake struct {
 func (w *WriteFake) Write(in config.GenericMap) {
 	log.Trace("entering writeFake Write")
 	w.AllRecords = append(w.AllRecords, in.Copy())
-	close(w.wait)
-}
-
-// Wait waits until Write() is done processing all the records.
-func (w *WriteFake) Wait() {
-	<-w.wait
-}
-
-// ResetWait resets the wait channel to allow waiters to block on Wait() for the next Write().
-// It should be invoked after Write() is done and all waiters are released.
-func (w *WriteFake) ResetWait() {
-	w.wait = make(chan struct{})
 }
 
 // NewWriteFake creates a new write.
-func NewWriteFake(params config.StageParam) (Writer, error) {
+func NewWriteFake(_ config.StageParam) (Writer, error) {
 	log.Debugf("entering NewWriteFake")
 	w := &WriteFake{}
-	w.ResetWait()
 	return w, nil
 }

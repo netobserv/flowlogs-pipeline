@@ -14,10 +14,16 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/conntrack"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
 	"github.com/netobserv/gopipes/pkg/node"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	defaultExtractBatching        = 1000
+	defaultExtractBatchingTimeout = 5 * time.Second
 )
 
 // Error wraps any error caused by a wrong formation of the pipeline
@@ -45,6 +51,8 @@ type builder struct {
 	terminalNodes    []*node.Terminal
 	opMetrics        *operational.Metrics
 	stageDuration    *prometheus.HistogramVec
+	batchMaxLen      int
+	batchTimeout     time.Duration
 }
 
 type pipelineEntry struct {
@@ -57,16 +65,29 @@ type pipelineEntry struct {
 	Writer      write.Writer
 }
 
-func newBuilder(params []config.StageParam, stages []config.Stage, opMetrics *operational.Metrics) *builder {
+func newBuilder(cfg *config.ConfigFileStruct) *builder {
+	// Get global metrics settings
+	opMetrics := operational.NewMetrics(&cfg.MetricsSettings)
 	stageDuration := opMetrics.GetOrCreateStageDurationHisto()
+
+	bl := cfg.PerfSettings.BatcherMaxLen
+	if bl == 0 {
+		bl = defaultExtractBatching
+	}
+	bt := cfg.PerfSettings.BatcherTimeout
+	if bt == 0 {
+		bt = defaultExtractBatchingTimeout
+	}
 
 	return &builder{
 		pipelineEntryMap: map[string]*pipelineEntry{},
 		createdStages:    map[string]interface{}{},
-		configStages:     stages,
-		configParams:     params,
+		configStages:     cfg.Pipeline,
+		configParams:     cfg.Parameters,
 		opMetrics:        opMetrics,
 		stageDuration:    stageDuration,
+		batchMaxLen:      bl,
+		batchTimeout:     bt,
 	}
 }
 
@@ -275,14 +296,20 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 		stage = node.AsMiddle(func(in <-chan config.GenericMap, out chan<- config.GenericMap) {
 			b.opMetrics.CreateInQueueSizeGauge(stageID, func() int { return len(in) })
 			b.opMetrics.CreateOutQueueSizeGauge(stageID, func() int { return len(out) })
-			for i := range in {
-				b.runMeasured(stageID, func() {
-					outs := pe.Extractor.Extract([]config.GenericMap{i})
+			// TODO: replace batcher by rewriting the different extractor implementations
+			// to keep the status while processing flows one by one
+			utils.Batcher(
+				utils.ExitChannel(),
+				defaultExtractBatching,
+				defaultExtractBatchingTimeout,
+				in,
+				func(maps []config.GenericMap) {
+					outs := pe.Extractor.Extract(maps)
 					for _, o := range outs {
 						out <- o
 					}
-				})
-			}
+				},
+			)
 		})
 	default:
 		return nil, &Error{

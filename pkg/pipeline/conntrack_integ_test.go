@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	test2 "github.com/mariomac/guara/pkg/test"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
@@ -105,14 +106,12 @@ func TestConnTrack(t *testing.T) {
 	writer := mainPipeline.pipelineStages[2].Writer.(*write.WriteFake)
 
 	ingestFile(t, in, "../../hack/examples/ocp-ipfix-flowlogs.json")
-	writer.Wait()
-	writer.ResetWait()
 
 	// Wait a moment to make the connections expired
-	time.Sleep(2 * time.Second)
+	time.Sleep(7 * time.Second)
+
 	// Send an empty list to the pipeline to allow the connection tracking output end connection records
 	in <- config.GenericMap{}
-	writer.Wait()
 
 	// Verify that the output records contain an expected end connection record.
 	expected := config.GenericMap{
@@ -131,7 +130,10 @@ func TestConnTrack(t *testing.T) {
 		"_RecordType":   "endConnection",
 		"numFlowLogs":   5.0,
 	}
-	require.Containsf(t, writer.AllRecords, expected, "The output records don't include the expected record %v", expected)
+	test2.Eventually(t, 10*time.Second, func(t require.TestingT) {
+		require.Containsf(t, writer.AllRecords, expected,
+			"The output records don't include the expected record %v", expected)
+	})
 }
 
 func ingestFile(t *testing.T, in chan<- config.GenericMap, filepath string) {
