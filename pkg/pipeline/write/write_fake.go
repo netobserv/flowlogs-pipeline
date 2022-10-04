@@ -18,18 +18,34 @@
 package write
 
 import (
+	"sync"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
 type WriteFake struct {
-	AllRecords []config.GenericMap
+	// access is locked and copied to avoid race condition errors during tests
+	mt         sync.Mutex
+	allRecords []config.GenericMap
 }
 
 // Write stores in memory all records.
 func (w *WriteFake) Write(in config.GenericMap) {
 	log.Trace("entering writeFake Write")
-	w.AllRecords = append(w.AllRecords, in.Copy())
+	w.mt.Lock()
+	w.allRecords = append(w.allRecords, in.Copy())
+	w.mt.Unlock()
+}
+
+func (w *WriteFake) AllRecords() []config.GenericMap {
+	w.mt.Lock()
+	defer w.mt.Unlock()
+	var copies []config.GenericMap
+	for _, r := range w.allRecords {
+		copies = append(copies, r.Copy())
+	}
+	return copies
 }
 
 // NewWriteFake creates a new write.
