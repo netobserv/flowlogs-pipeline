@@ -298,11 +298,7 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 			b.opMetrics.CreateOutQueueSizeGauge(stageID, func() int { return len(out) })
 			// TODO: replace batcher by rewriting the different extractor implementations
 			// to keep the status while processing flows one by one
-			utils.Batcher(
-				utils.ExitChannel(),
-				defaultExtractBatching,
-				defaultExtractBatchingTimeout,
-				in,
+			utils.Batcher(utils.ExitChannel(), b.batchMaxLen, b.batchTimeout, in,
 				func(maps []config.GenericMap) {
 					outs := pe.Extractor.Extract(maps)
 					for _, o := range outs {

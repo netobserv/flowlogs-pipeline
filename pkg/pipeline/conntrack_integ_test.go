@@ -33,6 +33,8 @@ import (
 )
 
 const testConfigConntrack = `---
+perfSettings:
+  batcherMaxTimeout: 1s
 pipeline:
   - name: ingest_fake
   - follows: ingest_fake
@@ -108,7 +110,7 @@ func TestConnTrack(t *testing.T) {
 	ingestFile(t, in, "../../hack/examples/ocp-ipfix-flowlogs.json")
 
 	// Wait a moment to make the connections expired
-	time.Sleep(7 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	// Send an empty list to the pipeline to allow the connection tracking output end connection records
 	in <- config.GenericMap{}
@@ -130,7 +132,7 @@ func TestConnTrack(t *testing.T) {
 		"_RecordType":   "endConnection",
 		"numFlowLogs":   5.0,
 	}
-	test2.Eventually(t, 30*time.Second, func(t require.TestingT) {
+	test2.Eventually(t, 10*time.Second, func(t require.TestingT) {
 		require.Containsf(t, writer.AllRecords(), expected,
 			"The output records don't include the expected record %v", expected)
 	})
