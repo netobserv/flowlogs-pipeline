@@ -27,14 +27,14 @@ func Batcher(
 			if len(entries) == 0 {
 				continue
 			}
-			log.Debug("ticker signal: invoking action with %d entries", len(entries))
+			log.Debugf("ticker signal: invoking action with %d entries", len(entries))
 			es := entries
 			entries = nil
 			action(es)
 		case gm := <-inCh:
 			entries = append(entries, gm)
 			if len(entries) >= maxBatchLength {
-				log.Debug("batch complete: invoking action with %d entries", len(entries))
+				log.Debugf("batch complete: invoking action with %d entries", len(entries))
 				es := entries
 				entries = nil
 				action(es)

@@ -24,7 +24,6 @@ import (
 
 type WriteFake struct {
 	AllRecords []config.GenericMap
-	wait       chan struct{}
 }
 
 // Write stores in memory all records.
