@@ -26,6 +26,7 @@ import (
 )
 
 type IngestFake struct {
+	Count    int
 	params   config.Ingest
 	In       chan config.GenericMap
 	exitChan <-chan struct{}
@@ -40,6 +41,7 @@ func (inf *IngestFake) Ingest(out chan<- config.GenericMap) {
 			return
 		case records := <-inf.In:
 			out <- records
+			inf.Count++
 		}
 	}
 }
