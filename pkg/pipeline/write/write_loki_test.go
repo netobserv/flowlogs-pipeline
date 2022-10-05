@@ -333,7 +333,10 @@ func BenchmarkWriteLoki(b *testing.B) {
 	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), config.StageParam{Write: &config.Write{Loki: &params}})
 	require.NoError(b, err)
 
+	hf := hundredFlows()
 	for i := 0; i < b.N; i++ {
-		loki.Write(hundredFlows())
+		for _, f := range hf {
+			loki.Write(f)
+		}
 	}
 }

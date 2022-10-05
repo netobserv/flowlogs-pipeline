@@ -29,27 +29,23 @@ type Generic struct {
 }
 
 // Transform transforms a flow to a new set of keys
-func (g *Generic) Transform(input []config.GenericMap) []config.GenericMap {
-	log.Debugf("entering Generic Transform g = %v", g)
-	output := make([]config.GenericMap, 0)
-	for _, entry := range input {
-		log.Debugf("entry.GenericMap = %v", entry)
-		outputEntry := make(config.GenericMap)
-		if g.policy != "replace_keys" {
-			// copy old map to new map
-			for key, value := range entry {
-				outputEntry[key] = value
-			}
+func (g *Generic) Transform(entry config.GenericMap) (config.GenericMap, bool) {
+	log.Tracef("entering Generic Transform g = %v", g)
+	log.Tracef("entry.GenericMap = %v", entry)
+	outputEntry := make(config.GenericMap)
+	if g.policy != "replace_keys" {
+		// copy old map to new map
+		for key, value := range entry {
+			outputEntry[key] = value
 		}
-		log.Debugf("outputEntry = %v", outputEntry)
-		for _, transformRule := range g.rules {
-			log.Debugf("transformRule = %v", transformRule)
-			outputEntry[transformRule.Output] = entry[transformRule.Input]
-		}
-		log.Debugf("Transform.GenericMap = %v", outputEntry)
-		output = append(output, outputEntry)
 	}
-	return output
+	log.Debugf("outputEntry = %v", outputEntry)
+	for _, transformRule := range g.rules {
+		log.Debugf("transformRule = %v", transformRule)
+		outputEntry[transformRule.Output] = entry[transformRule.Input]
+	}
+	log.Debugf("Transform.GenericMap = %v", outputEntry)
+	return outputEntry, true
 }
 
 // NewTransformGeneric create a new transform

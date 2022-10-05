@@ -38,23 +38,14 @@ type Network struct {
 	svcNames *netdb.ServiceNames
 }
 
-func (n *Network) Transform(input []config.GenericMap) []config.GenericMap {
-	outputEntries := make([]config.GenericMap, 0)
-	for _, entry := range input {
-		outputEntry := n.TransformEntry(entry)
-		outputEntries = append(outputEntries, outputEntry)
-	}
-	return outputEntries
-}
-
-func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap {
+func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bool) {
 	// copy input entry before transform to avoid alteration on parallel stages
 	outputEntry := inputEntry.Copy()
 
 	// TODO: for efficiency and maintainability, maybe each case in the switch below should be an individual implementation of Transformer
 	for _, rule := range n.Rules {
 		switch rule.Type {
-		case api.TransformNetworkOperationName("AddRegExIf"):
+		case api.OpAddRegexIf:
 			matched, err := regexp.MatchString(rule.Parameters, fmt.Sprintf("%s", outputEntry[rule.Input]))
 			if err != nil {
 				continue
@@ -63,7 +54,7 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 				outputEntry[rule.Output] = outputEntry[rule.Input]
 				outputEntry[rule.Output+"_Matched"] = true
 			}
-		case api.TransformNetworkOperationName("AddIf"):
+		case api.OpAddIf:
 			expressionString := fmt.Sprintf("val %s", rule.Parameters)
 			expression, err := govaluate.NewEvaluableExpression(expressionString)
 			if err != nil {
@@ -79,14 +70,14 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 				}
 				outputEntry[rule.Output+"_Evaluate"] = true
 			}
-		case api.TransformNetworkOperationName("AddSubnet"):
+		case api.OpAddSubnet:
 			_, ipv4Net, err := net.ParseCIDR(fmt.Sprintf("%v%s", outputEntry[rule.Input], rule.Parameters))
 			if err != nil {
 				log.Errorf("Can't find subnet for IP %v and prefix length %s - err %v", outputEntry[rule.Input], rule.Parameters, err)
 				continue
 			}
 			outputEntry[rule.Output] = ipv4Net.String()
-		case api.TransformNetworkOperationName("AddLocation"):
+		case api.OpAddLocation:
 			var locationInfo *location.Info
 			err, locationInfo := location.GetLocation(fmt.Sprintf("%s", outputEntry[rule.Input]))
 			if err != nil {
@@ -99,7 +90,7 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 			outputEntry[rule.Output+"_CityName"] = locationInfo.CityName
 			outputEntry[rule.Output+"_Latitude"] = locationInfo.Latitude
 			outputEntry[rule.Output+"_Longitude"] = locationInfo.Longitude
-		case api.TransformNetworkOperationName("AddService"):
+		case api.OpAddService:
 			protocol := fmt.Sprintf("%v", outputEntry[rule.Parameters])
 			portNumber, err := strconv.Atoi(fmt.Sprintf("%v", outputEntry[rule.Input]))
 			if err != nil {
@@ -122,7 +113,7 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 				}
 			}
 			outputEntry[rule.Output] = serviceName
-		case api.TransformNetworkOperationName("AddKubernetes"):
+		case api.OpAddKubernetes:
 			kubeInfo, err := kubernetes.Data.GetInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
 			if err != nil {
 				log.Debugf("Can't find kubernetes info for IP %v err %v", outputEntry[rule.Input], err)
@@ -149,7 +140,7 @@ func (n *Network) TransformEntry(inputEntry config.GenericMap) config.GenericMap
 		}
 	}
 
-	return outputEntry
+	return outputEntry, true
 }
 
 // NewTransformNetwork create a new transform

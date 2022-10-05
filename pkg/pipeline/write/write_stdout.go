@@ -34,32 +34,25 @@ type writeStdout struct {
 }
 
 // Write writes a flow before being stored
-func (t *writeStdout) Write(in []config.GenericMap) {
-	log.Debugf("entering writeStdout Write")
-	log.Debugf("writeStdout: number of entries = %d", len(in))
+func (t *writeStdout) Write(v config.GenericMap) {
+	log.Tracef("entering writeStdout Write")
 	if t.format == "json" {
-		for _, v := range in {
-			txt, _ := json.Marshal(v)
-			fmt.Println(string(txt))
-		}
+		txt, _ := json.Marshal(v)
+		fmt.Println(string(txt))
 	} else if t.format == "fields" {
-		for _, v := range in {
-			var order sort.StringSlice
-			for fieldName := range v {
-				order = append(order, fieldName)
-			}
-			order.Sort()
-			w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-			fmt.Fprintf(w, "\n\nFlow record at %s:\n", time.Now().Format(time.StampMilli))
-			for _, field := range order {
-				fmt.Fprintf(w, "%v\t=\t%v\n", field, v[field])
-			}
-			w.Flush()
+		var order sort.StringSlice
+		for fieldName := range v {
+			order = append(order, fieldName)
 		}
+		order.Sort()
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+		fmt.Fprintf(w, "\n\nFlow record at %s:\n", time.Now().Format(time.StampMilli))
+		for _, field := range order {
+			fmt.Fprintf(w, "%v\t=\t%v\n", field, v[field])
+		}
+		w.Flush()
 	} else {
-		for _, v := range in {
-			fmt.Printf("%s: %v\n", time.Now().Format(time.StampMilli), v)
-		}
+		fmt.Printf("%s: %v\n", time.Now().Format(time.StampMilli), v)
 	}
 }
 

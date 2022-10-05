@@ -24,15 +24,15 @@ import (
 )
 
 type Transformer interface {
-	Transform(in []config.GenericMap) []config.GenericMap
+	Transform(in config.GenericMap) (config.GenericMap, bool)
 }
 
 type transformNone struct {
 }
 
 // Transform transforms a flow before being stored
-func (t *transformNone) Transform(f []config.GenericMap) []config.GenericMap {
-	return f
+func (t *transformNone) Transform(f config.GenericMap) (config.GenericMap, bool) {
+	return f, true
 }
 
 // NewTransformNone create a new transform

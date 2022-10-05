@@ -18,21 +18,37 @@
 package write
 
 import (
+	"sync"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
 type Writer interface {
-	Write(in []config.GenericMap)
+	Write(in config.GenericMap)
 }
 type WriteNone struct {
-	PrevRecords []config.GenericMap
+	// synchronized access to avoid race conditions
+	mt          sync.Mutex
+	prevRecords []config.GenericMap
 }
 
 // Write writes entries
-func (t *WriteNone) Write(in []config.GenericMap) {
+func (t *WriteNone) Write(in config.GenericMap) {
 	log.Debugf("entering Write none, in = %v", in)
-	t.PrevRecords = in
+	t.mt.Lock()
+	t.prevRecords = append(t.prevRecords, in)
+	t.mt.Unlock()
+}
+
+func (t *WriteNone) PrevRecords() []config.GenericMap {
+	t.mt.Lock()
+	defer t.mt.Unlock()
+	var copies []config.GenericMap
+	for _, rec := range t.prevRecords {
+		copies = append(copies, rec.Copy())
+	}
+	return copies
 }
 
 // NewWriteNone create a new write

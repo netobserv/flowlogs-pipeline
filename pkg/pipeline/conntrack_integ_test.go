@@ -20,9 +20,11 @@ package pipeline
 import (
 	"bufio"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	test2 "github.com/mariomac/guara/pkg/test"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
@@ -95,24 +97,31 @@ func TestConnTrack(t *testing.T) {
 	var err error
 	v, cfg := test.InitConfig(t, testConfigConntrack)
 	require.NotNil(t, v)
+	cfg.PerfSettings.BatcherMaxLen = 200_000
+	cfg.PerfSettings.BatcherTimeout = 2 * time.Second
 
 	mainPipeline, err = NewPipeline(cfg)
 	require.NoError(t, err)
 
 	go mainPipeline.Run()
 
-	in := mainPipeline.pipelineStages[0].Ingester.(*ingest.IngestFake).In
+	ingest := mainPipeline.pipelineStages[0].Ingester.(*ingest.IngestFake)
+	in := ingest.In
 	writer := mainPipeline.pipelineStages[2].Writer.(*write.WriteFake)
 
-	ingestFile(t, in, "../../hack/examples/ocp-ipfix-flowlogs.json")
-	writer.Wait()
-	writer.ResetWait()
+	sentLines := ingestFile(t, in, "../../hack/examples/ocp-ipfix-flowlogs.json")
+
+	// wait for all the lines to be ingested
+	test2.Eventually(t, 15*time.Second, func(t require.TestingT) {
+		require.EqualValues(t, atomic.LoadInt64(&ingest.Count), sentLines,
+			"sent: %d. got: %d", sentLines, ingest.Count)
+	}, test2.Interval(10*time.Millisecond))
 
 	// Wait a moment to make the connections expired
 	time.Sleep(2 * time.Second)
-	// Send an empty list to the pipeline to allow the connection tracking output end connection records
-	in <- []config.GenericMap{}
-	writer.Wait()
+
+	// Send something to the pipeline to allow the connection tracking output end connection records
+	in <- config.GenericMap{"DstAddr": "1.2.3.4"}
 
 	// Verify that the output records contain an expected end connection record.
 	expected := config.GenericMap{
@@ -131,10 +140,14 @@ func TestConnTrack(t *testing.T) {
 		"_RecordType":   "endConnection",
 		"numFlowLogs":   5.0,
 	}
-	require.Containsf(t, writer.AllRecords, expected, "The output records don't include the expected record %v", expected)
+	// Wait for the record to be eventually forwarded to the writer
+	test2.Eventually(t, 15*time.Second, func(t require.TestingT) {
+		require.Containsf(t, writer.AllRecords(), expected,
+			"The output records don't include the expected record %v", expected)
+	})
 }
 
-func ingestFile(t *testing.T, in chan<- []config.GenericMap, filepath string) {
+func ingestFile(t *testing.T, in chan<- config.GenericMap, filepath string) int {
 	t.Helper()
 	file, err := os.Open(filepath)
 	require.NoError(t, err)
@@ -147,8 +160,14 @@ func ingestFile(t *testing.T, in chan<- []config.GenericMap, filepath string) {
 		text := scanner.Text()
 		lines = append(lines, []byte(text))
 	}
+	submittedLines := 0
 	decoder, err := decode.NewDecodeJson()
 	require.NoError(t, err)
-	decoded := decoder.Decode(lines)
-	in <- decoded
+	for _, line := range lines {
+		line, err := decoder.Decode(line)
+		require.NoError(t, err)
+		in <- line
+		submittedLines++
+	}
+	return submittedLines
 }

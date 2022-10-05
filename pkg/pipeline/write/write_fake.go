@@ -18,40 +18,39 @@
 package write
 
 import (
+	"sync"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
 type WriteFake struct {
-	AllRecords []config.GenericMap
-	wait       chan struct{}
+	// access is locked and copied to avoid race condition errors during tests
+	mt         sync.Mutex
+	allRecords []config.GenericMap
 }
 
 // Write stores in memory all records.
-func (w *WriteFake) Write(in []config.GenericMap) {
-	log.Debugf("entering writeFake Write")
-	log.Debugf("writeFake: number of entries = %d", len(in))
-	for _, r := range in {
-		w.AllRecords = append(w.AllRecords, r.Copy())
+func (w *WriteFake) Write(in config.GenericMap) {
+	log.Trace("entering writeFake Write")
+	w.mt.Lock()
+	w.allRecords = append(w.allRecords, in.Copy())
+	w.mt.Unlock()
+}
+
+func (w *WriteFake) AllRecords() []config.GenericMap {
+	w.mt.Lock()
+	defer w.mt.Unlock()
+	var copies []config.GenericMap
+	for _, r := range w.allRecords {
+		copies = append(copies, r.Copy())
 	}
-	close(w.wait)
-}
-
-// Wait waits until Write() is done processing all the records.
-func (w *WriteFake) Wait() {
-	<-w.wait
-}
-
-// ResetWait resets the wait channel to allow waiters to block on Wait() for the next Write().
-// It should be invoked after Write() is done and all waiters are released.
-func (w *WriteFake) ResetWait() {
-	w.wait = make(chan struct{})
+	return copies
 }
 
 // NewWriteFake creates a new write.
-func NewWriteFake(params config.StageParam) (Writer, error) {
+func NewWriteFake(_ config.StageParam) (Writer, error) {
 	log.Debugf("entering NewWriteFake")
 	w := &WriteFake{}
-	w.ResetWait()
 	return w, nil
 }

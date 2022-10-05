@@ -178,7 +178,9 @@ parameters:
 			// we use ElementsMatch() rather than Equals()
 			require.ElementsMatch(t, tt.expectedAggs, actualAggs)
 
-			promEncode.Encode(actualAggs)
+			for _, aa := range actualAggs {
+				promEncode.Encode(aa)
+			}
 			exposed := test.ReadExposedMetrics(t)
 
 			for _, expected := range tt.expectedEncode {

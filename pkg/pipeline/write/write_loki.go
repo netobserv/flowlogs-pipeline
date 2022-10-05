@@ -204,11 +204,9 @@ func getFloat64(timestamp interface{}) (ft float64, ok bool) {
 }
 
 // Write writes a flow before being stored
-func (l *Loki) Write(entries []config.GenericMap) {
+func (l *Loki) Write(entry config.GenericMap) {
 	log.Debugf("entering Loki Write")
-	for _, entry := range entries {
-		l.in <- entry
-	}
+	l.in <- entry
 }
 
 func (l *Loki) processRecords() {

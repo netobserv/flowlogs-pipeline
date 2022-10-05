@@ -43,7 +43,7 @@ func NewGRPCProtobuf(opMetrics *operational.Metrics, params config.StageParam) (
 	flowPackets := make(chan *pbflow.Records, bufLen)
 	metrics := newMetrics(opMetrics, params.Name, params.Ingest.Type, func() int { return len(flowPackets) })
 	collector, err := grpc.StartCollector(netObserv.Port, flowPackets,
-		grpc.WithGRPCServerOptions(grpc2.UnaryInterceptor(instrumentGRPC(netObserv.Port, metrics))))
+		grpc.WithGRPCServerOptions(grpc2.UnaryInterceptor(instrumentGRPC(metrics))))
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func NewGRPCProtobuf(opMetrics *operational.Metrics, params config.StageParam) (
 	}, nil
 }
 
-func (no *GRPCProtobuf) Ingest(out chan<- []config.GenericMap) {
+func (no *GRPCProtobuf) Ingest(out chan<- config.GenericMap) {
 	no.metrics.createOutQueueLen(out)
 	go func() {
 		<-utils.ExitChannel()
@@ -62,9 +62,10 @@ func (no *GRPCProtobuf) Ingest(out chan<- []config.GenericMap) {
 		no.collector.Close()
 	}()
 	for fp := range no.flowPackets {
-		records := decode.PBRecordsAsMaps(fp)
-		log.Debugf("GRPCProtobuf records = %v", records)
-		out <- records
+		log.Debugf("GRPCProtobuf records len = %v", len(fp.Entries))
+		for _, entry := range fp.Entries {
+			out <- decode.PBFlowToMap(entry)
+		}
 	}
 }
 
@@ -74,7 +75,7 @@ func (no *GRPCProtobuf) Close() error {
 	return err
 }
 
-func instrumentGRPC(port int, m *metrics) grpc2.UnaryServerInterceptor {
+func instrumentGRPC(m *metrics) grpc2.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},

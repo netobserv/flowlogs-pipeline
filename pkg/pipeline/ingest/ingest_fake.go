@@ -19,6 +19,7 @@ package ingest
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
@@ -26,13 +27,14 @@ import (
 )
 
 type IngestFake struct {
+	Count    int64
 	params   config.Ingest
-	In       chan []config.GenericMap
+	In       chan config.GenericMap
 	exitChan <-chan struct{}
 }
 
 // Ingest reads records from an input channel and writes them as-is to the output channel
-func (inf *IngestFake) Ingest(out chan<- []config.GenericMap) {
+func (inf *IngestFake) Ingest(out chan<- config.GenericMap) {
 	for {
 		select {
 		case <-inf.exitChan:
@@ -40,6 +42,7 @@ func (inf *IngestFake) Ingest(out chan<- []config.GenericMap) {
 			return
 		case records := <-inf.In:
 			out <- records
+			atomic.AddInt64(&inf.Count, 1)
 		}
 	}
 }
@@ -53,7 +56,7 @@ func NewIngestFake(params config.StageParam) (Ingester, error) {
 
 	return &IngestFake{
 		params:   *params.Ingest,
-		In:       make(chan []config.GenericMap),
+		In:       make(chan config.GenericMap),
 		exitChan: utils.ExitChannel(),
 	}, nil
 }

@@ -33,23 +33,11 @@ func initNewEncodeNone(t *testing.T) Encoder {
 func TestEncodeNone(t *testing.T) {
 	newEncode := initNewEncodeNone(t)
 	encodeNone := newEncode.(*encodeNone)
-	map1 := config.GenericMap{
+	in := config.GenericMap{
 		"varInt":    12,
 		"varString": "string1",
 		"varbool":   true,
 	}
-	map2 := config.GenericMap{
-		"varInt":    14,
-		"varString": "string2",
-		"varbool":   false,
-	}
-	map3 := config.GenericMap{}
-	var in []config.GenericMap
 	encodeNone.Encode(in)
-	require.Equal(t, 0, len(encodeNone.prevRecords))
-	in = append(in, map1)
-	in = append(in, map2)
-	in = append(in, map3)
-	encodeNone.Encode(in)
-	require.Equal(t, len(in), len(encodeNone.prevRecords))
+	require.Equal(t, in, encodeNone.prevRecord)
 }

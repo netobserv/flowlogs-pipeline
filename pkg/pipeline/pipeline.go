@@ -55,10 +55,7 @@ func NewPipeline(cfg *config.ConfigFileStruct) (*Pipeline, error) {
 	configParams := cfg.Parameters
 	log.Debugf("configParams = %v ", configParams)
 
-	// Get global metrics settings
-	om := operational.NewMetrics(&cfg.MetricsSettings)
-
-	build := newBuilder(configParams, stages, om)
+	build := newBuilder(cfg)
 	if err := build.readStages(); err != nil {
 		return nil, err
 	}

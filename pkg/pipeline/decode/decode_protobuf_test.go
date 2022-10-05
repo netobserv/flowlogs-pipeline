@@ -45,10 +45,10 @@ func TestDecodeProtobuf(t *testing.T) {
 	rawPB, err := proto.Marshal(&flow)
 	require.NoError(t, err)
 
-	out := decoder.Decode([][]byte{rawPB})
-	require.Len(t, out, 1)
-	assert.NotZero(t, out[0]["TimeReceived"])
-	delete(out[0], "TimeReceived")
+	out, err := decoder.Decode(rawPB)
+	require.NoError(t, err)
+	assert.NotZero(t, out["TimeReceived"])
+	delete(out, "TimeReceived")
 	assert.Equal(t, config.GenericMap{
 		"FlowDirection":   1,
 		"Bytes":           uint64(456),
@@ -64,10 +64,10 @@ func TestDecodeProtobuf(t *testing.T) {
 		"TimeFlowStartMs": someTime.UnixMilli(),
 		"TimeFlowEndMs":   someTime.UnixMilli(),
 		"Interface":       "eth0",
-	}, out[0])
+	}, out)
 }
 
-func TestPBRecordsAsMaps(t *testing.T) {
+func TestPBFlowToMap(t *testing.T) {
 	someTime := time.Now()
 	flow := &pbflow.Record{
 		Interface:     "eth0",
@@ -96,10 +96,9 @@ func TestPBRecordsAsMaps(t *testing.T) {
 		},
 	}
 
-	out := PBRecordsAsMaps(&pbflow.Records{Entries: []*pbflow.Record{flow}})
-	require.Len(t, out, 1)
-	assert.NotZero(t, out[0]["TimeReceived"])
-	delete(out[0], "TimeReceived")
+	out := PBFlowToMap(flow)
+	assert.NotZero(t, out["TimeReceived"])
+	delete(out, "TimeReceived")
 	assert.Equal(t, config.GenericMap{
 		"FlowDirection":   1,
 		"Bytes":           uint64(456),
@@ -115,6 +114,6 @@ func TestPBRecordsAsMaps(t *testing.T) {
 		"TimeFlowStartMs": someTime.UnixMilli(),
 		"TimeFlowEndMs":   someTime.UnixMilli(),
 		"Interface":       "eth0",
-	}, out[0])
+	}, out)
 
 }

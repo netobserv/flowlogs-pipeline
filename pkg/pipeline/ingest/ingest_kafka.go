@@ -26,7 +26,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
-
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -53,15 +52,15 @@ const defaultKafkaBatchMaxLength = 500
 const defaultKafkaCommitInterval = 500
 
 // Ingest ingests entries from kafka topic
-func (ingestK *ingestKafka) Ingest(out chan<- []config.GenericMap) {
+func (k *ingestKafka) Ingest(out chan<- config.GenericMap) {
 	log.Debugf("entering ingestKafka.Ingest")
-	ingestK.metrics.createOutQueueLen(out)
+	k.metrics.createOutQueueLen(out)
 
 	// initialize background listener
-	ingestK.kafkaListener()
+	k.kafkaListener()
 
 	// forever process log lines received by collector
-	ingestK.processLogLines(out)
+	k.processLogLines(out)
 }
 
 // background thread to read kafka messages; place received items into ingestKafka input channel
@@ -107,53 +106,28 @@ func (k *ingestKafka) processRecordDelay(record config.GenericMap) {
 	k.metrics.latency.Observe(delay)
 }
 
-func (k *ingestKafka) processBatch(out chan<- []config.GenericMap, records [][]byte, timer *operational.Timer) {
-	log.Debugf("ingestKafka sending %d records, %d entries waiting", len(records), len(k.in))
-
+func (k *ingestKafka) processRecord(record []byte, out chan<- config.GenericMap) {
 	// Decode batch
-	decoded := k.decoder.Decode(records)
-
-	for _, record := range decoded {
-		k.processRecordDelay(record)
+	decoded, err := k.decoder.Decode(record)
+	if err != nil {
+		log.WithError(err).Warnf("ignoring flow")
+		return
 	}
-
-	// Stage duration
-	timer.ObserveMilliseconds()
+	k.processRecordDelay(decoded)
 
 	// Send batch
 	out <- decoded
 }
 
 // read items from ingestKafka input channel, pool them, and send down the pipeline
-func (k *ingestKafka) processLogLines(out chan<- []config.GenericMap) {
-	var records [][]byte
-	timer := k.metrics.stageDurationTimer()
-	duration := time.Duration(k.batchReadTimeout) * time.Millisecond
-	flushRecords := time.NewTicker(duration)
+func (k *ingestKafka) processLogLines(out chan<- config.GenericMap) {
 	for {
 		select {
 		case <-k.exitChan:
 			log.Debugf("exiting ingestKafka because of signal")
 			return
 		case record := <-k.in:
-			timer.StartOnce()
-			records = append(records, record)
-			if len(records) >= k.batchMaxLength {
-				k.processBatch(out, records, timer)
-				records = [][]byte{}
-			}
-		case <-flushRecords.C: // Maximum batch time for each batch
-			// Process batch of records (if not empty)
-			if len(records) > 0 {
-				if len(k.in) > 0 {
-					for len(records) < k.batchMaxLength && len(k.in) > 0 {
-						record := <-k.in
-						records = append(records, record)
-					}
-				}
-				k.processBatch(out, records, timer)
-				records = [][]byte{}
-			}
+			k.processRecord(record, out)
 		}
 	}
 }

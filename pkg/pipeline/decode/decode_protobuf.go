@@ -7,11 +7,8 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
-
-var pflog = logrus.WithField("component", "Protobuf")
 
 // Protobuf decodes protobuf flow records definitions, as forwarded by
 // ingest.NetObservAgent, into a Generic Map that follows the same naming conventions
@@ -25,30 +22,15 @@ func NewProtobuf() (*Protobuf, error) {
 
 // Decode decodes the protobuf raw flows and returns a list of GenericMaps representing all
 // the flows there
-func (p *Protobuf) Decode(rawFlows [][]byte) []config.GenericMap {
-	flows := make([]config.GenericMap, 0, len(rawFlows))
-	for _, pbRaw := range rawFlows {
-		record := pbflow.Record{}
-		if err := proto.Unmarshal(pbRaw, &record); err != nil {
-			pflog.WithError(err).Debug("can't unmarshall received protobuf flow. Ignoring")
-			continue
-		}
-		flows = append(flows, pbFlowToMap(&record))
+func (p *Protobuf) Decode(rawFlow []byte) (config.GenericMap, error) {
+	record := pbflow.Record{}
+	if err := proto.Unmarshal(rawFlow, &record); err != nil {
+		return nil, fmt.Errorf("unmarshaling ProtoBuf record: %w", err)
 	}
-	return flows
+	return PBFlowToMap(&record), nil
 }
 
-// PBRecordsAsMaps transform all the flows in a pbflow.Records entry into a slice
-// of GenericMaps
-func PBRecordsAsMaps(flow *pbflow.Records) []config.GenericMap {
-	out := make([]config.GenericMap, 0, len(flow.Entries))
-	for _, entry := range flow.Entries {
-		out = append(out, pbFlowToMap(entry))
-	}
-	return out
-}
-
-func pbFlowToMap(flow *pbflow.Record) config.GenericMap {
+func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 	if flow == nil {
 		return config.GenericMap{}
 	}

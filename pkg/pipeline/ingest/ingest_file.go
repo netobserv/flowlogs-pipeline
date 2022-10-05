@@ -43,7 +43,7 @@ const (
 )
 
 // Ingest ingests entries from a file and resends the same data every delaySeconds seconds
-func (ingestF *IngestFile) Ingest(out chan<- []config.GenericMap) {
+func (ingestF *IngestFile) Ingest(out chan<- config.GenericMap) {
 	var filename string
 	if ingestF.params.File != nil {
 		filename = ingestF.params.File.Filename
@@ -63,16 +63,11 @@ func (ingestF *IngestFile) Ingest(out chan<- []config.GenericMap) {
 		log.Debugf("%s", text)
 		lines = append(lines, []byte(text))
 	}
-	decoded := ingestF.decoder.Decode(lines)
-	log.Debugf("IngestFile decoded = %v", decoded)
 
 	log.Debugf("Ingesting %d log lines from %s", len(lines), filename)
 	switch ingestF.params.Type {
 	case "file":
-		ingestF.PrevRecords = decoded
-		ingestF.TotalRecords = len(lines)
-		log.Debugf("ingestFile sending %d lines", len(lines))
-		out <- decoded
+		ingestF.sendAllLines(lines, out)
 	case "file_loop":
 		// loop forever
 		ticker := time.NewTicker(time.Duration(delaySeconds) * time.Second)
@@ -82,10 +77,7 @@ func (ingestF *IngestFile) Ingest(out chan<- []config.GenericMap) {
 				log.Debugf("exiting ingestFile because of signal")
 				return
 			case <-ticker.C:
-				ingestF.PrevRecords = decoded
-				ingestF.TotalRecords += len(lines)
-				log.Debugf("ingestFile sending %d lines", len(lines))
-				out <- decoded
+				ingestF.sendAllLines(lines, out)
 			}
 		}
 	case "file_chunks":
@@ -93,13 +85,26 @@ func (ingestF *IngestFile) Ingest(out chan<- []config.GenericMap) {
 		ingestF.TotalRecords = len(lines)
 		for len(lines) > 0 {
 			if len(lines) > chunkLines {
-				out <- decoded[:chunkLines]
+				ingestF.sendAllLines(lines[:chunkLines], out)
 				lines = lines[chunkLines:]
 			} else {
-				out <- decoded
+				ingestF.sendAllLines(lines, out)
 				lines = nil
 			}
 		}
+	}
+}
+
+func (ingestF *IngestFile) sendAllLines(lines [][]byte, out chan<- config.GenericMap) {
+	log.Debugf("ingestFile sending %d lines", len(lines))
+	ingestF.TotalRecords = len(lines)
+	for _, line := range lines {
+		decoded, err := ingestF.decoder.Decode(line)
+		if err != nil {
+			log.WithError(err).Warnf("ignoring line")
+			continue
+		}
+		out <- decoded
 	}
 }
 

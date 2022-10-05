@@ -108,16 +108,14 @@ func Test_NewIngestKafka2(t *testing.T) {
 	require.Equal(t, time.Duration(1000)*time.Millisecond, ingestKafka.kafkaReader.Config().CommitInterval)
 }
 
-func removeTimestamp(receivedEntries []config.GenericMap) {
-	for _, entry := range receivedEntries {
-		delete(entry, "TimeReceived")
-	}
+func removeTimestamp(receivedEntry config.GenericMap) {
+	delete(receivedEntry, "TimeReceived")
 }
 
 func Test_IngestKafka(t *testing.T) {
 	newIngest := initNewIngestKafka(t, testConfig1)
 	ingestKafka := newIngest.(*ingestKafka)
-	ingestOutput := make(chan []config.GenericMap)
+	ingestOutput := make(chan config.GenericMap)
 
 	// run Ingest in a separate thread
 	go func() {
@@ -137,16 +135,22 @@ func Test_IngestKafka(t *testing.T) {
 	inChan <- []byte(record3)
 
 	// wait for the data to have been processed
-	receivedEntries := <-ingestOutput
-
+	receivedEntry, err := test.WaitFromChannel(ingestOutput, timeout)
+	require.NoError(t, err)
 	// we remove timestamp for test stability
 	// Timereceived field is tested in the decodeJson tests
-	removeTimestamp(receivedEntries)
+	removeTimestamp(receivedEntry)
+	require.Equal(t, test.DeserializeJSONToMap(t, record1), receivedEntry)
 
-	require.Equal(t, 3, len(receivedEntries))
-	require.Equal(t, test.DeserializeJSONToMap(t, record1), receivedEntries[0])
-	require.Equal(t, test.DeserializeJSONToMap(t, record2), receivedEntries[1])
-	require.Equal(t, test.DeserializeJSONToMap(t, record3), receivedEntries[2])
+	receivedEntry, err = test.WaitFromChannel(ingestOutput, timeout)
+	require.NoError(t, err)
+	removeTimestamp(receivedEntry)
+	require.Equal(t, test.DeserializeJSONToMap(t, record2), receivedEntry)
+
+	receivedEntry, err = test.WaitFromChannel(ingestOutput, timeout)
+	require.NoError(t, err)
+	removeTimestamp(receivedEntry)
+	require.Equal(t, test.DeserializeJSONToMap(t, record3), receivedEntry)
 }
 
 type fakeKafkaReader struct {
@@ -177,7 +181,7 @@ func (f *fakeKafkaReader) Config() kafkago.ReaderConfig {
 }
 
 func Test_KafkaListener(t *testing.T) {
-	ingestOutput := make(chan []config.GenericMap)
+	ingestOutput := make(chan config.GenericMap)
 	newIngest := initNewIngestKafka(t, testConfig1)
 	ingestKafka := newIngest.(*ingestKafka)
 
@@ -191,69 +195,14 @@ func Test_KafkaListener(t *testing.T) {
 	}()
 
 	// wait for the data to have been processed
-	receivedEntries, err := test.WaitFromChannel(ingestOutput, 2*time.Second)
+	receivedEntry, err := test.WaitFromChannel(ingestOutput, 2*time.Second)
 	require.NoError(t, err)
 
 	// we remove timestamp for test stability
 	// Timereceived field is tested in the decodeJson tests
-	removeTimestamp(receivedEntries)
+	removeTimestamp(receivedEntry)
 
-	require.Equal(t, 1, len(receivedEntries))
-	require.Equal(t, test.DeserializeJSONToMap(t, string(fakeRecord)), receivedEntries[0])
-}
-
-func Test_MaxBatchLength(t *testing.T) {
-	ingestOutput := make(chan []config.GenericMap)
-	newIngest := initNewIngestKafka(t, testConfig1)
-	ingestKafka := newIngest.(*ingestKafka)
-
-	// change the ReadMessage function to the mock-up
-	fr := fakeKafkaReader{readToDo: 15}
-	ingestKafka.kafkaReader = &fr
-	ingestKafka.batchMaxLength = 10
-	ingestKafka.batchReadTimeout = 10000
-
-	// run Ingest in a separate thread
-	go func() {
-		ingestKafka.Ingest(ingestOutput)
-	}()
-
-	// wait for the data to have been processed
-	receivedEntries, err := test.WaitFromChannel(ingestOutput, 2*time.Second)
-	require.NoError(t, err)
-
-	require.Equal(t, 10, len(receivedEntries))
-}
-
-func Test_BatchTimeout(t *testing.T) {
-	ingestOutput := make(chan []config.GenericMap)
-	newIngest := initNewIngestKafka(t, testConfig1)
-	ingestKafka := newIngest.(*ingestKafka)
-
-	// change the ReadMessage function to the mock-up
-	fr := fakeKafkaReader{readToDo: 5}
-	ingestKafka.kafkaReader = &fr
-	ingestKafka.batchMaxLength = 1000
-	ingestKafka.batchReadTimeout = 100
-
-	beforeIngest := time.Now()
-	// run Ingest in a separate thread
-	go func() {
-		ingestKafka.Ingest(ingestOutput)
-	}()
-
-	require.Equal(t, 0, len(ingestOutput))
-	// wait for the data to have been processed
-	receivedEntries, err := test.WaitFromChannel(ingestOutput, 2*time.Second)
-	require.NoError(t, err)
-	require.Equal(t, 5, len(receivedEntries))
-
-	afterIngest := time.Now()
-
-	// We check that we get entries because of the timer
-	// Time must be above timer value but not too much, 20ms is our margin here
-	require.LessOrEqual(t, int64(100), afterIngest.Sub(beforeIngest).Milliseconds())
-	require.Greater(t, int64(120), afterIngest.Sub(beforeIngest).Milliseconds())
+	require.Equal(t, test.DeserializeJSONToMap(t, string(fakeRecord)), receivedEntry)
 }
 
 func Test_TLSConfigEmpty(t *testing.T) {
