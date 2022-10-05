@@ -18,10 +18,13 @@
 package e2e
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/test/e2e"
 	"sigs.k8s.io/e2e-framework/pkg/env"
+	"sigs.k8s.io/e2e-framework/pkg/envconf"
 )
 
 var TestEnv env.Environment
@@ -29,6 +32,11 @@ var TestEnv env.Environment
 var manifestDeployDefinitions = e2e.ManifestDeployDefinitions{
 	e2e.ManifestDeployDefinition{
 		YamlFile: "strimzi-cluster-operator-0.31.0.yaml",
+		PostFunction: func(ctx context.Context, cfg *envconf.Config, namespace string) error {
+			// Wait few seconds to allow the CRD to be registered so the next step does not fail
+			time.Sleep(5 * time.Second)
+			return nil
+		},
 	},
 	e2e.ManifestDeployDefinition{
 		YamlFile:     "kafka.strimzi.yaml",
