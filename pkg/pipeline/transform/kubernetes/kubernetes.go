@@ -194,7 +194,7 @@ func (k *KubeData) initNodeInformer(informerFactory informers.SharedInformerFact
 		return &Info{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      node.Name,
-				Namespace: node.Namespace,
+				Namespace: "",
 				Labels:    node.Labels,
 			},
 			ips:  ips,
