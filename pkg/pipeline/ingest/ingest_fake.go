@@ -19,6 +19,7 @@ package ingest
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
@@ -26,7 +27,7 @@ import (
 )
 
 type IngestFake struct {
-	Count    int
+	Count    int64
 	params   config.Ingest
 	In       chan config.GenericMap
 	exitChan <-chan struct{}
@@ -41,7 +42,7 @@ func (inf *IngestFake) Ingest(out chan<- config.GenericMap) {
 			return
 		case records := <-inf.In:
 			out <- records
-			inf.Count++
+			atomic.AddInt64(&inf.Count, 1)
 		}
 	}
 }

@@ -20,6 +20,7 @@ package pipeline
 import (
 	"bufio"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -112,7 +113,7 @@ func TestConnTrack(t *testing.T) {
 
 	// wait for all the lines to be ingested
 	test2.Eventually(t, 15*time.Second, func(t require.TestingT) {
-		require.Equal(t, ingest.Count, sentLines,
+		require.EqualValues(t, atomic.LoadInt64(&ingest.Count), sentLines,
 			"sent: %d. got: %d", sentLines, ingest.Count)
 	}, test2.Interval(10*time.Millisecond))
 
