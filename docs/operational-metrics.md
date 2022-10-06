@@ -111,10 +111,3 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Labels** | stage | 
 
 
-### stage_duration_ms
-| **Name** | stage_duration_ms | 
-|:---|:---|
-| **Description** | Pipeline stage duration in milliseconds | 
-| **Type** | histogram | 
-
-
