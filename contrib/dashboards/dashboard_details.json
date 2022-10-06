@@ -1098,7 +1098,7 @@
          "steppedLine": false,
          "targets": [
             {
-               "expr": "sum by (srcK8S_Namespace) (sum_over_time({job=\"flowlogs-pipeline\"} | json | unwrap bytes [1m]))",
+               "expr": "sum by (srcK8S_Namespace) (sum_over_time({job=\"flowlogs-pipeline\"} | json | unwrap bytes |  __error__=\"\" [1m]))",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "",

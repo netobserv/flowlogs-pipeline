@@ -237,7 +237,7 @@ dashboard.new(
   )
   .addTarget(
     prometheus.target(
-      expr='sum by (srcK8S_Namespace) (sum_over_time({job="flowlogs-pipeline"} | json | unwrap bytes [1m]))',
+      expr='sum by (srcK8S_Namespace) (sum_over_time({job="flowlogs-pipeline"} | json | unwrap bytes |  __error__="" [1m]))',
     )
   ), gridPos={
     x: 0,
