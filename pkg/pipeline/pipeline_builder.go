@@ -22,6 +22,7 @@ import (
 )
 
 const (
+	defaultNodeBufferLen          = 1000
 	defaultExtractBatching        = 1000
 	defaultExtractBatchingTimeout = 5 * time.Second
 )
@@ -53,6 +54,7 @@ type builder struct {
 	stageDuration    *prometheus.HistogramVec
 	batchMaxLen      int
 	batchTimeout     time.Duration
+	nodeBufferLen    int
 }
 
 type pipelineEntry struct {
@@ -78,6 +80,10 @@ func newBuilder(cfg *config.ConfigFileStruct) *builder {
 	if bt == 0 {
 		bt = defaultExtractBatchingTimeout
 	}
+	nb := cfg.PerfSettings.NodeBufferLen
+	if nb == 0 {
+		nb = defaultNodeBufferLen
+	}
 
 	return &builder{
 		pipelineEntryMap: map[string]*pipelineEntry{},
@@ -88,6 +94,7 @@ func newBuilder(cfg *config.ConfigFileStruct) *builder {
 		stageDuration:    stageDuration,
 		batchMaxLen:      bl,
 		batchTimeout:     bt,
+		nodeBufferLen:    nb,
 	}
 }
 
@@ -266,7 +273,7 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 					pe.Writer.Write(i)
 				})
 			}
-		})
+		}, node.ChannelBufferLen(b.nodeBufferLen))
 		b.terminalNodes = append(b.terminalNodes, term)
 		stage = term
 	case StageEncode:
@@ -277,7 +284,7 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 					pe.Encoder.Encode(i)
 				})
 			}
-		})
+		}, node.ChannelBufferLen(b.nodeBufferLen))
 		b.terminalNodes = append(b.terminalNodes, encode)
 		stage = encode
 	case StageTransform:
@@ -291,7 +298,7 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 					}
 				})
 			}
-		})
+		}, node.ChannelBufferLen(b.nodeBufferLen))
 	case StageExtract:
 		stage = node.AsMiddle(func(in <-chan config.GenericMap, out chan<- config.GenericMap) {
 			b.opMetrics.CreateInQueueSizeGauge(stageID, func() int { return len(in) })
@@ -306,7 +313,7 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 					}
 				},
 			)
-		})
+		}, node.ChannelBufferLen(b.nodeBufferLen))
 	default:
 		return nil, &Error{
 			StageName: stageID,
