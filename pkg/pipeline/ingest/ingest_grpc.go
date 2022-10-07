@@ -95,8 +95,8 @@ func instrumentGRPC(m *metrics) grpc2.UnaryServerInterceptor {
 			m.latency.Observe(delay)
 		}
 
-		// instrument batch size distribution (which also instruments total flows counter under the hood)
-		m.batchSize.Observe(float64(len(flowRecords.Entries)))
+		// instrument flows processed counter
+		m.flowsProcessed.Add(float64(len(flowRecords.Entries)))
 
 		// instrument message bytes
 		m.batchSizeBytes.Observe(float64(proto.Size(flowRecords)))

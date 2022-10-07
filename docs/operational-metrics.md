@@ -58,8 +58,8 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 ### ingest_flows_processed
 | **Name** | ingest_flows_processed | 
 |:---|:---|
-| **Description** | Provides number of flows processed, batches processed, and batch size stats (in number of flows) | 
-| **Type** | summary | 
+| **Description** | Number of flows received by the ingester | 
+| **Type** | counter | 
 | **Labels** | stage | 
 
 
