@@ -79,8 +79,7 @@ func (k *ingestKafka) kafkaListener() {
 			if k.canLogMessages {
 				log.Debugf("string(kafkaMessage) = %s\n", string(kafkaMessage.Value))
 			}
-			// We don't know how many messages were in kafka internal batches, so just increment per-message
-			k.metrics.batchSize.Observe(1)
+			k.metrics.flowsProcessed.Inc()
 			messageLen := len(kafkaMessage.Value)
 			k.metrics.batchSizeBytes.Observe(float64(messageLen) + float64(len(kafkaMessage.Key)))
 			if messageLen > 0 {
