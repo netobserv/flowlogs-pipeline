@@ -12,7 +12,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/mariomac/guara v0.0.0-20220523124851-5fc279816f1f
 	github.com/mitchellh/mapstructure v1.4.3
-	github.com/netobserv/gopipes v0.1.1
+	github.com/netobserv/gopipes v0.2.0
 	github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500
 	github.com/netobserv/netobserv-ebpf-agent v0.1.1-0.20220608092850-3fd4695b7cc2
 	github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785

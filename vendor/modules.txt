@@ -160,7 +160,7 @@ github.com/munnerz/goautoneg
 # github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f
 ## explicit
 github.com/mwitkow/go-conntrack
-# github.com/netobserv/gopipes v0.1.1
+# github.com/netobserv/gopipes v0.2.0
 ## explicit; go 1.17
 github.com/netobserv/gopipes/pkg/internal/connect
 github.com/netobserv/gopipes/pkg/internal/refl

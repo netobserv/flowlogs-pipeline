@@ -66,6 +66,7 @@ type MetricsSettings struct {
 type PerfSettings struct {
 	BatcherMaxLen  int           `yaml:"batcherMaxLen,omitempty" json:"batcherMaxLen,omitempty"`
 	BatcherTimeout time.Duration `yaml:"batcherMaxTimeout,omitempty" json:"batcherMaxTimeout,omitempty"`
+	NodeBufferLen  int           `yaml:"nodeBufferLen,omitempty" json:"nodeBufferLen,omitempty"`
 }
 
 type Stage struct {
