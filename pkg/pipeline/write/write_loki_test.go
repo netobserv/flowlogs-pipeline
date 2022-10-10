@@ -45,7 +45,16 @@ type fakeEmitter struct {
 }
 
 func (f *fakeEmitter) Handle(labels model.LabelSet, timestamp time.Time, record string) error {
-	a := f.Mock.Called(labels, timestamp, record)
+	// sort alphabetically records just for simplifying testing verification with JSON strings
+	recordMap := map[string]interface{}{}
+	if err := json.Unmarshal([]byte(record), &recordMap); err != nil {
+		panic("expected JSON: " + err.Error())
+	}
+	recordBytes, err := json.Marshal(recordMap)
+	if err != nil {
+		panic("error unmarshaling: " + err.Error())
+	}
+	a := f.Mock.Called(labels, timestamp, string(recordBytes))
 	return a.Error(0)
 }
 
