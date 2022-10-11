@@ -92,6 +92,12 @@ func (def *MetricDefinition) mapLabels(labels []string) prometheus.Labels {
 	return labelsMap
 }
 
+func verifyMetricType(def *MetricDefinition, t metricType) {
+	if def.Type != t {
+		logrus.Panicf("operational metric %q is of type %q but is being registered as %q", def.Name, def.Type, t)
+	}
+}
+
 type Metrics struct {
 	settings           *config.MetricsSettings
 	stageDurationHisto *prometheus.HistogramVec
@@ -114,6 +120,7 @@ func (o *Metrics) register(c prometheus.Collector, name string) {
 }
 
 func (o *Metrics) NewCounter(def *MetricDefinition, labels ...string) prometheus.Counter {
+	verifyMetricType(def, TypeCounter)
 	fullName := o.settings.Prefix + def.Name
 	c := prometheus.NewCounter(prometheus.CounterOpts{
 		Name:        fullName,
@@ -125,6 +132,7 @@ func (o *Metrics) NewCounter(def *MetricDefinition, labels ...string) prometheus
 }
 
 func (o *Metrics) NewCounterVec(def *MetricDefinition) *prometheus.CounterVec {
+	verifyMetricType(def, TypeCounter)
 	fullName := o.settings.Prefix + def.Name
 	c := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: fullName,
@@ -135,6 +143,7 @@ func (o *Metrics) NewCounterVec(def *MetricDefinition) *prometheus.CounterVec {
 }
 
 func (o *Metrics) NewGauge(def *MetricDefinition, labels ...string) prometheus.Gauge {
+	verifyMetricType(def, TypeGauge)
 	fullName := o.settings.Prefix + def.Name
 	c := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        fullName,
@@ -146,6 +155,7 @@ func (o *Metrics) NewGauge(def *MetricDefinition, labels ...string) prometheus.G
 }
 
 func (o *Metrics) NewGaugeFunc(def *MetricDefinition, f func() float64, labels ...string) {
+	verifyMetricType(def, TypeGauge)
 	fullName := o.settings.Prefix + def.Name
 	c := prometheus.NewGaugeFunc(prometheus.GaugeOpts{
 		Name:        fullName,
@@ -156,6 +166,7 @@ func (o *Metrics) NewGaugeFunc(def *MetricDefinition, f func() float64, labels .
 }
 
 func (o *Metrics) NewHistogram(def *MetricDefinition, buckets []float64, labels ...string) prometheus.Histogram {
+	verifyMetricType(def, TypeHistogram)
 	fullName := o.settings.Prefix + def.Name
 	c := prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:        fullName,
@@ -168,6 +179,7 @@ func (o *Metrics) NewHistogram(def *MetricDefinition, buckets []float64, labels 
 }
 
 func (o *Metrics) NewHistogramVec(def *MetricDefinition, buckets []float64) *prometheus.HistogramVec {
+	verifyMetricType(def, TypeHistogram)
 	fullName := o.settings.Prefix + def.Name
 	c := prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    fullName,
@@ -179,6 +191,7 @@ func (o *Metrics) NewHistogramVec(def *MetricDefinition, buckets []float64) *pro
 }
 
 func (o *Metrics) NewSummary(def *MetricDefinition, labels ...string) prometheus.Summary {
+	verifyMetricType(def, TypeSummary)
 	fullName := o.settings.Prefix + def.Name
 	c := prometheus.NewSummary(prometheus.SummaryOpts{
 		Name:        fullName,
