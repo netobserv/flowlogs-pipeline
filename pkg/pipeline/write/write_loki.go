@@ -37,6 +37,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var jsonEncodingConfig = jsonIter.Config{}.Froze()
+
 var (
 	keyReplacer = strings.NewReplacer("/", "_", ".", "_", "-", "_")
 )
@@ -121,7 +123,7 @@ func (l *Loki) ProcessRecord(in config.GenericMap) error {
 		delete(out, label)
 	}
 
-	js, err := jsonIter.ConfigCompatibleWithStandardLibrary.Marshal(out)
+	js, err := jsonEncodingConfig.Marshal(out)
 	if err != nil {
 		return err
 	}
