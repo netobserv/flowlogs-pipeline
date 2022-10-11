@@ -80,7 +80,7 @@
               "showLegend": true,
               "style": {
                 "color": {
-                  "field": "aggregate",
+                  "field": "dstLocation_CountryName",
                   "fixed": "dark-green"
                 },
                 "opacity": 0.4,
@@ -101,7 +101,7 @@
                   "mode": "fixed"
                 },
                 "text": {
-                  "field": "aggregate",
+                  "field": "dstLocation_CountryName",
                   "fixed": "",
                   "mode": "field"
                 },
@@ -116,8 +116,8 @@
             },
             "location": {
               "gazetteer": "public/gazetteer/countries.json",
-              "geohash": "aggregate",
-              "lookup": "aggregate",
+              "geohash": "dstLocation_CountryName",
+              "lookup": "dstLocation_CountryName",
               "mode": "lookup"
             },
             "name": "Layer 1",

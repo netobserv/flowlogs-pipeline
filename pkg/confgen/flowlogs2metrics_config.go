@@ -37,13 +37,13 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.ConfigFileStruct {
 		}
 		forkedNode = forkedNode.TransformGeneric("transform_generic", gen)
 	}
+	if cg.config.Extract.ConnTrack != nil {
+		forkedNode = forkedNode.ConnTrack("extract_conntrack", *cg.config.Extract.ConnTrack)
+	}
 	if len(cg.transformRules) > 0 {
 		forkedNode = forkedNode.TransformNetwork("transform_network", api.TransformNetwork{
 			Rules: cg.transformRules,
 		})
-	}
-	if cg.config.Extract.ConnTrack != nil {
-		forkedNode = forkedNode.ConnTrack("extract_conntrack", *cg.config.Extract.ConnTrack)
 	}
 	metricsNode := forkedNode
 	if len(cg.aggregateDefinitions) > 0 {

@@ -31,12 +31,12 @@ encode:
         filter: {key: name, value: src_connection_count}
         valueKey: recent_count
         labels:
-          - groupByKeys
-          - aggregate
+          - srcSubnet
+          - _RecordType
 visualization:
   type: grafana
   grafana:
-    - expr: 'topk(10,rate(flp_connections_per_source_subnet[1m]))'
+    - expr: 'topk(10,rate(flp_connections_per_source_subnet{_RecordType="newConnection"}[1m]))'
       type: graphPanel
       dashboard: details
       title:

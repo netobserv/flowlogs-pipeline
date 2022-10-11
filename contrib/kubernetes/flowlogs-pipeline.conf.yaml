@@ -4,16 +4,16 @@ pipeline:
 - name: ingest_collector
 - name: transform_generic
   follows: ingest_collector
-- name: transform_network
-  follows: transform_generic
 - name: extract_conntrack
-  follows: transform_network
-- name: extract_aggregate
+  follows: transform_generic
+- name: transform_network
   follows: extract_conntrack
+- name: extract_aggregate
+  follows: transform_network
 - name: encode_prom
   follows: extract_aggregate
 - name: write_loki
-  follows: extract_conntrack
+  follows: transform_network
 parameters:
 - name: ingest_collector
   ingest:
@@ -50,6 +50,56 @@ parameters:
         output: packets
       - input: TimeReceived
         output: timeReceived
+- name: extract_conntrack
+  extract:
+    type: conntrack
+    conntrack:
+      keyDefinition:
+        fieldGroups:
+        - name: src
+          fields:
+          - srcIP
+          - srcPort
+          - srcAS
+        - name: dst
+          fields:
+          - dstIP
+          - dstPort
+          - dstAS
+        - name: protocol
+          fields:
+          - proto
+        hash:
+          fieldGroupRefs:
+          - protocol
+          fieldGroupARef: src
+          fieldGroupBRef: dst
+      outputRecordTypes:
+      - newConnection
+      - flowLog
+      - endConnection
+      outputFields:
+      - name: bytes_total
+        operation: sum
+        input: bytes
+      - name: bytes
+        operation: sum
+        splitAB: true
+      - name: packets_total
+        operation: sum
+        input: packets
+      - name: packets
+        operation: sum
+        splitAB: true
+      - name: numFlowLogs
+        operation: count
+      - name: timeStart
+        operation: min
+        input: timeReceived
+      - name: timeEnd
+        operation: max
+        input: timeReceived
+      endConnectionTimeout: 30s
 - name: transform_network
   transform:
     type: network
@@ -86,56 +136,6 @@ parameters:
       - input: dstIP
         output: dstLocation
         type: add_location
-- name: extract_conntrack
-  extract:
-    type: conntrack
-    conntrack:
-      keyDefinition:
-        fieldGroups:
-        - name: src
-          fields:
-          - srcIP
-          - srcPort
-          - srcSubnet
-        - name: dst
-          fields:
-          - dstIP
-          - dstPort
-          - dstSubnet
-        - name: protocol
-          fields:
-          - proto
-        hash:
-          fieldGroupRefs:
-          - protocol
-          fieldGroupARef: src
-          fieldGroupBRef: dst
-      outputRecordTypes:
-      - newConnection
-      - flowLog
-      - endConnection
-      outputFields:
-      - name: bytes_total
-        operation: sum
-        input: bytes
-      - name: bytes
-        operation: sum
-        splitAB: true
-      - name: packets_total
-        operation: sum
-        input: packets
-      - name: packets
-        operation: sum
-        splitAB: true
-      - name: numFlowLogs
-        operation: count
-      - name: timeStart
-        operation: min
-        input: timeReceived
-      - name: timeEnd
-        operation: max
-        input: timeReceived
-      endConnectionTimeout: 30s
 - name: extract_aggregate
   extract:
     type: aggregates
@@ -322,8 +322,8 @@ parameters:
           value: src_connection_count
         valueKey: recent_count
         labels:
-        - groupByKeys
-        - aggregate
+        - srcSubnet
+        - _RecordType
         buckets: []
       - name: connections_per_tcp_flags
         type: counter
@@ -342,8 +342,8 @@ parameters:
           value: dst_as_connection_count
         valueKey: recent_count
         labels:
-        - groupByKeys
-        - aggregate
+        - dstAS
+        - _RecordType
         buckets: []
       - name: connections_per_source_as
         type: counter
@@ -352,8 +352,8 @@ parameters:
           value: src_as_connection_count
         valueKey: recent_count
         labels:
-        - groupByKeys
-        - aggregate
+        - srcAS
+        - _RecordType
         buckets: []
       - name: count_per_source_destination_subnet
         type: counter
@@ -362,8 +362,9 @@ parameters:
           value: count_source_destination_subnet
         valueKey: recent_count
         labels:
-        - groupByKeys
-        - aggregate
+        - dstSubnet24
+        - srcSubnet24
+        - _RecordType
         buckets: []
       - name: egress_per_destination_subnet
         type: counter
@@ -407,8 +408,8 @@ parameters:
           value: dest_connection_location_count
         valueKey: recent_count
         labels:
-        - groupByKeys
-        - aggregate
+        - dstLocation_CountryName
+        - _RecordType
         buckets: []
       - name: service_count
         type: counter
@@ -417,8 +418,8 @@ parameters:
           value: dest_service_count
         valueKey: recent_count
         labels:
-        - groupByKeys
-        - aggregate
+        - service
+        - _RecordType
         buckets: []
       port: 9102
       prefix: flp_

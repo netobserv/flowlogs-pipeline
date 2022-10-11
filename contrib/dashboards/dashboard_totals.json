@@ -223,7 +223,7 @@
          "tableColumn": "",
          "targets": [
             {
-               "expr": "count(flp_service_count)",
+               "expr": "count(flp_service_count{_RecordType=\"newConnection\"})",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "",
