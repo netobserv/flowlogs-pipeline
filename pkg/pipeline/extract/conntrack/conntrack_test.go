@@ -235,14 +235,14 @@ func TestEndConn_Bidirectional(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for _, tt := range table {
 		var prevTime time.Time
-		t.Run(test.name, func(t *testing.T) {
-			require.Less(t, prevTime, test.time)
-			prevTime = test.time
-			clk.Set(test.time)
-			actual := ct.Extract(test.inputFlowLogs)
-			require.Equal(t, test.expected, actual)
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -334,14 +334,14 @@ func TestEndConn_Unidirectional(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for _, tt := range table {
 		var prevTime time.Time
-		t.Run(test.name, func(t *testing.T) {
-			require.Less(t, prevTime, test.time)
-			prevTime = test.time
-			clk.Set(test.time)
-			actual := ct.Extract(test.inputFlowLogs)
-			require.Equal(t, test.expected, actual)
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -482,14 +482,14 @@ func TestUpdateConn_Unidirectional(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for _, tt := range table {
 		var prevTime time.Time
-		t.Run(test.name, func(t *testing.T) {
-			require.Less(t, prevTime, test.time)
-			prevTime = test.time
-			clk.Set(test.time)
-			actual := ct.Extract(test.inputFlowLogs)
-			require.Equal(t, test.expected, actual)
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
