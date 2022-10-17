@@ -57,7 +57,6 @@ type Loki struct {
 	saneLabels     map[string]model.LabelName
 	client         emitter
 	timeNow        func() time.Time
-	in             chan config.GenericMap
 	exitChan       <-chan struct{}
 	metrics        *metrics
 }
@@ -208,21 +207,9 @@ func getFloat64(timestamp interface{}) (ft float64, ok bool) {
 // Write writes a flow before being stored
 func (l *Loki) Write(entry config.GenericMap) {
 	log.Debugf("entering Loki Write")
-	l.in <- entry
-}
-
-func (l *Loki) processRecords() {
-	for {
-		select {
-		case <-l.exitChan:
-			log.Debugf("exiting writeLoki because of signal")
-			return
-		case record := <-l.in:
-			err := l.ProcessRecord(record)
-			if err != nil {
-				log.Errorf("Write (Loki) error %v", err)
-			}
-		}
+	err := l.ProcessRecord(entry)
+	if err != nil {
+		log.Errorf("Write (Loki) error %v", err)
 	}
 }
 
@@ -278,11 +265,8 @@ func NewWriteLoki(opMetrics *operational.Metrics, params config.StageParam) (*Lo
 		client:         client,
 		timeNow:        time.Now,
 		exitChan:       pUtils.ExitChannel(),
-		in:             in,
 		metrics:        newMetrics(opMetrics, params.Name),
 	}
-
-	go l.processRecords()
 
 	return l, nil
 }
