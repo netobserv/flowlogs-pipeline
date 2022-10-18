@@ -33,7 +33,7 @@ import (
 
 var opMetrics = operational.NewMetrics(&config.MetricsSettings{})
 
-func buildMockConnTrackConfigFull(isBidirectional bool, outputRecordType []string,
+func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
 	updateConnectionInterval, endConnectionTimeout time.Duration) *config.StageParam {
 	splitAB := isBidirectional
 	var hash api.ConnTrackHash
@@ -90,11 +90,9 @@ func buildMockConnTrackConfigFull(isBidirectional bool, outputRecordType []strin
 	} // end of config.StageParam
 }
 
-func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *config.StageParam {
-	return buildMockConnTrackConfigFull(isBidirectional, outputRecordType, 10*time.Second, 30*time.Second)
-}
-
 func TestTrack(t *testing.T) {
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
 	ipA := "10.0.0.1"
 	ipB := "10.0.0.2"
 	portA := 9001
@@ -116,7 +114,7 @@ func TestTrack(t *testing.T) {
 	}{
 		{
 			"bidirectional, output new connection",
-			buildMockConnTrackConfig(true, []string{"newConnection"}),
+			buildMockConnTrackConfig(true, []string{"newConnection"}, updateConnectionInterval, endConnectionTimeout),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
@@ -124,7 +122,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"bidirectional, output new connection and flow log",
-			buildMockConnTrackConfig(true, []string{"newConnection", "flowLog"}),
+			buildMockConnTrackConfig(true, []string{"newConnection", "flowLog"}, updateConnectionInterval, endConnectionTimeout),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
@@ -136,7 +134,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"unidirectional, output new connection",
-			buildMockConnTrackConfig(false, []string{"newConnection"}),
+			buildMockConnTrackConfig(false, []string{"newConnection"}, updateConnectionInterval, endConnectionTimeout),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
@@ -145,7 +143,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"unidirectional, output new connection and flow log",
-			buildMockConnTrackConfig(false, []string{"newConnection", "flowLog"}),
+			buildMockConnTrackConfig(false, []string{"newConnection", "flowLog"}, updateConnectionInterval, endConnectionTimeout),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
@@ -176,7 +174,9 @@ func TestTrack(t *testing.T) {
 func TestEndConn_Bidirectional(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"})
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
+	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -259,7 +259,9 @@ func TestEndConn_Bidirectional(t *testing.T) {
 func TestEndConn_Unidirectional(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "endConnection"})
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
+	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -359,7 +361,9 @@ func TestEndConn_Unidirectional(t *testing.T) {
 func TestUpdateConn_Unidirectional(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "updateConnection", "endConnection"})
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
+	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "updateConnection", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -504,7 +508,9 @@ func TestUpdateConn_Unidirectional(t *testing.T) {
 func TestIsFirst_LongConnection(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	conf := buildMockConnTrackConfig(false, []string{"updateConnection", "endConnection"})
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
+	conf := buildMockConnTrackConfig(false, []string{"updateConnection", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -589,8 +595,10 @@ func TestIsFirst_LongConnection(t *testing.T) {
 func TestIsFirst_ShortConnection(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	conf := buildMockConnTrackConfigFull(false, []string{"updateConnection", "endConnection"},
-		10*time.Second, 5*time.Second)
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 5 * time.Second
+	conf := buildMockConnTrackConfig(false, []string{"updateConnection", "endConnection"},
+		updateConnectionInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -679,7 +687,9 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 	// It makes sure that only the right records are returned on each call.
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	conf := buildMockConnTrackConfig(false, []string{"updateConnection"})
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
+	conf := buildMockConnTrackConfig(false, []string{"updateConnection"}, updateConnectionInterval, endConnectionTimeout)
 	interval := 10 * time.Second
 	conf.Extract.ConnTrack.UpdateConnectionInterval = api.Duration{Duration: interval}
 	extract, err := NewConnectionTrack(opMetrics, *conf, clk)
