@@ -5,21 +5,23 @@
 
 # Overview
 
-**Flow-Logs Pipeline** (a.k.a. FLP) is an **observability tool** that consumes raw **network flow-logs** in
-their original format 
-([NetFlow v5,v9](https://en.wikipedia.org/wiki/NetFlow) or [IPFIX](https://en.wikipedia.org/wiki/IP_Flow_Information_Export)) 
-and uses a pipe-line to transform the logs into 
-time series metrics in **[prometheus](https://prometheus.io/)** format and in parallel
-transform and persist the logs also into **[loki](https://grafana.com/oss/loki/)**.
+**Flow-Logs Pipeline** (a.k.a. FLP) is an **observability tool** that **[consumes](./pkg/pipeline/ingest/)** logs from various inputs, **[transform](./pkg//pipeline/transform/)** them and **[export](./pkg/pipeline/write/)** logs to **[loki](https://grafana.com/oss/loki/)** and / or time series metrics to **[prometheus](https://prometheus.io/)**.
 
 ![Animated gif](docs/images/animation.gif)
+
+FLP can consume:
+- raw **network flow-logs** in their original format 
+([NetFlow v5,v9](https://en.wikipedia.org/wiki/NetFlow) or [IPFIX](https://en.wikipedia.org/wiki/IP_Flow_Information_Export)) 
+- [eBPF agent](https://github.com/netobserv/netobserv-ebpf-agent) flows in binary format (protobuf+GRPC)
+- Kafka entries in JSON format
+- A simple file
 
 FLP decorates the metrics and the transformed logs with **context**, 
 allowing visualization layers and analytics frameworks to present **network insights** to SRE’s, cloud operators and network experts.
 
 It also allows defining mathematical transformations to generate condense metrics that encapsulate network domain knowledge.
 
-FLP pipe-line module is built on top of [gopipes](https://github.com/netobserv/gopipes) providing customizability and parallelism
+FLP pipeline module is built on top of [gopipes](https://github.com/netobserv/gopipes) providing customizability and parallelism
 
 In addition, along with Prometheus and its ecosystem tools such as Thanos, Cortex etc., 
 FLP provides an efficient scalable multi-cloud solution for comprehensive network analytics that can rely **solely on metrics data-source**.
