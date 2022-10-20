@@ -47,8 +47,6 @@ type emitter interface {
 	Handle(labels model.LabelSet, timestamp time.Time, record string) error
 }
 
-const channelSize = 1000
-
 // Loki record writer
 type Loki struct {
 	lokiConfig     loki.Config
