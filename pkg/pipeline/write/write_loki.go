@@ -253,10 +253,6 @@ func NewWriteLoki(opMetrics *operational.Metrics, params config.StageParam) (*Lo
 		}
 	}
 
-	// TODO / FIXME / FIGUREOUT: seems like we have 2 input channels for Loki? (this one, and see also pipeline_builder.go / getStageNode / StageWrite)
-	in := make(chan config.GenericMap, channelSize)
-	opMetrics.CreateInQueueSizeGauge(params.Name+"-2", func() int { return len(in) })
-
 	l := &Loki{
 		lokiConfig:     lokiConfig,
 		apiConfig:      lokiConfigIn,
