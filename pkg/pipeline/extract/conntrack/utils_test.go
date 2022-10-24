@@ -52,16 +52,17 @@ func newMockRecordFromFlowLog(fl config.GenericMap) *mockRecord {
 func newMockRecordConnAB(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytesAB, bytesBA, packetsAB, packetsBA, numFlowLogs float64) *mockRecord {
 	mock := &mockRecord{
 		record: config.GenericMap{
-			"SrcAddr":     srcIP,
-			"SrcPort":     srcPort,
-			"DstAddr":     dstIP,
-			"DstPort":     dstPort,
-			"Proto":       protocol,
-			"Bytes_AB":    bytesAB,
-			"Bytes_BA":    bytesBA,
-			"Packets_AB":  packetsAB,
-			"Packets_BA":  packetsBA,
-			"numFlowLogs": numFlowLogs,
+			"SrcAddr":            srcIP,
+			"SrcPort":            srcPort,
+			"DstAddr":            dstIP,
+			"DstPort":            dstPort,
+			"Proto":              protocol,
+			"Bytes_AB":           bytesAB,
+			"Bytes_BA":           bytesBA,
+			"Packets_AB":         packetsAB,
+			"Packets_BA":         packetsBA,
+			"numFlowLogs":        numFlowLogs,
+			api.IsFirstFieldName: false,
 		},
 	}
 	return mock
@@ -69,7 +70,8 @@ func newMockRecordConnAB(srcIP string, srcPort int, dstIP string, dstPort int, p
 
 func newMockRecordNewConnAB(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytesAB, bytesBA, packetsAB, packetsBA, numFlowLogs float64) *mockRecord {
 	return newMockRecordConnAB(srcIP, srcPort, dstIP, dstPort, protocol, bytesAB, bytesBA, packetsAB, packetsBA, numFlowLogs).
-		withType("newConnection")
+		withType("newConnection").
+		markFirst()
 
 }
 
@@ -82,14 +84,15 @@ func newMockRecordEndConnAB(srcIP string, srcPort int, dstIP string, dstPort int
 func newMockRecordConn(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytes, packets, numFlowLogs float64) *mockRecord {
 	mock := &mockRecord{
 		record: config.GenericMap{
-			"SrcAddr":     srcIP,
-			"SrcPort":     srcPort,
-			"DstAddr":     dstIP,
-			"DstPort":     dstPort,
-			"Proto":       protocol,
-			"Bytes":       bytes,
-			"Packets":     packets,
-			"numFlowLogs": numFlowLogs,
+			"SrcAddr":            srcIP,
+			"SrcPort":            srcPort,
+			"DstAddr":            dstIP,
+			"DstPort":            dstPort,
+			"Proto":              protocol,
+			"Bytes":              bytes,
+			"Packets":            packets,
+			"numFlowLogs":        numFlowLogs,
+			api.IsFirstFieldName: false,
 		},
 	}
 	return mock
@@ -97,7 +100,8 @@ func newMockRecordConn(srcIP string, srcPort int, dstIP string, dstPort int, pro
 
 func newMockRecordNewConn(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytes, packets, numFlowLogs float64) *mockRecord {
 	return newMockRecordConn(srcIP, srcPort, dstIP, dstPort, protocol, bytes, packets, numFlowLogs).
-		withType("newConnection")
+		withType("newConnection").
+		markFirst()
 }
 
 func newMockRecordEndConn(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytes, packets, numFlowLogs float64) *mockRecord {
@@ -117,6 +121,11 @@ func (m *mockRecord) withHash(hashStr string) *mockRecord {
 
 func (m *mockRecord) withType(recordType string) *mockRecord {
 	m.record[api.RecordTypeFieldName] = recordType
+	return m
+}
+
+func (m *mockRecord) markFirst() *mockRecord {
+	m.record[api.IsFirstFieldName] = true
 	return m
 }
 

@@ -617,6 +617,7 @@ A possible output would look like:
 {
     "_RecordType": "endConnection",
     "_HashId": "3e8ba98164baecaf",
+    "_IsFirst": true,
     "SrcAddr": "10.0.0.1",
     "SrcPort": 1234,
     "DstAddr": "10.0.0.2",
@@ -647,6 +648,11 @@ Notice that all output records contain `_RecordType` and `_HashId` fields.
 Output fields that set `splitAB: true` (like in `Bytes`) are split into 2 fields `Bytes_AB` and `Bytes_BA` which 
 aggregate values separately based on direction A->B and B->A respectively.
 When `splitAB` is absent, its default value is `false`.
+
+The boolean field `_IsFirst` exists only in records of type `newConnection`, `updateConnection` and `endConnection`.
+It is set to true only on the first record of the connection.
+The `_IsFirst` fields is useful in cases where `newConnection` records are not outputted (to reduce the number output records)
+and there is a need to count the total number of connections: simply counting `_IsFirst=true` 
 
 ### Timebased TopK
 

@@ -138,6 +138,7 @@ func TestConnTrack(t *testing.T) {
 		"TimeFlowStart": 1_637_501_079.0,
 		"_HashId":       "d28db42bcd8aea8f",
 		"_RecordType":   "endConnection",
+		"_IsFirst":      false,
 		"numFlowLogs":   5.0,
 	}
 	// Wait for the record to be eventually forwarded to the writer

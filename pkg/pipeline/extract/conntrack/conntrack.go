@@ -81,6 +81,8 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				record := conn.toGenericMap()
 				addHashField(record, computedHash.hashTotal)
 				addTypeField(record, api.ConnTrackOutputRecordTypeName("NewConnection"))
+				isFirst := conn.markReported()
+				addIsFirstField(record, isFirst)
 				outputRecords = append(outputRecords, record)
 				ct.metrics.outputRecords.WithLabelValues("newConnection").Inc()
 			}
@@ -123,6 +125,11 @@ func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 			record := conn.toGenericMap()
 			addHashField(record, conn.getHash().hashTotal)
 			addTypeField(record, api.ConnTrackOutputRecordTypeName("EndConnection"))
+			var isFirst bool
+			if ct.shouldOutputEndConnection {
+				isFirst = conn.markReported()
+			}
+			addIsFirstField(record, isFirst)
 			outputRecords = append(outputRecords, record)
 			shouldDelete, shouldStop = true, false
 		} else {
@@ -144,6 +151,11 @@ func (ct *conntrackImpl) prepareUpdateConnectionRecords() []config.GenericMap {
 			record := conn.toGenericMap()
 			addHashField(record, conn.getHash().hashTotal)
 			addTypeField(record, api.ConnTrackOutputRecordTypeName("UpdateConnection"))
+			var isFirst bool
+			if ct.shouldOutputUpdateConnection {
+				isFirst = conn.markReported()
+			}
+			addIsFirstField(record, isFirst)
 			outputRecords = append(outputRecords, record)
 			newNextUpdate := ct.clock.Now().Add(ct.config.UpdateConnectionInterval.Duration)
 			ct.connStore.updateNextReportTime(conn.getHash().hashTotal, newNextUpdate)
@@ -235,4 +247,8 @@ func addHashField(record config.GenericMap, hashId uint64) {
 
 func addTypeField(record config.GenericMap, recordType string) {
 	record[api.RecordTypeFieldName] = recordType
+}
+
+func addIsFirstField(record config.GenericMap, isFirst bool) {
+	record[api.IsFirstFieldName] = isFirst
 }

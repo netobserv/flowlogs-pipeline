@@ -33,7 +33,8 @@ import (
 
 var opMetrics = operational.NewMetrics(&config.MetricsSettings{})
 
-func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *config.StageParam {
+func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
+	updateConnectionInterval, endConnectionTimeout time.Duration) *config.StageParam {
 	splitAB := isBidirectional
 	var hash api.ConnTrackHash
 	if isBidirectional {
@@ -82,14 +83,16 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string) *
 					{Name: "numFlowLogs", Operation: "count", SplitAB: false},
 				},
 				OutputRecordTypes:        outputRecordType,
-				UpdateConnectionInterval: api.Duration{Duration: 10 * time.Second},
-				EndConnectionTimeout:     api.Duration{Duration: 30 * time.Second},
+				UpdateConnectionInterval: api.Duration{Duration: updateConnectionInterval},
+				EndConnectionTimeout:     api.Duration{Duration: endConnectionTimeout},
 			}, // end of api.ConnTrack
 		}, // end of config.Track
 	} // end of config.StageParam
 }
 
 func TestTrack(t *testing.T) {
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
 	ipA := "10.0.0.1"
 	ipB := "10.0.0.2"
 	portA := 9001
@@ -111,7 +114,7 @@ func TestTrack(t *testing.T) {
 	}{
 		{
 			"bidirectional, output new connection",
-			buildMockConnTrackConfig(true, []string{"newConnection"}),
+			buildMockConnTrackConfig(true, []string{"newConnection"}, updateConnectionInterval, endConnectionTimeout),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
@@ -119,7 +122,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"bidirectional, output new connection and flow log",
-			buildMockConnTrackConfig(true, []string{"newConnection", "flowLog"}),
+			buildMockConnTrackConfig(true, []string{"newConnection", "flowLog"}, updateConnectionInterval, endConnectionTimeout),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
@@ -131,7 +134,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"unidirectional, output new connection",
-			buildMockConnTrackConfig(false, []string{"newConnection"}),
+			buildMockConnTrackConfig(false, []string{"newConnection"}, updateConnectionInterval, endConnectionTimeout),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
@@ -140,7 +143,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"unidirectional, output new connection and flow log",
-			buildMockConnTrackConfig(false, []string{"newConnection", "flowLog"}),
+			buildMockConnTrackConfig(false, []string{"newConnection", "flowLog"}, updateConnectionInterval, endConnectionTimeout),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
@@ -171,7 +174,9 @@ func TestTrack(t *testing.T) {
 func TestEndConn_Bidirectional(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"})
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
+	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -235,14 +240,14 @@ func TestEndConn_Bidirectional(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for _, tt := range table {
 		var prevTime time.Time
-		t.Run(test.name, func(t *testing.T) {
-			require.Less(t, prevTime, test.time)
-			prevTime = test.time
-			clk.Set(test.time)
-			actual := ct.Extract(test.inputFlowLogs)
-			require.Equal(t, test.expected, actual)
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -254,7 +259,9 @@ func TestEndConn_Bidirectional(t *testing.T) {
 func TestEndConn_Unidirectional(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "endConnection"})
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
+	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -334,14 +341,14 @@ func TestEndConn_Unidirectional(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for _, tt := range table {
 		var prevTime time.Time
-		t.Run(test.name, func(t *testing.T) {
-			require.Less(t, prevTime, test.time)
-			prevTime = test.time
-			clk.Set(test.time)
-			actual := ct.Extract(test.inputFlowLogs)
-			require.Equal(t, test.expected, actual)
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -354,7 +361,9 @@ func TestEndConn_Unidirectional(t *testing.T) {
 func TestUpdateConn_Unidirectional(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "updateConnection", "endConnection"})
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
+	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "updateConnection", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -482,14 +491,161 @@ func TestUpdateConn_Unidirectional(t *testing.T) {
 		},
 	}
 
-	for _, test := range table {
+	for _, tt := range table {
 		var prevTime time.Time
-		t.Run(test.name, func(t *testing.T) {
-			require.Less(t, prevTime, test.time)
-			prevTime = test.time
-			clk.Set(test.time)
-			actual := ct.Extract(test.inputFlowLogs)
-			require.Equal(t, test.expected, actual)
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
+		})
+	}
+}
+
+// TestIsFirst_LongConnection tests the IsFirst works right in long connections that have multiple updateConnection records.
+// In the following test, there should be 2 update connection records and 1 endConnection. Only the first updateConnection record has isFirst set to true.
+func TestIsFirst_LongConnection(t *testing.T) {
+	test.ResetPromRegistry()
+	clk := clock.NewMock()
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
+	conf := buildMockConnTrackConfig(false, []string{"updateConnection", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
+	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
+	require.NoError(t, err)
+
+	ipA := "10.0.0.1"
+	ipB := "10.0.0.2"
+	portA := 9001
+	portB := 9002
+	protocol := 6
+	hashIdAB := "705baa5149302fa1"
+	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 111, 11)
+	startTime := clk.Now()
+	table := []struct {
+		name          string
+		time          time.Time
+		inputFlowLogs []config.GenericMap
+		expected      []config.GenericMap
+	}{
+		{
+			"start: flow AB",
+			startTime.Add(0 * time.Second),
+			[]config.GenericMap{flAB1},
+			nil,
+		},
+		{
+			"9s: no update report",
+			startTime.Add(9 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"11s: update report AB (with isFirst=true)",
+			startTime.Add(11 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).markFirst().get(),
+			},
+		},
+		{
+			"20s: no update report",
+			startTime.Add(20 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"22s: update report AB (with isFirst=false)",
+			startTime.Add(22 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
+			},
+		},
+		{
+			"29s: no end conn",
+			startTime.Add(29 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"31s: end conn AB",
+			startTime.Add(31 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordEndConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
+			},
+		},
+	}
+
+	for _, tt := range table {
+		var prevTime time.Time
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
+		})
+	}
+}
+
+// TestIsFirst_ShortConnection tests the IsFirst works right in short connections that have only an endConnection record.
+// It verifies that this encConnection record has isFirst flag set to true.
+func TestIsFirst_ShortConnection(t *testing.T) {
+	test.ResetPromRegistry()
+	clk := clock.NewMock()
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 5 * time.Second
+	conf := buildMockConnTrackConfig(false, []string{"updateConnection", "endConnection"},
+		updateConnectionInterval, endConnectionTimeout)
+	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
+	require.NoError(t, err)
+
+	ipA := "10.0.0.1"
+	ipB := "10.0.0.2"
+	portA := 9001
+	portB := 9002
+	protocol := 6
+	hashIdAB := "705baa5149302fa1"
+	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 111, 11)
+	startTime := clk.Now()
+	table := []struct {
+		name          string
+		time          time.Time
+		inputFlowLogs []config.GenericMap
+		expected      []config.GenericMap
+	}{
+		{
+			"start: flow AB",
+			startTime.Add(0 * time.Second),
+			[]config.GenericMap{flAB1},
+			nil,
+		},
+		{
+			"4s: no end conn",
+			startTime.Add(4 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"6s: end conn AB (with isFirst=true)",
+			startTime.Add(6 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordEndConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).markFirst().get(),
+			},
+		},
+	}
+
+	for _, tt := range table {
+		var prevTime time.Time
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -531,7 +687,9 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 	// It makes sure that only the right records are returned on each call.
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	conf := buildMockConnTrackConfig(false, []string{"updateConnection"})
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
+	conf := buildMockConnTrackConfig(false, []string{"updateConnection"}, updateConnectionInterval, endConnectionTimeout)
 	interval := 10 * time.Second
 	conf.Extract.ConnTrack.UpdateConnectionInterval = api.Duration{Duration: interval}
 	extract, err := NewConnectionTrack(opMetrics, *conf, clk)

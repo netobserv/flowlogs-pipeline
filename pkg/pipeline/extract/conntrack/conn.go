@@ -36,6 +36,10 @@ type connection interface {
 	getNextUpdateReportTime() time.Time
 	toGenericMap() config.GenericMap
 	getHash() totalHashType
+	// markReported marks the connection as has been reported. That is, at least one connection record has been emitted
+	// for this connection (i.e. newConnection, updateConnection, endConnection).
+	// It returns true on the first invocation to indicate the first report. Otherwise, it returns false.
+	markReported() bool
 }
 
 type connType struct {
@@ -44,6 +48,7 @@ type connType struct {
 	aggFields            map[string]float64
 	expiryTime           time.Time
 	nextUpdateReportTime time.Time
+	isReported           bool
 }
 
 func (c *connType) addAgg(fieldName string, initValue float64) {
@@ -95,6 +100,12 @@ func (c *connType) getHash() totalHashType {
 	return c.hash
 }
 
+func (c *connType) markReported() bool {
+	isFirst := !c.isReported
+	c.isReported = true
+	return isFirst
+}
+
 type connBuilder struct {
 	conn *connType
 }
@@ -102,8 +113,9 @@ type connBuilder struct {
 func NewConnBuilder() *connBuilder {
 	return &connBuilder{
 		conn: &connType{
-			aggFields: make(map[string]float64),
-			keys:      config.GenericMap{},
+			aggFields:  make(map[string]float64),
+			keys:       config.GenericMap{},
+			isReported: false,
 		},
 	}
 }
