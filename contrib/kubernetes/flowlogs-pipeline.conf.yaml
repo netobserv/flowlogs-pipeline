@@ -10,8 +10,10 @@ pipeline:
   follows: extract_conntrack
 - name: extract_aggregate
   follows: transform_network
-- name: encode_prom
+- name: extract_timebased
   follows: extract_aggregate
+- name: encode_prom
+  follows: extract_timebased
 - name: write_loki
   follows: transform_network
 parameters:
@@ -235,6 +237,17 @@ parameters:
       - service
       - _RecordType
       operationType: count
+- name: extract_timebased
+  extract:
+    type: timebased
+    timebased:
+      rules:
+      - name: bandwidth_source_subnet
+        indexKey: srcSubnet
+        operationType: sum
+        operationKey: total_value
+        topK: 5
+        timeInterval: 1m0s
 - name: encode_prom
   encode:
     type: prom
@@ -259,6 +272,15 @@ parameters:
         labels:
         - groupByKeys
         - aggregate
+        buckets: []
+      - name: bandwidth_per_source_subnet
+        type: gauge
+        filter:
+          key: name
+          value: bandwidth_source_subnet
+        valueKey: operation_result
+        labels:
+        - srcSubnet
         buckets: []
       - name: connection_size_histogram
         type: agg_histogram

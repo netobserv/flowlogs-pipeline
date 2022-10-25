@@ -27,9 +27,9 @@ extract:
   timebased:
     rules:
       - name: bandwidth_source_subnet
-        operation: sum
+        operationType: sum
         operationKey: total_value
-        recordKey: srcSubnet
+        indexKey: srcSubnet
         topK: 5
         timeInterval: 1m
 encode:
