@@ -135,14 +135,17 @@ func Test_Transform(t *testing.T) {
 	rules := getMockNetworkTransformRules()
 	expectedOutput := getExpectedOutput()
 
+	rt, err := transformerFromRules(rules, getServicesDB(t))
+	require.NoError(t, err)
+
 	var networkTransform = Network{
 		TransformNetwork: api.TransformNetwork{
 			Rules: rules,
 		},
-		svcNames: getServicesDB(t),
+		transformers: rt,
 	}
 
-	err := location.InitLocationDB()
+	err = location.InitLocationDB()
 	require.NoError(t, err)
 
 	output, ok := networkTransform.Transform(entry)
@@ -159,14 +162,17 @@ func Test_TransformAddSubnetParseCIDRFailure(t *testing.T) {
 	delete(expectedOutput, "subnet16SrcIP")
 	delete(expectedOutput, "subnet24SrcIP")
 
+	rt, err := transformerFromRules(rules, getServicesDB(t))
+	require.NoError(t, err)
+
 	var networkTransform = Network{
 		TransformNetwork: api.TransformNetwork{
 			Rules: rules,
 		},
-		svcNames: getServicesDB(t),
+		transformers: rt,
 	}
 
-	err := location.InitLocationDB()
+	err = location.InitLocationDB()
 	require.NoError(t, err)
 
 	output, ok := networkTransform.Transform(entry)
@@ -258,38 +264,42 @@ parameters:
 }
 
 func Test_Transform_AddIfScientificNotation(t *testing.T) {
+	rules := api.NetworkTransformRules{
+		api.NetworkTransformRule{
+			Input:      "value",
+			Output:     "bigger_than_10",
+			Type:       "add_if",
+			Parameters: ">10",
+		},
+		api.NetworkTransformRule{
+			Input:      "value",
+			Output:     "smaller_than_10",
+			Type:       "add_if",
+			Parameters: "<10",
+		},
+		api.NetworkTransformRule{
+			Input:      "value",
+			Output:     "dir",
+			Assignee:   "in",
+			Type:       "add_if",
+			Parameters: "==1",
+		},
+		api.NetworkTransformRule{
+			Input:      "value",
+			Output:     "dir",
+			Assignee:   "out",
+			Type:       "add_if",
+			Parameters: "==0",
+		},
+	}
+	rt, err := transformerFromRules(rules, getServicesDB(t))
+	require.NoError(t, err)
+
 	newNetworkTransform := Network{
 		TransformNetwork: api.TransformNetwork{
-			Rules: api.NetworkTransformRules{
-				api.NetworkTransformRule{
-					Input:      "value",
-					Output:     "bigger_than_10",
-					Type:       "add_if",
-					Parameters: ">10",
-				},
-				api.NetworkTransformRule{
-					Input:      "value",
-					Output:     "smaller_than_10",
-					Type:       "add_if",
-					Parameters: "<10",
-				},
-				api.NetworkTransformRule{
-					Input:      "value",
-					Output:     "dir",
-					Assignee:   "in",
-					Type:       "add_if",
-					Parameters: "==1",
-				},
-				api.NetworkTransformRule{
-					Input:      "value",
-					Output:     "dir",
-					Assignee:   "out",
-					Type:       "add_if",
-					Parameters: "==0",
-				},
-			},
+			Rules: rules,
 		},
-		svcNames: getServicesDB(t),
+		transformers: rt,
 	}
 
 	var entry config.GenericMap

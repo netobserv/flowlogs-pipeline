@@ -19,127 +19,33 @@ package transform
 
 import (
 	"fmt"
-	"net"
 	"os"
-	"regexp"
-	"strconv"
 
-	"github.com/Knetic/govaluate"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
-	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
-	log "github.com/sirupsen/logrus"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/network"
+	"github.com/sirupsen/logrus"
 )
+
+var tlog = logrus.WithField("component", "network.Transformer")
 
 type Network struct {
 	api.TransformNetwork
-	svcNames *netdb.ServiceNames
+	transformers []network.Transformer
 }
 
 func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bool) {
 	// copy input entry before transform to avoid alteration on parallel stages
 	outputEntry := inputEntry.Copy()
 
-	// TODO: for efficiency and maintainability, maybe each case in the switch below should be an individual implementation of Transformer
-	for _, rule := range n.Rules {
-		switch rule.Type {
-		case api.OpAddRegexIf:
-			matched, err := regexp.MatchString(rule.Parameters, fmt.Sprintf("%s", outputEntry[rule.Input]))
-			if err != nil {
-				continue
-			}
-			if matched {
-				outputEntry[rule.Output] = outputEntry[rule.Input]
-				outputEntry[rule.Output+"_Matched"] = true
-			}
-		case api.OpAddIf:
-			expressionString := fmt.Sprintf("val %s", rule.Parameters)
-			expression, err := govaluate.NewEvaluableExpression(expressionString)
-			if err != nil {
-				log.Errorf("Can't evaluate AddIf rule: %+v expression: %v. err %v", rule, expressionString, err)
-				continue
-			}
-			result, evaluateErr := expression.Evaluate(map[string]interface{}{"val": outputEntry[rule.Input]})
-			if evaluateErr == nil && result.(bool) {
-				if rule.Assignee != "" {
-					outputEntry[rule.Output] = rule.Assignee
-				} else {
-					outputEntry[rule.Output] = outputEntry[rule.Input]
-				}
-				outputEntry[rule.Output+"_Evaluate"] = true
-			}
-		case api.OpAddSubnet:
-			_, ipv4Net, err := net.ParseCIDR(fmt.Sprintf("%v%s", outputEntry[rule.Input], rule.Parameters))
-			if err != nil {
-				log.Errorf("Can't find subnet for IP %v and prefix length %s - err %v", outputEntry[rule.Input], rule.Parameters, err)
-				continue
-			}
-			outputEntry[rule.Output] = ipv4Net.String()
-		case api.OpAddLocation:
-			var locationInfo *location.Info
-			err, locationInfo := location.GetLocation(fmt.Sprintf("%s", outputEntry[rule.Input]))
-			if err != nil {
-				log.Errorf("Can't find location for IP %v err %v", outputEntry[rule.Input], err)
-				continue
-			}
-			outputEntry[rule.Output+"_CountryName"] = locationInfo.CountryName
-			outputEntry[rule.Output+"_CountryLongName"] = locationInfo.CountryLongName
-			outputEntry[rule.Output+"_RegionName"] = locationInfo.RegionName
-			outputEntry[rule.Output+"_CityName"] = locationInfo.CityName
-			outputEntry[rule.Output+"_Latitude"] = locationInfo.Latitude
-			outputEntry[rule.Output+"_Longitude"] = locationInfo.Longitude
-		case api.OpAddService:
-			protocol := fmt.Sprintf("%v", outputEntry[rule.Parameters])
-			portNumber, err := strconv.Atoi(fmt.Sprintf("%v", outputEntry[rule.Input]))
-			if err != nil {
-				log.Errorf("Can't convert port to int: Port %v - err %v", outputEntry[rule.Input], err)
-				continue
-			}
-			var serviceName string
-			protocolAsNumber, err := strconv.Atoi(protocol)
-			if err == nil {
-				// protocol has been submitted as number
-				serviceName = n.svcNames.ByPortAndProtocolNumber(portNumber, protocolAsNumber)
-			} else {
-				// protocol has been submitted as any string
-				serviceName = n.svcNames.ByPortAndProtocolName(portNumber, protocol)
-			}
-			if serviceName == "" {
-				if err != nil {
-					log.Debugf("Can't find service name for Port %v and protocol %v - err %v", outputEntry[rule.Input], protocol, err)
-					continue
-				}
-			}
-			outputEntry[rule.Output] = serviceName
-		case api.OpAddKubernetes:
-			kubeInfo, err := kubernetes.Data.GetInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
-			if err != nil {
-				log.Debugf("Can't find kubernetes info for IP %v err %v", outputEntry[rule.Input], err)
-				continue
-			}
-			outputEntry[rule.Output+"_Namespace"] = kubeInfo.Namespace
-			outputEntry[rule.Output+"_Name"] = kubeInfo.Name
-			outputEntry[rule.Output+"_Type"] = kubeInfo.Type
-			outputEntry[rule.Output+"_OwnerName"] = kubeInfo.Owner.Name
-			outputEntry[rule.Output+"_OwnerType"] = kubeInfo.Owner.Type
-			if rule.Parameters != "" {
-				for labelKey, labelValue := range kubeInfo.Labels {
-					outputEntry[rule.Parameters+"_"+labelKey] = labelValue
-				}
-			}
-			if kubeInfo.HostIP != "" {
-				outputEntry[rule.Output+"_HostIP"] = kubeInfo.HostIP
-				if kubeInfo.HostName != "" {
-					outputEntry[rule.Output+"_HostName"] = kubeInfo.HostName
-				}
-			}
-		default:
-			log.Panicf("unknown type %s for transform.Network rule: %v", rule.Type, rule)
+	for _, t := range n.transformers {
+		if err := t.Transform(outputEntry); err != nil {
+			tlog.WithError(err).Debug("error applying transformation. Ignoring")
 		}
 	}
-
 	return outputEntry, true
 }
 
@@ -167,7 +73,7 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	if needToInitLocationDB {
 		err := location.InitLocationDB()
 		if err != nil {
-			log.Debugf("location.InitLocationDB error: %v", err)
+			tlog.Debugf("location.InitLocationDB error: %v", err)
 		}
 	}
 
@@ -198,10 +104,49 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		}
 	}
 
+	transformers, err := transformerFromRules(jsonNetworkTransform.Rules, servicesDB)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Network{
 		TransformNetwork: api.TransformNetwork{
 			Rules: jsonNetworkTransform.Rules,
 		},
-		svcNames: servicesDB,
+		transformers: transformers,
 	}, nil
+}
+
+func transformerFromRules(
+	rules api.NetworkTransformRules, servicesDB *netdb.ServiceNames,
+) ([]network.Transformer, error) {
+	var trans []network.Transformer
+	for _, rule := range rules {
+		switch rule.Type {
+		case api.OpAddRegexIf:
+			ari := network.AddRegexpIf(rule)
+			trans = append(trans, &ari)
+		case api.OpAddIf:
+			ai := network.AddIf(rule)
+			trans = append(trans, &ai)
+		case api.OpAddSubnet:
+			as := network.AddSubnet(rule)
+			trans = append(trans, &as)
+		case api.OpAddLocation:
+			al := network.AddLocation(rule)
+			trans = append(trans, &al)
+		case api.OpAddService:
+			as := network.AddService{
+				NetworkTransformRule: rule,
+				SvcNames:             servicesDB,
+			}
+			trans = append(trans, &as)
+		case api.OpAddKubernetes:
+			as := network.AddKubernetes(rule)
+			trans = append(trans, &as)
+		default:
+			return nil, fmt.Errorf("unknown type %s for transform.Network rule: %v", rule.Type, rule)
+		}
+	}
+	return trans, nil
 }
