@@ -249,7 +249,7 @@ func (c *Conn) Broker() Broker {
 	}
 }
 
-// Controller requests kafka for the current controller and returns its URL
+// Controller requests kafka for the current controller and returns its URL.
 func (c *Conn) Controller() (broker Broker, err error) {
 	err = c.readOperation(
 		func(deadline time.Time, id int32) error {
@@ -276,7 +276,7 @@ func (c *Conn) Controller() (broker Broker, err error) {
 	return broker, err
 }
 
-// Brokers retrieve the broker list from the Kafka metadata
+// Brokers retrieve the broker list from the Kafka metadata.
 func (c *Conn) Brokers() ([]Broker, error) {
 	var brokers []Broker
 	err := c.readOperation(
@@ -853,7 +853,7 @@ func (c *Conn) ReadBatchWith(cfg ReadBatchConfig) *Batch {
 	default:
 		throttle, highWaterMark, remain, err = readFetchResponseHeaderV2(&c.rbuf, size)
 	}
-	if err == errShortRead {
+	if errors.Is(err, errShortRead) {
 		err = checkTimeoutErr(adjustedDeadline)
 	}
 
@@ -865,9 +865,10 @@ func (c *Conn) ReadBatchWith(cfg ReadBatchConfig) *Batch {
 			msgs, err = newMessageSetReader(&c.rbuf, remain)
 		}
 	}
-	if err == errShortRead {
+	if errors.Is(err, errShortRead) {
 		err = checkTimeoutErr(adjustedDeadline)
 	}
+
 	return &Batch{
 		conn:          c,
 		msgs:          msgs,
@@ -1016,11 +1017,17 @@ func (c *Conn) ReadPartitions(topics ...string) (partitions []Partition, err err
 }
 
 func makeBrokers(brokers map[int32]Broker, ids ...int32) []Broker {
-	b := make([]Broker, 0, len(ids))
-	for _, id := range ids {
-		if br, ok := brokers[id]; ok {
-			b = append(b, br)
+	b := make([]Broker, len(ids))
+	for i, id := range ids {
+		br, ok := brokers[id]
+		if !ok {
+			// When the broker id isn't found in the current list of known
+			// brokers, use a placeholder to report that the cluster has
+			// logical knowledge of the broker but no information about the
+			// physical host where it is running.
+			br.ID = int(id)
 		}
+		b[i] = br
 	}
 	return b
 }
@@ -1220,12 +1227,6 @@ func (c *Conn) SetRequiredAcks(n int) error {
 	}
 }
 
-func (c *Conn) writeRequestHeader(apiKey apiKey, apiVersion apiVersion, correlationID int32, size int32) {
-	hdr := c.requestHeader(apiKey, apiVersion, correlationID)
-	hdr.Size = (hdr.size() + size) - 4
-	hdr.writeTo(&c.wb)
-}
-
 func (c *Conn) writeRequest(apiKey apiKey, apiVersion apiVersion, correlationID int32, req request) error {
 	hdr := c.requestHeader(apiKey, apiVersion, correlationID)
 	hdr.Size = (hdr.size() + req.size()) - 4
@@ -1236,11 +1237,10 @@ func (c *Conn) writeRequest(apiKey apiKey, apiVersion apiVersion, correlationID 
 
 func (c *Conn) readResponse(size int, res interface{}) error {
 	size, err := read(&c.rbuf, size, res)
-	switch err.(type) {
-	case Error:
-		var e error
-		if size, e = discardN(&c.rbuf, size, size); e != nil {
-			err = e
+	if err != nil {
+		var kafkaError Error
+		if errors.As(err, &kafkaError) {
+			size, err = discardN(&c.rbuf, size, size)
 		}
 	}
 	return expectZeroSize(size, err)
@@ -1299,9 +1299,8 @@ func (c *Conn) do(d *connDeadline, write func(time.Time, int32) error, read func
 	}
 
 	if err = read(deadline, size); err != nil {
-		switch err.(type) {
-		case Error:
-		default:
+		var kafkaError Error
+		if !errors.As(err, &kafkaError) {
 			c.conn.Close()
 		}
 	}

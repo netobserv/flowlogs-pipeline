@@ -3,7 +3,6 @@ package kafka
 import (
 	"bufio"
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -22,6 +21,8 @@ type messageSetReader struct {
 	//
 	// This is used to detect truncation of the response.
 	lengthRemain int
+
+	decompressed bytes.Buffer
 }
 
 type readerStack struct {
@@ -163,14 +164,15 @@ func (r *messageSetReader) readMessageV1(min int64, key readBytesFunc, val readB
 			if err = r.discardN(4); err != nil {
 				return
 			}
+
 			// read and decompress the contained message set.
-			var decompressed bytes.Buffer
-			if err = r.readBytesWith(func(r *bufio.Reader, sz int, n int) (remain int, err error) {
+			r.decompressed.Reset()
+			if err = r.readBytesWith(func(br *bufio.Reader, sz int, n int) (remain int, err error) {
 				// x4 as a guess that the average compression ratio is near 75%
-				decompressed.Grow(4 * n)
-				limitReader := io.LimitedReader{R: r, N: int64(n)}
+				r.decompressed.Grow(4 * n)
+				limitReader := io.LimitedReader{R: br, N: int64(n)}
 				codecReader := codec.NewReader(&limitReader)
-				_, err = decompressed.ReadFrom(codecReader)
+				_, err = r.decompressed.ReadFrom(codecReader)
 				remain = sz - (n - int(limitReader.N))
 				codecReader.Close()
 				return
@@ -185,7 +187,7 @@ func (r *messageSetReader) readMessageV1(min int64, key readBytesFunc, val readB
 			// messages at offsets 10-13, then the container message will have
 			// offset 13 and the contained messages will be 0,1,2,3.  the base
 			// offset for the container, then is 13-3=10.
-			if offset, err = extractOffset(offset, decompressed.Bytes()); err != nil {
+			if offset, err = extractOffset(offset, r.decompressed.Bytes()); err != nil {
 				return
 			}
 
@@ -197,8 +199,8 @@ func (r *messageSetReader) readMessageV1(min int64, key readBytesFunc, val readB
 				// Allocate a buffer of size 0, which gets capped at 16 bytes
 				// by the bufio package. We are already reading buffered data
 				// here, no need to reserve another 4KB buffer.
-				reader: bufio.NewReaderSize(&decompressed, 0),
-				remain: decompressed.Len(),
+				reader: bufio.NewReaderSize(&r.decompressed, 0),
+				remain: r.decompressed.Len(),
 				base:   offset,
 				parent: r.readerStack,
 			}
@@ -264,19 +266,20 @@ func (r *messageSetReader) readMessageV2(_ int64, key readBytesFunc, val readByt
 				err = fmt.Errorf("batch remain < 0 (%d)", batchRemain)
 				return
 			}
-			var decompressed bytes.Buffer
-			decompressed.Grow(4 * batchRemain)
+			r.decompressed.Reset()
+			// x4 as a guess that the average compression ratio is near 75%
+			r.decompressed.Grow(4 * batchRemain)
 			limitReader := io.LimitedReader{R: r.reader, N: int64(batchRemain)}
 			codecReader := codec.NewReader(&limitReader)
-			_, err = decompressed.ReadFrom(codecReader)
+			_, err = r.decompressed.ReadFrom(codecReader)
 			codecReader.Close()
 			if err != nil {
 				return
 			}
 			r.remain -= batchRemain - int(limitReader.N)
 			r.readerStack = &readerStack{
-				reader: bufio.NewReaderSize(&decompressed, 0), // the new stack reads from the decompressed buffer
-				remain: decompressed.Len(),
+				reader: bufio.NewReaderSize(&r.decompressed, 0), // the new stack reads from the decompressed buffer
+				remain: r.decompressed.Len(),
 				base:   -1, // base is unused here
 				parent: r.readerStack,
 				header: r.header,
@@ -318,10 +321,12 @@ func (r *messageSetReader) readMessageV2(_ int64, key readBytesFunc, val readByt
 	if err = r.readVarInt(&headerCount); err != nil {
 		return
 	}
-	headers = make([]Header, headerCount)
-	for i := 0; i < int(headerCount); i++ {
-		if err = r.readMessageHeader(&headers[i]); err != nil {
-			return
+	if headerCount > 0 {
+		headers = make([]Header, headerCount)
+		for i := range headers {
+			if err = r.readMessageHeader(&headers[i]); err != nil {
+				return
+			}
 		}
 	}
 	lastOffset = r.header.firstOffset + int64(r.header.v2.lastOffsetDelta)
@@ -517,16 +522,6 @@ func (r *messageSetReader) readBytesWith(fn readBytesFunc) (err error) {
 func (r *messageSetReader) log(msg string, args ...interface{}) {
 	if r.debug {
 		log.Printf("[DEBUG] "+msg, args...)
-	}
-}
-
-func (r *messageSetReader) dumpHex(msg string) {
-	if r.debug {
-		buf := bytes.Buffer{}
-		io.Copy(&buf, r.reader)
-		bs := buf.Bytes()
-		r.log(fmt.Sprintf("Hex dump: %s (%d bytes)\n%s", msg, len(bs), hex.Dump(bs)))
-		r.reader = bufio.NewReader(bytes.NewReader(bs))
 	}
 }
 
