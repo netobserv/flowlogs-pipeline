@@ -220,6 +220,7 @@ parameters:
 		"SrcMac":          "01:02:03:04:05:06",
 		"SrcPort":         float64(23000),
 		"DstPort":         float64(443),
+		"Duplicate":       false,
 		"Etype":           float64(2048),
 		"Packets":         float64(123),
 		"Proto":           float64(1),
