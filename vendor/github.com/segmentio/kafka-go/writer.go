@@ -29,7 +29,7 @@ import (
 //
 //	// Construct a synchronous writer (the default mode).
 //	w := &kafka.Writer{
-//		Addr:         kafka.TCP("localhost:9092"),
+//		Addr:         Addr: kafka.TCP("localhost:9092", "localhost:9093", "localhost:9094"),
 //		Topic:        "topic-A",
 //		RequiredAcks: kafka.RequireAll,
 //	}
@@ -55,7 +55,7 @@ import (
 // writer to receive notifications of messages being written to kafka:
 //
 //	w := &kafka.Writer{
-//		Addr:         kafka.TCP("localhost:9092"),
+//		Addr:         Addr: kafka.TCP("localhost:9092", "localhost:9093", "localhost:9094"),
 //		Topic:        "topic-A",
 //		RequiredAcks: kafka.RequireAll,
 //		Async:        true, // make the writer asynchronous
@@ -79,7 +79,7 @@ type Writer struct {
 	// Address of the kafka cluster that this writer is configured to send
 	// messages to.
 	//
-	// This feild is required, attempting to write messages to a writer with a
+	// This field is required, attempting to write messages to a writer with a
 	// nil address will error.
 	Addr net.Addr
 
@@ -184,6 +184,9 @@ type Writer struct {
 	//
 	// If nil, DefaultTransport is used.
 	Transport RoundTripper
+
+	// AllowAutoTopicCreation notifies writer to create topic if missing.
+	AllowAutoTopicCreation bool
 
 	// Manages the current set of partition-topic writers.
 	group   sync.WaitGroup
@@ -733,7 +736,7 @@ func (w *Writer) partitions(ctx context.Context, topic string) (int, error) {
 	// caching recent results (the kafka.Transport types does).
 	r, err := client.transport().RoundTrip(ctx, client.Addr, &metadataAPI.Request{
 		TopicNames:             []string{topic},
-		AllowAutoTopicCreation: true,
+		AllowAutoTopicCreation: w.AllowAutoTopicCreation,
 	})
 	if err != nil {
 		return 0, err
@@ -941,7 +944,7 @@ func newBatchQueue(initialSize int) batchQueue {
 	bq := batchQueue{
 		queue: make([]*writeBatch, 0, initialSize),
 		mutex: &sync.Mutex{},
-		cond: &sync.Cond{},
+		cond:  &sync.Cond{},
 	}
 
 	bq.cond.L = bq.mutex

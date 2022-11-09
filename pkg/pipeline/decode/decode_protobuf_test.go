@@ -58,6 +58,7 @@ func TestDecodeProtobuf(t *testing.T) {
 		"SrcMac":          "01:02:03:04:05:06",
 		"SrcPort":         uint32(23000),
 		"DstPort":         uint32(443),
+		"Duplicate":       false,
 		"Etype":           uint32(2048),
 		"Packets":         uint64(123),
 		"Proto":           uint32(1),
@@ -77,6 +78,7 @@ func TestPBFlowToMap(t *testing.T) {
 		Direction:     pbflow.Direction_EGRESS,
 		TimeFlowStart: timestamppb.New(someTime),
 		TimeFlowEnd:   timestamppb.New(someTime),
+		Duplicate:     true,
 		Network: &pbflow.Network{
 			SrcAddr: &pbflow.IP{
 				IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x01020304},
@@ -108,6 +110,7 @@ func TestPBFlowToMap(t *testing.T) {
 		"SrcMac":          "01:02:03:04:05:06",
 		"SrcPort":         uint32(23000),
 		"DstPort":         uint32(443),
+		"Duplicate":       true,
 		"Etype":           uint32(2048),
 		"Packets":         uint64(123),
 		"Proto":           uint32(1),

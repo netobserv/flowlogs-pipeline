@@ -45,6 +45,7 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 		"DstPort":         flow.Transport.GetDstPort(),
 		"Etype":           flow.EthProtocol,
 		"Packets":         flow.Packets,
+		"Duplicate":       flow.Duplicate,
 		"Proto":           flow.Transport.GetProtocol(),
 		"TimeFlowStartMs": flow.TimeFlowStart.AsTime().UnixMilli(),
 		"TimeFlowEndMs":   flow.TimeFlowEnd.AsTime().UnixMilli(),
