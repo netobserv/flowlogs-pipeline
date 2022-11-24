@@ -206,7 +206,7 @@ func getFloat64(timestamp interface{}) (ft float64, ok bool) {
 
 // Write writes a flow before being stored
 func (l *Loki) Write(entry config.GenericMap) {
-	log.Trace("writing entry: %#v", entry)
+	log.Tracef("writing entry: %#v", entry)
 	err := l.ProcessRecord(entry)
 	if err != nil {
 		log.WithError(err).Warn("can't write into loki")

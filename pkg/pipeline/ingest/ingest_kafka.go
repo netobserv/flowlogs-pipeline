@@ -155,12 +155,13 @@ func (k *ingestKafka) processLogLines(out chan<- config.GenericMap) {
 
 // reportStats periodically reports kafka stats
 func (k *ingestKafka) reportStats() {
-	ticker := time.Tick(kafkaStatsPeriod)
+	ticker := time.NewTicker(kafkaStatsPeriod)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-k.exitChan:
 			klog.Debug("gracefully exiting stats reporter")
-		case <-ticker:
+		case <-ticker.C:
 			klog.Debugf("reader stats: %#v", k.kafkaReader.Stats())
 		}
 	}
