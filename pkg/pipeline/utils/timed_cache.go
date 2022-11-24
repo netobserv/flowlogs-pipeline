@@ -79,9 +79,7 @@ func (tc *TimedCache) UpdateCacheEntry(key string, entry interface{}) *cacheEntr
 			key:             key,
 			SourceEntry:     entry,
 		}
-		if logrus.IsLevelEnabled(logrus.DebugLevel) {
-			uclog.Debugf("adding entry: %#v", cEntry)
-		}
+		uclog.Debugf("adding entry: %#v", cEntry)
 		// place at end of list
 		cEntry.e = tc.cacheList.PushBack(cEntry)
 		tc.cacheMap[key] = cEntry
