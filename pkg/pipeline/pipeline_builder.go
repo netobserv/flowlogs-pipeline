@@ -354,6 +354,8 @@ func getWriter(opMetrics *operational.Metrics, params config.StageParam) (write.
 		writer, err = write.NewWriteNone()
 	case api.LokiType:
 		writer, err = write.NewWriteLoki(opMetrics, params)
+	case api.IpfixType:
+		writer, err = write.NewWriteIpfix(params)
 	case api.FakeType:
 		writer, err = write.NewWriteFake(params)
 	default:
