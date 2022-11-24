@@ -37,7 +37,6 @@ type kafkaReadMessage interface {
 	ReadMessage(ctx context.Context) (kafkago.Message, error)
 	Config() kafkago.ReaderConfig
 	Stats() kafkago.ReaderStats
-	ReadLag(ctx context.Context) (int64, error)
 }
 
 type ingestKafka struct {
