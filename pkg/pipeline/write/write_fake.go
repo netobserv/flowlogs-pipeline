@@ -21,7 +21,7 @@ import (
 	"sync"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type WriteFake struct {
@@ -32,7 +32,7 @@ type WriteFake struct {
 
 // Write stores in memory all records.
 func (w *WriteFake) Write(in config.GenericMap) {
-	log.Trace("entering writeFake Write")
+	logrus.Trace("entering writeFake Write")
 	w.mt.Lock()
 	w.allRecords = append(w.allRecords, in.Copy())
 	w.mt.Unlock()
@@ -50,7 +50,7 @@ func (w *WriteFake) AllRecords() []config.GenericMap {
 
 // NewWriteFake creates a new write.
 func NewWriteFake(_ config.StageParam) (Writer, error) {
-	log.Debugf("entering NewWriteFake")
+	logrus.Debugf("entering NewWriteFake")
 	w := &WriteFake{}
 	return w, nil
 }

@@ -83,7 +83,7 @@ var (
 
 // Encode encodes a metric before being stored
 func (e *EncodeProm) Encode(metricRecord config.GenericMap) {
-	log.Debugf("entering EncodeMetric. metricRecord = %v", metricRecord)
+	log.Tracef("entering EncodeMetric. metricRecord = %v", metricRecord)
 
 	// Process counters
 	for _, mInfo := range e.counters {

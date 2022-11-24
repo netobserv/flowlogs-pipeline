@@ -20,8 +20,10 @@ package transform
 import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
+
+var tlog = logrus.WithField("component", "transform.Filter")
 
 type Filter struct {
 	Rules []api.TransformFilterRule
@@ -29,10 +31,10 @@ type Filter struct {
 
 // Transform transforms a flow
 func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
-	log.Tracef("f = %v", f)
+	tlog.Tracef("f = %v", f)
 	outputEntry := entry.Copy()
 	for _, rule := range f.Rules {
-		log.Debugf("rule = %v", rule)
+		tlog.Tracef("rule = %v", rule)
 		switch rule.Type {
 		case api.TransformFilterOperationName("RemoveField"):
 			delete(outputEntry, rule.Input)
@@ -57,7 +59,7 @@ func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 				}
 			}
 		default:
-			log.Panicf("unknown type %s for transform.Filter rule: %v", rule.Type, rule)
+			tlog.Panicf("unknown type %s for transform.Filter rule: %v", rule.Type, rule)
 		}
 	}
 	return outputEntry, true
@@ -65,7 +67,7 @@ func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 
 // NewTransformFilter create a new filter transform
 func NewTransformFilter(params config.StageParam) (Transformer, error) {
-	log.Debugf("entering NewTransformFilter")
+	tlog.Debugf("entering NewTransformFilter")
 	rules := []api.TransformFilterRule{}
 	if params.Transform != nil && params.Transform.Filter != nil {
 		rules = params.Transform.Filter.Rules

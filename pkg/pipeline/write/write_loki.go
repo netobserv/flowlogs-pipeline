@@ -34,7 +34,7 @@ import (
 	"github.com/netobserv/loki-client-go/pkg/backoff"
 	"github.com/netobserv/loki-client-go/pkg/urlutil"
 	"github.com/prometheus/common/model"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var jsonEncodingConfig = jsonIter.Config{}.Froze()
@@ -42,6 +42,8 @@ var jsonEncodingConfig = jsonIter.Config{}.Froze()
 var (
 	keyReplacer = strings.NewReplacer("/", "_", ".", "_", "-", "_")
 )
+
+var log = logrus.WithField("component", "write.Loki")
 
 type emitter interface {
 	Handle(labels model.LabelSet, timestamp time.Time, record string) error
@@ -172,7 +174,7 @@ func (l *Loki) addLabels(record config.GenericMap, labels model.LabelSet) {
 		}
 		lv := model.LabelValue(fmt.Sprint(val))
 		if !lv.IsValid() {
-			log.WithFields(log.Fields{"key": label, "value": val}).
+			log.WithFields(logrus.Fields{"key": label, "value": val}).
 				Debug("Invalid label value. Ignoring it")
 			continue
 		}
@@ -204,10 +206,10 @@ func getFloat64(timestamp interface{}) (ft float64, ok bool) {
 
 // Write writes a flow before being stored
 func (l *Loki) Write(entry config.GenericMap) {
-	log.Debugf("entering Loki Write")
+	log.Trace("writing entry: %#v", entry)
 	err := l.ProcessRecord(entry)
 	if err != nil {
-		log.Errorf("Write (Loki) error %v", err)
+		log.WithError(err).Warn("can't write into loki")
 	}
 }
 
@@ -246,7 +248,7 @@ func NewWriteLoki(opMetrics *operational.Metrics, params config.StageParam) (*Lo
 		if sanitized.IsValid() {
 			saneLabels[label] = sanitized
 		} else {
-			log.WithFields(log.Fields{"key": label, "sanitized": sanitized}).
+			log.WithFields(logrus.Fields{"key": label, "sanitized": sanitized}).
 				Debug("Invalid label. Ignoring it")
 		}
 	}

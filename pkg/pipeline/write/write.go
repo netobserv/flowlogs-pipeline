@@ -21,7 +21,7 @@ import (
 	"sync"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type Writer interface {
@@ -35,7 +35,7 @@ type WriteNone struct {
 
 // Write writes entries
 func (t *WriteNone) Write(in config.GenericMap) {
-	log.Debugf("entering Write none, in = %v", in)
+	logrus.Debugf("entering Write none, in = %v", in)
 	t.mt.Lock()
 	t.prevRecords = append(t.prevRecords, in)
 	t.mt.Unlock()
