@@ -119,7 +119,11 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				log.Debugf("Can't find kubernetes info for IP %v err %v", outputEntry[rule.Input], err)
 				continue
 			}
-			outputEntry[rule.Output+"_Namespace"] = kubeInfo.Namespace
+			// NETOBSERV-666: avoid putting empty namespaces or Loki aggregation queries will
+			// differentiate between empty and nil namespaces.
+			if kubeInfo.Namespace != "" {
+				outputEntry[rule.Output+"_Namespace"] = kubeInfo.Namespace
+			}
 			outputEntry[rule.Output+"_Name"] = kubeInfo.Name
 			outputEntry[rule.Output+"_Type"] = kubeInfo.Type
 			outputEntry[rule.Output+"_OwnerName"] = kubeInfo.Owner.Name
