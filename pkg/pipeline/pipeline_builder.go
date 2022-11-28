@@ -406,6 +406,8 @@ func getEncoder(opMetrics *operational.Metrics, params config.StageParam) (encod
 		encoder, err = encode.NewEncodeProm(opMetrics, params)
 	case api.KafkaType:
 		encoder, err = encode.NewEncodeKafka(opMetrics, params)
+	case api.S3Type:
+		encoder, err = encode.NewEncodeS3(opMetrics, params)
 	case api.NoneType:
 		encoder, _ = encode.NewEncodeNone()
 	default:
