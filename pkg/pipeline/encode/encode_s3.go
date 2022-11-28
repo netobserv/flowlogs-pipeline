@@ -29,6 +29,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -47,6 +48,7 @@ type encodeS3 struct {
 	pendingEntries    []config.GenericMap
 	mutex             *sync.Mutex
 	expiryTime        int64
+	exitChan          <-chan struct{}
 	streamId          string
 	intervalStartTime time.Time
 	sequenceNumber    int64
@@ -71,6 +73,7 @@ func (s *encodeS3) writeObject() {
 	log.Debugf("S3 writeObject: object = %v", object)
 	s.pendingEntries = s.pendingEntries[nLogs:]
 	s.intervalStartTime = now
+	s.expiryTime = now.Unix() + s.s3Params.WriteTimeout
 	s.sequenceNumber++
 
 	// send to object store
@@ -104,7 +107,26 @@ func (s *encodeS3) GenerateStoreHeader(flows []config.GenericMap, startTime time
 	return augmentedObject
 }
 
-// Encode writes entries to object store
+func (s *encodeS3) createObjectTimeoutLoop() {
+	log.Debugf("entering createObjectTimeoutLoop \n")
+	ticker := time.NewTicker(time.Duration(s.s3Params.WriteTimeout) * time.Second)
+	for {
+		select {
+		case <-s.exitChan:
+			log.Debugf("exiting createObjectTimeoutLoop because of signal")
+			return
+		case <-ticker.C:
+			log.Debugf("createObjectTimeoutLoop timer expire\n")
+			now := time.Now().Unix()
+			log.Debugf("time now = %d, expiryTime = %d \n", now, s.expiryTime)
+			if now >= s.expiryTime {
+				s.writeObject()
+			}
+		}
+	}
+}
+
+// Encode queues entries to be sent to object store
 func (s *encodeS3) Encode(entry config.GenericMap) {
 	log.Debugf("Encode S3, entry = %v", entry)
 	s.mutex.Lock()
@@ -131,16 +153,19 @@ func NewEncodeS3(opMetrics *operational.Metrics, params config.StageParam) (Enco
 		configParams.BatchSize = defaultBatchSize
 	}
 
-	return &encodeS3{
+	s := &encodeS3{
 		s3Params:          configParams,
 		s3Client:          s3Client,
 		recordsWritten:    opMetrics.CreateRecordsWrittenCounter(params.Name),
 		pendingEntries:    make([]config.GenericMap, 0),
 		expiryTime:        time.Now().Unix() + configParams.WriteTimeout,
+		exitChan:          utils.ExitChannel(),
 		streamId:          time.Now().Format(time.RFC3339),
 		intervalStartTime: time.Now(),
 		mutex:             &sync.Mutex{},
-	}, nil
+	}
+	go s.createObjectTimeoutLoop()
+	return s, nil
 }
 
 func connectS3(config api.EncodeS3) *minio.Client {
