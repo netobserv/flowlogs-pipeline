@@ -20,7 +20,7 @@ package transform
 import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type Transformer interface {
@@ -37,7 +37,7 @@ func (t *transformNone) Transform(f config.GenericMap) (config.GenericMap, bool)
 
 // NewTransformNone create a new transform
 func NewTransformNone() (Transformer, error) {
-	log.Debugf("entering NewTransformNone")
+	logrus.Debugf("entering NewTransformNone")
 	return &transformNone{}, nil
 }
 

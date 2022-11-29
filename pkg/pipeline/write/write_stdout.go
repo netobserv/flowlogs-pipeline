@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type writeStdout struct {
@@ -35,7 +35,7 @@ type writeStdout struct {
 
 // Write writes a flow before being stored
 func (t *writeStdout) Write(v config.GenericMap) {
-	log.Tracef("entering writeStdout Write")
+	logrus.Tracef("entering writeStdout Write")
 	if t.format == "json" {
 		txt, _ := json.Marshal(v)
 		fmt.Println(string(txt))
@@ -58,7 +58,7 @@ func (t *writeStdout) Write(v config.GenericMap) {
 
 // NewWriteStdout create a new write
 func NewWriteStdout(params config.StageParam) (Writer, error) {
-	log.Debugf("entering NewWriteStdout")
+	logrus.Debugf("entering NewWriteStdout")
 	writeStdout := &writeStdout{}
 	if params.Write != nil && params.Write.Stdout != nil {
 		writeStdout.format = params.Write.Stdout.Format

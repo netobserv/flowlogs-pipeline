@@ -29,9 +29,11 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
-	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
-	log "github.com/sirupsen/logrus"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
+	"github.com/sirupsen/logrus"
 )
+
+var log = logrus.WithField("component", "transform.Network")
 
 type Network struct {
 	api.TransformNetwork
@@ -116,7 +118,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 		case api.OpAddKubernetes:
 			kubeInfo, err := kubernetes.Data.GetInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
 			if err != nil {
-				log.Debugf("Can't find kubernetes info for IP %v err %v", outputEntry[rule.Input], err)
+				logrus.WithError(err).Tracef("can't find kubernetes info for IP %v", outputEntry[rule.Input])
 				continue
 			}
 			// NETOBSERV-666: avoid putting empty namespaces or Loki aggregation queries will

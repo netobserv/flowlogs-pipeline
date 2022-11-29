@@ -180,6 +180,10 @@ func (f *fakeKafkaReader) Config() kafkago.ReaderConfig {
 	return kafkago.ReaderConfig{}
 }
 
+func (f *fakeKafkaReader) Stats() kafkago.ReaderStats {
+	return kafkago.ReaderStats{}
+}
+
 func Test_KafkaListener(t *testing.T) {
 	ingestOutput := make(chan config.GenericMap)
 	newIngest := initNewIngestKafka(t, testConfig1)

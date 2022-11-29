@@ -20,8 +20,10 @@ package transform
 import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
+
+var glog = logrus.WithField("component", "transform.Generic")
 
 type Generic struct {
 	policy string
@@ -30,45 +32,41 @@ type Generic struct {
 
 // Transform transforms a flow to a new set of keys
 func (g *Generic) Transform(entry config.GenericMap) (config.GenericMap, bool) {
-	log.Tracef("entering Generic Transform g = %v", g)
-	log.Tracef("entry.GenericMap = %v", entry)
-	outputEntry := make(config.GenericMap)
+	var outputEntry config.GenericMap
+	log.Tracef("Transform input = %v", entry)
 	if g.policy != "replace_keys" {
-		// copy old map to new map
-		for key, value := range entry {
-			outputEntry[key] = value
-		}
+		outputEntry = entry.Copy()
+	} else {
+		outputEntry = config.GenericMap{}
 	}
-	log.Debugf("outputEntry = %v", outputEntry)
 	for _, transformRule := range g.rules {
-		log.Debugf("transformRule = %v", transformRule)
 		outputEntry[transformRule.Output] = entry[transformRule.Input]
 	}
-	log.Debugf("Transform.GenericMap = %v", outputEntry)
+	glog.Tracef("Transform output = %v", outputEntry)
 	return outputEntry, true
 }
 
 // NewTransformGeneric create a new transform
 func NewTransformGeneric(params config.StageParam) (Transformer, error) {
-	log.Debugf("entering NewTransformGeneric")
+	glog.Debugf("entering NewTransformGeneric")
 	genConfig := api.TransformGeneric{}
 	if params.Transform != nil && params.Transform.Generic != nil {
 		genConfig = *params.Transform.Generic
 	}
-	log.Debugf("params.Transform.Generic = %v", genConfig)
+	glog.Debugf("params.Transform.Generic = %v", genConfig)
 	rules := genConfig.Rules
 	policy := genConfig.Policy
 	switch policy {
 	case "replace_keys", "preserve_original_keys", "":
 		// valid; nothing to do
-		log.Infof("NewTransformGeneric, policy = %s", policy)
+		glog.Infof("NewTransformGeneric, policy = %s", policy)
 	default:
-		log.Panicf("unknown policy %s for transform.generic", policy)
+		glog.Panicf("unknown policy %s for transform.generic", policy)
 	}
 	transformGeneric := &Generic{
 		policy: policy,
 		rules:  rules,
 	}
-	log.Debugf("transformGeneric = %v", transformGeneric)
+	glog.Debugf("transformGeneric = %v", transformGeneric)
 	return transformGeneric, nil
 }

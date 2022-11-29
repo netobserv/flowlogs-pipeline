@@ -31,11 +31,10 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/prometheus/common/model"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const timeout = 5 * time.Second
@@ -325,7 +324,7 @@ func hundredFlows() []config.GenericMap {
 }
 
 func BenchmarkWriteLoki(b *testing.B) {
-	log.SetLevel(log.ErrorLevel)
+	logrus.SetLevel(logrus.ErrorLevel)
 	lokiFlows := make(chan map[string]interface{}, 256)
 	fakeLoki := httptest.NewServer(test.FakeLokiHandler(lokiFlows))
 

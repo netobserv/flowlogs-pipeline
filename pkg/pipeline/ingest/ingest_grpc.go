@@ -11,11 +11,13 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/grpc"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	grpc2 "google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
+
+var glog = logrus.WithField("component", "ingest.GRPCProtobuf")
 
 const (
 	defaultBufferLen = 100
@@ -62,7 +64,7 @@ func (no *GRPCProtobuf) Ingest(out chan<- config.GenericMap) {
 		no.collector.Close()
 	}()
 	for fp := range no.flowPackets {
-		log.Debugf("GRPCProtobuf records len = %v", len(fp.Entries))
+		glog.Debugf("Ingested %v records", len(fp.Entries))
 		for _, entry := range fp.Entries {
 			out <- decode.PBFlowToMap(entry)
 		}
