@@ -37,8 +37,11 @@ import (
 
 const (
 	flpS3Version     = "v0.1"
-	defaultTimeOut   = 60
 	defaultBatchSize = 10
+)
+
+var (
+	defaultTimeOut = api.Duration{Duration: 60 * time.Second}
 )
 
 type encodeS3 struct {
@@ -47,7 +50,7 @@ type encodeS3 struct {
 	recordsWritten    prometheus.Counter
 	pendingEntries    []config.GenericMap
 	mutex             *sync.Mutex
-	expiryTime        int64
+	expiryTime        time.Time
 	exitChan          <-chan struct{}
 	streamId          string
 	intervalStartTime time.Time
@@ -82,7 +85,7 @@ func (s *encodeS3) writeObject() error {
 	log.Debugf("S3 writeObject: object = %v", object)
 	s.pendingEntries = s.pendingEntries[nLogs:]
 	s.intervalStartTime = now
-	s.expiryTime = now.Unix() + s.s3Params.WriteTimeout
+	s.expiryTime = now.Add(s.s3Params.WriteTimeout.Duration)
 	s.sequenceNumber++
 	// send object to object store
 	err := s.s3Writer.putObject(s.s3Params.Bucket, objectName, object)
@@ -108,18 +111,18 @@ func (s *encodeS3) GenerateStoreHeader(flows []config.GenericMap, startTime time
 }
 
 func (s *encodeS3) createObjectTimeoutLoop() {
-	log.Debugf("entering createObjectTimeoutLoop \n")
-	ticker := time.NewTicker(time.Duration(s.s3Params.WriteTimeout) * time.Second)
+	log.Debugf("entering createObjectTimeoutLoop")
+	ticker := time.NewTicker(s.s3Params.WriteTimeout.Duration * time.Second)
 	for {
 		select {
 		case <-s.exitChan:
 			log.Debugf("exiting createObjectTimeoutLoop because of signal")
 			return
 		case <-ticker.C:
-			log.Debugf("createObjectTimeoutLoop timer expire\n")
-			now := time.Now().Unix()
-			log.Debugf("time now = %d, expiryTime = %d \n", now, s.expiryTime)
-			if now >= s.expiryTime {
+			log.Debugf("createObjectTimeoutLoop timer expire")
+			now := time.Now()
+			log.Debugf("time now = %v, expiryTime = %v", now, s.expiryTime)
+			if now.After(s.expiryTime) {
 				_ = s.writeObject()
 			}
 		}
@@ -138,7 +141,7 @@ func (s *encodeS3) Encode(entry config.GenericMap) {
 	}
 }
 
-// NewEncodeS3 create a new writer to S3
+// NewEncodeS3 creates a new writer to S3
 func NewEncodeS3(opMetrics *operational.Metrics, params config.StageParam) (Encoder, error) {
 	configParams := api.EncodeS3{}
 	if params.Encode != nil && params.Encode.S3 != nil {
@@ -148,7 +151,7 @@ func NewEncodeS3(opMetrics *operational.Metrics, params config.StageParam) (Enco
 	s3Writer := &encodeS3Writer{
 		s3Params: &configParams,
 	}
-	if configParams.WriteTimeout == 0 {
+	if configParams.WriteTimeout.Duration == time.Duration(0) {
 		configParams.WriteTimeout = defaultTimeOut
 	}
 	if configParams.BatchSize == 0 {
@@ -160,7 +163,7 @@ func NewEncodeS3(opMetrics *operational.Metrics, params config.StageParam) (Enco
 		s3Writer:          s3Writer,
 		recordsWritten:    opMetrics.CreateRecordsWrittenCounter(params.Name),
 		pendingEntries:    make([]config.GenericMap, 0),
-		expiryTime:        time.Now().Unix() + configParams.WriteTimeout,
+		expiryTime:        time.Now().Add(configParams.WriteTimeout.Duration),
 		exitChan:          utils.ExitChannel(),
 		streamId:          time.Now().Format(time.RFC3339),
 		intervalStartTime: time.Now(),
@@ -190,7 +193,7 @@ func (e *encodeS3Writer) connectS3(config *api.EncodeS3) (*minio.Client, error) 
 	if found {
 		log.Infof("S3 Bucket %s found", config.Bucket)
 	}
-	log.Debugf("s3Client = %#v\n", s3Client) // s3Client is now setup
+	log.Debugf("s3Client = %#v", s3Client) // s3Client is now setup
 	return s3Client, nil
 }
 
@@ -212,8 +215,5 @@ func (e *encodeS3Writer) putObject(bucket string, objectName string, object map[
 	// TBD: add necessary headers such as authorization (token), gzip, md5, etc
 	uploadInfo, err := e.s3Client.PutObject(context.Background(), bucket, objectName, b, int64(b.Len()), minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	log.Debugf("uploadInfo = %v", uploadInfo)
-	if err != nil {
-		log.Errorf("error writing to object store: %v", err)
-	}
 	return err
 }
