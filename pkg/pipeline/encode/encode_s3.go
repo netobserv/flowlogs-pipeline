@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	flpS3Version     = "1.0"
+	flpS3Version     = "v0.1"
 	defaultTimeOut   = 60
 	defaultBatchSize = 10
 )
@@ -93,18 +93,18 @@ func (s *encodeS3) writeObject() error {
 }
 
 func (s *encodeS3) GenerateStoreHeader(flows []config.GenericMap, startTime time.Time, endTime time.Time) map[string]interface{} {
-	augmentedObject := make(map[string]interface{})
+	object := make(map[string]interface{})
 	// copy user defined keys from config to object header
 	for key, value := range s.s3Params.ObjectHeaderParameters {
-		augmentedObject[key] = value
+		object[key] = value
 	}
-	augmentedObject["version"] = flpS3Version
-	augmentedObject["capture_start_time"] = startTime.Format(time.RFC3339)
-	augmentedObject["capture_end_time"] = endTime.Format(time.RFC3339)
-	augmentedObject["number_of_flow_logs"] = len(flows)
-	augmentedObject["flow_logs"] = flows
+	object["version"] = flpS3Version
+	object["capture_start_time"] = startTime.Format(time.RFC3339)
+	object["capture_end_time"] = endTime.Format(time.RFC3339)
+	object["number_of_flow_logs"] = len(flows)
+	object["flow_logs"] = flows
 
-	return augmentedObject
+	return object
 }
 
 func (s *encodeS3) createObjectTimeoutLoop() {
@@ -171,8 +171,6 @@ func NewEncodeS3(opMetrics *operational.Metrics, params config.StageParam) (Enco
 }
 
 func (e *encodeS3Writer) connectS3(config *api.EncodeS3) (*minio.Client, error) {
-	fmt.Printf("inside encodeS3Writer connectS3")
-
 	// Initialize s3 client object.
 	s3Client, err := minio.New(config.Endpoint, &minio.Options{
 		Creds: credentials.NewStaticV4(config.AccessKeyId, config.SecretAccessKey, ""),
@@ -217,6 +215,5 @@ func (e *encodeS3Writer) putObject(bucket string, objectName string, object map[
 	if err != nil {
 		log.Errorf("error writing to object store: %v", err)
 	}
-	// TBD: check response?
 	return err
 }
