@@ -43,7 +43,7 @@ const (
 
 type encodeS3 struct {
 	s3Params          api.EncodeS3
-	s3Client          *minio.Client
+	s3Writer          s3WriteEntries
 	recordsWritten    prometheus.Counter
 	pendingEntries    []config.GenericMap
 	mutex             *sync.Mutex
@@ -54,7 +54,16 @@ type encodeS3 struct {
 	sequenceNumber    int64
 }
 
-func (s *encodeS3) writeObject() {
+type s3WriteEntries interface {
+	putObject(bucket string, objectName string, object map[string]interface{}) error
+}
+
+type encodeS3Writer struct {
+	s3Client *minio.Client
+	s3Params *api.EncodeS3
+}
+
+func (s *encodeS3) writeObject() error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	nLogs := len(s.pendingEntries)
@@ -75,20 +84,12 @@ func (s *encodeS3) writeObject() {
 	s.intervalStartTime = now
 	s.expiryTime = now.Unix() + s.s3Params.WriteTimeout
 	s.sequenceNumber++
-
-	// send to object store
-	b := new(bytes.Buffer)
-	err := json.NewEncoder(b).Encode(object)
+	// send object to object store
+	err := s.s3Writer.putObject(s.s3Params.Bucket, objectName, object)
 	if err != nil {
-		log.Errorf("error encoding object: %v", err)
-		return
+		log.Errorf("error in writing object: %v", err)
 	}
-	log.Debugf("encoded object = %v", b)
-	uploadInfo, err := s.s3Client.PutObject(context.Background(), s.s3Params.Bucket, objectName, b, int64(b.Len()), minio.PutObjectOptions{ContentType: "application/octet-stream"})
-	log.Debugf("uploadInfo = %v", uploadInfo)
-	if err != nil {
-		log.Errorf("error writing to object store: %v", err)
-	}
+	return err
 }
 
 func (s *encodeS3) GenerateStoreHeader(flows []config.GenericMap, startTime time.Time, endTime time.Time) map[string]interface{} {
@@ -102,7 +103,6 @@ func (s *encodeS3) GenerateStoreHeader(flows []config.GenericMap, startTime time
 	augmentedObject["capture_end_time"] = endTime.Format(time.RFC3339)
 	augmentedObject["number_of_flow_logs"] = len(flows)
 	augmentedObject["flow_logs"] = flows
-	augmentedObject["state"] = "ok"
 
 	return augmentedObject
 }
@@ -120,7 +120,7 @@ func (s *encodeS3) createObjectTimeoutLoop() {
 			now := time.Now().Unix()
 			log.Debugf("time now = %d, expiryTime = %d \n", now, s.expiryTime)
 			if now >= s.expiryTime {
-				s.writeObject()
+				_ = s.writeObject()
 			}
 		}
 	}
@@ -134,7 +134,7 @@ func (s *encodeS3) Encode(entry config.GenericMap) {
 	s.mutex.Unlock()
 	s.recordsWritten.Inc()
 	if len(s.pendingEntries) >= s.s3Params.BatchSize {
-		s.writeObject()
+		_ = s.writeObject()
 	}
 }
 
@@ -145,7 +145,9 @@ func NewEncodeS3(opMetrics *operational.Metrics, params config.StageParam) (Enco
 		configParams = *params.Encode.S3
 	}
 	log.Debugf("NewEncodeS3, config = %v", configParams)
-	s3Client := connectS3(configParams)
+	s3Writer := &encodeS3Writer{
+		s3Params: &configParams,
+	}
 	if configParams.WriteTimeout == 0 {
 		configParams.WriteTimeout = defaultTimeOut
 	}
@@ -155,7 +157,7 @@ func NewEncodeS3(opMetrics *operational.Metrics, params config.StageParam) (Enco
 
 	s := &encodeS3{
 		s3Params:          configParams,
-		s3Client:          s3Client,
+		s3Writer:          s3Writer,
 		recordsWritten:    opMetrics.CreateRecordsWrittenCounter(params.Name),
 		pendingEntries:    make([]config.GenericMap, 0),
 		expiryTime:        time.Now().Unix() + configParams.WriteTimeout,
@@ -168,26 +170,53 @@ func NewEncodeS3(opMetrics *operational.Metrics, params config.StageParam) (Enco
 	return s, nil
 }
 
-func connectS3(config api.EncodeS3) *minio.Client {
+func (e *encodeS3Writer) connectS3(config *api.EncodeS3) (*minio.Client, error) {
+	fmt.Printf("inside encodeS3Writer connectS3")
+
 	// Initialize s3 client object.
 	s3Client, err := minio.New(config.Endpoint, &minio.Options{
 		Creds: credentials.NewStaticV4(config.AccessKeyId, config.SecretAccessKey, ""),
-		// TBD: security parameters
+		// TBD: other security parameters
 		Secure: false,
 	})
 	if err != nil {
 		log.Errorf("Error when creating S3 client: %v", err)
-		return nil
+		return nil, err
 	}
 
 	found, err := s3Client.BucketExists(context.Background(), config.Bucket)
 	if err != nil {
 		log.Errorf("Error accessing S3 bucket: %v", err)
-		return nil
+		return nil, err
 	}
 	if found {
-		log.Infof("Bucket %s found", config.Bucket)
+		log.Infof("S3 Bucket %s found", config.Bucket)
 	}
-	log.Infof("s3Client = %#v\n", s3Client) // s3Client is now setup
-	return s3Client
+	log.Debugf("s3Client = %#v\n", s3Client) // s3Client is now setup
+	return s3Client, nil
+}
+
+func (e *encodeS3Writer) putObject(bucket string, objectName string, object map[string]interface{}) error {
+	if e.s3Client == nil {
+		s3Client, err := e.connectS3(e.s3Params)
+		if s3Client == nil {
+			return err
+		}
+		e.s3Client = s3Client
+	}
+	b := new(bytes.Buffer)
+	err := json.NewEncoder(b).Encode(object)
+	if err != nil {
+		log.Errorf("error encoding object: %v", err)
+		return err
+	}
+	log.Debugf("encoded object = %v", b)
+	// TBD: add necessary headers such as authorization (token), gzip, md5, etc
+	uploadInfo, err := e.s3Client.PutObject(context.Background(), bucket, objectName, b, int64(b.Len()), minio.PutObjectOptions{ContentType: "application/octet-stream"})
+	log.Debugf("uploadInfo = %v", uploadInfo)
+	if err != nil {
+		log.Errorf("error writing to object store: %v", err)
+	}
+	// TBD: check response?
+	return err
 }
