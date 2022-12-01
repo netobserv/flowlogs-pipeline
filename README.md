@@ -782,6 +782,47 @@ parameters:
 
 > Note: to view loki flow-logs in `grafana`: Use the `Explore` tab and choose the `loki` datasource. In the `Log Browser` enter `{job="flowlogs-pipeline"}` and press `Run query` 
 
+### Object Store encoder
+
+The object store encoder allows to export flows into an object store using the S3 API.
+A batch of flow logs received in some time interval are collected and stored in a single object.
+The configuration provides the URL of the object store, credentials to access the object store, the bucket in the object store into which the objects should be placed, and parameters (key/value pairs) to be stored as metadata of the created objects.
+Object names are constructed according to the following format:
+```
+<bucket>/year={xxxx}/month={yy}/day={zz}/hour={hh}/stream-id={stream-id}/{sequence-number}
+```
+
+The `{stream-id}` is derived from the time flowlogs-pipeline started to run.
+The syntax of a sample configuration file is as follows:
+
+```
+parameters:
+  - name: encodeS3
+    encode:
+      type: s3
+      s3:
+        endpoint: 1.2.3.4:9000
+        bucket: bucket1
+        account: tenant1
+        accessKeyId: accessKey1
+        secretAccessKey: secretAccessKey1
+        writeTimeout: 60
+        batchSize: 100
+        objectHeaderParameters:
+          key1: val1
+          key2: val2
+          key3: val3
+          key4: val4
+```
+
+The key/value pairs in `objectHeaderParameters` may contain arbitrary configuration information that the administrator wants to save as metadata for the produced objects, such as `tenant_id` or `network_interface_id`.
+The content of the object consists of object header fields followed by the actual flow logs.
+The object header contains the following fields: `version`, `capture_start_time`, `capture_end_time`, `number_of_flow_logs`, plus all the fields provided in the configuration under the `objectHeaderParameters`.
+
+If no flow logs arrive within the `writeTimeout` period, then an object is created with no flows.
+An object is created either when we have accumulated `batchSize` flow logs or when `writeTimeout` seconds have passed.
+
+
 # Development
 
 ## Build
