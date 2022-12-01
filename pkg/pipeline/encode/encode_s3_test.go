@@ -18,6 +18,7 @@
 package encode
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -40,7 +41,7 @@ parameters:
         account: tenant1
         accessKeyId: accessKey1
         secretAccessKey: secretAccessKey1
-        writeTimeout: 10
+        writeTimeout: 1s
         batchSize: 3
         objectHeaderParameters:
           key1: val1
@@ -49,16 +50,24 @@ parameters:
           key4: val4
 `
 
+var (
+	syncChan chan bool
+)
+
 type fakeS3Writer struct {
+	mutex       sync.Mutex
 	objects     []map[string]interface{}
 	objectNames []string
 	bucketNames []string
 }
 
-func (e *fakeS3Writer) putObject(bucket string, objectName string, object map[string]interface{}) error {
-	e.objects = append(e.objects, object)
-	e.objectNames = append(e.objectNames, objectName)
-	e.bucketNames = append(e.bucketNames, bucket)
+func (f *fakeS3Writer) putObject(bucket string, objectName string, object map[string]interface{}) error {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+	f.objects = append(f.objects, object)
+	f.objectNames = append(f.objectNames, objectName)
+	f.bucketNames = append(f.bucketNames, bucket)
+	syncChan <- true
 	return nil
 }
 
@@ -66,6 +75,7 @@ func initNewEncodeS3(t *testing.T, configString string) *encodeS3 {
 	v, cfg := test.InitConfig(t, configString)
 	require.NotNil(t, v)
 
+	syncChan = make(chan bool, 10)
 	newEncode, err := NewEncodeS3(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 	encodeS3 := newEncode.(*encodeS3)
@@ -86,10 +96,13 @@ func Test_EncodeS3(t *testing.T) {
 		encodeS3.Encode(entries[i])
 	}
 
+	<-syncChan
+
 	// confirm object names, bucket name
 	// confirm that object created has batchSize=3 entries
 	writer := encodeS3.s3Writer
 	fakeWriter := writer.(*fakeS3Writer)
+	fakeWriter.mutex.Lock()
 	object0 := fakeWriter.objects[0]
 	require.Contains(t, object0, "version")
 	require.Contains(t, object0, "capture_start_time")
@@ -97,6 +110,7 @@ func Test_EncodeS3(t *testing.T) {
 	require.Contains(t, object0, "number_of_flow_logs")
 	require.Equal(t, 3, object0["number_of_flow_logs"])
 	require.Equal(t, "bucket1", fakeWriter.bucketNames[0])
+	fakeWriter.mutex.Unlock()
 }
 
 // TBD: more tests; additional parameters, bad credentials, missing/default config parameters, timeout

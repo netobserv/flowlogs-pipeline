@@ -806,7 +806,7 @@ parameters:
         account: tenant1
         accessKeyId: accessKey1
         secretAccessKey: secretAccessKey1
-        writeTimeout: 60
+        writeTimeout: 60s
         batchSize: 100
         objectHeaderParameters:
           key1: val1
