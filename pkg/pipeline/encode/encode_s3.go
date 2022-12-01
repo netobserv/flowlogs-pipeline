@@ -112,7 +112,7 @@ func (s *encodeS3) GenerateStoreHeader(flows []config.GenericMap, startTime time
 
 func (s *encodeS3) createObjectTimeoutLoop() {
 	log.Debugf("entering createObjectTimeoutLoop")
-	ticker := time.NewTicker(s.s3Params.WriteTimeout.Duration * time.Second)
+	ticker := time.NewTicker(s.s3Params.WriteTimeout.Duration)
 	for {
 		select {
 		case <-s.exitChan:
