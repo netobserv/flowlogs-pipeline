@@ -47,6 +47,20 @@ Following is the supported API format for kafka encode:
              userCertPath: path to the user certificate
              userKeyPath: path to the user private key
 </pre>
+## S3 encode API
+Following is the supported API format for S3 encode:
+
+<pre>
+ s3:
+         account: tenant id for this flow collector
+         endpoint: address of s3 server
+         accessKeyId: username to connect to server
+         secretAccessKey: password to connect to server
+         bucket: bucket into which to store objects
+         writeTimeout: timeout (in seconds) for write operation
+         batchSize: limit on how many flows will be buffered before being sent to an object
+         objectHeaderParameters: parameters to include in object header (key/value pairs)
+</pre>
 ## Ingest collector API
 Following is the supported API format for the NetFlow / IPFIX collector:
 

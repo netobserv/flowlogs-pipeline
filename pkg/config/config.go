@@ -116,6 +116,7 @@ type Encode struct {
 	Type  string           `yaml:"type" json:"type"`
 	Prom  *api.PromEncode  `yaml:"prom,omitempty" json:"prom,omitempty"`
 	Kafka *api.EncodeKafka `yaml:"kafka,omitempty" json:"kafka,omitempty"`
+	S3    *api.EncodeS3    `yaml:"s3,omitempty" json:"s3,omitempty"`
 }
 
 type Write struct {
