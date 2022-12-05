@@ -820,7 +820,7 @@ The content of the object consists of object header fields followed by the actua
 The object header contains the following fields: `version`, `capture_start_time`, `capture_end_time`, `number_of_flow_logs`, plus all the fields provided in the configuration under the `objectHeaderParameters`.
 
 If no flow logs arrive within the `writeTimeout` period, then an object is created with no flows.
-An object is created either when we have accumulated `batchSize` flow logs or when `writeTimeout` seconds have passed.
+An object is created either when we have accumulated `batchSize` flow logs or when `writeTimeout` has passed.
 
 
 # Development

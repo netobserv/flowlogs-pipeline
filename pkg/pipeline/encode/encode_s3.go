@@ -119,12 +119,9 @@ func (s *encodeS3) createObjectTimeoutLoop() {
 			log.Debugf("exiting createObjectTimeoutLoop because of signal")
 			return
 		case <-ticker.C:
-			log.Debugf("createObjectTimeoutLoop timer expire")
 			now := time.Now()
 			log.Debugf("time now = %v, expiryTime = %v", now, s.expiryTime)
-			if now.After(s.expiryTime) {
-				_ = s.writeObject()
-			}
+			_ = s.writeObject()
 		}
 	}
 }
@@ -175,11 +172,11 @@ func NewEncodeS3(opMetrics *operational.Metrics, params config.StageParam) (Enco
 
 func (e *encodeS3Writer) connectS3(config *api.EncodeS3) (*minio.Client, error) {
 	// Initialize s3 client object.
-	s3Client, err := minio.New(config.Endpoint, &minio.Options{
-		Creds: credentials.NewStaticV4(config.AccessKeyId, config.SecretAccessKey, ""),
-		// TBD: other security parameters
-		Secure: false,
-	})
+	minioOptions := minio.Options{
+		Creds:  credentials.NewStaticV4(config.AccessKeyId, config.SecretAccessKey, ""),
+		Secure: config.Secure,
+	}
+	s3Client, err := minio.New(config.Endpoint, &minioOptions)
 	if err != nil {
 		log.Errorf("Error when creating S3 client: %v", err)
 		return nil, err
