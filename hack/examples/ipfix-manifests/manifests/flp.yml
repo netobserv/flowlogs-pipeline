@@ -41,7 +41,7 @@ data:
       - name: ingest
       - name: enrich
         follows: ingest
-      - name: loki
+      - name: write_ipfix
         follows: enrich
     parameters:
       - name: ingest
@@ -64,6 +64,7 @@ data:
         write:
           type: ipfix
           ipfix:
-            targetHost: 127.0.0.1
+            targetHost: 10.244.0.5
             targetPort: 9998
             transport: tcp
+            enterpriseID: 27207
