@@ -23,7 +23,7 @@ import (
 	"net"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/vmware/go-ipfix/pkg/entities"
 	ipfixExporter "github.com/vmware/go-ipfix/pkg/exporter"
 	"github.com/vmware/go-ipfix/pkg/registry"
@@ -40,6 +40,8 @@ type writeIpfix struct {
 
 // IPv6Type value as defined in IEEE 802: https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
 const IPv6Type = 0x86DD
+
+var ilog = logrus.WithField("component", "write.Ipfix")
 
 func makeByteFromUint8(value uint8) []byte {
 	bs := make([]byte, 1)
@@ -62,12 +64,12 @@ func makeByteFromUint64(value uint64) []byte {
 func addElementToTemplate(elementName string, value []byte, elements *[]entities.InfoElementWithValue, registryID uint32) error {
 	element, err := registry.GetInfoElement(elementName, registryID)
 	if err != nil {
-		log.WithError(err).Errorf("Did not find the element with name %s", elementName)
+		ilog.WithError(err).Errorf("Did not find the element with name %s", elementName)
 		return err
 	}
 	ie, err := entities.DecodeAndCreateInfoElementWithValue(element, value)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to decode element %s", elementName)
+		ilog.WithError(err).Errorf("Failed to decode element %s", elementName)
 		return err
 	}
 	*elements = append(*elements, ie)
@@ -160,32 +162,32 @@ func addKubeContextToRecord(elements *[]entities.InfoElementWithValue, record co
 func loadCustomRegistry(EnterpriseID uint32) error {
 	err := registry.InitNewRegistry(EnterpriseID)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to initialize registry")
+		ilog.WithError(err).Errorf("Failed to initialize registry")
 		return err
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("sourcePodNamespace", 7733, 13, EnterpriseID, 65535)), EnterpriseID)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to register element")
+		ilog.WithError(err).Errorf("Failed to register element")
 		return err
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("sourcePodName", 7734, 13, EnterpriseID, 65535)), EnterpriseID)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to register element")
+		ilog.WithError(err).Errorf("Failed to register element")
 		return err
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("destinationPodNamespace", 7735, 13, EnterpriseID, 65535)), EnterpriseID)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to register element")
+		ilog.WithError(err).Errorf("Failed to register element")
 		return err
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("destinationPodName", 7736, 13, EnterpriseID, 65535)), EnterpriseID)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to register element")
+		ilog.WithError(err).Errorf("Failed to register element")
 		return err
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("sourceNodeName", 7737, 13, EnterpriseID, 65535)), EnterpriseID)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to register element")
+		ilog.WithError(err).Errorf("Failed to register element")
 		return err
 	}
 	return nil
@@ -196,7 +198,7 @@ func SendTemplateRecordv4(exporter *ipfixExporter.ExportingProcess, enrichEnterp
 	templateSet := entities.NewSet(false)
 	err := templateSet.PrepareSet(entities.Template, templateID)
 	if err != nil {
-		log.WithError(err).Error("Failed in PrepareSet")
+		ilog.WithError(err).Error("Failed in PrepareSet")
 		return 0, err
 	}
 	elements := make([]entities.InfoElementWithValue, 0)
@@ -265,12 +267,12 @@ func SendTemplateRecordv4(exporter *ipfixExporter.ExportingProcess, enrichEnterp
 	}
 	err = templateSet.AddRecord(elements, templateID)
 	if err != nil {
-		log.WithError(err).Error("Failed in Add Record")
+		ilog.WithError(err).Error("Failed in Add Record")
 		return 0, err
 	}
 	_, err = exporter.SendSet(templateSet)
 	if err != nil {
-		log.WithError(err).Error("Failed to send template record")
+		ilog.WithError(err).Error("Failed to send template record")
 		return 0, err
 	}
 
@@ -282,7 +284,7 @@ func SendTemplateRecordv6(exporter *ipfixExporter.ExportingProcess, enrichEnterp
 	templateSet := entities.NewSet(false)
 	err := templateSet.PrepareSet(entities.Template, templateID)
 	if err != nil {
-		log.WithError(err).Error("Failed in PrepareSet")
+		ilog.WithError(err).Error("Failed in PrepareSet")
 		return 0, err
 	}
 	elements := make([]entities.InfoElementWithValue, 0)
@@ -352,12 +354,12 @@ func SendTemplateRecordv6(exporter *ipfixExporter.ExportingProcess, enrichEnterp
 
 	err = templateSet.AddRecord(elements, templateID)
 	if err != nil {
-		log.WithError(err).Error("Failed in Add Record")
+		ilog.WithError(err).Error("Failed in Add Record")
 		return 0, err
 	}
 	_, err = exporter.SendSet(templateSet)
 	if err != nil {
-		log.WithError(err).Error("Failed to send template record")
+		ilog.WithError(err).Error("Failed to send template record")
 		return 0, err
 	}
 
@@ -452,24 +454,24 @@ func (t *writeIpfix) sendDataRecord(record config.GenericMap) error {
 	if IPv6Type == record["Etype"].(uint32) {
 		err = dataSet.PrepareSet(entities.Data, t.templateIDv6)
 		if err != nil {
-			log.Errorf("Failed in PrepareSet")
+			ilog.Errorf("Failed in PrepareSet")
 			return err
 		}
 	} else {
 		err = dataSet.PrepareSet(entities.Data, t.templateIDv4)
 		if err != nil {
-			log.Errorf("Failed in PrepareSet")
+			ilog.Errorf("Failed in PrepareSet")
 			return err
 		}
 	}
 	err = dataSet.AddRecord(elements, t.templateIDv4)
 	if err != nil {
-		log.WithError(err).Error("Failed in Add Record")
+		ilog.WithError(err).Error("Failed in Add Record")
 		return err
 	}
 	_, err = t.exporter.SendSet(dataSet)
 	if err != nil {
-		log.WithError(err).Error("Failed in Send Record")
+		ilog.WithError(err).Error("Failed in Send Record")
 		return err
 	}
 	return nil
@@ -477,17 +479,17 @@ func (t *writeIpfix) sendDataRecord(record config.GenericMap) error {
 
 // Write writes a flow before being stored
 func (t *writeIpfix) Write(entry config.GenericMap) {
-	log.Tracef("entering writeIpfix Write")
+	ilog.Tracef("entering writeIpfix Write")
 
 	err := t.sendDataRecord(entry)
 	if err != nil {
-		log.WithError(err).Error("Failed in send IPFIX record")
+		ilog.WithError(err).Error("Failed in send IPFIX record")
 	}
 }
 
 // NewWriteStdout create a new write
 func NewWriteIpfix(params config.StageParam) (Writer, error) {
-	log.Debugf("entering NewWriteIpfix")
+	ilog.Debugf("entering NewWriteIpfix")
 	writeIpfix := &writeIpfix{}
 	if params.Write != nil && params.Write.Ipfix != nil {
 		writeIpfix.transport = params.Write.Ipfix.Transport
@@ -500,7 +502,7 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 	if params.Write.Ipfix.EnterpriseID != 0 {
 		err = loadCustomRegistry(writeIpfix.enrichEnterpriseID)
 		if err != nil {
-			log.Fatalf("Failed to load Custom(%d) Registry", writeIpfix.enrichEnterpriseID)
+			ilog.Fatalf("Failed to load Custom(%d) Registry", writeIpfix.enrichEnterpriseID)
 		}
 	}
 
@@ -513,20 +515,20 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 	}
 	writeIpfix.exporter, err = ipfixExporter.InitExportingProcess(input)
 	if err != nil {
-		log.Fatalf("Got error when connecting to server %s: %v", writeIpfix.hostPort, err)
+		ilog.Fatalf("Got error when connecting to server %s: %v", writeIpfix.hostPort, err)
 		return nil, err
 	}
-	log.Infof("Created exporter connecting to server with address: %s", writeIpfix.hostPort)
+	ilog.Infof("Created exporter connecting to server with address: %s", writeIpfix.hostPort)
 
 	writeIpfix.templateIDv4, err = SendTemplateRecordv4(writeIpfix.exporter, writeIpfix.enrichEnterpriseID)
 	if err != nil {
-		log.WithError(err).Error("Failed in send IPFIX template v4 record")
+		ilog.WithError(err).Error("Failed in send IPFIX template v4 record")
 		return nil, err
 	}
 
 	writeIpfix.templateIDv6, err = SendTemplateRecordv6(writeIpfix.exporter, writeIpfix.enrichEnterpriseID)
 	if err != nil {
-		log.WithError(err).Error("Failed in send IPFIX template v6 record")
+		ilog.WithError(err).Error("Failed in send IPFIX template v6 record")
 		return nil, err
 	}
 	return writeIpfix, nil
