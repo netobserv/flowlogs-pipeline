@@ -16,7 +16,7 @@ RUN git status --porcelain
 RUN make build_code
 
 # final stage
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.6
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.7
 RUN microdnf install -y \
   iputils \
   curl \
