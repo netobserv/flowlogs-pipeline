@@ -27,10 +27,10 @@ require (
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.8.0
 	github.com/vladimirvivien/gexe v0.1.1
-	github.com/vmware/go-ipfix v0.5.12
-	golang.org/x/net v0.0.0-20220722155237-a158d28d115b
+	github.com/vmware/go-ipfix v0.5.13
+	golang.org/x/net v0.0.0-20220706163947-c90051bbdb60
 	google.golang.org/grpc v1.45.0
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.24.0
 	k8s.io/apimachinery v0.24.0
@@ -79,6 +79,10 @@ require (
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
+	github.com/pion/dtls/v2 v2.0.3 // indirect
+	github.com/pion/logging v0.2.2 // indirect
+	github.com/pion/transport v0.10.1 // indirect
+	github.com/pion/udp v0.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
@@ -90,12 +94,13 @@ require (
 	github.com/stretchr/objx v0.4.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
+	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
 	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
+	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220407144326-9054f6ed7bac // indirect
 	gopkg.in/DATA-DOG/go-sqlmock.v1 v1.3.0 // indirect

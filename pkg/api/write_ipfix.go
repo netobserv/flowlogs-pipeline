@@ -5,9 +5,10 @@ import (
 )
 
 type WriteIpfix struct {
-	TargetHost string `yaml:"targetHost,omitempty" json:"targetHost,omitempty" doc:"IPFIX Collector host target IP"`
-	TargetPort int    `yaml:"targetPort,omitempty" json:"targetPort,omitempty" doc:"IPFIX Collector host target port"`
-	Transport  string `yaml:"transport,omitempty" json:"transport,omitempty" doc:"Transport protocol (TCP/UDP) to be used for the IPFIX connection"`
+	TargetHost   string `yaml:"targetHost,omitempty" json:"targetHost,omitempty" doc:"IPFIX Collector host target IP"`
+	TargetPort   int    `yaml:"targetPort,omitempty" json:"targetPort,omitempty" doc:"IPFIX Collector host target port"`
+	Transport    string `yaml:"transport,omitempty" json:"transport,omitempty" doc:"Transport protocol (TCP/UDP) to be used for the IPFIX connection"`
+	EnterpriseID int    `yaml:"enterpriseId,omitempty" json:"EnterpriseId,omitempty" doc:"Enterprise ID for exporting transformations"`
 }
 
 func (w *WriteIpfix) SetDefaults() {
