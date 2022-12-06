@@ -21,10 +21,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
-	"os"
-	"sort"
-	"text/tabwriter"
-	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
@@ -44,11 +40,6 @@ type writeIpfix struct {
 
 // IPv6Type value as defined in IEEE 802: https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
 const IPv6Type = 0x86DD
-
-// const (
-// 	// SevoneEnterpriseID is the enterprise ID for SevOne Information Elements
-// 	SevoneEnterpriseID uint32 = 27207
-// )
 
 func makeByteFromUint8(value uint8) []byte {
 	bs := make([]byte, 1)
@@ -169,7 +160,8 @@ func addKubeContextToRecord(elements *[]entities.InfoElementWithValue, record co
 func loadCustomRegistry(EnterpriseID uint32) error {
 	err := registry.InitNewRegistry(EnterpriseID)
 	if err != nil {
-		fmt.Printf("Failed Initialization")
+		log.WithError(err).Errorf("Failed to initialize registry")
+		return err
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("sourcePodNamespace", 7733, 13, EnterpriseID, 65535)), EnterpriseID)
 	if err != nil {
@@ -271,7 +263,6 @@ func SendTemplateRecordv4(exporter *ipfixExporter.ExportingProcess, enrichEnterp
 			return 0, err
 		}
 	}
-	fmt.Printf("%+v", elements)
 	err = templateSet.AddRecord(elements, templateID)
 	if err != nil {
 		log.WithError(err).Error("Failed in Add Record")
@@ -481,25 +472,13 @@ func (t *writeIpfix) sendDataRecord(record config.GenericMap) error {
 		log.WithError(err).Error("Failed in Send Record")
 		return err
 	}
-	log.Printf("Sending IPFIX with %s -> %s", record["SrcAddr"], record["DstAddr"])
 	return nil
 }
 
 // Write writes a flow before being stored
 func (t *writeIpfix) Write(entry config.GenericMap) {
-	log.Tracef("entering writeStdout Write")
+	log.Tracef("entering writeIpfix Write")
 
-	var order sort.StringSlice
-	for fieldName := range entry {
-		order = append(order, fieldName)
-	}
-	order.Sort()
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-	fmt.Fprintf(w, "\n\nFlow record at %s:\n", time.Now().Format(time.StampMilli))
-	for _, field := range order {
-		fmt.Fprintf(w, "%v\t=\t%v\n", field, entry[field])
-	}
-	w.Flush()
 	err := t.sendDataRecord(entry)
 	if err != nil {
 		log.WithError(err).Error("Failed in send IPFIX record")
@@ -534,10 +513,10 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 	}
 	writeIpfix.exporter, err = ipfixExporter.InitExportingProcess(input)
 	if err != nil {
-		log.Fatalf("Got error when connecting to local server %s: %v", writeIpfix.hostPort, err)
+		log.Fatalf("Got error when connecting to server %s: %v", writeIpfix.hostPort, err)
 		return nil, err
 	}
-	log.Infof("Created exporter connecting to local server with address: %s", writeIpfix.hostPort)
+	log.Infof("Created exporter connecting to server with address: %s", writeIpfix.hostPort)
 
 	writeIpfix.templateIDv4, err = SendTemplateRecordv4(writeIpfix.exporter, writeIpfix.enrichEnterpriseID)
 	if err != nil {
