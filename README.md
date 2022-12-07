@@ -93,7 +93,7 @@ These instructions apply for deploying FLP development and exploration environme
 tested on Ubuntu 20.4 and Fedora 34.
 1. Make sure the following commands are installed and can be run from the current shell:
    - make
-   - go (version 1.17)
+   - go (version 1.18)
    - docker
 2. To deploy the full simulated environment which includes a kind cluster with FLP, Prometheus, Grafana, and
    netflow-simulator, run (note that depending on your user permissions, you may have to run this command under sudo):
