@@ -90,14 +90,6 @@ func initNewEncodeS3(t *testing.T, configString string) *encodeS3 {
 	return encodeS3
 }
 
-func setup() {
-	utils.SetupElegantExit()
-}
-
-func teardown() {
-	utils.CloseExitChannel()
-}
-
 func Test_EncodeS3(t *testing.T) {
 	utils.InitExitChannel()
 	encodeS3 := initNewEncodeS3(t, testS3Config1)
