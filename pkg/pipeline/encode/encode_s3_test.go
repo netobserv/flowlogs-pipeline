@@ -19,7 +19,6 @@ package encode
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -125,23 +124,23 @@ func Test_EncodeS3(t *testing.T) {
 	// confirm object names, bucket name
 	require.Equal(t, "bucket1", fakeWriter.bucketNames[0])
 	expectedSubstring := "account1"
-	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	require.Contains(t, objectName0, expectedSubstring)
 	expectedSubstring = "year"
-	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	require.Contains(t, objectName0, expectedSubstring)
 	expectedSubstring = "month="
-	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	require.Contains(t, objectName0, expectedSubstring)
 	expectedSubstring = "day="
-	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	require.Contains(t, objectName0, expectedSubstring)
 	expectedSubstring = "hour="
-	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	require.Contains(t, objectName0, expectedSubstring)
 	expectedSubstring = "stream-id="
-	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	require.Contains(t, objectName0, expectedSubstring)
 	expectedSubstring = "00000000"
-	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	require.Contains(t, objectName0, expectedSubstring)
 	expectedSubstring = "00000001"
-	require.True(t, strings.Contains(fakeWriter.objectNames[1], expectedSubstring))
+	require.Contains(t, fakeWriter.objectNames[1], expectedSubstring)
 	expectedSubstring = "00000002"
-	require.True(t, strings.Contains(fakeWriter.objectNames[2], expectedSubstring))
+	require.Contains(t, fakeWriter.objectNames[2], expectedSubstring)
 	fakeWriter.mutex.Unlock()
 	utils.CloseExitChannel()
 }
