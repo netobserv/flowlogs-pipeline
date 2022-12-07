@@ -14,7 +14,7 @@ SHELL := /bin/bash
 DOCKER_TAG ?= latest
 DOCKER_IMG ?= quay.io/netobserv/flowlogs-pipeline
 OCI_RUNTIME ?= $(shell which podman  || which docker)
-MIN_GO_VERSION := 1.17.0
+MIN_GO_VERSION := 1.18.0
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
 NETFLOW_GENERATOR=nflow-generator
@@ -65,11 +65,7 @@ validate_go:
 
 .PHONY: validate_go lint
 lint: $(GOLANGCI_LINT) ## Lint the code
-	@current_ver=$$(go version | { read _ _ v _; echo $${v#go}; }); \
-	if [[ "$$current_ver" == *"1.18"* ]]; then echo "Linting is not fully supported for golang 1.18. Consider using golang 1.17";\
-		$(GOLANGCI_LINT) run --disable-all --enable goimports --enable gofmt --enable ineffassign --timeout 5m; else \
-		$(GOLANGCI_LINT) run --enable goimports --timeout 5m; \
-	fi
+	$(GOLANGCI_LINT) run --enable goimports --enable gofmt --enable ineffassign --timeout 5m
 
 .PHONY: build_code
 build_code:
