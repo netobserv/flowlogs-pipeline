@@ -18,11 +18,14 @@
 package encode
 
 import (
+	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
@@ -79,11 +82,24 @@ func initNewEncodeS3(t *testing.T, configString string) *encodeS3 {
 	newEncode, err := NewEncodeS3(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 	encodeS3 := newEncode.(*encodeS3)
-	encodeS3.s3Writer = &fakeS3Writer{}
+	f := &fakeS3Writer{}
+	encodeS3.s3Writer = f
+	f.objects = nil
+	f.objectNames = nil
+	f.bucketNames = nil
 	return encodeS3
 }
 
+func setup() {
+	utils.SetupElegantExit()
+}
+
+func teardown() {
+	utils.CloseExitChannel()
+}
+
 func Test_EncodeS3(t *testing.T) {
+	utils.InitExitChannel()
 	encodeS3 := initNewEncodeS3(t, testS3Config1)
 	require.Equal(t, "1.2.3.4:9000", encodeS3.s3Params.Endpoint)
 	require.Equal(t, "bucket1", encodeS3.s3Params.Bucket)
@@ -111,6 +127,27 @@ func Test_EncodeS3(t *testing.T) {
 	require.Equal(t, 3, object0["number_of_flow_logs"])
 	require.Equal(t, "bucket1", fakeWriter.bucketNames[0])
 	fakeWriter.mutex.Unlock()
+	utils.CloseExitChannel()
+}
+
+func Test_timeout(t *testing.T) {
+	utils.InitExitChannel()
+	encodeS3 := initNewEncodeS3(t, testS3Config1)
+	entry := test.GetExtractMockEntry()
+	// write a single entry, which will be written only after a timeout
+	encodeS3.Encode(entry)
+	writer := encodeS3.s3Writer
+	fakeWriter := writer.(*fakeS3Writer)
+	fakeWriter.mutex.Lock()
+	require.Equal(t, 0, len(fakeWriter.objects))
+	fakeWriter.mutex.Unlock()
+	fmt.Printf("sleep for a second to reach timeout \n")
+	time.Sleep(1 * time.Second)
+	<-syncChan
+	fakeWriter.mutex.Lock()
+	require.Equal(t, 1, len(fakeWriter.objects))
+	fakeWriter.mutex.Unlock()
+	utils.CloseExitChannel()
 }
 
 // TBD: more tests; additional parameters, bad credentials, missing/default config parameters, timeout

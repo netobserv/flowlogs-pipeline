@@ -66,9 +66,8 @@ type encodeS3Writer struct {
 	s3Params *api.EncodeS3
 }
 
+// The mutex must be held when calling writeObject
 func (s *encodeS3) writeObject() error {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
 	nLogs := len(s.pendingEntries)
 	if nLogs > s.s3Params.BatchSize {
 		nLogs = s.s3Params.BatchSize
@@ -121,7 +120,9 @@ func (s *encodeS3) createObjectTimeoutLoop() {
 		case <-ticker.C:
 			now := time.Now()
 			log.Debugf("time now = %v, expiryTime = %v", now, s.expiryTime)
+			s.mutex.Lock()
 			_ = s.writeObject()
+			s.mutex.Unlock()
 		}
 	}
 }
@@ -130,8 +131,8 @@ func (s *encodeS3) createObjectTimeoutLoop() {
 func (s *encodeS3) Encode(entry config.GenericMap) {
 	log.Debugf("Encode S3, entry = %v", entry)
 	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	s.pendingEntries = append(s.pendingEntries, entry)
-	s.mutex.Unlock()
 	s.recordsWritten.Inc()
 	if len(s.pendingEntries) >= s.s3Params.BatchSize {
 		_ = s.writeObject()
