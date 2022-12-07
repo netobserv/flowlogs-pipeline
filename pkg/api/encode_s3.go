@@ -25,6 +25,8 @@ type EncodeS3 struct {
 	Bucket                 string                 `yaml:"bucket" json:"bucket" doc:"bucket into which to store objects"`
 	WriteTimeout           Duration               `yaml:"writeTimeout,omitempty" json:"writeTimeout,omitempty" doc:"timeout (in seconds) for write operation"`
 	BatchSize              int                    `yaml:"batchSize,omitempty" json:"batchSize,omitempty" doc:"limit on how many flows will be buffered before being sent to an object"`
+	Secure                 bool                   `yaml:"secure,omitempty" json:"secure,omitempty" doc:"true for https, false for http (default: false)"`
 	ObjectHeaderParameters map[string]interface{} `yaml:"objectHeaderParameters,omitempty" json:"objectHeaderParameters,omitempty" doc:"parameters to include in object header (key/value pairs)"`
 	// TBD: (TLS?) security parameters
+	//TLS                    *ClientTLS             `yaml:"tls" json:"tls" doc:"TLS client configuration (optional)"`
 }

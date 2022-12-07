@@ -59,6 +59,7 @@ Following is the supported API format for S3 encode:
          bucket: bucket into which to store objects
          writeTimeout: timeout (in seconds) for write operation
          batchSize: limit on how many flows will be buffered before being sent to an object
+         secure: true for https, false for http (default: false)
          objectHeaderParameters: parameters to include in object header (key/value pairs)
 </pre>
 ## Ingest collector API
