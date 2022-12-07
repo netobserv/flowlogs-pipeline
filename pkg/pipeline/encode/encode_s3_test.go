@@ -19,6 +19,7 @@ package encode
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -41,7 +42,7 @@ parameters:
       s3:
         endpoint: 1.2.3.4:9000
         bucket: bucket1
-        account: tenant1
+        account: account1
         accessKeyId: accessKey1
         secretAccessKey: secretAccessKey1
         writeTimeout: 1s
@@ -95,7 +96,7 @@ func Test_EncodeS3(t *testing.T) {
 	encodeS3 := initNewEncodeS3(t, testS3Config1)
 	require.Equal(t, "1.2.3.4:9000", encodeS3.s3Params.Endpoint)
 	require.Equal(t, "bucket1", encodeS3.s3Params.Bucket)
-	require.Equal(t, "tenant1", encodeS3.s3Params.Account)
+	require.Equal(t, "account1", encodeS3.s3Params.Account)
 	require.Equal(t, "accessKey1", encodeS3.s3Params.AccessKeyId)
 	require.Equal(t, "secretAccessKey1", encodeS3.s3Params.SecretAccessKey)
 
@@ -106,18 +107,41 @@ func Test_EncodeS3(t *testing.T) {
 
 	<-syncChan
 
-	// confirm object names, bucket name
-	// confirm that object created has batchSize=3 entries
 	writer := encodeS3.s3Writer
 	fakeWriter := writer.(*fakeS3Writer)
 	fakeWriter.mutex.Lock()
 	object0 := fakeWriter.objects[0]
+	objectName0 := fakeWriter.objectNames[0]
+
+	// confirm object header fields
 	require.Contains(t, object0, "version")
 	require.Contains(t, object0, "capture_start_time")
 	require.Contains(t, object0, "capture_end_time")
 	require.Contains(t, object0, "number_of_flow_logs")
+
+	// confirm that object created has batchSize=3 entries
 	require.Equal(t, 3, object0["number_of_flow_logs"])
+
+	// confirm object names, bucket name
 	require.Equal(t, "bucket1", fakeWriter.bucketNames[0])
+	expectedSubstring := "account1"
+	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	expectedSubstring = "year"
+	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	expectedSubstring = "month="
+	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	expectedSubstring = "day="
+	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	expectedSubstring = "hour="
+	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	expectedSubstring = "stream-id="
+	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	expectedSubstring = "00000000"
+	require.True(t, strings.Contains(objectName0, expectedSubstring))
+	expectedSubstring = "00000001"
+	require.True(t, strings.Contains(fakeWriter.objectNames[1], expectedSubstring))
+	expectedSubstring = "00000002"
+	require.True(t, strings.Contains(fakeWriter.objectNames[2], expectedSubstring))
 	fakeWriter.mutex.Unlock()
 	utils.CloseExitChannel()
 }
@@ -142,4 +166,26 @@ func Test_timeout(t *testing.T) {
 	utils.CloseExitChannel()
 }
 
-// TBD: more tests; additional parameters, bad credentials, missing/default config parameters, timeout
+const testS3Config2 = `---
+log-level: debug
+pipeline:
+  - name: encode2
+parameters:
+  - name: encode2
+    encode:
+      type: s3
+      s3:
+        endpoint: 1.2.3.4:9000
+        bucket: bucket1
+        account: account1
+        accessKeyId: accessKey1
+        secretAccessKey: secretAccessKey1
+`
+
+func Test_defaults(t *testing.T) {
+	utils.InitExitChannel()
+	encodeS3 := initNewEncodeS3(t, testS3Config2)
+	require.Equal(t, defaultTimeOut, encodeS3.s3Params.WriteTimeout)
+	require.Equal(t, defaultBatchSize, encodeS3.s3Params.BatchSize)
+	utils.CloseExitChannel()
+}

@@ -789,7 +789,7 @@ A batch of flow logs received in some time interval are collected and stored in 
 The configuration provides the URL of the object store, credentials to access the object store, the bucket in the object store into which the objects should be placed, and parameters (key/value pairs) to be stored as metadata of the created objects.
 Object names are constructed according to the following format:
 ```
-<bucket>/year={xxxx}/month={yy}/day={zz}/hour={hh}/stream-id={stream-id}/{sequence-number}
+<bucket>/<account>/year={xxxx}/month={yy}/day={zz}/hour={hh}/stream-id={stream-id}/{sequence-number}
 ```
 
 The `{stream-id}` is derived from the time flowlogs-pipeline started to run.
@@ -803,7 +803,7 @@ parameters:
       s3:
         endpoint: 1.2.3.4:9000
         bucket: bucket1
-        account: tenant1
+        account: account1
         accessKeyId: accessKey1
         secretAccessKey: secretAccessKey1
         writeTimeout: 60s
