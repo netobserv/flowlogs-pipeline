@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware/go-ipfix/pkg/entities"
@@ -490,6 +491,17 @@ func (t *writeIpfix) Write(entry config.GenericMap) {
 // NewWriteStdout create a new write
 func NewWriteIpfix(params config.StageParam) (Writer, error) {
 	ilog.Debugf("entering NewWriteIpfix")
+
+	ipfixConfigIn := api.WriteIpfix{}
+	if params.Write != nil && params.Write.Loki != nil {
+		ipfixConfigIn = *params.Write.Ipfix
+	}
+	// need to combine defaults with parameters that are provided in the config yaml file
+	ipfixConfigIn.SetDefaults()
+
+	if err := ipfixConfigIn.Validate(); err != nil {
+		return nil, fmt.Errorf("the provided config is not valid: %w", err)
+	}
 	writeIpfix := &writeIpfix{}
 	if params.Write != nil && params.Write.Ipfix != nil {
 		writeIpfix.transport = params.Write.Ipfix.Transport
