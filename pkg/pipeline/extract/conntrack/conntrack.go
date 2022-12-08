@@ -76,6 +76,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 					Hash(computedHash).
 					KeysFrom(fl, ct.config.KeyDefinition).
 					Aggregators(ct.aggregators).
+					// TBD: Move the following setting of the next update time to addConnection()
 					NextUpdateReportTime(ct.clock.Now().Add(ct.config.UpdateConnectionInterval.Duration)).
 					Build()
 				ct.connStore.addConnection(computedHash.hashTotal, conn)
@@ -122,6 +123,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 
 func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 	var outputRecords []config.GenericMap
+	// TBD: Move the following logic to store.go maybe except for the addXXX() logic
 	// Iterate over the connections by their expiry time from old to new.
 	ct.connStore.iterateFrontToBack(expiryOrder, func(conn connection) (shouldDelete, shouldStop bool) {
 		expiryTime := conn.getExpiryTime()
@@ -148,6 +150,7 @@ func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 
 func (ct *conntrackImpl) prepareUpdateConnectionRecords() []config.GenericMap {
 	var outputRecords []config.GenericMap
+	// TBD: Move the following logic to store.go maybe except for the addXXX() logic
 	// Iterate over the connections by their next update report time from old to new.
 	ct.connStore.iterateFrontToBack(nextUpdateReportTimeOrder, func(conn connection) (shouldDelete, shouldStop bool) {
 		nextUpdate := conn.getNextUpdateReportTime()
@@ -162,6 +165,7 @@ func (ct *conntrackImpl) prepareUpdateConnectionRecords() []config.GenericMap {
 			}
 			addIsFirstField(record, isFirst)
 			outputRecords = append(outputRecords, record)
+			// TBD: move the calculation of newNextUpdate into updateNextReportTime()
 			newNextUpdate := ct.clock.Now().Add(ct.config.UpdateConnectionInterval.Duration)
 			ct.connStore.updateNextReportTime(conn.getHash().hashTotal, newNextUpdate)
 			shouldDelete, shouldStop = false, false
@@ -178,6 +182,7 @@ func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.Generi
 	for _, agg := range ct.aggregators {
 		agg.update(conn, flowLog, d)
 	}
+	// TBD: move the calculation of newExpiryTime into updateConnectionExpiryTime()
 	newExpiryTime := ct.clock.Now().Add(ct.config.EndConnectionTimeout.Duration)
 	ct.connStore.updateConnectionExpiryTime(flowLogHash.hashTotal, newExpiryTime)
 }
@@ -232,7 +237,8 @@ func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam
 
 	metrics := newMetrics(opMetrics)
 	conntrack := &conntrackImpl{
-		clock:                        clock,
+		clock: clock,
+		// TBD: pass selector data to newConnectionStore()
 		connStore:                    newConnectionStore(metrics),
 		config:                       cfg,
 		hashProvider:                 fnv.New64a,

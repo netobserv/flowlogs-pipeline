@@ -39,12 +39,14 @@ type recordWrapper struct {
 	orderID2element map[OrderID]*list.Element
 }
 
+// TBD: Change name.
 type MultiOrderedMap struct {
 	m      map[Key]*recordWrapper
 	orders map[OrderID]*list.List
 }
 
 // NewMultiOrderedMap returns an initialized MultiOrderedMap.
+// TBD: get the groups list as well
 func NewMultiOrderedMap(orderIDs ...OrderID) *MultiOrderedMap {
 	mom := &MultiOrderedMap{
 		m:      map[Key]*recordWrapper{},
@@ -62,6 +64,7 @@ func (mom MultiOrderedMap) Len() int {
 }
 
 // AddRecord adds a record to the multi-ordered map.
+// TBD: add group argument
 func (mom MultiOrderedMap) AddRecord(key Key, record Record) error {
 	if _, found := mom.GetRecord(key); found {
 		return fmt.Errorf("record with key %x already exists", key)
@@ -98,6 +101,7 @@ func (mom MultiOrderedMap) RemoveRecord(key Key) {
 
 // MoveToBack moves the record of key `key` to the back of orderID. If the key or the orderID doesn't exist, an error
 // is returned.
+// TBD: add group argument
 func (mom MultiOrderedMap) MoveToBack(key Key, orderID OrderID) error {
 	rw, found := mom.m[key]
 	if !found {
@@ -114,6 +118,7 @@ func (mom MultiOrderedMap) MoveToBack(key Key, orderID OrderID) error {
 // IterateFrontToBack iterates over the records by orderID. It applies function f() on each record.
 // f() returns two booleans `delete` and `stop` that control whether to remove the record from the multi-ordered map
 // and whether to stop the iteration respectively.
+// TBD: add group argument
 func (mom MultiOrderedMap) IterateFrontToBack(orderID OrderID, f processRecordFunc) {
 	if _, found := mom.orders[orderID]; !found {
 		panic(fmt.Sprintf("Unknown order id %q", orderID))

@@ -34,11 +34,14 @@ const (
 type connectionStore struct {
 	mom     *utils.MultiOrderedMap
 	metrics *metricsType
+	// TBD: keep the selectors data here
 }
 
 type processConnF func(connection) (shouldDelete, shouldStop bool)
 
 func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
+	// TBD: determine the group of the connection according to the selectors and add it to the correct group.
+	// TBD: add a method to `connection` to check if it matches a selector: isMatchSelector().
 	err := cs.mom.AddRecord(utils.Key(hashId), conn)
 	if err != nil {
 		log.Errorf("BUG. connection with hash %x already exists in store. %v", hashId, conn)
@@ -55,6 +58,7 @@ func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
 	return conn, true
 }
 
+// TBD: No need to get the new time from outside. can calculate it inside using the selectors data.
 func (cs *connectionStore) updateConnectionExpiryTime(hashId uint64, t time.Time) {
 	conn, ok := cs.getConnection(hashId)
 	if !ok {
