@@ -8,7 +8,7 @@ export GOFLAGS=-mod=vendor
 export GO111MODULE=on
 export CGO_ENABLED=0
 export GOOS=linux
-export GOARCH=amd64
+export GOARCH=$(uname -m)
 
 SHELL := /bin/bash
 DOCKER_TAG ?= latest
