@@ -378,6 +378,7 @@ Using `remove_entry_if_not_equal` will remove the entry if the specified field e
 1. Compute geo-location from IP addresses
 1. Resolve kubernetes information from IP addresses
 1. Perform regex operations on field values
+1. Multiply a field by a value (e.g. when receiving only a sampling of bytes transferred)
 
 Example configuration:
 
@@ -416,6 +417,10 @@ parameters:
             output: match-10.0
             type: add_regex_if
             parameters: 10.0.*
+          - input: bytes
+            output: bytes
+            type: multiplier
+            parameters: "20"
 ```
 
 The first rule `add_subnet` generates a new field named `srcSubnet` with the 
@@ -459,6 +464,12 @@ The sixth rule `add_regex_if` generates a new field named `match-10.0` that cont
 the contents of the `srcSubnet` field for entries that match regex expression specified 
 in the `parameters` variable. In addition, the field `match-10.0_Matched` with 
 value `true` is added to all matched entries
+
+The rule `multiplier` takes the input field, multiplies by the value in `parameter` and
+places the result in the output field.
+This is useful to use when provided with only a sample of the flow logs (e.g. 1 our of 20),
+and some of the variables need to be adjusted accordingly.
+Note that the `parameter` is a string variable, but it must represent a number.
 
 
 > Note: above example describes all available transform network `Type` options
