@@ -43,6 +43,7 @@ const (
 	OpAddLocation   = "add_location"
 	OpAddService    = "add_service"
 	OpAddKubernetes = "add_kubernetes"
+	OpMultiplier    = "multiplier"
 )
 
 type TransformNetworkOperationEnum struct {
@@ -52,6 +53,7 @@ type TransformNetworkOperationEnum struct {
 	AddLocation   string `yaml:"add_location" json:"add_location" doc:"add output location fields from input"`
 	AddService    string `yaml:"add_service" json:"add_service" doc:"add output network service field from input port and parameters protocol field"`
 	AddKubernetes string `yaml:"add_kubernetes" json:"add_kubernetes" doc:"add output kubernetes fields from input"`
+	Multiplier    string `yaml:"multiplier" json:"multiplier" doc:"multiply value of input variable by parameter"`
 }
 
 func TransformNetworkOperationName(operation string) string {

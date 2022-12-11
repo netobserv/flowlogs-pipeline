@@ -43,6 +43,7 @@ type Network struct {
 func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bool) {
 	// copy input entry before transform to avoid alteration on parallel stages
 	outputEntry := inputEntry.Copy()
+	ok := true
 
 	// TODO: for efficiency and maintainability, maybe each case in the switch below should be an individual implementation of Transformer
 	for _, rule := range n.Rules {
@@ -141,12 +142,44 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 					outputEntry[rule.Output+"_HostName"] = kubeInfo.HostName
 				}
 			}
+		case api.OpMultiplier:
+			multiplier, _ := strconv.Atoi(rule.Parameters)
+			// verify that the entry is a number so that it can be multiplied
+			switch outputEntry[rule.Input].(type) {
+			case int:
+				outputEntry[rule.Output] = multiplier * outputEntry[rule.Input].(int)
+			case uint:
+				outputEntry[rule.Output] = uint(multiplier) * outputEntry[rule.Input].(uint)
+			case int8:
+				outputEntry[rule.Output] = int8(multiplier) * outputEntry[rule.Input].(int8)
+			case uint8:
+				outputEntry[rule.Output] = uint8(multiplier) * outputEntry[rule.Input].(uint8)
+			case int16:
+				outputEntry[rule.Output] = int16(multiplier) * outputEntry[rule.Input].(int16)
+			case uint16:
+				outputEntry[rule.Output] = uint16(multiplier) * outputEntry[rule.Input].(uint16)
+			case int32:
+				outputEntry[rule.Output] = int32(multiplier) * outputEntry[rule.Input].(int32)
+			case uint32:
+				outputEntry[rule.Output] = uint32(multiplier) * outputEntry[rule.Input].(uint32)
+			case int64:
+				outputEntry[rule.Output] = int64(multiplier) * outputEntry[rule.Input].(int64)
+			case uint64:
+				outputEntry[rule.Output] = uint64(multiplier) * outputEntry[rule.Input].(uint64)
+			case float32:
+				outputEntry[rule.Output] = float32(multiplier) * outputEntry[rule.Input].(float32)
+			case float64:
+				outputEntry[rule.Output] = float64(multiplier) * outputEntry[rule.Input].(float64)
+			default:
+				ok = false
+				log.Errorf("%s not of numerical type; cannot perform multiplication", rule.Output)
+			}
 		default:
 			log.Panicf("unknown type %s for transform.Network rule: %v", rule.Type, rule)
 		}
 	}
 
-	return outputEntry, true
+	return outputEntry, ok
 }
 
 // NewTransformNetwork create a new transform
@@ -167,6 +200,11 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 			needToInitKubeData = true
 		case api.TransformNetworkOperationName("AddService"):
 			needToInitNetworkServices = true
+		case api.TransformNetworkOperationName("Multiplier"):
+			_, err := strconv.Atoi(rule.Parameters)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

@@ -366,3 +366,78 @@ func (*fakeKubeData) GetInfo(n string) (*kubernetes.Info, error) {
 	}
 	return nil, errors.New("notFound")
 }
+
+func Test_Transform_Multiplier(t *testing.T) {
+	newNetworkTransform := Network{
+		TransformNetwork: api.TransformNetwork{
+			Rules: api.NetworkTransformRules{
+				api.NetworkTransformRule{
+					Input:      "input_var",
+					Output:     "output_var",
+					Type:       "multiplier",
+					Parameters: "10",
+				},
+			},
+		},
+	}
+
+	var entry config.GenericMap
+	entry = config.GenericMap{
+		"input_var": 3,
+	}
+	output, ok := newNetworkTransform.Transform(entry)
+	require.True(t, ok)
+	require.Equal(t, 30, output["output_var"])
+
+	entry = config.GenericMap{
+		"input_var": 4.0,
+	}
+	output, ok = newNetworkTransform.Transform(entry)
+	require.True(t, ok)
+	require.Equal(t, 40.0, output["output_var"])
+
+	entry = config.GenericMap{
+		"input_var": "not_a_number",
+	}
+	_, ok = newNetworkTransform.Transform(entry)
+	require.False(t, ok)
+
+	entry = config.GenericMap{
+		"input_var": true,
+	}
+	_, ok = newNetworkTransform.Transform(entry)
+	require.False(t, ok)
+
+	entry = config.GenericMap{
+		"input_var": -4.0,
+	}
+	output, ok = newNetworkTransform.Transform(entry)
+	require.True(t, ok)
+	require.Equal(t, -40.0, output["output_var"])
+
+	entry = config.GenericMap{
+		"input_var": uint16(5),
+	}
+	output, ok = newNetworkTransform.Transform(entry)
+	require.True(t, ok)
+	require.Equal(t, uint16(50), output["output_var"])
+
+	var badConfig = []byte(`
+parameters:
+  - name: transform1
+    transform:
+      type: network
+      network:
+        rules:
+        - input: bytes
+          output: bytes
+          type: multiplier
+          parameters: "not_a_number"
+`)
+	v, cfg := test.InitConfig(t, string(badConfig))
+	require.NotNil(t, v)
+
+	config := cfg.Parameters[0]
+	_, err := NewTransformNetwork(config)
+	require.Error(t, err)
+}

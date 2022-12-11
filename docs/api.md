@@ -147,6 +147,7 @@ Following is the supported API format for network transformations:
                      add_location: add output location fields from input
                      add_service: add output network service field from input port and parameters protocol field
                      add_kubernetes: add output kubernetes fields from input
+                     multiplier: multiply value of input variable by parameter
                  parameters: parameters specific to type
                  assignee: value needs to assign to output field
          kubeConfigPath: path to kubeconfig file (optional)
