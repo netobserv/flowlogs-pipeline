@@ -84,7 +84,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			var locationInfo *location.Info
 			err, locationInfo := location.GetLocation(fmt.Sprintf("%s", outputEntry[rule.Input]))
 			if err != nil {
-				log.Errorf("Can't find location for IP %v err %v", outputEntry[rule.Input], err)
+				log.Warningf("Can't find location for IP %v err %v", outputEntry[rule.Input], err)
 				continue
 			}
 			outputEntry[rule.Output+"_CountryName"] = locationInfo.CountryName
