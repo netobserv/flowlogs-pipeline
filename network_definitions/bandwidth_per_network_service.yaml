@@ -12,6 +12,10 @@ tags:
   - network-service
 transform:
   rules:
+    - input: bytes
+      output: bytes
+      type: multiplier
+      parameters: "1"
     - input: dstPort
       output: service
       type: add_service

@@ -13,6 +13,10 @@ tags:
 transform:
   rules:
     - input: bytes
+      output: bytes
+      type: multiplier
+      parameters: 1
+    - input: bytes
       output: all
       type: add_if
       parameters: ">=0"

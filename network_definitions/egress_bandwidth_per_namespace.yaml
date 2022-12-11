@@ -11,6 +11,10 @@ tags:
   - graph
 transform:
   rules:
+    - input: bytes
+      output: bytes
+      type: multiplier
+      parameters: "1"
     - input: srcIP
       output: srcK8S
       type: add_kubernetes

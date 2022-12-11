@@ -12,6 +12,10 @@ tags:
   - subnet
 transform:
   rules:
+    - input: bytes
+      output: bytes
+      type: multiplier
+      parameters: "1"
     - input: dstIP
       output: dstSubnet
       type: add_subnet
