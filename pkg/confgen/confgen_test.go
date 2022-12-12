@@ -18,7 +18,6 @@
 package confgen
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -54,7 +53,7 @@ func Test_ParseDefinition(t *testing.T) {
 
 func Test_getDefinitionFiles(t *testing.T) {
 	filename := "/def.yaml"
-	dirPath, err := ioutil.TempDir("", "getDefinitionFilesTest")
+	dirPath, err := os.MkdirTemp("", "getDefinitionFilesTest")
 	require.NoError(t, err)
 	defer os.RemoveAll(dirPath)
 	err = os.WriteFile(filepath.Join(dirPath, filename), []byte(test.ConfgenNetworkDefBase), 0644)
@@ -67,10 +66,10 @@ func Test_getDefinitionFiles(t *testing.T) {
 
 func Test_RunShortConfGen(t *testing.T) {
 	// Prepare
-	dirPath, err := ioutil.TempDir("", "RunShortConfGenTest")
+	dirPath, err := os.MkdirTemp("", "RunShortConfGenTest")
 	require.NoError(t, err)
 	defer os.RemoveAll(dirPath)
-	outDirPath, err := ioutil.TempDir("", "RunShortConfGenTest_out")
+	outDirPath, err := os.MkdirTemp("", "RunShortConfGenTest_out")
 	require.NoError(t, err)
 	defer os.RemoveAll(outDirPath)
 
@@ -95,7 +94,7 @@ func Test_RunShortConfGen(t *testing.T) {
 	require.NoError(t, err)
 
 	// Unmarshal output
-	destCfgBytes, err := ioutil.ReadFile(configOut)
+	destCfgBytes, err := os.ReadFile(configOut)
 	require.NoError(t, err)
 	var out config.ConfigFileStruct
 	err = yaml.UnmarshalStrict(destCfgBytes, &out)
@@ -156,10 +155,10 @@ func Test_RunShortConfGen(t *testing.T) {
 
 func Test_RunConfGenNoAgg(t *testing.T) {
 	// Prepare
-	dirPath, err := ioutil.TempDir("", "RunConfGenNoAggTest")
+	dirPath, err := os.MkdirTemp("", "RunConfGenNoAggTest")
 	require.NoError(t, err)
 	defer os.RemoveAll(dirPath)
-	outDirPath, err := ioutil.TempDir("", "RunConfGenNoAggTest_out")
+	outDirPath, err := os.MkdirTemp("", "RunConfGenNoAggTest_out")
 	require.NoError(t, err)
 	defer os.RemoveAll(outDirPath)
 
@@ -183,7 +182,7 @@ func Test_RunConfGenNoAgg(t *testing.T) {
 	require.NoError(t, err)
 
 	// Unmarshal output
-	destCfgBytes, err := ioutil.ReadFile(configOut)
+	destCfgBytes, err := os.ReadFile(configOut)
 	require.NoError(t, err)
 	var out config.ConfigFileStruct
 	err = yaml.Unmarshal(destCfgBytes, &out)
@@ -234,10 +233,10 @@ func Test_RunConfGenNoAgg(t *testing.T) {
 
 func Test_RunLongConfGen(t *testing.T) {
 	// Prepare
-	dirPath, err := ioutil.TempDir("", "RunLongConfGenTest")
+	dirPath, err := os.MkdirTemp("", "RunLongConfGenTest")
 	require.NoError(t, err)
 	defer os.RemoveAll(dirPath)
-	outDirPath, err := ioutil.TempDir("", "RunLongConfGenTest_out")
+	outDirPath, err := os.MkdirTemp("", "RunLongConfGenTest_out")
 	require.NoError(t, err)
 	defer os.RemoveAll(outDirPath)
 
@@ -263,7 +262,7 @@ func Test_RunLongConfGen(t *testing.T) {
 	require.NoError(t, err)
 
 	// Unmarshal output
-	destCfgBytes, err := ioutil.ReadFile(configOut)
+	destCfgBytes, err := os.ReadFile(configOut)
 	require.NoError(t, err)
 	var out config.ConfigFileStruct
 	err = yaml.UnmarshalStrict(destCfgBytes, &out)
