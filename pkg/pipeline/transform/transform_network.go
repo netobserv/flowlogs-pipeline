@@ -60,7 +60,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			expressionString := fmt.Sprintf("val %s", rule.Parameters)
 			expression, err := govaluate.NewEvaluableExpression(expressionString)
 			if err != nil {
-				log.Errorf("Can't evaluate AddIf rule: %+v expression: %v. err %v", rule, expressionString, err)
+				log.Warningf("Can't evaluate AddIf rule: %+v expression: %v. err %v", rule, expressionString, err)
 				continue
 			}
 			result, evaluateErr := expression.Evaluate(map[string]interface{}{"val": outputEntry[rule.Input]})
@@ -75,7 +75,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 		case api.OpAddSubnet:
 			_, ipv4Net, err := net.ParseCIDR(fmt.Sprintf("%v%s", outputEntry[rule.Input], rule.Parameters))
 			if err != nil {
-				log.Errorf("Can't find subnet for IP %v and prefix length %s - err %v", outputEntry[rule.Input], rule.Parameters, err)
+				log.Warningf("Can't find subnet for IP %v and prefix length %s - err %v", outputEntry[rule.Input], rule.Parameters, err)
 				continue
 			}
 			outputEntry[rule.Output] = ipv4Net.String()
@@ -83,7 +83,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			var locationInfo *location.Info
 			err, locationInfo := location.GetLocation(fmt.Sprintf("%s", outputEntry[rule.Input]))
 			if err != nil {
-				log.Errorf("Can't find location for IP %v err %v", outputEntry[rule.Input], err)
+				log.Warningf("Can't find location for IP %v err %v", outputEntry[rule.Input], err)
 				continue
 			}
 			outputEntry[rule.Output+"_CountryName"] = locationInfo.CountryName
