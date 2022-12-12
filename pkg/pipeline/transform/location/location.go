@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -129,11 +128,11 @@ func InitLocationDB() error {
 				log.Infof("os.Open err %v", openErr)
 			}
 
-			fileContent, readFileErr := ioutil.ReadFile(DBFileLocation + "/" + DBFilename)
+			fileContent, readFileErr := os.ReadFile(DBFileLocation + "/" + DBFilename)
 			if readFileErr == nil {
 				log.Infof("content of first 100 bytes of %s  is: %s", DBFileLocation+"/"+DBFilename, fileContent[:100])
 			} else {
-				log.Infof("ioutil.ReadFile err %v", readFileErr)
+				log.Infof("os.ReadFile err %v", readFileErr)
 			}
 
 			return fmt.Errorf("failed unzip %v ", unzipErr)

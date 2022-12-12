@@ -2,7 +2,7 @@ package test
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/golang/snappy"
@@ -24,7 +24,7 @@ func FakeLokiHandler(flowsData chan<- map[string]interface{}) http.HandlerFunc {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		if err != nil {
 			hlog.WithError(err).Error("can't read request body")
 			rw.WriteHeader(http.StatusBadRequest)
