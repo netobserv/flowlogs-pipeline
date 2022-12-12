@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -153,11 +152,11 @@ func DeserializeJSONToMap(t *testing.T, in string) config.GenericMap {
 }
 
 func DumpToTemp(content string) (string, error, func()) {
-	file, err := ioutil.TempFile("", "flp-tests-")
+	file, err := os.CreateTemp("", "flp-tests-")
 	if err != nil {
 		return "", err, nil
 	}
-	err = ioutil.WriteFile(file.Name(), []byte(content), 0644)
+	err = os.WriteFile(file.Name(), []byte(content), 0644)
 	if err != nil {
 		defer os.Remove(file.Name())
 		return "", err, nil
