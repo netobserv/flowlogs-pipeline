@@ -23,6 +23,7 @@ transform:
         output: proto
       - input: Bytes
         output: bytes
+        multiplier: 1
       - input: TCPFlags
         output: TCPFlags
       - input: SrcAS
@@ -31,6 +32,7 @@ transform:
         output: dstAS
       - input: Packets
         output: packets
+        multiplier: 1
       - input: TimeReceived
         output: timeReceived
 extract:
