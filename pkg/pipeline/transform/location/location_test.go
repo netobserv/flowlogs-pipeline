@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -134,7 +133,7 @@ func Test_unzip(t *testing.T) {
 	zipWriter := zip.NewWriter(buf)
 	_, _ = zipWriter.Create("test_file_in_zip")
 	zipWriter.Close()
-	_ = ioutil.WriteFile("/tmp/test_zip.zip", buf.Bytes(), 0777)
+	_ = os.WriteFile("/tmp/test_zip.zip", buf.Bytes(), 0777)
 	err := unzip("/tmp/test_zip.zip", "/tmp/")
 	require.Nil(t, err)
 
@@ -166,7 +165,7 @@ func Test_unzip(t *testing.T) {
 	zipWriter = zip.NewWriter(buf)
 	_, _ = zipWriter.Create("new_dir/")
 	zipWriter.Close()
-	_ = ioutil.WriteFile("/tmp/test_zip.zip", buf.Bytes(), 0777)
+	_ = os.WriteFile("/tmp/test_zip.zip", buf.Bytes(), 0777)
 	err = unzip("/tmp/test_zip.zip", "/tmp/")
 	require.Error(t, err)
 	_osio.MkdirAll = os.MkdirAll
