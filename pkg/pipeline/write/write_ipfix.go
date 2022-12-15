@@ -431,6 +431,7 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 	}
 	// need to combine defaults with parameters that are provided in the config yaml file
 	ipfixConfigIn.SetDefaults()
+
 	if err := ipfixConfigIn.Validate(); err != nil {
 		return nil, fmt.Errorf("the provided config is not valid: %w", err)
 	}
