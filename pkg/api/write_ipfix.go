@@ -17,14 +17,14 @@ func (w *WriteIpfix) SetDefaults() {
 	}
 }
 
-func (wl *WriteIpfix) Validate() error {
-	if wl == nil {
+func (w *WriteIpfix) Validate() error {
+	if w == nil {
 		return errors.New("you must provide a configuration")
 	}
-	if wl.TargetHost == "" {
+	if w.TargetHost == "" {
 		return errors.New("targethost can't be empty")
 	}
-	if wl.TargetPort == 0 {
+	if w.TargetPort == 0 {
 		return errors.New("targetport can't be empty")
 	}
 	return nil

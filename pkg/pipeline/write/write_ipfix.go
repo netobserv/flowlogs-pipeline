@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 IBM, Inc.
+ * Copyright (C) 2022 IBM, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,10 @@
 package write
 
 import (
-	"encoding/binary"
 	"fmt"
 	"net"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware/go-ipfix/pkg/entities"
@@ -36,30 +36,14 @@ type writeIpfix struct {
 	templateIDv6       uint16
 	enrichEnterpriseID uint32
 	exporter           *ipfixExporter.ExportingProcess
+	entitiesV4         []entities.InfoElementWithValue
+	entitiesV6         []entities.InfoElementWithValue
 }
 
 // IPv6Type value as defined in IEEE 802: https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
 const IPv6Type = 0x86DD
 
 var ilog = logrus.WithField("component", "write.Ipfix")
-
-func makeByteFromUint8(value uint8) []byte {
-	bs := make([]byte, 1)
-	bs[0] = value
-	return bs
-}
-
-func makeByteFromUint16(value uint16) []byte {
-	bs := make([]byte, 2)
-	binary.BigEndian.PutUint16(bs, value)
-	return bs
-}
-
-func makeByteFromUint64(value uint64) []byte {
-	bs := make([]byte, 8)
-	binary.BigEndian.PutUint64(bs, value)
-	return bs
-}
 
 func addElementToTemplate(elementName string, value []byte, elements *[]entities.InfoElementWithValue, registryID uint32) error {
 	element, err := registry.GetInfoElement(elementName, registryID)
@@ -100,65 +84,6 @@ func addKubeContextToTemplate(elements *[]entities.InfoElementWithValue, registr
 	return nil
 }
 
-func addKubeContextToRecord(elements *[]entities.InfoElementWithValue, record config.GenericMap, registryID uint32) error {
-	if record["SrcK8S_Namespace"] != nil {
-		err := addElementToTemplate("sourcePodNamespace", []byte(record["SrcK8S_Namespace"].(string)), elements, registryID)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := addElementToTemplate("sourcePodNamespace", []byte("none"), elements, registryID)
-		if err != nil {
-			return err
-		}
-	}
-	if record["SrcK8S_OwnerName"] != nil {
-		err := addElementToTemplate("sourcePodName", []byte(record["SrcK8S_OwnerName"].(string)), elements, registryID)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := addElementToTemplate("sourcePodName", []byte("none"), elements, registryID)
-		if err != nil {
-			return err
-		}
-	}
-	if record["DstK8S_Namespace"] != nil {
-		err := addElementToTemplate("destinationPodNamespace", []byte(record["DstK8S_Namespace"].(string)), elements, registryID)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := addElementToTemplate("destinationPodNamespace", []byte("none"), elements, registryID)
-		if err != nil {
-			return err
-		}
-	}
-	if record["DstK8S_OwnerName"] != nil {
-		err := addElementToTemplate("destinationPodName", []byte(record["DstK8S_OwnerName"].(string)), elements, registryID)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := addElementToTemplate("destinationPodName", []byte("none"), elements, registryID)
-		if err != nil {
-			return err
-		}
-	}
-	if record["SrcK8S_HostName"] != nil {
-		err := addElementToTemplate("sourceNodeName", []byte(record["SrcK8S_HostName"].(string)), elements, registryID)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := addElementToTemplate("sourceNodeName", []byte("none"), elements, registryID)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func loadCustomRegistry(EnterpriseID uint32) error {
 	err := registry.InitNewRegistry(EnterpriseID)
 	if err != nil {
@@ -193,285 +118,287 @@ func loadCustomRegistry(EnterpriseID uint32) error {
 	return nil
 }
 
-func SendTemplateRecordv4(exporter *ipfixExporter.ExportingProcess, enrichEnterpriseID uint32) (uint16, error) {
+func SendTemplateRecordv4(exporter *ipfixExporter.ExportingProcess, enrichEnterpriseID uint32) (uint16, []entities.InfoElementWithValue, error) {
 	templateID := exporter.NewTemplateID()
 	templateSet := entities.NewSet(false)
 	err := templateSet.PrepareSet(entities.Template, templateID)
 	if err != nil {
 		ilog.WithError(err).Error("Failed in PrepareSet")
-		return 0, err
+		return 0, nil, err
 	}
 	elements := make([]entities.InfoElementWithValue, 0)
 
 	err = addElementToTemplate("ethernetType", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("flowDirection", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("sourceMacAddress", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("destinationMacAddress", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("sourceIPv4Address", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("destinationIPv4Address", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("protocolIdentifier", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("sourceTransportPort", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("destinationTransportPort", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("octetDeltaCount", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("flowStartMilliseconds", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("flowEndMilliseconds", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("packetDeltaCount", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("interfaceName", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	if enrichEnterpriseID != 0 {
 		err = addKubeContextToTemplate(&elements, enrichEnterpriseID)
 		if err != nil {
-			return 0, err
+			return 0, nil, err
 		}
 	}
 	err = templateSet.AddRecord(elements, templateID)
 	if err != nil {
 		ilog.WithError(err).Error("Failed in Add Record")
-		return 0, err
+		return 0, nil, err
 	}
 	_, err = exporter.SendSet(templateSet)
 	if err != nil {
 		ilog.WithError(err).Error("Failed to send template record")
-		return 0, err
+		return 0, nil, err
 	}
 
-	return templateID, nil
+	return templateID, elements, nil
 }
 
-func SendTemplateRecordv6(exporter *ipfixExporter.ExportingProcess, enrichEnterpriseID uint32) (uint16, error) {
+func SendTemplateRecordv6(exporter *ipfixExporter.ExportingProcess, enrichEnterpriseID uint32) (uint16, []entities.InfoElementWithValue, error) {
 	templateID := exporter.NewTemplateID()
 	templateSet := entities.NewSet(false)
 	err := templateSet.PrepareSet(entities.Template, templateID)
 	if err != nil {
-		ilog.WithError(err).Error("Failed in PrepareSet")
-		return 0, err
+		return 0, nil, err
 	}
 	elements := make([]entities.InfoElementWithValue, 0)
 
 	err = addElementToTemplate("ethernetType", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("flowDirection", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("sourceMacAddress", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("destinationMacAddress", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("sourceIPv6Address", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("destinationIPv6Address", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("nextHeaderIPv6", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("sourceTransportPort", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("destinationTransportPort", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("octetDeltaCount", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("flowStartMilliseconds", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("flowEndMilliseconds", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("packetDeltaCount", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	err = addElementToTemplate("interfaceName", nil, &elements, registry.IANAEnterpriseID)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	if enrichEnterpriseID != 0 {
 		err = addKubeContextToTemplate(&elements, enrichEnterpriseID)
 		if err != nil {
-			return 0, err
+			return 0, nil, err
 		}
 	}
 
 	err = templateSet.AddRecord(elements, templateID)
 	if err != nil {
-		ilog.WithError(err).Error("Failed in Add Record")
-		return 0, err
+		return 0, nil, err
 	}
 	_, err = exporter.SendSet(templateSet)
 	if err != nil {
-		ilog.WithError(err).Error("Failed to send template record")
-		return 0, err
+		return 0, nil, err
 	}
 
-	return templateID, nil
+	return templateID, elements, nil
 }
 
-func (t *writeIpfix) sendDataRecord(record config.GenericMap) error {
-	// Create data set with 1 data record
+func setStandardIEValue(record config.GenericMap, ieValPtr *entities.InfoElementWithValue) {
+	ieVal := *ieValPtr
+	switch ieVal.GetName() {
+	case "ethernetType":
+		ieVal.SetUnsigned16Value(uint16(record["Etype"].(uint32)))
+	case "flowDirection":
+		ieVal.SetUnsigned8Value(uint8(record["FlowDirection"].(int)))
+	case "sourceMacAddress":
+		ieVal.SetMacAddressValue(net.HardwareAddr(record["SrcMac"].(string)))
+	case "destinationMacAddress":
+		ieVal.SetMacAddressValue(net.HardwareAddr(record["DstMac"].(string)))
+	case "sourceIPv4Address":
+		ieVal.SetIPAddressValue(net.ParseIP(record["SrcAddr"].(string)))
+	case "destinationIPv4Address":
+		ieVal.SetIPAddressValue(net.ParseIP(record["DstAddr"].(string)))
+	case "sourceIPv6Address":
+		ieVal.SetIPAddressValue(net.ParseIP(record["SrcAddr"].(string)))
+	case "destinationIPv6Address":
+		ieVal.SetIPAddressValue(net.ParseIP(record["DstAddr"].(string)))
+	case "protocolIdentifier":
+		ieVal.SetUnsigned8Value(uint8(record["Proto"].(uint32)))
+	case "nextHeaderIPv6":
+		ieVal.SetUnsigned8Value(uint8(record["Proto"].(uint32)))
+	case "sourceTransportPort":
+		ieVal.SetUnsigned16Value(uint16(record["SrcPort"].(uint32)))
+	case "destinationTransportPort":
+		ieVal.SetUnsigned16Value(uint16(record["DstPort"].(uint32)))
+	case "octetDeltaCount":
+		ieVal.SetUnsigned64Value(record["Bytes"].(uint64))
+	case "flowStartMilliseconds":
+		ieVal.SetUnsigned64Value(uint64(record["TimeFlowStartMs"].(int64)))
+	case "flowEndMilliseconds":
+		ieVal.SetUnsigned64Value(uint64(record["TimeFlowEndMs"].(int64)))
+	case "packetDeltaCount":
+		ieVal.SetUnsigned64Value(record["Packets"].(uint64))
+	case "interfaceName":
+		ieVal.SetStringValue(record["Interface"].(string))
+	}
+}
 
-	elements := make([]entities.InfoElementWithValue, 0)
+func setKubeIEValue(record config.GenericMap, ieValPtr *entities.InfoElementWithValue) {
+	ieVal := *ieValPtr
+	switch ieVal.GetName() {
+	case "sourcePodNamespace":
+		if record["SrcK8S_Namespace"] != nil {
+			ieVal.SetStringValue(record["SrcK8S_Namespace"].(string))
+		} else {
+			ieVal.SetStringValue("none")
+		}
+	case "sourcePodName":
+		if record["sourcePodName"] != nil {
+			ieVal.SetStringValue(record["sourcePodName"].(string))
+		} else {
+			ieVal.SetStringValue("none")
+		}
+	case "destinationPodNamespace":
+		if record["destinationPodNamespace"] != nil {
+			ieVal.SetStringValue(record["destinationPodNamespace"].(string))
+		} else {
+			ieVal.SetStringValue("none")
+		}
+	case "destinationPodName":
+		if record["destinationPodName"] != nil {
+			ieVal.SetStringValue(record["destinationPodName"].(string))
+		} else {
+			ieVal.SetStringValue("none")
+		}
+	case "sourceNodeName":
+		if record["sourceNodeName"] != nil {
+			ieVal.SetStringValue(record["sourceNodeName"].(string))
+		} else {
+			ieVal.SetStringValue("none")
+		}
 
-	err := addElementToTemplate("ethernetType", makeByteFromUint16(uint16(record["Etype"].(uint32))), &elements, registry.IANAEnterpriseID)
-	if err != nil {
-		return err
 	}
-	err = addElementToTemplate("flowDirection", makeByteFromUint8(uint8(record["FlowDirection"].(int))), &elements, registry.IANAEnterpriseID)
-	if err != nil {
-		return err
-	}
-	err = addElementToTemplate("sourceMacAddress", net.HardwareAddr(record["SrcMac"].(string)), &elements, registry.IANAEnterpriseID)
-	if err != nil {
-		return err
-	}
-	err = addElementToTemplate("destinationMacAddress", net.HardwareAddr(record["DstMac"].(string)), &elements, registry.IANAEnterpriseID)
-	if err != nil {
-		return err
-	}
-	if IPv6Type == record["Etype"].(uint32) {
-		err = addElementToTemplate("sourceIPv6Address", net.ParseIP(record["SrcAddr"].(string)), &elements, registry.IANAEnterpriseID)
-		if err != nil {
-			return err
-		}
-		err = addElementToTemplate("destinationIPv6Address", net.ParseIP(record["DstAddr"].(string)), &elements, registry.IANAEnterpriseID)
-		if err != nil {
-			return err
-		}
-		err = addElementToTemplate("nextHeaderIPv6", makeByteFromUint8(uint8(record["Proto"].(uint32))), &elements, registry.IANAEnterpriseID)
-		if err != nil {
-			return err
-		}
-	} else {
-		err = addElementToTemplate("sourceIPv4Address", net.ParseIP(record["SrcAddr"].(string)), &elements, registry.IANAEnterpriseID)
-		if err != nil {
-			return err
-		}
-		err = addElementToTemplate("destinationIPv4Address", net.ParseIP(record["DstAddr"].(string)), &elements, registry.IANAEnterpriseID)
-		if err != nil {
-			return err
-		}
-		err = addElementToTemplate("protocolIdentifier", makeByteFromUint8(uint8(record["Proto"].(uint32))), &elements, registry.IANAEnterpriseID)
-		if err != nil {
-			return err
+}
+func setEntities(record config.GenericMap, enrichEnterpriseID uint32, elements *[]entities.InfoElementWithValue) {
+	for _, ieVal := range *elements {
+		setStandardIEValue(record, &ieVal)
+		if enrichEnterpriseID != 0 {
+			setKubeIEValue(record, &ieVal)
 		}
 	}
-
-	err = addElementToTemplate("sourceTransportPort", makeByteFromUint16(uint16(record["SrcPort"].(uint32))), &elements, registry.IANAEnterpriseID)
-	if err != nil {
-		return err
-	}
-	err = addElementToTemplate("destinationTransportPort", makeByteFromUint16(uint16(record["DstPort"].(uint32))), &elements, registry.IANAEnterpriseID)
-	if err != nil {
-		return err
-	}
-	err = addElementToTemplate("octetDeltaCount", makeByteFromUint64(record["Bytes"].(uint64)), &elements, registry.IANAEnterpriseID)
-	if err != nil {
-		return err
-	}
-	err = addElementToTemplate("flowStartMilliseconds", makeByteFromUint64(uint64(record["TimeFlowStartMs"].(int64))), &elements, registry.IANAEnterpriseID)
-	if err != nil {
-		return err
-	}
-	err = addElementToTemplate("flowEndMilliseconds", makeByteFromUint64(uint64(record["TimeFlowEndMs"].(int64))), &elements, registry.IANAEnterpriseID)
-	if err != nil {
-		return err
-	}
-	err = addElementToTemplate("packetDeltaCount", makeByteFromUint64(record["Packets"].(uint64)), &elements, registry.IANAEnterpriseID)
-	if err != nil {
-		return err
-	}
-	err = addElementToTemplate("interfaceName", []byte(record["Interface"].(string)), &elements, registry.IANAEnterpriseID)
-	if err != nil {
-		return err
-	}
-	if t.enrichEnterpriseID != 0 {
-		err = addKubeContextToRecord(&elements, record, t.enrichEnterpriseID)
-		if err != nil {
-			return err
-		}
-	}
-
+}
+func (t *writeIpfix) sendDataRecord(record config.GenericMap, v6 bool) error {
 	dataSet := entities.NewSet(false)
-	if IPv6Type == record["Etype"].(uint32) {
-		err = dataSet.PrepareSet(entities.Data, t.templateIDv6)
+	var templateID uint16
+	if v6 {
+		templateID = t.templateIDv6
+		setEntities(record, t.enrichEnterpriseID, &t.entitiesV6)
+	} else {
+		templateID = t.templateIDv4
+		setEntities(record, t.enrichEnterpriseID, &t.entitiesV4)
+	}
+	err := dataSet.PrepareSet(entities.Data, templateID)
+	if err != nil {
+		return err
+	}
+	if v6 {
+		err = dataSet.AddRecord(t.entitiesV6, templateID)
 		if err != nil {
-			ilog.Errorf("Failed in PrepareSet")
 			return err
 		}
 	} else {
-		err = dataSet.PrepareSet(entities.Data, t.templateIDv4)
+		err = dataSet.AddRecord(t.entitiesV4, templateID)
 		if err != nil {
-			ilog.Errorf("Failed in PrepareSet")
 			return err
 		}
-	}
-	err = dataSet.AddRecord(elements, t.templateIDv4)
-	if err != nil {
-		ilog.WithError(err).Error("Failed in Add Record")
-		return err
 	}
 	_, err = t.exporter.SendSet(dataSet)
 	if err != nil {
-		ilog.WithError(err).Error("Failed in Send Record")
 		return err
 	}
 	return nil
@@ -480,16 +407,33 @@ func (t *writeIpfix) sendDataRecord(record config.GenericMap) error {
 // Write writes a flow before being stored
 func (t *writeIpfix) Write(entry config.GenericMap) {
 	ilog.Tracef("entering writeIpfix Write")
-
-	err := t.sendDataRecord(entry)
-	if err != nil {
-		ilog.WithError(err).Error("Failed in send IPFIX record")
+	if IPv6Type == entry["Etype"].(uint32) {
+		err := t.sendDataRecord(entry, false)
+		if err != nil {
+			ilog.WithError(err).Error("Failed in send IPFIX record")
+		}
+	} else {
+		err := t.sendDataRecord(entry, false)
+		if err != nil {
+			ilog.WithError(err).Error("Failed in send IPFIX record")
+		}
 	}
+
 }
 
 // NewWriteStdout create a new write
 func NewWriteIpfix(params config.StageParam) (Writer, error) {
 	ilog.Debugf("entering NewWriteIpfix")
+
+	ipfixConfigIn := api.WriteIpfix{}
+	if params.Write != nil && params.Write.Ipfix != nil {
+		ipfixConfigIn = *params.Write.Ipfix
+	}
+	// need to combine defaults with parameters that are provided in the config yaml file
+	ipfixConfigIn.SetDefaults()
+	if err := ipfixConfigIn.Validate(); err != nil {
+		return nil, fmt.Errorf("the provided config is not valid: %w", err)
+	}
 	writeIpfix := &writeIpfix{}
 	if params.Write != nil && params.Write.Ipfix != nil {
 		writeIpfix.transport = params.Write.Ipfix.Transport
@@ -520,13 +464,13 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 	}
 	ilog.Infof("Created exporter connecting to server with address: %s", writeIpfix.hostPort)
 
-	writeIpfix.templateIDv4, err = SendTemplateRecordv4(writeIpfix.exporter, writeIpfix.enrichEnterpriseID)
+	writeIpfix.templateIDv4, writeIpfix.entitiesV4, err = SendTemplateRecordv4(writeIpfix.exporter, writeIpfix.enrichEnterpriseID)
 	if err != nil {
 		ilog.WithError(err).Error("Failed in send IPFIX template v4 record")
 		return nil, err
 	}
 
-	writeIpfix.templateIDv6, err = SendTemplateRecordv6(writeIpfix.exporter, writeIpfix.enrichEnterpriseID)
+	writeIpfix.templateIDv6, writeIpfix.entitiesV6, err = SendTemplateRecordv6(writeIpfix.exporter, writeIpfix.enrichEnterpriseID)
 	if err != nil {
 		ilog.WithError(err).Error("Failed in send IPFIX template v6 record")
 		return nil, err
