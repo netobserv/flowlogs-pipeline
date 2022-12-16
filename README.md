@@ -49,6 +49,7 @@ Usage:
   
 Flags:  
       --config string             config file (default is $HOME/.flowlogs-pipeline)  
+      --health.address string     Health server address (default "0.0.0.0")  
       --health.port string        Health server port (default "8080")  
   -h, --help                      help for flowlogs-pipeline  
       --log-level string          Log level: debug, info, warning, error (default "error")  
@@ -728,6 +729,7 @@ parameters:
     encode:
       type: prom
       prom:
+        address: 0.0.0.0
         port: 9103
         prefix: test_
         metrics:

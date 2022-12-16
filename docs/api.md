@@ -17,6 +17,7 @@ Following is the supported API format for prometheus encode:
                  valueKey: entry key from which to resolve metric value
                  labels: labels to be associated with the metric
                  buckets: histogram buckets
+         address: address to expose "/metrics" endpoint
          port: port number to expose "/metrics" endpoint
          prefix: prefix added to each metric name
          expiryTime: seconds of no-flow to wait before deleting prometheus data item
