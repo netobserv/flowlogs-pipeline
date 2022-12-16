@@ -141,6 +141,9 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 					outputEntry[rule.Output+"_HostName"] = kubeInfo.HostName
 				}
 			}
+		case api.OpReinterpretDirection:
+			reinterpretDirection(outputEntry, &n.DirectionInfo)
+
 		default:
 			log.Panicf("unknown type %s for transform.Network rule: %v", rule.Type, rule)
 		}
@@ -206,7 +209,8 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 
 	return &Network{
 		TransformNetwork: api.TransformNetwork{
-			Rules: jsonNetworkTransform.Rules,
+			Rules:         jsonNetworkTransform.Rules,
+			DirectionInfo: jsonNetworkTransform.DirectionInfo,
 		},
 		svcNames: servicesDB,
 	}, nil
