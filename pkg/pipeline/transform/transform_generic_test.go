@@ -136,8 +136,8 @@ func InitNewTransformGeneric(t *testing.T, configFile string) Transformer {
 	v, cfg := test.InitConfig(t, configFile)
 	require.NotNil(t, v)
 
-	config := cfg.Parameters[0]
-	newTransform, err := NewTransformGeneric(config)
+	configParams := cfg.Parameters[0]
+	newTransform, err := NewTransformGeneric(configParams)
 	require.NoError(t, err)
 	return newTransform
 }
@@ -212,8 +212,8 @@ parameters:
 	v, cfg := test.InitConfig(t, string(goodConfig))
 	require.NotNil(t, v)
 
-	config := cfg.Parameters[0]
-	_, err := NewTransformGeneric(config)
+	configParams := cfg.Parameters[0]
+	_, err := NewTransformGeneric(configParams)
 	require.NoError(t, err)
 
 	var badConfig = []byte(`
