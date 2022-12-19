@@ -258,6 +258,7 @@ The rule `multiplier` takes the input field, multiplies it by the provided value
 places the result in the output field.
 This is useful to use when provided with only a sample of the flow logs (e.g. 1 our of 20),
 and some of the variables need to be adjusted accordingly.
+If `multipier` is not set or if it is set to 0, then the input field is simply copied to the output field.
 
 For example, suppose we have a flow log with the following syntax:
 ```
