@@ -113,3 +113,5 @@ require (
 )
 
 replace github.com/prometheus/common v0.32.1 => github.com/netobserv/prometheus-common v0.31.2-0.20220720134304-43e74fd22881
+
+replace github.com/netobserv/netobserv-ebpf-agent v0.2.2-0.20221031160841-ccb7addde22f => ../netobserv-ebpf-agent
