@@ -443,6 +443,7 @@ parameters:
         - service
         - _RecordType
         buckets: []
+      address: 0.0.0.0
       port: 9102
       prefix: flp_
 - name: write_loki
@@ -452,4 +453,3 @@ parameters:
       url: http://loki.default.svc.cluster.local:3100
       staticLabels:
         job: flowlogs-pipeline
-

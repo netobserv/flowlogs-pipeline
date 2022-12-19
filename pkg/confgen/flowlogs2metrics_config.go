@@ -56,6 +56,7 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.ConfigFileStruct {
 	}
 	if len(cg.promMetrics) > 0 {
 		metricsNode.EncodePrometheus("encode_prom", api.PromEncode{
+			Address: cg.config.Encode.Prom.Address,
 			Port:    cg.config.Encode.Prom.Port,
 			Prefix:  cg.config.Encode.Prom.Prefix,
 			Metrics: cg.promMetrics,

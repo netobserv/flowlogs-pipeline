@@ -348,7 +348,8 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	log.Debugf("histos = %v", histos)
 	log.Debugf("aggHistos = %v", aggHistos)
 
-	addr := fmt.Sprintf(":%v", cfg.Port)
+	// if value of address is empty, then by default it will take 0.0.0.0
+	addr := fmt.Sprintf("%s:%v", cfg.Address, cfg.Port)
 	log.Infof("startServer: addr = %s", addr)
 
 	w := &EncodeProm{
