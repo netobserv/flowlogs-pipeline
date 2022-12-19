@@ -368,47 +368,6 @@ func (*fakeKubeData) GetInfo(n string) (*kubernetes.Info, error) {
 }
 
 func Test_Categorize(t *testing.T) {
-	entryReporterSource := config.GenericMap{
-		"ReporterIP":    "10.1.2.3",
-		"SrcHostIP":     "10.1.2.3",
-		"DstHostIP":     "10.1.2.4",
-		"FlowDirection": "whatever",
-	}
-	entryReporterDest := config.GenericMap{
-		"ReporterIP":    "10.1.2.4",
-		"SrcHostIP":     "10.1.2.3",
-		"DstHostIP":     "10.1.2.4",
-		"FlowDirection": "whatever",
-	}
-	entryReporterUnknown := config.GenericMap{
-		"ReporterIP":    "10.1.2.100",
-		"SrcHostIP":     "10.1.2.3",
-		"DstHostIP":     "10.1.2.4",
-		"FlowDirection": "whatever",
-	}
-	entryReporterSourceNoDest := config.GenericMap{
-		"ReporterIP":    "10.1.2.3",
-		"SrcHostIP":     "10.1.2.3",
-		"FlowDirection": "whatever",
-	}
-	entryReporterDestNoSrc := config.GenericMap{
-		"ReporterIP":    "10.1.2.4",
-		"DstHostIP":     "10.1.2.4",
-		"FlowDirection": "whatever",
-	}
-	entryReporterNoInfo := config.GenericMap{
-		"ReporterIP":    "10.1.2.4",
-		"FlowDirection": "whatever",
-	}
-	entryNoReporter := config.GenericMap{
-		"SrcHostIP":     "10.1.2.3",
-		"FlowDirection": "whatever",
-	}
-	entryNoFlowdir := config.GenericMap{
-		"ReporterIP": "10.1.2.3",
-		"SrcHostIP":  "10.1.2.3",
-		"DstHostIP":  "10.1.2.4",
-	}
 	cfg := config.StageParam{
 		Transform: &config.Transform{
 			Network: &api.TransformNetwork{
@@ -429,9 +388,14 @@ func Test_Categorize(t *testing.T) {
 	tr, err := NewTransformNetwork(cfg)
 	require.NoError(t, err)
 
-	// Source reporter => egress (1)
-	output, ok := tr.Transform(entryReporterSource)
+	output, ok := tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.3",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"FlowDirection": "whatever",
+	})
 	require.True(t, ok)
+	// Source reporter => egress (1)
 	require.Equal(t, config.GenericMap{
 		"ReporterIP":    "10.1.2.3",
 		"SrcHostIP":     "10.1.2.3",
@@ -440,9 +404,14 @@ func Test_Categorize(t *testing.T) {
 		"FlowDirection": 1,
 	}, output)
 
-	// Dest reporter => ingress (0)
-	output, ok = tr.Transform(entryReporterDest)
+	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.4",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"FlowDirection": "whatever",
+	})
 	require.True(t, ok)
+	// Destination reporter => ingress (0)
 	require.Equal(t, config.GenericMap{
 		"ReporterIP":    "10.1.2.4",
 		"SrcHostIP":     "10.1.2.3",
@@ -451,9 +420,13 @@ func Test_Categorize(t *testing.T) {
 		"FlowDirection": 0,
 	}, output)
 
-	// Source reporter => egress (1)
-	output, ok = tr.Transform(entryReporterSourceNoDest)
+	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.3",
+		"SrcHostIP":     "10.1.2.3",
+		"FlowDirection": "whatever",
+	})
 	require.True(t, ok)
+	// Source reporter => egress (1)
 	require.Equal(t, config.GenericMap{
 		"ReporterIP":    "10.1.2.3",
 		"SrcHostIP":     "10.1.2.3",
@@ -461,9 +434,13 @@ func Test_Categorize(t *testing.T) {
 		"FlowDirection": 1,
 	}, output)
 
-	// Dest reporter => ingress (0)
-	output, ok = tr.Transform(entryReporterDestNoSrc)
+	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.4",
+		"DstHostIP":     "10.1.2.4",
+		"FlowDirection": "whatever",
+	})
 	require.True(t, ok)
+	// Destination reporter => ingress (0)
 	require.Equal(t, config.GenericMap{
 		"ReporterIP":    "10.1.2.4",
 		"DstHostIP":     "10.1.2.4",
@@ -471,9 +448,14 @@ func Test_Categorize(t *testing.T) {
 		"FlowDirection": 0,
 	}, output)
 
+	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.100",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"FlowDirection": "whatever",
+	})
+	require.True(t, ok)
 	// Missing or unknown reporter => FlowDirection same as IfDirection
-	output, ok = tr.Transform(entryReporterUnknown)
-	require.True(t, ok)
 	require.Equal(t, config.GenericMap{
 		"ReporterIP":    "10.1.2.100",
 		"SrcHostIP":     "10.1.2.3",
@@ -482,27 +464,37 @@ func Test_Categorize(t *testing.T) {
 		"FlowDirection": "whatever",
 	}, output)
 
-	// Missing src and dst host ips => FlowDirection same as IfDirection
-	output, ok = tr.Transform(entryReporterNoInfo)
+	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.4",
+		"FlowDirection": "whatever",
+	})
 	require.True(t, ok)
+	// Missing src and dst host ips => FlowDirection same as IfDirection
 	require.Equal(t, config.GenericMap{
 		"ReporterIP":    "10.1.2.4",
 		"IfDirection":   "whatever",
 		"FlowDirection": "whatever",
 	}, output)
 
-	// Missing Reporter and Dest => no change in FlowDirection (even though technically reporter == dest)
-	output, ok = tr.Transform(entryNoReporter)
+	output, ok = tr.Transform(config.GenericMap{
+		"SrcHostIP":     "10.1.2.3",
+		"FlowDirection": "whatever",
+	})
 	require.True(t, ok)
+	// Missing Reporter and Dest => no change in FlowDirection (even though technically reporter == dest)
 	require.Equal(t, config.GenericMap{
 		"SrcHostIP":     "10.1.2.3",
 		"IfDirection":   "whatever",
 		"FlowDirection": "whatever",
 	}, output)
 
-	// Missing FlowDirection => no IfDirection either
-	output, ok = tr.Transform(entryNoFlowdir)
+	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP": "10.1.2.3",
+		"SrcHostIP":  "10.1.2.3",
+		"DstHostIP":  "10.1.2.4",
+	})
 	require.True(t, ok)
+	// Missing FlowDirection => no IfDirection either
 	require.Equal(t, config.GenericMap{
 		"ReporterIP":    "10.1.2.3",
 		"SrcHostIP":     "10.1.2.3",
