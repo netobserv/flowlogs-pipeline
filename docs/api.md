@@ -117,6 +117,7 @@ Following is the supported API format for generic transformations:
          rules: list of transform rules, each includes:
                  input: entry input field
                  output: entry output field
+                 multiplier: scaling factor to compenstate for sampling
 </pre>
 ## Transform Filter API
 Following is the supported API format for filter transformations:

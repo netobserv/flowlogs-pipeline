@@ -255,6 +255,12 @@ Specify `policy: replace_keys` to use only the newly specified keys.
 To include the original keys and values in addition to those specified in the `rules`,
 specify `policy: preserve_original_keys`.
 
+The rule `multiplier` takes the input field, multiplies it by the provided value, and
+places the result in the output field.
+This is useful to use when provided with only a sample of the flow logs (e.g. 1 our of 20),
+and some of the variables need to be adjusted accordingly.
+If `multipier` is not set or if it is set to 0, then the input field is simply copied to the output field.
+
 For example, suppose we have a flow log with the following syntax:
 ```
 {"Bytes":20800,"DstAddr":"10.130.2.2","DstPort":36936,"Packets":400,"Proto":6,"SequenceNum":1919,"SrcAddr":"10.130.2.13","SrcHostIP":"10.0.197.206","SrcPort":3100,"TCPFlags":0,"TimeFlowStart":0,"TimeReceived":1637501832}
@@ -273,12 +279,14 @@ parameters:
         rules:
           - input: Bytes
             output: bytes
+            multiplier: 20
           - input: DstAddr
             output: dstAddr
           - input: DstPort
             output: dstPort
           - input: Packets
             output: packets
+            multiplier: 20
           - input: SrcAddr
             output: srcAddr
           - input: SrcPort
@@ -291,6 +299,11 @@ Each field specified by `input` is translated into a field specified by the corr
 Only those specified fields are saved for further processing in the pipeline.
 Further stages in the pipeline should use these new field names.
 This mechanism allows us to translate from any flow-log layout to a standard set of field names.
+
+In the above example, the `bytes` and `packets` fields have a multiplier of 20.
+This may be done in case only a sampling of the flow logs are provided, in this case 1 in 20,
+so that these fields need to be scaled accordingly.
+
 If the `input` and `output` fields are identical, then that field is simply passed to the next stage.
 For example:
 ```yaml
