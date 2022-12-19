@@ -400,6 +400,15 @@ func Test_Categorize(t *testing.T) {
 		"ReporterIP":    "10.1.2.4",
 		"FlowDirection": "whatever",
 	}
+	entryNoReporter := config.GenericMap{
+		"SrcHostIP":     "10.1.2.3",
+		"FlowDirection": "whatever",
+	}
+	entryNoFlowdir := config.GenericMap{
+		"ReporterIP": "10.1.2.3",
+		"SrcHostIP":  "10.1.2.3",
+		"DstHostIP":  "10.1.2.4",
+	}
 	cfg := config.StageParam{
 		Transform: &config.Transform{
 			Network: &api.TransformNetwork{
@@ -480,5 +489,24 @@ func Test_Categorize(t *testing.T) {
 		"ReporterIP":    "10.1.2.4",
 		"IfDirection":   "whatever",
 		"FlowDirection": "whatever",
+	}, output)
+
+	// Missing Reporter and Dest => no change in FlowDirection (even though technically reporter == dest)
+	output, ok = tr.Transform(entryNoReporter)
+	require.True(t, ok)
+	require.Equal(t, config.GenericMap{
+		"SrcHostIP":     "10.1.2.3",
+		"IfDirection":   "whatever",
+		"FlowDirection": "whatever",
+	}, output)
+
+	// Missing FlowDirection => no IfDirection either
+	output, ok = tr.Transform(entryNoFlowdir)
+	require.True(t, ok)
+	require.Equal(t, config.GenericMap{
+		"ReporterIP":    "10.1.2.3",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"FlowDirection": 1,
 	}, output)
 }

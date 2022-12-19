@@ -11,8 +11,18 @@ const (
 )
 
 func reinterpretDirection(output config.GenericMap, info *api.DirectionInfo) {
-	output[info.IfDirectionField] = output[info.FlowDirectionField]
+	if fd, ok := output[info.FlowDirectionField]; ok {
+		output[info.IfDirectionField] = fd
+	}
 	var srcNode, dstNode, reporter string
+	if gen, ok := output[info.ReporterIPField]; ok {
+		if str, ok := gen.(string); ok {
+			reporter = str
+		}
+	}
+	if len(reporter) == 0 {
+		return
+	}
 	if gen, ok := output[info.SrcHostField]; ok {
 		if str, ok := gen.(string); ok {
 			srcNode = str
@@ -21,11 +31,6 @@ func reinterpretDirection(output config.GenericMap, info *api.DirectionInfo) {
 	if gen, ok := output[info.DstHostField]; ok {
 		if str, ok := gen.(string); ok {
 			dstNode = str
-		}
-	}
-	if gen, ok := output[info.ReporterIPField]; ok {
-		if str, ok := gen.(string); ok {
-			reporter = str
 		}
 	}
 	if srcNode != dstNode {
