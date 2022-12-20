@@ -1,6 +1,8 @@
 package transform
 
 import (
+	"fmt"
+
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 )
@@ -10,8 +12,24 @@ const (
 	egress  = 1
 )
 
+func validatereinterpretDirectionConfig(info *api.DirectionInfo) error {
+	if info.FlowDirectionField == "" {
+		return fmt.Errorf("invalid config for transform.Network rule %s: missing FlowDirectionField", api.OpReinterpretDirection)
+	}
+	if info.ReporterIPField == "" {
+		return fmt.Errorf("invalid config for transform.Network rule %s: missing ReporterIPField", api.OpReinterpretDirection)
+	}
+	if info.SrcHostField == "" {
+		return fmt.Errorf("invalid config for transform.Network rule %s: missing SrcHostField", api.OpReinterpretDirection)
+	}
+	if info.DstHostField == "" {
+		return fmt.Errorf("invalid config for transform.Network rule %s: missing DstHostField", api.OpReinterpretDirection)
+	}
+	return nil
+}
+
 func reinterpretDirection(output config.GenericMap, info *api.DirectionInfo) {
-	if fd, ok := output[info.FlowDirectionField]; ok {
+	if fd, ok := output[info.FlowDirectionField]; ok && len(info.IfDirectionField) > 0 {
 		output[info.IfDirectionField] = fd
 	}
 	var srcNode, dstNode, reporter string

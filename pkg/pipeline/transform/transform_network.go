@@ -164,12 +164,16 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	}
 	for _, rule := range jsonNetworkTransform.Rules {
 		switch rule.Type {
-		case api.TransformNetworkOperationName("AddLocation"):
+		case api.OpAddLocation:
 			needToInitLocationDB = true
-		case api.TransformNetworkOperationName("AddKubernetes"):
+		case api.OpAddKubernetes:
 			needToInitKubeData = true
-		case api.TransformNetworkOperationName("AddService"):
+		case api.OpAddService:
 			needToInitNetworkServices = true
+		case api.OpReinterpretDirection:
+			if err := validatereinterpretDirectionConfig(&jsonNetworkTransform.DirectionInfo); err != nil {
+				return nil, err
+			}
 		}
 	}
 
