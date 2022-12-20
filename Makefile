@@ -8,9 +8,10 @@ export GOFLAGS=-mod=vendor
 export GO111MODULE=on
 export CGO_ENABLED=0
 export GOOS=linux
-export GOARCH=amd64
 
-SHELL := /bin/bash
+GOARCH ?= amd64
+
+SHELL := /usr/bin/env bash
 DOCKER_TAG ?= latest
 DOCKER_IMG ?= quay.io/netobserv/flowlogs-pipeline
 OCI_RUNTIME ?= $(shell which podman  || which docker)
@@ -69,8 +70,8 @@ lint: $(GOLANGCI_LINT) ## Lint the code
 
 .PHONY: build_code
 build_code:
-	go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${FLP_BIN_FILE}"
-	go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${CG_BIN_FILE}"
+	GOARCH=${GOARCH} go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${FLP_BIN_FILE}"
+	GOARCH=${GOARCH} go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${CG_BIN_FILE}"
 
 .PHONY: build
 build: validate_go lint build_code docs ## Build flowlogs-pipeline executable and update the docs

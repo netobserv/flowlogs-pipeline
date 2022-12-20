@@ -1,4 +1,9 @@
-FROM docker.io/library/golang:1.18 as builder
+# TARGETPLATFORM and BUILDPLATFORM are automatically field when specifying an architecture during build but they need to be declared
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.18 as builder
+
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETARCH
 
 WORKDIR /app
 
@@ -13,15 +18,10 @@ COPY cmd/ cmd/
 COPY pkg/ pkg/
 
 RUN git status --porcelain
-RUN make build_code
+RUN GOARCH=$TARGETARCH make build_code
 
 # final stage
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.7
-RUN microdnf install -y \
-  iputils \
-  curl \
-  net-tools \
-  && microdnf -y clean all  && rm -rf /var/cache
+FROM  --platform=$TARGETPLATFORM registry.access.redhat.com/ubi8/ubi-minimal:8.7
 
 COPY --from=builder /app/flowlogs-pipeline /app/
 COPY --from=builder /app/confgenerator /app/
