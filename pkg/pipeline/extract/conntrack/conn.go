@@ -40,6 +40,7 @@ type connection interface {
 	// for this connection (i.e. newConnection, updateConnection, endConnection).
 	// It returns true on the first invocation to indicate the first report. Otherwise, it returns false.
 	markReported() bool
+	isMatchSelector(map[string]string) bool
 }
 
 type connType struct {
@@ -106,6 +107,15 @@ func (c *connType) markReported() bool {
 	return isFirst
 }
 
+func (c *connType) isMatchSelector(selector map[string]string) bool {
+	for k, v := range selector {
+		if c.keys[k] != v {
+			return false
+		}
+	}
+	return true
+}
+
 type connBuilder struct {
 	conn *connType
 }
@@ -138,11 +148,6 @@ func (cb *connBuilder) Aggregators(aggs []aggregator) *connBuilder {
 	for _, agg := range aggs {
 		agg.addField(cb.conn)
 	}
-	return cb
-}
-
-func (cb *connBuilder) NextUpdateReportTime(t time.Time) *connBuilder {
-	cb.conn.setNextUpdateReportTime(t)
 	return cb
 }
 

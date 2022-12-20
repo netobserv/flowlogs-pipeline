@@ -76,10 +76,9 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 					Hash(computedHash).
 					KeysFrom(fl, ct.config.KeyDefinition).
 					Aggregators(ct.aggregators).
-					// TBD: Move the following setting of the next update time to addConnection()
-					NextUpdateReportTime(ct.clock.Now().Add(ct.config.UpdateConnectionInterval.Duration)).
 					Build()
 				ct.connStore.addConnection(computedHash.hashTotal, conn)
+				ct.connStore.updateNextReportTime(computedHash.hashTotal)
 				ct.updateConnection(conn, fl, computedHash)
 				ct.metrics.inputRecords.WithLabelValues("newConnection").Inc()
 				if ct.shouldOutputNewConnection {
@@ -123,68 +122,48 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 
 func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 	var outputRecords []config.GenericMap
-	// TBD: Move the following logic to store.go maybe except for the addXXX() logic
+	// TBD: Update comment. they are not ordered by expiry time!!
 	// Iterate over the connections by their expiry time from old to new.
-	ct.connStore.iterateFrontToBack(expiryOrder, func(conn connection) (shouldDelete, shouldStop bool) {
-		expiryTime := conn.getExpiryTime()
-		if ct.clock.Now().After(expiryTime) {
-			// The connection has expired. We want to pop it.
-			record := conn.toGenericMap()
-			addHashField(record, conn.getHash().hashTotal)
-			addTypeField(record, api.ConnTrackOutputRecordTypeName("EndConnection"))
-			var isFirst bool
-			if ct.shouldOutputEndConnection {
-				isFirst = conn.markReported()
-			}
-			addIsFirstField(record, isFirst)
-			outputRecords = append(outputRecords, record)
-			shouldDelete, shouldStop = true, false
-		} else {
-			// No more expired connections
-			shouldDelete, shouldStop = false, true
+	connections := ct.connStore.popEndConnections()
+	for _, conn := range connections {
+		record := conn.toGenericMap()
+		addHashField(record, conn.getHash().hashTotal)
+		addTypeField(record, api.ConnTrackOutputRecordTypeName("EndConnection"))
+		var isFirst bool
+		if ct.shouldOutputEndConnection {
+			isFirst = conn.markReported()
 		}
-		return
-	})
+		addIsFirstField(record, isFirst)
+		outputRecords = append(outputRecords, record)
+	}
 	return outputRecords
 }
 
 func (ct *conntrackImpl) prepareUpdateConnectionRecords() []config.GenericMap {
 	var outputRecords []config.GenericMap
-	// TBD: Move the following logic to store.go maybe except for the addXXX() logic
-	// Iterate over the connections by their next update report time from old to new.
-	ct.connStore.iterateFrontToBack(nextUpdateReportTimeOrder, func(conn connection) (shouldDelete, shouldStop bool) {
-		nextUpdate := conn.getNextUpdateReportTime()
-		needToReport := ct.clock.Now().After(nextUpdate)
-		if needToReport {
-			record := conn.toGenericMap()
-			addHashField(record, conn.getHash().hashTotal)
-			addTypeField(record, api.ConnTrackOutputRecordTypeName("UpdateConnection"))
-			var isFirst bool
-			if ct.shouldOutputUpdateConnection {
-				isFirst = conn.markReported()
-			}
-			addIsFirstField(record, isFirst)
-			outputRecords = append(outputRecords, record)
-			// TBD: move the calculation of newNextUpdate into updateNextReportTime()
-			newNextUpdate := ct.clock.Now().Add(ct.config.UpdateConnectionInterval.Duration)
-			ct.connStore.updateNextReportTime(conn.getHash().hashTotal, newNextUpdate)
-			shouldDelete, shouldStop = false, false
-		} else {
-			shouldDelete, shouldStop = false, true
+
+	connections := ct.connStore.prepareUpdateConnections()
+	for _, conn := range connections {
+		record := conn.toGenericMap()
+		addHashField(record, conn.getHash().hashTotal)
+		addTypeField(record, api.ConnTrackOutputRecordTypeName("UpdateConnection"))
+		var isFirst bool
+		if ct.shouldOutputUpdateConnection {
+			isFirst = conn.markReported()
 		}
-		return
-	})
+		addIsFirstField(record, isFirst)
+		outputRecords = append(outputRecords, record)
+	}
 	return outputRecords
 }
 
+// TBD: think of how to avoid confusion with the word "update". It is used with periodic connections updates and for update a connection with incoming flow logs.
 func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.GenericMap, flowLogHash totalHashType) {
 	d := ct.getFlowLogDirection(conn, flowLogHash)
 	for _, agg := range ct.aggregators {
 		agg.update(conn, flowLog, d)
 	}
-	// TBD: move the calculation of newExpiryTime into updateConnectionExpiryTime()
-	newExpiryTime := ct.clock.Now().Add(ct.config.EndConnectionTimeout.Duration)
-	ct.connStore.updateConnectionExpiryTime(flowLogHash.hashTotal, newExpiryTime)
+	ct.connStore.updateConnectionExpiryTime(flowLogHash.hashTotal)
 }
 
 func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalHashType) direction {
@@ -237,9 +216,8 @@ func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam
 
 	metrics := newMetrics(opMetrics)
 	conntrack := &conntrackImpl{
-		clock: clock,
-		// TBD: pass selector data to newConnectionStore()
-		connStore:                    newConnectionStore(metrics),
+		clock:                        clock,
+		connStore:                    newConnectionStore(cfg.Scheduling, metrics, clock.Now),
 		config:                       cfg,
 		hashProvider:                 fnv.New64a,
 		aggregators:                  aggregators,

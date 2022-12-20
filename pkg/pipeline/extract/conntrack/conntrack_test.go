@@ -82,9 +82,14 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
 					{Name: "Packets", Operation: "sum", SplitAB: splitAB},
 					{Name: "numFlowLogs", Operation: "count", SplitAB: false},
 				},
-				OutputRecordTypes:        outputRecordType,
-				UpdateConnectionInterval: api.Duration{Duration: updateConnectionInterval},
-				EndConnectionTimeout:     api.Duration{Duration: endConnectionTimeout},
+				OutputRecordTypes: outputRecordType,
+				Scheduling: []api.ConnTrackSchedulingSelector{
+					{
+						Selector:                 map[string]string{},
+						UpdateConnectionInterval: api.Duration{Duration: updateConnectionInterval},
+						EndConnectionTimeout:     api.Duration{Duration: endConnectionTimeout},
+					},
+				},
 			}, // end of api.ConnTrack
 		}, // end of config.Track
 	} // end of config.StageParam
@@ -648,36 +653,6 @@ func TestIsFirst_ShortConnection(t *testing.T) {
 			require.Equal(t, tt.expected, actual)
 		})
 	}
-}
-
-func assertConnDoesntExist(t *testing.T, store *connectionStore, hashId uint64) {
-	t.Helper()
-	conn, found := store.getConnection(hashId)
-	require.Nilf(t, conn, "hashId %x shouldn't exist", hashId)
-	require.False(t, found)
-}
-
-func TestIterateFrontToBack(t *testing.T) {
-	test.ResetPromRegistry()
-	// This test adds 2 connections to the store, deletes them and verifies deletion.
-	cs := newConnectionStore(newMetrics(operational.NewMetrics(&config.MetricsSettings{})))
-
-	conn1hash := totalHashType{0x10, 0x11, 0x12}
-	conn1 := NewConnBuilder().Hash(conn1hash).Build()
-	cs.addConnection(conn1.getHash().hashTotal, conn1)
-
-	conn2hash := totalHashType{0x20, 0x21, 0x22}
-	conn2 := NewConnBuilder().Hash(conn2hash).Build()
-	cs.addConnection(conn2.getHash().hashTotal, conn2)
-
-	cs.iterateFrontToBack(expiryOrder, func(c connection) (shouldDelete, shouldStop bool) {
-		// Delete all
-		shouldDelete = true
-		shouldStop = false
-		return
-	})
-	assertConnDoesntExist(t, cs, conn1.getHash().hashTotal)
-	assertConnDoesntExist(t, cs, conn2.getHash().hashTotal)
 }
 
 func TestPrepareUpdateConnectionRecords(t *testing.T) {
