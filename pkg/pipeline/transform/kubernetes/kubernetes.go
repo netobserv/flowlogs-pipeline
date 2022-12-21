@@ -182,10 +182,14 @@ func (k *KubeData) initNodeInformer(informerFactory informers.SharedInformerFact
 			return nil, fmt.Errorf("was expecting a Node. Got: %T", i)
 		}
 		ips := make([]string, 0, len(node.Status.Addresses))
+		hostIP := ""
 		for _, address := range node.Status.Addresses {
 			ip := net.ParseIP(address.Address)
 			if ip != nil {
 				ips = append(ips, ip.String())
+				if hostIP == "" {
+					hostIP = ip.String()
+				}
 			}
 		}
 		// CNI-dependent logic (must work regardless of whether the CNI is installed)
@@ -199,6 +203,11 @@ func (k *KubeData) initNodeInformer(informerFactory informers.SharedInformerFact
 			},
 			ips:  ips,
 			Type: typeNode,
+			// We duplicate HostIP and HostName information to simplify later filtering e.g. by
+			// Host IP, where we want to get all the Pod flows by src/dst host, but also the actual
+			// host-to-host flows by the same field.
+			HostIP:   hostIP,
+			HostName: node.Name,
 		}, nil
 	}); err != nil {
 		return fmt.Errorf("can't set nodes transform: %w", err)
