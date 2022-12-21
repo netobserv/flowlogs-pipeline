@@ -199,6 +199,9 @@ parameters:
 				SrcPort:  23000,
 				DstPort:  443,
 			},
+			AgentIp: &pbflow.IP{
+				IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x0a0b0c0d},
+			},
 		}},
 	})
 	require.NoError(t, err)
@@ -227,6 +230,7 @@ parameters:
 		"TimeFlowStartMs": float64(startTime.UnixMilli()),
 		"TimeFlowEndMs":   float64(endTime.UnixMilli()),
 		"Interface":       "eth0",
+		"AgentIP":         "10.11.12.13",
 	}, capturedRecord)
 }
 
