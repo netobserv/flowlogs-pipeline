@@ -121,10 +121,10 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 }
 
 func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
-	var outputRecords []config.GenericMap
-	// TBD: Update comment. they are not ordered by expiry time!!
-	// Iterate over the connections by their expiry time from old to new.
 	connections := ct.connStore.popEndConnections()
+
+	var outputRecords []config.GenericMap
+	// Convert the connections to GenericMaps and add meta fields
 	for _, conn := range connections {
 		record := conn.toGenericMap()
 		addHashField(record, conn.getHash().hashTotal)
@@ -140,9 +140,10 @@ func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 }
 
 func (ct *conntrackImpl) prepareUpdateConnectionRecords() []config.GenericMap {
-	var outputRecords []config.GenericMap
-
 	connections := ct.connStore.prepareUpdateConnections()
+
+	var outputRecords []config.GenericMap
+	// Convert the connections to GenericMaps and add meta fields
 	for _, conn := range connections {
 		record := conn.toGenericMap()
 		addHashField(record, conn.getHash().hashTotal)

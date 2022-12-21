@@ -115,8 +115,8 @@ func (cs *connectionStore) updateNextReportTime(hashId uint64) {
 }
 
 func (cs *connectionStore) popEndConnections() []connection {
-	// TBD: Update the following comment
-	// Iterate over the connections by their expiry time from old to new.
+	// Iterate over the connections by groups.
+	// In each group iterate over them by their expiry time from old to new.
 	var poppedConnections []connection
 	for groupId := range cs.scheduling {
 		cs.group2mom[groupId].IterateFrontToBack(expiryOrder, func(r utils.Record) (shouldDelete, shouldStop bool) {
