@@ -145,6 +145,58 @@ func TestConnTrackValidate(t *testing.T) {
 			},
 			conntrackInvalidError{unknownOutputRecord: true},
 		},
+		{
+			"Undefined selector key",
+			ConnTrack{
+				KeyDefinition: KeyDefinition{
+					FieldGroups: []FieldGroup{
+						{Name: "src", Fields: []string{"srcIP"}},
+					},
+				},
+				Scheduling: []ConnTrackSchedulingSelector{
+					{
+						Selector: map[string]string{
+							"srcIP":         "value",
+							"undefined_key": "value",
+						},
+					},
+				},
+			},
+			conntrackInvalidError{undefinedSelectorKey: true},
+		},
+		{
+			"Default selector on a group that is not the last group",
+			ConnTrack{
+				KeyDefinition: KeyDefinition{
+					FieldGroups: []FieldGroup{
+						{Name: "src", Fields: []string{"srcIP"}},
+					},
+				},
+				Scheduling: []ConnTrackSchedulingSelector{
+					{
+						Selector: map[string]string{},
+					},
+					{
+						Selector: map[string]string{
+							"srcIP": "value",
+						},
+					},
+				},
+			},
+			conntrackInvalidError{defaultGroupAndNotLast: true},
+		},
+		{
+			"Exactly 1 default selector",
+			ConnTrack{
+				KeyDefinition: KeyDefinition{
+					FieldGroups: []FieldGroup{
+						{Name: "src", Fields: []string{"srcIP"}},
+					},
+				},
+				Scheduling: []ConnTrackSchedulingSelector{},
+			},
+			conntrackInvalidError{exactlyOneDefaultSelector: true},
+		},
 	}
 
 	for _, tt := range tests {

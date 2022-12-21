@@ -171,8 +171,39 @@ func (ct *ConnTrack) Validate() error {
 		}
 	}
 
-	// TBD: Validate that selector's keys are included in connection key fields
-	// TBD: Verify there is exactly one default selector
+	definedKeys := map[string]struct{}{}
+	for _, fg := range ct.KeyDefinition.FieldGroups {
+		for _, k := range fg.Fields {
+			addToSet(definedKeys, k)
+		}
+	}
+	for i, group := range ct.Scheduling {
+		for k, _ := range group.Selector {
+			if _, found := definedKeys[k]; !found {
+				return conntrackInvalidError{undefinedSelectorKey: true,
+					msg: fmt.Errorf("selector key %q in group %v is not defined in the keys", k, i)}
+			}
+		}
+	}
+
+	numOfDefault := 0
+	for i, group := range ct.Scheduling {
+		isDefaultSelector := (len(group.Selector) == 0)
+		isLastGroup := (i == len(ct.Scheduling)-1)
+		if isDefaultSelector {
+			numOfDefault++
+		}
+		if isDefaultSelector && !isLastGroup {
+			return conntrackInvalidError{defaultGroupAndNotLast: true,
+				msg: fmt.Errorf("group %v has a default selector but is not the last group", i)}
+		}
+	}
+
+	if numOfDefault != 1 {
+		return conntrackInvalidError{exactlyOneDefaultSelector: true,
+			msg: fmt.Errorf("found %v default selectors. There should be exactly 1", numOfDefault)}
+	}
+
 	return nil
 }
 
@@ -222,6 +253,9 @@ type conntrackInvalidError struct {
 	undefinedFieldGroupBRef   bool
 	undefinedFieldGroupRef    bool
 	unknownOutputRecord       bool
+	undefinedSelectorKey      bool
+	defaultGroupAndNotLast    bool
+	exactlyOneDefaultSelector bool
 }
 
 func (err conntrackInvalidError) Error() string {
@@ -231,7 +265,7 @@ func (err conntrackInvalidError) Error() string {
 	return ""
 }
 
-// Is makes 2 conntrackInvalidError objects equal if all their fields except for `msg` are the equal.
+// Is makes 2 conntrackInvalidError objects equal if all their fields except for `msg` are equal.
 // This is useful in the tests where we don't want to repeat the error message.
 // Is() is invoked by errors.Is() which is invoked by require.ErrorIs().
 func (err conntrackInvalidError) Is(target error) bool {
