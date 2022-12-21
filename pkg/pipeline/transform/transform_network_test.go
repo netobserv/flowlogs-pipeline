@@ -366,3 +366,247 @@ func (*fakeKubeData) GetInfo(n string) (*kubernetes.Info, error) {
 	}
 	return nil, errors.New("notFound")
 }
+
+func Test_Categorize(t *testing.T) {
+	cfg := config.StageParam{
+		Transform: &config.Transform{
+			Network: &api.TransformNetwork{
+				Rules: []api.NetworkTransformRule{{
+					Type: "reinterpret_direction",
+				}},
+				DirectionInfo: api.DirectionInfo{
+					ReporterIPField:    "ReporterIP",
+					SrcHostField:       "SrcHostIP",
+					DstHostField:       "DstHostIP",
+					FlowDirectionField: "FlowDirection",
+					IfDirectionField:   "IfDirection",
+				},
+			},
+		},
+	}
+
+	tr, err := NewTransformNetwork(cfg)
+	require.NoError(t, err)
+
+	output, ok := tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.3",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"FlowDirection": "whatever",
+	})
+	require.True(t, ok)
+	// Source reporter => egress (1)
+	require.Equal(t, config.GenericMap{
+		"ReporterIP":    "10.1.2.3",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"IfDirection":   "whatever",
+		"FlowDirection": 1,
+	}, output)
+
+	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.4",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"FlowDirection": "whatever",
+	})
+	require.True(t, ok)
+	// Destination reporter => ingress (0)
+	require.Equal(t, config.GenericMap{
+		"ReporterIP":    "10.1.2.4",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"IfDirection":   "whatever",
+		"FlowDirection": 0,
+	}, output)
+
+	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.3",
+		"SrcHostIP":     "10.1.2.3",
+		"FlowDirection": "whatever",
+	})
+	require.True(t, ok)
+	// Source reporter => egress (1)
+	require.Equal(t, config.GenericMap{
+		"ReporterIP":    "10.1.2.3",
+		"SrcHostIP":     "10.1.2.3",
+		"IfDirection":   "whatever",
+		"FlowDirection": 1,
+	}, output)
+
+	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.4",
+		"DstHostIP":     "10.1.2.4",
+		"FlowDirection": "whatever",
+	})
+	require.True(t, ok)
+	// Destination reporter => ingress (0)
+	require.Equal(t, config.GenericMap{
+		"ReporterIP":    "10.1.2.4",
+		"DstHostIP":     "10.1.2.4",
+		"IfDirection":   "whatever",
+		"FlowDirection": 0,
+	}, output)
+
+	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.100",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"FlowDirection": "whatever",
+	})
+	require.True(t, ok)
+	// Missing or unknown reporter => FlowDirection same as IfDirection
+	require.Equal(t, config.GenericMap{
+		"ReporterIP":    "10.1.2.100",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"IfDirection":   "whatever",
+		"FlowDirection": "whatever",
+	}, output)
+
+	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.4",
+		"FlowDirection": "whatever",
+	})
+	require.True(t, ok)
+	// Missing src and dst host ips => FlowDirection same as IfDirection
+	require.Equal(t, config.GenericMap{
+		"ReporterIP":    "10.1.2.4",
+		"IfDirection":   "whatever",
+		"FlowDirection": "whatever",
+	}, output)
+
+	output, ok = tr.Transform(config.GenericMap{
+		"SrcHostIP":     "10.1.2.3",
+		"FlowDirection": "whatever",
+	})
+	require.True(t, ok)
+	// Missing Reporter and Dest => no change in FlowDirection (even though technically reporter == dest)
+	require.Equal(t, config.GenericMap{
+		"SrcHostIP":     "10.1.2.3",
+		"IfDirection":   "whatever",
+		"FlowDirection": "whatever",
+	}, output)
+
+	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP": "10.1.2.3",
+		"SrcHostIP":  "10.1.2.3",
+		"DstHostIP":  "10.1.2.4",
+	})
+	require.True(t, ok)
+	// Missing FlowDirection => no IfDirection either
+	require.Equal(t, config.GenericMap{
+		"ReporterIP":    "10.1.2.3",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"FlowDirection": 1,
+	}, output)
+}
+
+func Test_ValidateReinterpretDirection(t *testing.T) {
+	// Missing reporter field
+	_, err := NewTransformNetwork(config.StageParam{
+		Transform: &config.Transform{
+			Network: &api.TransformNetwork{
+				Rules: []api.NetworkTransformRule{{
+					Type: "reinterpret_direction",
+				}},
+				DirectionInfo: api.DirectionInfo{
+					SrcHostField:       "SrcHostIP",
+					DstHostField:       "DstHostIP",
+					FlowDirectionField: "FlowDirection",
+					IfDirectionField:   "IfDirection",
+				},
+			},
+		},
+	})
+	require.Contains(t, err.Error(), "missing ReporterIPField")
+
+	// Missing src field
+	_, err = NewTransformNetwork(config.StageParam{
+		Transform: &config.Transform{
+			Network: &api.TransformNetwork{
+				Rules: []api.NetworkTransformRule{{
+					Type: "reinterpret_direction",
+				}},
+				DirectionInfo: api.DirectionInfo{
+					ReporterIPField:    "ReporterIP",
+					DstHostField:       "DstHostIP",
+					FlowDirectionField: "FlowDirection",
+					IfDirectionField:   "IfDirection",
+				},
+			},
+		},
+	})
+	require.Contains(t, err.Error(), "missing SrcHostField")
+
+	// Missing dst field
+	_, err = NewTransformNetwork(config.StageParam{
+		Transform: &config.Transform{
+			Network: &api.TransformNetwork{
+				Rules: []api.NetworkTransformRule{{
+					Type: "reinterpret_direction",
+				}},
+				DirectionInfo: api.DirectionInfo{
+					ReporterIPField:    "ReporterIP",
+					SrcHostField:       "SrcHostIP",
+					FlowDirectionField: "FlowDirection",
+					IfDirectionField:   "IfDirection",
+				},
+			},
+		},
+	})
+	require.Contains(t, err.Error(), "missing DstHostField")
+
+	// Missing flow direction field
+	_, err = NewTransformNetwork(config.StageParam{
+		Transform: &config.Transform{
+			Network: &api.TransformNetwork{
+				Rules: []api.NetworkTransformRule{{
+					Type: "reinterpret_direction",
+				}},
+				DirectionInfo: api.DirectionInfo{
+					ReporterIPField:  "ReporterIP",
+					SrcHostField:     "SrcHostIP",
+					DstHostField:     "DstHostIP",
+					IfDirectionField: "IfDirection",
+				},
+			},
+		},
+	})
+	require.Contains(t, err.Error(), "missing FlowDirectionField")
+
+	// Missing if direction field does not trigger an error (this field will just not be populated)
+	tr, err := NewTransformNetwork(config.StageParam{
+		Transform: &config.Transform{
+			Network: &api.TransformNetwork{
+				Rules: []api.NetworkTransformRule{{
+					Type: "reinterpret_direction",
+				}},
+				DirectionInfo: api.DirectionInfo{
+					ReporterIPField:    "ReporterIP",
+					SrcHostField:       "SrcHostIP",
+					DstHostField:       "DstHostIP",
+					FlowDirectionField: "FlowDirection",
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// Test transformation when IfDirection is missing
+	output, ok := tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.3",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"FlowDirection": "whatever",
+	})
+	require.True(t, ok)
+	// Source reporter => egress (1)
+	require.Equal(t, config.GenericMap{
+		"ReporterIP":    "10.1.2.3",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.4",
+		"FlowDirection": 1,
+	}, output)
+}
