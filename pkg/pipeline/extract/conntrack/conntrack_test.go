@@ -702,6 +702,8 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 	assertHashOrder(t, []uint64{0x01, 0x02, 0x03}, actual)
 }
 
+// TBD: Test scheduling
+
 func assertHashOrder(t *testing.T, expected []uint64, actualRecords []config.GenericMap) {
 	t.Helper()
 	var actual []uint64
