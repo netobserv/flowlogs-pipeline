@@ -29,14 +29,11 @@ const (
 
 type ConnTrack struct {
 	// TODO: should by a pointer instead?
-	KeyDefinition     KeyDefinition                 `yaml:"keyDefinition,omitempty" doc:"fields that are used to identify the connection"`
-	OutputRecordTypes []string                      `yaml:"outputRecordTypes,omitempty" enum:"ConnTrackOutputRecordTypeEnum" doc:"output record types to emit"`
-	OutputFields      []OutputField                 `yaml:"outputFields,omitempty" doc:"list of output fields"`
-	Scheduling        []ConnTrackSchedulingSelector `yaml:"scheduling,omitempty" doc:"list of timeouts and intervals to apply per selector"`
-	// TODO: TBD: Delete the following 2 fields
-	EndConnectionTimeout     Duration `yaml:"endConnectionTimeout,omitempty" doc:"duration of time to wait from the last flow log to end a connection"`
-	UpdateConnectionInterval Duration `yaml:"updateConnectionInterval,omitempty" doc:"duration of time to wait between update reports of a connection"`
-	MaxConnectionsTracked    int           `yaml:"maxConnectionsTracked,omitempty" doc:"maximum number of connections we keep in our cache (0 means no limit)"`
+	KeyDefinition         KeyDefinition                 `yaml:"keyDefinition,omitempty" doc:"fields that are used to identify the connection"`
+	OutputRecordTypes     []string                      `yaml:"outputRecordTypes,omitempty" enum:"ConnTrackOutputRecordTypeEnum" doc:"output record types to emit"`
+	OutputFields          []OutputField                 `yaml:"outputFields,omitempty" doc:"list of output fields"`
+	Scheduling            []ConnTrackSchedulingSelector `yaml:"scheduling,omitempty" doc:"list of timeouts and intervals to apply per selector"`
+	MaxConnectionsTracked int                           `yaml:"maxConnectionsTracked,omitempty" doc:"maximum number of connections we keep in our cache (0 means no limit)"`
 }
 
 type ConnTrackOutputRecordTypeEnum struct {

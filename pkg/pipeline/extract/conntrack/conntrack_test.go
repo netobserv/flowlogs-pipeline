@@ -666,7 +666,6 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 	endConnectionTimeout := 30 * time.Second
 	conf := buildMockConnTrackConfig(false, []string{"updateConnection"}, updateConnectionInterval, endConnectionTimeout)
 	interval := 10 * time.Second
-	conf.Extract.ConnTrack.UpdateConnectionInterval = api.Duration{Duration: interval}
 	extract, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 	ct := extract.(*conntrackImpl)
