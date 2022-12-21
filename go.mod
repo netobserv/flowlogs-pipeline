@@ -15,7 +15,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/netobserv/gopipes v0.2.0
 	github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500
-	github.com/netobserv/netobserv-ebpf-agent v0.2.2-0.20221031160841-ccb7addde22f
+	github.com/netobserv/netobserv-ebpf-agent v0.2.4-0.20221220155455-aa7838d82f4d
 	github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.1
@@ -113,5 +113,3 @@ require (
 )
 
 replace github.com/prometheus/common v0.32.1 => github.com/netobserv/prometheus-common v0.31.2-0.20220720134304-43e74fd22881
-
-replace github.com/netobserv/netobserv-ebpf-agent v0.2.2-0.20221031160841-ccb7addde22f => ../netobserv-ebpf-agent
