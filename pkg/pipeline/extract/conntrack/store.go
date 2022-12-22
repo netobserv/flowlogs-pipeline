@@ -30,9 +30,9 @@ const (
 	nextUpdateReportTimeOrder = utils.OrderID("nextUpdateReportTimeOrder")
 )
 
-// TBD: Update comment
-// connectionStore provides both retrieving a connection by its hash and iterating connections sorted by their last
-// update time.
+// connectionStore provides means to manage the connections such as retrieving a connection by its hash and organizing
+// them in groups sorted by expiry time and next report time.
+// This allows efficient retrieval and removal of connections.
 type connectionStore struct {
 	group2mom       map[int]*utils.MultiOrderedMap
 	hashId2groupIdx map[uint64]int
