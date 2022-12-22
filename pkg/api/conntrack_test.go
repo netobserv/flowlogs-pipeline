@@ -155,9 +155,9 @@ func TestConnTrackValidate(t *testing.T) {
 				},
 				Scheduling: []ConnTrackSchedulingGroup{
 					{
-						Selector: map[string]string{
+						Selector: map[string]interface{}{
 							"srcIP":         "value",
-							"undefined_key": "value",
+							"undefined_key": 0,
 						},
 					},
 				},
@@ -174,10 +174,10 @@ func TestConnTrackValidate(t *testing.T) {
 				},
 				Scheduling: []ConnTrackSchedulingGroup{
 					{
-						Selector: map[string]string{},
+						Selector: map[string]interface{}{},
 					},
 					{
-						Selector: map[string]string{
+						Selector: map[string]interface{}{
 							"srcIP": "value",
 						},
 					},

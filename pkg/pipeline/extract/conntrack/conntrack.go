@@ -158,6 +158,7 @@ func (ct *conntrackImpl) prepareUpdateConnectionRecords() []config.GenericMap {
 	return outputRecords
 }
 
+// TBD: update README about scheduling groups
 // TBD: think of how to avoid confusion with the word "update". It is used with periodic connections updates and for update a connection with incoming flow logs.
 func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.GenericMap, flowLogHash totalHashType) {
 	d := ct.getFlowLogDirection(conn, flowLogHash)

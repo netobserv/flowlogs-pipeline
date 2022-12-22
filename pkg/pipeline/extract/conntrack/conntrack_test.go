@@ -85,7 +85,7 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
 				OutputRecordTypes: outputRecordType,
 				Scheduling: []api.ConnTrackSchedulingGroup{
 					{
-						Selector:                 map[string]string{},
+						Selector:                 map[string]interface{}{},
 						UpdateConnectionInterval: api.Duration{Duration: updateConnectionInterval},
 						EndConnectionTimeout:     api.Duration{Duration: endConnectionTimeout},
 					},
@@ -702,7 +702,149 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 	assertHashOrder(t, []uint64{0x01, 0x02, 0x03}, actual)
 }
 
-// TBD: Test scheduling
+// TestScheduling tests scheduling groups. It configures 2 scheduling groups:
+//  1. ICMP connections
+//  2. default group (matches TCP connections among other things)
+// Then, it creates 4 flow logs: 2 that belong to an ICMP connection and 2 that belong to a TCP connection.
+// The test verifies that updateConnection and endConnection records are emitted at the right timestamps for each
+// connection according to its scheduling group.
+// The timeline events of the test is as follows ("I" and "O" indicates input and output):
+// 0s:  I flow 			TCP
+// 0s:  I flow 			ICMP
+// 10s: I flow 			TCP
+// 15s: I flow			ICMP
+// 20s: O updateConn	TCP
+// 25s: O endConn 		TCP
+// 30s: O updateConn	ICMP
+// 35s: O endConn 		ICMP
+func TestScheduling(t *testing.T) {
+
+	test.ResetPromRegistry()
+	clk := clock.NewMock()
+	defaultUpdateConnectionInterval := 20 * time.Second
+	defaultEndConnectionTimeout := 15 * time.Second
+	conf := buildMockConnTrackConfig(true, []string{"updateConnection", "endConnection"},
+		defaultUpdateConnectionInterval, defaultEndConnectionTimeout)
+	// Insert a scheduling group before the default group.
+	// https://github.com/golang/go/wiki/SliceTricks#push-frontunshift
+	conf.Extract.ConnTrack.Scheduling = append(
+		[]api.ConnTrackSchedulingGroup{
+			{
+				Selector:                 map[string]interface{}{"Proto": 1}, // ICMP
+				UpdateConnectionInterval: api.Duration{Duration: 30 * time.Second},
+				EndConnectionTimeout:     api.Duration{Duration: 20 * time.Second},
+			},
+		},
+		conf.Extract.ConnTrack.Scheduling...)
+	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
+	require.NoError(t, err)
+
+	ipA := "10.0.0.1"
+	ipB := "10.0.0.2"
+	portA := 9001
+	portB := 9002
+	protocolTCP := 6
+	protocolICMP := 1
+	hashIdTCP := "705baa5149302fa1"
+	hashIdICMP := "3dccf73fe57ba06f"
+	flTCP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolTCP, 111, 11)
+	flTCP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, 222, 22)
+	flICMP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolICMP, 333, 33)
+	flICMP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolICMP, 444, 44)
+	startTime := clk.Now()
+	table := []struct {
+		name          string
+		time          time.Time
+		inputFlowLogs []config.GenericMap
+		expected      []config.GenericMap
+	}{
+		{
+			"start: flow TCP, flow ICMP",
+			startTime.Add(0 * time.Second),
+			[]config.GenericMap{flTCP1, flICMP1},
+			nil,
+		},
+		{
+			"10s: flow TCP",
+			startTime.Add(10 * time.Second),
+			[]config.GenericMap{flTCP2},
+			nil,
+		},
+		{
+			"15s: flow ICMP",
+			startTime.Add(15 * time.Second),
+			[]config.GenericMap{flICMP2},
+			nil,
+		},
+		{
+			"19s: no update report",
+			startTime.Add(19 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"21s: update report TCP conn",
+			startTime.Add(21 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConnAB(ipA, portA, ipB, portB, protocolTCP, 111, 222, 11, 22, 2).withHash(hashIdTCP).markFirst().get(),
+			},
+		},
+		{
+			"24s: no end conn",
+			startTime.Add(24 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"26s: end conn TCP",
+			startTime.Add(26 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordEndConnAB(ipA, portA, ipB, portB, protocolTCP, 111, 222, 11, 22, 2).withHash(hashIdTCP).get(),
+			},
+		},
+		{
+			"29s: no update report",
+			startTime.Add(29 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"31s: update report ICMP conn",
+			startTime.Add(31 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordUpdateConnAB(ipA, portA, ipB, portB, protocolICMP, 333, 444, 33, 44, 2).withHash(hashIdICMP).markFirst().get(),
+			},
+		},
+		{
+			"34s: no end conn",
+			startTime.Add(34 * time.Second),
+			nil,
+			nil,
+		},
+		{
+			"36s: end conn ICMP",
+			startTime.Add(36 * time.Second),
+			nil,
+			[]config.GenericMap{
+				newMockRecordEndConnAB(ipA, portA, ipB, portB, protocolICMP, 333, 444, 33, 44, 2).withHash(hashIdICMP).get(),
+			},
+		},
+	}
+
+	var prevTime time.Time
+	for _, tt := range table {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
+		})
+	}
+}
 
 func assertHashOrder(t *testing.T, expected []uint64, actualRecords []config.GenericMap) {
 	t.Helper()

@@ -81,6 +81,12 @@ func newMockRecordEndConnAB(srcIP string, srcPort int, dstIP string, dstPort int
 
 }
 
+func newMockRecordUpdateConnAB(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytesAB, bytesBA, packetsAB, packetsBA, numFlowLogs float64) *mockRecord {
+	return newMockRecordConnAB(srcIP, srcPort, dstIP, dstPort, protocol, bytesAB, bytesBA, packetsAB, packetsBA, numFlowLogs).
+		withType("updateConnection")
+
+}
+
 func newMockRecordConn(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytes, packets, numFlowLogs float64) *mockRecord {
 	mock := &mockRecord{
 		record: config.GenericMap{

@@ -84,9 +84,9 @@ type ConnTrackOperationEnum struct {
 }
 
 type ConnTrackSchedulingGroup struct {
-	Selector                 map[string]string `yaml:"selector,omitempty" doc:"key-value map to match against connection fields to apply this scheduling"`
-	EndConnectionTimeout     Duration          `yaml:"endConnectionTimeout,omitempty" doc:"duration of time to wait from the last flow log to end a connection"`
-	UpdateConnectionInterval Duration          `yaml:"updateConnectionInterval,omitempty" doc:"duration of time to wait between update reports of a connection"`
+	Selector                 map[string]interface{} `yaml:"selector,omitempty" doc:"key-value map to match against connection fields to apply this scheduling"`
+	EndConnectionTimeout     Duration               `yaml:"endConnectionTimeout,omitempty" doc:"duration of time to wait from the last flow log to end a connection"`
+	UpdateConnectionInterval Duration               `yaml:"updateConnectionInterval,omitempty" doc:"duration of time to wait between update reports of a connection"`
 }
 
 func ConnTrackOperationName(operation string) string {

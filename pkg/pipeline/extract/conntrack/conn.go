@@ -40,7 +40,7 @@ type connection interface {
 	// for this connection (i.e. newConnection, updateConnection, endConnection).
 	// It returns true on the first invocation to indicate the first report. Otherwise, it returns false.
 	markReported() bool
-	isMatchSelector(map[string]string) bool
+	isMatchSelector(map[string]interface{}) bool
 }
 
 type connType struct {
@@ -107,7 +107,7 @@ func (c *connType) markReported() bool {
 	return isFirst
 }
 
-func (c *connType) isMatchSelector(selector map[string]string) bool {
+func (c *connType) isMatchSelector(selector map[string]interface{}) bool {
 	for k, v := range selector {
 		if c.keys[k] != v {
 			return false
