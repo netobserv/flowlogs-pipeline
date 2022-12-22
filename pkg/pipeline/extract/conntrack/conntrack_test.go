@@ -245,8 +245,8 @@ func TestEndConn_Bidirectional(t *testing.T) {
 		},
 	}
 
+	var prevTime time.Time
 	for _, tt := range table {
-		var prevTime time.Time
 		t.Run(tt.name, func(t *testing.T) {
 			require.Less(t, prevTime, tt.time)
 			prevTime = tt.time
@@ -346,8 +346,8 @@ func TestEndConn_Unidirectional(t *testing.T) {
 		},
 	}
 
+	var prevTime time.Time
 	for _, tt := range table {
-		var prevTime time.Time
 		t.Run(tt.name, func(t *testing.T) {
 			require.Less(t, prevTime, tt.time)
 			prevTime = tt.time
@@ -496,8 +496,8 @@ func TestUpdateConn_Unidirectional(t *testing.T) {
 		},
 	}
 
+	var prevTime time.Time
 	for _, tt := range table {
-		var prevTime time.Time
 		t.Run(tt.name, func(t *testing.T) {
 			require.Less(t, prevTime, tt.time)
 			prevTime = tt.time
@@ -583,8 +583,8 @@ func TestIsFirst_LongConnection(t *testing.T) {
 		},
 	}
 
+	var prevTime time.Time
 	for _, tt := range table {
-		var prevTime time.Time
 		t.Run(tt.name, func(t *testing.T) {
 			require.Less(t, prevTime, tt.time)
 			prevTime = tt.time
@@ -643,8 +643,8 @@ func TestIsFirst_ShortConnection(t *testing.T) {
 		},
 	}
 
+	var prevTime time.Time
 	for _, tt := range table {
-		var prevTime time.Time
 		t.Run(tt.name, func(t *testing.T) {
 			require.Less(t, prevTime, tt.time)
 			prevTime = tt.time
