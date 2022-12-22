@@ -83,7 +83,7 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
 					{Name: "numFlowLogs", Operation: "count", SplitAB: false},
 				},
 				OutputRecordTypes: outputRecordType,
-				Scheduling: []api.ConnTrackSchedulingSelector{
+				Scheduling: []api.ConnTrackSchedulingGroup{
 					{
 						Selector:                 map[string]string{},
 						UpdateConnectionInterval: api.Duration{Duration: updateConnectionInterval},

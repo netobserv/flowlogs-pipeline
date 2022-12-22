@@ -36,7 +36,7 @@ const (
 type connectionStore struct {
 	group2mom       map[int]*utils.MultiOrderedMap
 	hashId2groupIdx map[uint64]int
-	scheduling      []api.ConnTrackSchedulingSelector
+	scheduling      []api.ConnTrackSchedulingGroup
 	metrics         *metricsType
 	now             func() time.Time
 }
@@ -44,11 +44,11 @@ type connectionStore struct {
 func (cs *connectionStore) getGroupIdx(conn connection) (groupIdx int) {
 	for i, group := range cs.scheduling {
 		if conn.isMatchSelector(group.Selector) {
-			// connection belongs to group i
+			// connection belongs to scheduling group i
 			return i
 		}
 	}
-	// Shouldn't get here since the last group should have a selector that matches any connection.
+	// Shouldn't get here since the last scheduling group should have a selector that matches any connection.
 	log.Errorf("BUG. connection with hash %x doesn't match any selector", conn.getHash().hashTotal)
 	lastGroupIdx := len(cs.scheduling) - 1
 	return lastGroupIdx
@@ -118,8 +118,8 @@ func (cs *connectionStore) updateNextReportTime(hashId uint64) {
 }
 
 func (cs *connectionStore) popEndConnections() []connection {
-	// Iterate over the connections by groups.
-	// In each group iterate over them by their expiry time from old to new.
+	// Iterate over the connections by scheduling groups.
+	// In each scheduling group iterate over them by their expiry time from old to new.
 	var poppedConnections []connection
 	for groupIdx := range cs.scheduling {
 		cs.group2mom[groupIdx].IterateFrontToBack(expiryOrder, func(r utils.Record) (shouldDelete, shouldStop bool) {
@@ -143,8 +143,8 @@ func (cs *connectionStore) popEndConnections() []connection {
 
 func (cs *connectionStore) prepareUpdateConnections() []connection {
 	var connections []connection
-	// Iterate over the connections by groups.
-	// In each group iterate over them by their next update report time from old to new.
+	// Iterate over the connections by scheduling groups.
+	// In each scheduling group iterate over them by their next update report time from old to new.
 	for groupIdx := range cs.scheduling {
 		cs.group2mom[groupIdx].IterateFrontToBack(nextUpdateReportTimeOrder, func(r utils.Record) (shouldDelete, shouldStop bool) {
 			conn := r.(connection)
@@ -163,7 +163,7 @@ func (cs *connectionStore) prepareUpdateConnections() []connection {
 	return connections
 }
 
-func newConnectionStore(scheduling []api.ConnTrackSchedulingSelector, metrics *metricsType, nowFunc func() time.Time) *connectionStore {
+func newConnectionStore(scheduling []api.ConnTrackSchedulingGroup, metrics *metricsType, nowFunc func() time.Time) *connectionStore {
 	group2mom := map[int]*utils.MultiOrderedMap{}
 	for groupIdx := range scheduling {
 		group2mom[groupIdx] = utils.NewMultiOrderedMap(expiryOrder, nextUpdateReportTimeOrder)

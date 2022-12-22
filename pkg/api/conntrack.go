@@ -29,11 +29,11 @@ const (
 
 type ConnTrack struct {
 	// TODO: should by a pointer instead?
-	KeyDefinition         KeyDefinition                 `yaml:"keyDefinition,omitempty" doc:"fields that are used to identify the connection"`
-	OutputRecordTypes     []string                      `yaml:"outputRecordTypes,omitempty" enum:"ConnTrackOutputRecordTypeEnum" doc:"output record types to emit"`
-	OutputFields          []OutputField                 `yaml:"outputFields,omitempty" doc:"list of output fields"`
-	Scheduling            []ConnTrackSchedulingSelector `yaml:"scheduling,omitempty" doc:"list of timeouts and intervals to apply per selector"`
-	MaxConnectionsTracked int                           `yaml:"maxConnectionsTracked,omitempty" doc:"maximum number of connections we keep in our cache (0 means no limit)"`
+	KeyDefinition         KeyDefinition              `yaml:"keyDefinition,omitempty" doc:"fields that are used to identify the connection"`
+	OutputRecordTypes     []string                   `yaml:"outputRecordTypes,omitempty" enum:"ConnTrackOutputRecordTypeEnum" doc:"output record types to emit"`
+	OutputFields          []OutputField              `yaml:"outputFields,omitempty" doc:"list of output fields"`
+	Scheduling            []ConnTrackSchedulingGroup `yaml:"scheduling,omitempty" doc:"list of timeouts and intervals to apply per selector"`
+	MaxConnectionsTracked int                        `yaml:"maxConnectionsTracked,omitempty" doc:"maximum number of connections we keep in our cache (0 means no limit)"`
 }
 
 type ConnTrackOutputRecordTypeEnum struct {
@@ -83,7 +83,7 @@ type ConnTrackOperationEnum struct {
 	Max   string `yaml:"max" doc:"max"`
 }
 
-type ConnTrackSchedulingSelector struct {
+type ConnTrackSchedulingGroup struct {
 	Selector                 map[string]string `yaml:"selector,omitempty" doc:"key-value map to match against connection fields to apply this scheduling"`
 	EndConnectionTimeout     Duration          `yaml:"endConnectionTimeout,omitempty" doc:"duration of time to wait from the last flow log to end a connection"`
 	UpdateConnectionInterval Duration          `yaml:"updateConnectionInterval,omitempty" doc:"duration of time to wait between update reports of a connection"`
@@ -178,7 +178,7 @@ func (ct *ConnTrack) Validate() error {
 		for k, _ := range group.Selector {
 			if _, found := definedKeys[k]; !found {
 				return conntrackInvalidError{undefinedSelectorKey: true,
-					msg: fmt.Errorf("selector key %q in group %v is not defined in the keys", k, i)}
+					msg: fmt.Errorf("selector key %q in scheduling group %v is not defined in the keys", k, i)}
 			}
 		}
 	}
@@ -192,7 +192,7 @@ func (ct *ConnTrack) Validate() error {
 		}
 		if isDefaultSelector && !isLastGroup {
 			return conntrackInvalidError{defaultGroupAndNotLast: true,
-				msg: fmt.Errorf("group %v has a default selector but is not the last group", i)}
+				msg: fmt.Errorf("scheduling group %v has a default selector but is not the last scheduling group", i)}
 		}
 	}
 

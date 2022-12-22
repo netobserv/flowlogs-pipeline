@@ -153,7 +153,7 @@ func TestConnTrackValidate(t *testing.T) {
 						{Name: "src", Fields: []string{"srcIP"}},
 					},
 				},
-				Scheduling: []ConnTrackSchedulingSelector{
+				Scheduling: []ConnTrackSchedulingGroup{
 					{
 						Selector: map[string]string{
 							"srcIP":         "value",
@@ -165,14 +165,14 @@ func TestConnTrackValidate(t *testing.T) {
 			conntrackInvalidError{undefinedSelectorKey: true},
 		},
 		{
-			"Default selector on a group that is not the last group",
+			"Default selector on a scheduling group that is not the last scheduling group",
 			ConnTrack{
 				KeyDefinition: KeyDefinition{
 					FieldGroups: []FieldGroup{
 						{Name: "src", Fields: []string{"srcIP"}},
 					},
 				},
-				Scheduling: []ConnTrackSchedulingSelector{
+				Scheduling: []ConnTrackSchedulingGroup{
 					{
 						Selector: map[string]string{},
 					},
@@ -193,7 +193,7 @@ func TestConnTrackValidate(t *testing.T) {
 						{Name: "src", Fields: []string{"srcIP"}},
 					},
 				},
-				Scheduling: []ConnTrackSchedulingSelector{},
+				Scheduling: []ConnTrackSchedulingGroup{},
 			},
 			conntrackInvalidError{exactlyOneDefaultSelector: true},
 		},
