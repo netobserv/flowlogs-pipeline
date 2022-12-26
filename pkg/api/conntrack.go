@@ -175,7 +175,7 @@ func (ct *ConnTrack) Validate() error {
 		}
 	}
 	for i, group := range ct.Scheduling {
-		for k, _ := range group.Selector {
+		for k := range group.Selector {
 			if _, found := definedKeys[k]; !found {
 				return conntrackInvalidError{undefinedSelectorKey: true,
 					msg: fmt.Errorf("selector key %q in scheduling group %v is not defined in the keys", k, i)}
