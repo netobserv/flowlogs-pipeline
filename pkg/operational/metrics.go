@@ -154,6 +154,17 @@ func (o *Metrics) NewGauge(def *MetricDefinition, labels ...string) prometheus.G
 	return c
 }
 
+func (o *Metrics) NewGaugeVec(def *MetricDefinition) *prometheus.GaugeVec {
+	verifyMetricType(def, TypeGauge)
+	fullName := o.settings.Prefix + def.Name
+	c := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: fullName,
+		Help: def.Help,
+	}, def.Labels)
+	o.register(c, fullName)
+	return c
+}
+
 func (o *Metrics) NewGaugeFunc(def *MetricDefinition, f func() float64, labels ...string) {
 	verifyMetricType(def, TypeGauge)
 	fullName := o.settings.Prefix + def.Name

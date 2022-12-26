@@ -27,6 +27,7 @@ var (
 		"conntrack_memory_connections",
 		"The total number of tracked connections in memory.",
 		operational.TypeGauge,
+		"group",
 	)
 
 	inputRecordsDef = operational.DefineMetric(
@@ -45,14 +46,14 @@ var (
 )
 
 type metricsType struct {
-	connStoreLength prometheus.Gauge
+	connStoreLength *prometheus.GaugeVec
 	inputRecords    *prometheus.CounterVec
 	outputRecords   *prometheus.CounterVec
 }
 
 func newMetrics(opMetrics *operational.Metrics) *metricsType {
 	return &metricsType{
-		connStoreLength: opMetrics.NewGauge(&connStoreLengthDef),
+		connStoreLength: opMetrics.NewGaugeVec(&connStoreLengthDef),
 		inputRecords:    opMetrics.NewCounterVec(&inputRecordsDef),
 		outputRecords:   opMetrics.NewCounterVec(&outputRecordsDef),
 	}

@@ -18,6 +18,9 @@
 package conntrack
 
 import (
+	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -34,11 +37,12 @@ const (
 // them in groups sorted by expiry time and next report time.
 // This allows efficient retrieval and removal of connections.
 type connectionStore struct {
-	group2mom       map[int]*utils.MultiOrderedMap
-	hashId2groupIdx map[uint64]int
-	scheduling      []api.ConnTrackSchedulingGroup
-	metrics         *metricsType
-	now             func() time.Time
+	group2mom        map[int]*utils.MultiOrderedMap
+	group2labelValue map[int]string
+	hashId2groupIdx  map[uint64]int
+	scheduling       []api.ConnTrackSchedulingGroup
+	metrics          *metricsType
+	now              func() time.Time
 }
 
 func (cs *connectionStore) getGroupIdx(conn connection) (groupIdx int) {
@@ -64,7 +68,8 @@ func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
 	}
 	cs.hashId2groupIdx[hashId] = groupIdx
 
-	cs.metrics.connStoreLength.Set(float64(len(cs.hashId2groupIdx)))
+	groupLabel := cs.group2labelValue[groupIdx]
+	cs.metrics.connStoreLength.WithLabelValues(groupLabel).Set(float64(len(cs.hashId2groupIdx)))
 }
 
 func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
@@ -135,8 +140,8 @@ func (cs *connectionStore) popEndConnections() []connection {
 			}
 			return
 		})
-		cs.metrics.connStoreLength.Set(float64(len(cs.hashId2groupIdx)))
-		// TBD: Think of adding labels to connStoreLength metric per group
+		groupLabel := cs.group2labelValue[groupIdx]
+		cs.metrics.connStoreLength.WithLabelValues(groupLabel).Set(float64(len(cs.hashId2groupIdx)))
 	}
 	return poppedConnections
 }
@@ -163,17 +168,39 @@ func (cs *connectionStore) prepareUpdateConnections() []connection {
 	return connections
 }
 
+// schedulingGroupToLabelValue returns a string representation of a scheduling group to be used as a Prometheus label
+// value.
+func schedulingGroupToLabelValue(groupIdx int, group api.ConnTrackSchedulingGroup) string {
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("%v: ", groupIdx))
+	var keys []string
+	for k := range group.Selector {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		sb.WriteString(fmt.Sprintf("%s=%v, ", k, group.Selector[k]))
+	}
+	if len(group.Selector) == 0 {
+		sb.WriteString("DEFAULT")
+	}
+	return sb.String()
+}
+
 func newConnectionStore(scheduling []api.ConnTrackSchedulingGroup, metrics *metricsType, nowFunc func() time.Time) *connectionStore {
 	group2mom := map[int]*utils.MultiOrderedMap{}
-	for groupIdx := range scheduling {
+	group2labelValue := map[int]string{}
+	for groupIdx, group := range scheduling {
 		group2mom[groupIdx] = utils.NewMultiOrderedMap(expiryOrder, nextUpdateReportTimeOrder)
+		group2labelValue[groupIdx] = schedulingGroupToLabelValue(groupIdx, group)
 	}
 	cs := &connectionStore{
-		group2mom:       group2mom,
-		hashId2groupIdx: map[uint64]int{},
-		scheduling:      scheduling,
-		metrics:         metrics,
-		now:             nowFunc,
+		group2mom:        group2mom,
+		group2labelValue: group2labelValue,
+		hashId2groupIdx:  map[uint64]int{},
+		scheduling:       scheduling,
+		metrics:          metrics,
+		now:              nowFunc,
 	}
 	return cs
 }
