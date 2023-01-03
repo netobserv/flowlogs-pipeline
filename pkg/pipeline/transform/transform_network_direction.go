@@ -12,7 +12,7 @@ const (
 	egress  = 1
 )
 
-func validatereinterpretDirectionConfig(info *api.DirectionInfo) error {
+func validateReinterpretDirectionConfig(info *api.NetworkTransformDirectionInfo) error {
 	if info.FlowDirectionField == "" {
 		return fmt.Errorf("invalid config for transform.Network rule %s: missing FlowDirectionField", api.OpReinterpretDirection)
 	}
@@ -28,7 +28,7 @@ func validatereinterpretDirectionConfig(info *api.DirectionInfo) error {
 	return nil
 }
 
-func reinterpretDirection(output config.GenericMap, info *api.DirectionInfo) {
+func reinterpretDirection(output config.GenericMap, info *api.NetworkTransformDirectionInfo) {
 	if fd, ok := output[info.FlowDirectionField]; ok && len(info.IfDirectionField) > 0 {
 		output[info.IfDirectionField] = fd
 	}
