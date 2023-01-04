@@ -23,6 +23,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/Knetic/govaluate"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -30,6 +31,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -39,6 +41,7 @@ type Network struct {
 	api.TransformNetwork
 	svcNames   *netdb.ServiceNames
 	categories []subnetCategory
+	ipCatCache *utils.TimedCache
 }
 
 type subnetCategory struct {
@@ -151,10 +154,12 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			reinterpretDirection(outputEntry, &n.DirectionInfo)
 		case api.OpAddIPCategory:
 			if strIP, ok := outputEntry[rule.Input].(string); ok {
-				ip := net.ParseIP(strIP)
-				if ip != nil {
-					outputEntry[rule.Output] = n.categorizeIP(ip)
+				cat, ok := n.ipCatCache.GetCacheEntry(strIP)
+				if !ok {
+					cat = n.categorizeIP(net.ParseIP(strIP))
+					n.ipCatCache.UpdateCacheEntry(strIP, cat)
 				}
+				outputEntry[rule.Output] = cat
 			}
 
 		default:
@@ -166,10 +171,12 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 }
 
 func (n *Network) categorizeIP(ip net.IP) string {
-	for _, subnetCat := range n.categories {
-		for _, cidr := range subnetCat.cidrs {
-			if cidr.Contains(ip) {
-				return subnetCat.name
+	if ip != nil {
+		for _, subnetCat := range n.categories {
+			for _, cidr := range subnetCat.cidrs {
+				if cidr.Contains(ip) {
+					return subnetCat.name
+				}
 			}
 		}
 	}
@@ -261,5 +268,6 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		},
 		svcNames:   servicesDB,
 		categories: subnetCats,
+		ipCatCache: utils.NewQuietExpiringTimedCache(2 * time.Minute),
 	}, nil
 }
