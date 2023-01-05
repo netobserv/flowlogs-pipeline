@@ -130,6 +130,28 @@ run: build ## Run
 build-image:
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build -t $(DOCKER_IMG):$(DOCKER_TAG) -f contrib/docker/Dockerfile .
 
+# note: to build and push custom image tag use: DOCKER_TAG=test make push-image
+.PHONY: build-image-multiarch
+build-image-multiarch:
+	#The --load option is ignored by podman but required for docker
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) buildx build --load --platform=linux/amd64 -t $(DOCKER_IMG):$(DOCKER_TAG)-amd64 -f contrib/docker/Dockerfile .
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) buildx build --load --platform=linux/arm64 -t $(DOCKER_IMG):$(DOCKER_TAG)-arm64 -f contrib/docker/Dockerfile .
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) buildx build --load --platform=linux/ppc64le -t $(DOCKER_IMG):$(DOCKER_TAG)-ppc64le -f contrib/docker/Dockerfile .
+
+.PHONY: push-image-multiarch
+push-image-multiarch: build-image-multiarch
+	@echo 'build and publish manifest $(DOCKER_TAG) to $(DOCKER_IMG)'
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)-amd64
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)-arm64
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)-ppc64le
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest create $(DOCKER_IMG):$(DOCKER_TAG) --amend $(DOCKER_IMG):$(DOCKER_TAG)-amd64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-arm64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-ppc64le
+ifeq ($(shell basename $(OCI_RUNTIME)), docker)
+		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest push $(DOCKER_IMG):$(DOCKER_TAG)
+else
+		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest push $(DOCKER_IMG):$(DOCKER_TAG) docker://$(DOCKER_IMG):$(DOCKER_TAG)
+endif
+
+
 .PHONY: build-ci-images
 build-ci-images:
 ifeq ($(DOCKER_TAG), main)
