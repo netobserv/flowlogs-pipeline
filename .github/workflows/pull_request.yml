@@ -35,4 +35,4 @@ jobs:
         flags: unittests
         fail_ci_if_error: true
     - name: build images
-      run: DOCKER_TAG=${{ steps.validate_tag.outputs.tag }} make build-image-multiarch
+      run: DOCKER_TAG=test-multi-arch make build-image-multiarch
