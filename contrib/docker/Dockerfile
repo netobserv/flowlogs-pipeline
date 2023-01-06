@@ -1,10 +1,10 @@
 # TARGETPLATFORM and BUILDPLATFORM are automatically field when specifying an architecture during build but they need to be declared
+ARG TARGETPLATFORM=linux/amd64
+ARG BUILDPLATFORM=linux/amd64
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.18 as builder
 
 ARG TARGETPLATFORM
-ARG BUILDPLATFORM
-ARG TARGETARCH
-
+ARG TARGETARCH=amd64
 WORKDIR /app
 
 # Copy source code

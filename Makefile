@@ -132,7 +132,7 @@ build-image:
 
 build-image-multiarch-linux/%:
 #The --load option is ignored by podman but required for docker
-	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) buildx build --load --platform=linux/$* -t $(DOCKER_IMG):$(DOCKER_TAG)-$* -f contrib/docker/Dockerfile .
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) buildx build --load --build-arg TARGETPLATFORM=linux/$* --build-arg TARGETARCH=$* --build-arg BUILDPLATFORM=linux/amd64 -t $(DOCKER_IMG):$(DOCKER_TAG)-$* -f contrib/docker/Dockerfile .
 
 # note: to build and push custom image tag use: DOCKER_TAG=test make push-image
 .PHONY: build-image-multiarch
