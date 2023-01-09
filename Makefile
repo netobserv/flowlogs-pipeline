@@ -137,6 +137,7 @@ build-image-multiarch-linux/%:
 # note: to build and push custom image tag use: DOCKER_TAG=test make push-image
 .PHONY: build-image-multiarch
 build-image-multiarch: build-image-multiarch-linux/amd64 build-image-multiarch-linux/arm64 build-image-multiarch-linux/ppc64le
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest create $(DOCKER_IMG):$(DOCKER_TAG) --amend $(DOCKER_IMG):$(DOCKER_TAG)-amd64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-arm64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-ppc64le
 
 push-image-multiarch-linux/%:
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)-$*
@@ -144,8 +145,7 @@ push-image-multiarch-linux/%:
 
 .PHONY: push-image-multiarch
 push-image-multiarch: build-image-multiarch push-image-multiarch-linux/amd64 push-image-multiarch-linux/arm64 push-image-multiarch-linux/ppc64le
-	@echo 'build and publish manifest $(DOCKER_TAG) to $(DOCKER_IMG)'
-	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest create $(DOCKER_IMG):$(DOCKER_TAG) --amend $(DOCKER_IMG):$(DOCKER_TAG)-amd64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-arm64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-ppc64le
+	@echo 'publish manifest $(DOCKER_TAG) to $(DOCKER_IMG)'
 ifeq ($(shell basename $(OCI_RUNTIME)), docker)
 		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest push $(DOCKER_IMG):$(DOCKER_TAG)
 else
