@@ -34,5 +34,3 @@ jobs:
         token: ${{ secrets.CODECOV_SECRET }}
         flags: unittests
         fail_ci_if_error: true
-    - name: build images
-      run: DOCKER_TAG=test-multi-arch make build-image-multiarch
