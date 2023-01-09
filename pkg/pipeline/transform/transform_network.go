@@ -23,6 +23,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/Knetic/govaluate"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -30,6 +31,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,7 +39,14 @@ var log = logrus.WithField("component", "transform.Network")
 
 type Network struct {
 	api.TransformNetwork
-	svcNames *netdb.ServiceNames
+	svcNames   *netdb.ServiceNames
+	categories []subnetCategory
+	ipCatCache *utils.TimedCache
+}
+
+type subnetCategory struct {
+	cidrs []*net.IPNet
+	name  string
 }
 
 func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bool) {
@@ -143,6 +152,15 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			}
 		case api.OpReinterpretDirection:
 			reinterpretDirection(outputEntry, &n.DirectionInfo)
+		case api.OpAddIPCategory:
+			if strIP, ok := outputEntry[rule.Input].(string); ok {
+				cat, ok := n.ipCatCache.GetCacheEntry(strIP)
+				if !ok {
+					cat = n.categorizeIP(net.ParseIP(strIP))
+					n.ipCatCache.UpdateCacheEntry(strIP, cat)
+				}
+				outputEntry[rule.Output] = cat
+			}
 
 		default:
 			log.Panicf("unknown type %s for transform.Network rule: %v", rule.Type, rule)
@@ -150,6 +168,19 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 	}
 
 	return outputEntry, true
+}
+
+func (n *Network) categorizeIP(ip net.IP) string {
+	if ip != nil {
+		for _, subnetCat := range n.categories {
+			for _, cidr := range subnetCat.cidrs {
+				if cidr.Contains(ip) {
+					return subnetCat.name
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // NewTransformNetwork create a new transform
@@ -171,8 +202,12 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		case api.OpAddService:
 			needToInitNetworkServices = true
 		case api.OpReinterpretDirection:
-			if err := validatereinterpretDirectionConfig(&jsonNetworkTransform.DirectionInfo); err != nil {
+			if err := validateReinterpretDirectionConfig(&jsonNetworkTransform.DirectionInfo); err != nil {
 				return nil, err
+			}
+		case api.OpAddIPCategory:
+			if len(jsonNetworkTransform.IPCategories) == 0 {
+				return nil, fmt.Errorf("a rule '%s' was found, but there are no IP categories configured", api.OpAddIPCategory)
 			}
 		}
 	}
@@ -211,11 +246,28 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		}
 	}
 
+	var subnetCats []subnetCategory
+	for _, category := range jsonNetworkTransform.IPCategories {
+		var cidrs []*net.IPNet
+		for _, cidr := range category.CIDRs {
+			_, parsed, err := net.ParseCIDR(cidr)
+			if err != nil {
+				return nil, fmt.Errorf("category %s: fail to parse CIDR, %w", category.Name, err)
+			}
+			cidrs = append(cidrs, parsed)
+		}
+		if len(cidrs) > 0 {
+			subnetCats = append(subnetCats, subnetCategory{name: category.Name, cidrs: cidrs})
+		}
+	}
+
 	return &Network{
 		TransformNetwork: api.TransformNetwork{
 			Rules:         jsonNetworkTransform.Rules,
 			DirectionInfo: jsonNetworkTransform.DirectionInfo,
 		},
-		svcNames: servicesDB,
+		svcNames:   servicesDB,
+		categories: subnetCats,
+		ipCatCache: utils.NewQuietExpiringTimedCache(2 * time.Minute),
 	}, nil
 }

@@ -368,13 +368,60 @@ func (*fakeKubeData) GetInfo(n string) (*kubernetes.Info, error) {
 }
 
 func Test_Categorize(t *testing.T) {
+	entry := config.GenericMap{
+		"addr1": "10.1.2.3",
+		"addr2": "100.1.2.3",
+		"addr3": "100.2.3.4",
+		"addr4": "101.1.0.0",
+	}
+	cfg := config.StageParam{
+		Transform: &config.Transform{
+			Network: &api.TransformNetwork{
+				Rules: []api.NetworkTransformRule{
+					{Type: api.OpAddIPCategory, Input: "addr1", Output: "cat1"},
+					{Type: api.OpAddIPCategory, Input: "addr2", Output: "cat2"},
+					{Type: api.OpAddIPCategory, Input: "addr3", Output: "cat3"},
+					{Type: api.OpAddIPCategory, Input: "addr4", Output: "cat4"},
+				},
+				IPCategories: []api.NetworkTransformIPCategory{{
+					Name:  "Pods overlay",
+					CIDRs: []string{"10.0.0.0/8"},
+				}, {
+					Name:  "MySite.com",
+					CIDRs: []string{"101.1.0.0/32", "100.1.0.0/16"},
+				}, {
+					Name:  "MyOtherSite.com",
+					CIDRs: []string{"100.2.3.10/32"},
+				}},
+			},
+		},
+	}
+
+	tr, err := NewTransformNetwork(cfg)
+	require.NoError(t, err)
+
+	output, ok := tr.Transform(entry)
+	require.True(t, ok)
+	require.Equal(t, config.GenericMap{
+		"addr1": "10.1.2.3",
+		"cat1":  "Pods overlay",
+		"addr2": "100.1.2.3",
+		"cat2":  "MySite.com",
+		"addr3": "100.2.3.4",
+		"cat3":  "",
+		"addr4": "101.1.0.0",
+		"cat4":  "MySite.com",
+	}, output)
+}
+
+func Test_ReinterpretDirection(t *testing.T) {
 	cfg := config.StageParam{
 		Transform: &config.Transform{
 			Network: &api.TransformNetwork{
 				Rules: []api.NetworkTransformRule{{
 					Type: "reinterpret_direction",
 				}},
-				DirectionInfo: api.DirectionInfo{
+				DirectionInfo: api.NetworkTransformDirectionInfo{
 					ReporterIPField:    "ReporterIP",
 					SrcHostField:       "SrcHostIP",
 					DstHostField:       "DstHostIP",
@@ -511,7 +558,7 @@ func Test_ValidateReinterpretDirection(t *testing.T) {
 				Rules: []api.NetworkTransformRule{{
 					Type: "reinterpret_direction",
 				}},
-				DirectionInfo: api.DirectionInfo{
+				DirectionInfo: api.NetworkTransformDirectionInfo{
 					SrcHostField:       "SrcHostIP",
 					DstHostField:       "DstHostIP",
 					FlowDirectionField: "FlowDirection",
@@ -529,7 +576,7 @@ func Test_ValidateReinterpretDirection(t *testing.T) {
 				Rules: []api.NetworkTransformRule{{
 					Type: "reinterpret_direction",
 				}},
-				DirectionInfo: api.DirectionInfo{
+				DirectionInfo: api.NetworkTransformDirectionInfo{
 					ReporterIPField:    "ReporterIP",
 					DstHostField:       "DstHostIP",
 					FlowDirectionField: "FlowDirection",
@@ -547,7 +594,7 @@ func Test_ValidateReinterpretDirection(t *testing.T) {
 				Rules: []api.NetworkTransformRule{{
 					Type: "reinterpret_direction",
 				}},
-				DirectionInfo: api.DirectionInfo{
+				DirectionInfo: api.NetworkTransformDirectionInfo{
 					ReporterIPField:    "ReporterIP",
 					SrcHostField:       "SrcHostIP",
 					FlowDirectionField: "FlowDirection",
@@ -565,7 +612,7 @@ func Test_ValidateReinterpretDirection(t *testing.T) {
 				Rules: []api.NetworkTransformRule{{
 					Type: "reinterpret_direction",
 				}},
-				DirectionInfo: api.DirectionInfo{
+				DirectionInfo: api.NetworkTransformDirectionInfo{
 					ReporterIPField:  "ReporterIP",
 					SrcHostField:     "SrcHostIP",
 					DstHostField:     "DstHostIP",
@@ -583,7 +630,7 @@ func Test_ValidateReinterpretDirection(t *testing.T) {
 				Rules: []api.NetworkTransformRule{{
 					Type: "reinterpret_direction",
 				}},
-				DirectionInfo: api.DirectionInfo{
+				DirectionInfo: api.NetworkTransformDirectionInfo{
 					ReporterIPField:    "ReporterIP",
 					SrcHostField:       "SrcHostIP",
 					DstHostField:       "DstHostIP",

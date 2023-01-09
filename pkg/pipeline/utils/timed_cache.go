@@ -30,13 +30,11 @@ var log = logrus.WithField("component", "utils.TimedCache")
 // Functions to manage an LRU cache with an expiry
 // When an item expires, allow a callback to allow the specific implementation to perform its particular cleanup
 
-type CacheCallback interface {
-	Cleanup(entry interface{})
-}
+type CacheCallback func(entry interface{})
 
 type cacheEntry struct {
 	key             string
-	lastUpdatedTime int64
+	lastUpdatedTime time.Time
 	e               *list.Element
 	SourceEntry     interface{}
 }
@@ -63,7 +61,7 @@ func (tc *TimedCache) GetCacheEntry(key string) (interface{}, bool) {
 var uclog = log.WithField("method", "UpdateCacheEntry")
 
 func (tc *TimedCache) UpdateCacheEntry(key string, entry interface{}) *cacheEntry {
-	nowInSecs := time.Now().Unix()
+	nowInSecs := time.Now()
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
 	cEntry, ok := tc.cacheMap[key]
@@ -105,7 +103,7 @@ func (tc *TimedCache) Iterate(f func(key string, value interface{})) {
 }
 
 // CleanupExpiredEntries removes items from cache that were last touched more than expiryTime seconds ago
-func (tc *TimedCache) CleanupExpiredEntries(expiryTime int64, callback CacheCallback) {
+func (tc *TimedCache) CleanupExpiredEntries(expiry time.Duration, callback CacheCallback) {
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
 
@@ -115,8 +113,7 @@ func (tc *TimedCache) CleanupExpiredEntries(expiryTime int64, callback CacheCall
 	})
 	clog.Debugf("cleaning up expried entries")
 
-	nowInSecs := time.Now().Unix()
-	expireTime := nowInSecs - expiryTime
+	expireTime := time.Now().Add(-expiry)
 	deleted := 0
 	// go through the list until we reach recently used entries
 	for {
@@ -125,13 +122,13 @@ func (tc *TimedCache) CleanupExpiredEntries(expiryTime int64, callback CacheCall
 			return
 		}
 		pCacheInfo := listEntry.Value.(*cacheEntry)
-		if pCacheInfo.lastUpdatedTime > expireTime {
+		if pCacheInfo.lastUpdatedTime.After(expireTime) {
 			// no more expired items
 			clog.Debugf("deleted %d expired entries", deleted)
 			return
 		}
 		deleted++
-		callback.Cleanup(pCacheInfo.SourceEntry)
+		callback(pCacheInfo.SourceEntry)
 		delete(tc.cacheMap, pCacheInfo.key)
 		tc.cacheList.Remove(listEntry)
 	}
@@ -142,5 +139,26 @@ func NewTimedCache() *TimedCache {
 		cacheList: list.New(),
 		cacheMap:  make(TimedCacheMap),
 	}
+	return l
+}
+
+func NewQuietExpiringTimedCache(expiry time.Duration) *TimedCache {
+	l := &TimedCache{
+		cacheList: list.New(),
+		cacheMap:  make(TimedCacheMap),
+	}
+
+	ticker := time.NewTicker(expiry)
+	go func() {
+		for {
+			select {
+			case <-ExitChannel():
+				return
+			case <-ticker.C:
+				l.CleanupExpiredEntries(expiry, func(entry interface{}) {})
+			}
+		}
+	}()
+
 	return l
 }

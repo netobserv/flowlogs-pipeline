@@ -106,7 +106,7 @@ func Test_NewEncodeProm(t *testing.T) {
 	require.Equal(t, 1, len(encodeProm.gauges))
 	require.Equal(t, 1, len(encodeProm.histos))
 	require.Equal(t, 1, len(encodeProm.aggHistos))
-	require.Equal(t, int64(1), encodeProm.expiryTime)
+	require.Equal(t, time.Second, encodeProm.expiryTime)
 	require.Equal(t, (*api.PromTLSConf)(nil), encodeProm.tlsConfig)
 
 	require.Equal(t, encodeProm.gauges[0].info.Name, "Bytes")
@@ -125,7 +125,7 @@ func Test_NewEncodeProm(t *testing.T) {
 
 	// wait a couple seconds so that the entry will expire
 	time.Sleep(2 * time.Second)
-	encodeProm.mCache.CleanupExpiredEntries(encodeProm.expiryTime, encodeProm)
+	encodeProm.mCache.CleanupExpiredEntries(encodeProm.expiryTime, encodeProm.Cleanup)
 	entriesMapLen = encodeProm.mCache.GetCacheLen()
 	require.Equal(t, 0, entriesMapLen)
 }
