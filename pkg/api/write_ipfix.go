@@ -25,7 +25,7 @@ func (w *WriteIpfix) Validate() error {
 		return errors.New("targetHost can't be empty")
 	}
 	if w.TargetPort == 0 {
-		return errors.New("targetport can't be empty")
+		return errors.New("targetPort can't be empty")
 	}
 	return nil
 }
