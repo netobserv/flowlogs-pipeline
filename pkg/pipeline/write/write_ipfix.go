@@ -410,12 +410,12 @@ func (t *writeIpfix) Write(entry config.GenericMap) {
 	if IPv6Type == entry["Etype"].(uint32) {
 		err := t.sendDataRecord(entry, false)
 		if err != nil {
-			ilog.WithError(err).Error("Failed in send IPFIX record")
+			ilog.WithError(err).Error("Failed in send v4 IPFIX record")
 		}
 	} else {
-		err := t.sendDataRecord(entry, false)
+		err := t.sendDataRecord(entry, true)
 		if err != nil {
-			ilog.WithError(err).Error("Failed in send IPFIX record")
+			ilog.WithError(err).Error("Failed in send v6 IPFIX record")
 		}
 	}
 
