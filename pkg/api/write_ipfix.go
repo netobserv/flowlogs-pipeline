@@ -22,7 +22,7 @@ func (w *WriteIpfix) Validate() error {
 		return errors.New("you must provide a configuration")
 	}
 	if w.TargetHost == "" {
-		return errors.New("targethost can't be empty")
+		return errors.New("targetHost can't be empty")
 	}
 	if w.TargetPort == 0 {
 		return errors.New("targetport can't be empty")
