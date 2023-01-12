@@ -34,27 +34,27 @@ func loadSevoneRegistry() error {
 	if err != nil {
 		fmt.Printf("Failed Initialization")
 	}
-	err = registry.RegisterIE((*entities.NewInfoElement("sourcePodNamespace", 7733, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
+	err = registry.PutInfoElement((*entities.NewInfoElement("sourcePodNamespace", 7733, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
 	if err != nil {
 		fmt.Printf("Failed to register element")
 		return err
 	}
-	err = registry.RegisterIE((*entities.NewInfoElement("sourcePodName", 7734, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
+	err = registry.PutInfoElement((*entities.NewInfoElement("sourcePodName", 7734, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
 	if err != nil {
 		fmt.Printf("Failed to register element")
 		return err
 	}
-	err = registry.RegisterIE((*entities.NewInfoElement("destinationPodNamespace", 7735, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
+	err = registry.PutInfoElement((*entities.NewInfoElement("destinationPodNamespace", 7735, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
 	if err != nil {
 		fmt.Printf("Failed to register element")
 		return err
 	}
-	err = registry.RegisterIE((*entities.NewInfoElement("destinationPodName", 7736, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
+	err = registry.PutInfoElement((*entities.NewInfoElement("destinationPodName", 7736, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
 	if err != nil {
 		fmt.Printf("Failed to register element")
 		return err
 	}
-	err = registry.RegisterIE((*entities.NewInfoElement("sourceNodeName", 7737, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
+	err = registry.PutInfoElement((*entities.NewInfoElement("sourceNodeName", 7737, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
 	if err != nil {
 		fmt.Printf("Failed to register element")
 		return err
