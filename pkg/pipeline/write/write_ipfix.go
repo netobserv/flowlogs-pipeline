@@ -421,7 +421,7 @@ func (t *writeIpfix) Write(entry config.GenericMap) {
 
 }
 
-// NewWriteStdout create a new write
+// NewWriteIpfix creates a new write
 func NewWriteIpfix(params config.StageParam) (Writer, error) {
 	ilog.Debugf("entering NewWriteIpfix")
 
