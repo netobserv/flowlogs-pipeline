@@ -36,27 +36,27 @@ func loadSevoneRegistry() error {
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("sourcePodNamespace", 7733, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
 	if err != nil {
-		fmt.Printf("Failed to register element")
+		fmt.Printf("Failed to register sourcePodNamespace")
 		return err
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("sourcePodName", 7734, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
 	if err != nil {
-		fmt.Printf("Failed to register element")
+		fmt.Printf("Failed to register sourcePodName")
 		return err
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("destinationPodNamespace", 7735, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
 	if err != nil {
-		fmt.Printf("Failed to register element")
+		fmt.Printf("Failed to register destinationPodNamespace")
 		return err
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("destinationPodName", 7736, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
 	if err != nil {
-		fmt.Printf("Failed to register element")
+		fmt.Printf("Failed to register destinationPodName")
 		return err
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("sourceNodeName", 7737, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
 	if err != nil {
-		fmt.Printf("Failed to register element")
+		fmt.Printf("Failed to register sourceNodeName")
 		return err
 	}
 	return nil
@@ -158,7 +158,10 @@ func main() {
 		MaxBufferSize: 1024,
 	}
 	registry.LoadRegistry()
-	loadSevoneRegistry()
+	err := loadSevoneRegistry()
+	if err != nil {
+		log.Fatalf("Failed to load SevOne Registry: %v", err)
+	}
 	cp, err := ipfixCollector.InitCollectingProcess(input)
 	if err != nil {
 		log.Fatalf("UDP Collecting Process does not start correctly: %v", err)
