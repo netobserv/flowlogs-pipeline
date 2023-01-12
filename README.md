@@ -2,6 +2,7 @@
 [![pull request](https://github.com/netobserv/flowlogs-pipeline/actions/workflows/pull_request.yml/badge.svg)](https://github.com/netobserv/flowlogs-pipeline/actions/workflows/pull_request.yml)
 [![push image to quay.io](https://github.com/netobserv/flowlogs-pipeline/actions/workflows/push_image.yml/badge.svg)](https://github.com/netobserv/flowlogs-pipeline/actions/workflows/push_image.yml)
 [![codecov](https://codecov.io/gh/netobserv/flowlogs-pipeline/branch/main/graph/badge.svg?token=KMZKG6PRS9)](https://codecov.io/gh/netobserv/flowlogs-pipeline)
+[![Go Report Card](https://goreportcard.com/badge/github.com/netobserv/flowlogs-pipeline)](https://goreportcard.com/report/github.com/netobserv/flowlogs-pipeline)
 
 # Overview
 
