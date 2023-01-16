@@ -101,7 +101,9 @@ parameters:
       - name: timeEnd
         operation: max
         input: timeReceived
-      endConnectionTimeout: 30s
+      scheduling:
+      - endConnectionTimeout: 10s
+        updateConnectionInterval: 30s
 - name: transform_network
   transform:
     type: network

@@ -231,8 +231,10 @@ Following is the supported API format for specifying connection tracking:
                      max: max
                  splitAB: When true, 2 output fields will be created. One for A->B and one for B->A flows.
                  input: The input field to base the operation on. When omitted, 'name' is used
-         endConnectionTimeout: duration of time to wait from the last flow log to end a connection
-         updateConnectionInterval: duration of time to wait between update reports of a connection
+         scheduling: list of timeouts and intervals to apply per selector
+                 selector: key-value map to match against connection fields to apply this scheduling
+                 endConnectionTimeout: duration of time to wait from the last flow log to end a connection
+                 updateConnectionInterval: duration of time to wait between update reports of a connection
          maxConnectionsTracked: maximum number of connections we keep in our cache (0 means no limit)
 </pre>
 ## Time-based Filters API
