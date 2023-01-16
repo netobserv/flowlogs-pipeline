@@ -37,8 +37,8 @@ const (
 // them in groups sorted by expiry time and next report time.
 // This allows efficient retrieval and removal of connections.
 type connectionStore struct {
-	group2mom        map[int]*utils.MultiOrderedMap
-	group2labelValue map[int]string
+	group2mom        []*utils.MultiOrderedMap
+	group2labelValue []string
 	hashId2groupIdx  map[uint64]int
 	scheduling       []api.ConnTrackSchedulingGroup
 	metrics          *metricsType
@@ -188,8 +188,8 @@ func schedulingGroupToLabelValue(groupIdx int, group api.ConnTrackSchedulingGrou
 }
 
 func newConnectionStore(scheduling []api.ConnTrackSchedulingGroup, metrics *metricsType, nowFunc func() time.Time) *connectionStore {
-	group2mom := map[int]*utils.MultiOrderedMap{}
-	group2labelValue := map[int]string{}
+	group2mom := make([]*utils.MultiOrderedMap, len(scheduling))
+	group2labelValue := make([]string, len(scheduling))
 	for groupIdx, group := range scheduling {
 		group2mom[groupIdx] = utils.NewMultiOrderedMap(expiryOrder, nextUpdateReportTimeOrder)
 		group2labelValue[groupIdx] = schedulingGroupToLabelValue(groupIdx, group)
