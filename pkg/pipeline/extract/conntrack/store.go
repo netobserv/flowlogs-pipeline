@@ -73,7 +73,8 @@ func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
 	cs.hashId2groupIdx[hashId] = groupIdx
 
 	groupLabel := cs.groups[groupIdx].labelValue
-	cs.metrics.connStoreLength.WithLabelValues(groupLabel).Set(float64(len(cs.hashId2groupIdx)))
+	groupLen := cs.groups[groupIdx].mom.Len()
+	cs.metrics.connStoreLength.WithLabelValues(groupLabel).Set(float64(groupLen))
 }
 
 func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
@@ -145,7 +146,8 @@ func (cs *connectionStore) popEndConnections() []connection {
 			return
 		})
 		groupLabel := group.labelValue
-		cs.metrics.connStoreLength.WithLabelValues(groupLabel).Set(float64(len(cs.hashId2groupIdx)))
+		groupLen := group.mom.Len()
+		cs.metrics.connStoreLength.WithLabelValues(groupLabel).Set(float64(groupLen))
 	}
 	return poppedConnections
 }
