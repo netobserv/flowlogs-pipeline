@@ -139,6 +139,7 @@ func (cs *connectionStore) popEndConnections() []connection {
 				// The connection has expired. We want to pop it.
 				poppedConnections = append(poppedConnections, conn)
 				shouldDelete, shouldStop = true, false
+				delete(cs.hashId2groupIdx, conn.getHash().hashTotal)
 			} else {
 				// No more expired connections
 				shouldDelete, shouldStop = false, true
