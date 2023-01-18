@@ -288,44 +288,113 @@ func SendTemplateRecordv6(exporter *ipfixExporter.ExportingProcess, enrichEnterp
 	return templateID, elements, nil
 }
 
-func setStandardIEValue(record config.GenericMap, ieValPtr *entities.InfoElementWithValue) {
+func setStandardIEValue(record config.GenericMap, ieValPtr *entities.InfoElementWithValue) error {
 	ieVal := *ieValPtr
 	switch ieVal.GetName() {
 	case "ethernetType":
-		ieVal.SetUnsigned16Value(uint16(record["Etype"].(uint32)))
+		if record["Etype"] != nil {
+			ieVal.SetUnsigned16Value(uint16(record["Etype"].(uint32)))
+		} else {
+			return fmt.Errorf("unable to find ethernet type (Etype) in record")
+		}
 	case "flowDirection":
-		ieVal.SetUnsigned8Value(uint8(record["FlowDirection"].(int)))
+		if record["FlowDirection"] != nil {
+			ieVal.SetUnsigned8Value(uint8(record["FlowDirection"].(int)))
+		} else {
+			return fmt.Errorf("unable to find flow direction (flowDirection) in record")
+		}
 	case "sourceMacAddress":
-		ieVal.SetMacAddressValue(net.HardwareAddr(record["SrcMac"].(string)))
+		if record["SrcMac"] != nil {
+			ieVal.SetMacAddressValue(net.HardwareAddr(record["SrcMac"].(string)))
+		} else {
+			return fmt.Errorf("unable to find source mac address (SrcMac) in record")
+		}
 	case "destinationMacAddress":
-		ieVal.SetMacAddressValue(net.HardwareAddr(record["DstMac"].(string)))
+		if record["DstMac"] != nil {
+			ieVal.SetMacAddressValue(net.HardwareAddr(record["DstMac"].(string)))
+		} else {
+			return fmt.Errorf("unable to find dest mac address (DstMac) in record")
+		}
 	case "sourceIPv4Address":
-		ieVal.SetIPAddressValue(net.ParseIP(record["SrcAddr"].(string)))
+		if record["SrcAddr"] != nil {
+			ieVal.SetIPAddressValue(net.ParseIP(record["SrcAddr"].(string)))
+		} else {
+			return fmt.Errorf("unable to find source IPv4 address (SrcAddr) in record")
+		}
 	case "destinationIPv4Address":
-		ieVal.SetIPAddressValue(net.ParseIP(record["DstAddr"].(string)))
+		if record["DstAddr"] != nil {
+			ieVal.SetIPAddressValue(net.ParseIP(record["DstAddr"].(string)))
+		} else {
+			return fmt.Errorf("unable to find dest IPv4 address (DstAddr) in record")
+		}
 	case "sourceIPv6Address":
-		ieVal.SetIPAddressValue(net.ParseIP(record["SrcAddr"].(string)))
+		if record["SrcAddr"] != nil {
+			ieVal.SetIPAddressValue(net.ParseIP(record["SrcAddr"].(string)))
+		} else {
+			return fmt.Errorf("unable to find source IPv6 address (SrcAddr) in record")
+		}
 	case "destinationIPv6Address":
-		ieVal.SetIPAddressValue(net.ParseIP(record["DstAddr"].(string)))
+		if record["DstAddr"] != nil {
+			ieVal.SetIPAddressValue(net.ParseIP(record["DstAddr"].(string)))
+		} else {
+			return fmt.Errorf("unable to find dest IPv6 address (DstAddr) in record")
+		}
 	case "protocolIdentifier":
-		ieVal.SetUnsigned8Value(uint8(record["Proto"].(uint32)))
+		if record["Proto"] != nil {
+			ieVal.SetUnsigned8Value(uint8(record["Proto"].(uint32)))
+		} else {
+			return fmt.Errorf("unable to find protocol identifier (Proto) in record")
+		}
 	case "nextHeaderIPv6":
-		ieVal.SetUnsigned8Value(uint8(record["Proto"].(uint32)))
+		if record["Proto"] != nil {
+			ieVal.SetUnsigned8Value(uint8(record["Proto"].(uint32)))
+		} else {
+			return fmt.Errorf("unable to find next header (Proto) in record")
+		}
 	case "sourceTransportPort":
-		ieVal.SetUnsigned16Value(uint16(record["SrcPort"].(uint32)))
+		if record["SrcPort"] != nil {
+			ieVal.SetUnsigned16Value(uint16(record["SrcPort"].(uint32)))
+		} else {
+			return fmt.Errorf("unable to find source port (SrcPort) in record")
+		}
 	case "destinationTransportPort":
-		ieVal.SetUnsigned16Value(uint16(record["DstPort"].(uint32)))
+		if record["DstPort"] != nil {
+			ieVal.SetUnsigned16Value(uint16(record["DstPort"].(uint32)))
+		} else {
+			return fmt.Errorf("unable to find dest port (DstPort) in record")
+		}
 	case "octetDeltaCount":
-		ieVal.SetUnsigned64Value(record["Bytes"].(uint64))
+		if record["Bytes"] != nil {
+			ieVal.SetUnsigned64Value(record["Bytes"].(uint64))
+		} else {
+			return fmt.Errorf("unable to find bytes in record")
+		}
 	case "flowStartMilliseconds":
-		ieVal.SetUnsigned64Value(uint64(record["TimeFlowStartMs"].(int64)))
+		if record["TimeFlowStartMs"] != nil {
+			ieVal.SetUnsigned64Value(uint64(record["TimeFlowStartMs"].(int64)))
+		} else {
+			return fmt.Errorf("unable to find flow start time (TimeFlowStartMs) in record")
+		}
 	case "flowEndMilliseconds":
-		ieVal.SetUnsigned64Value(uint64(record["TimeFlowEndMs"].(int64)))
+		if record["TimeFlowStartMs"] != nil {
+			ieVal.SetUnsigned64Value(uint64(record["TimeFlowEndMs"].(int64)))
+		} else {
+			return fmt.Errorf("unable to find flow end time (TimeFlowEndMs) in record")
+		}
 	case "packetDeltaCount":
-		ieVal.SetUnsigned64Value(record["Packets"].(uint64))
+		if record["Packets"] != nil {
+			ieVal.SetUnsigned64Value(record["Packets"].(uint64))
+		} else {
+			return fmt.Errorf("unable to find packets in record")
+		}
 	case "interfaceName":
-		ieVal.SetStringValue(record["Interface"].(string))
+		if record["Interface"] != nil {
+			ieVal.SetStringValue(record["Interface"].(string))
+		} else {
+			return fmt.Errorf("unable to find interface in record")
+		}
 	}
+	return nil
 }
 
 func setKubeIEValue(record config.GenericMap, ieValPtr *entities.InfoElementWithValue) {
@@ -364,23 +433,33 @@ func setKubeIEValue(record config.GenericMap, ieValPtr *entities.InfoElementWith
 
 	}
 }
-func setEntities(record config.GenericMap, enrichEnterpriseID uint32, elements *[]entities.InfoElementWithValue) {
+func setEntities(record config.GenericMap, enrichEnterpriseID uint32, elements *[]entities.InfoElementWithValue) error {
 	for _, ieVal := range *elements {
-		setStandardIEValue(record, &ieVal)
+		err := setStandardIEValue(record, &ieVal)
+		if err != nil {
+			return err
+		}
 		if enrichEnterpriseID != 0 {
 			setKubeIEValue(record, &ieVal)
 		}
 	}
+	return nil
 }
 func (t *writeIpfix) sendDataRecord(record config.GenericMap, v6 bool) error {
 	dataSet := entities.NewSet(false)
 	var templateID uint16
 	if v6 {
 		templateID = t.templateIDv6
-		setEntities(record, t.enrichEnterpriseID, &t.entitiesV6)
+		err := setEntities(record, t.enrichEnterpriseID, &t.entitiesV6)
+		if err != nil {
+			return err
+		}
 	} else {
 		templateID = t.templateIDv4
-		setEntities(record, t.enrichEnterpriseID, &t.entitiesV4)
+		err := setEntities(record, t.enrichEnterpriseID, &t.entitiesV4)
+		if err != nil {
+			return err
+		}
 	}
 	err := dataSet.PrepareSet(entities.Data, templateID)
 	if err != nil {
@@ -408,14 +487,14 @@ func (t *writeIpfix) sendDataRecord(record config.GenericMap, v6 bool) error {
 func (t *writeIpfix) Write(entry config.GenericMap) {
 	ilog.Tracef("entering writeIpfix Write")
 	if IPv6Type == entry["Etype"].(uint32) {
-		err := t.sendDataRecord(entry, false)
-		if err != nil {
-			ilog.WithError(err).Error("Failed in send v4 IPFIX record")
-		}
-	} else {
 		err := t.sendDataRecord(entry, true)
 		if err != nil {
 			ilog.WithError(err).Error("Failed in send v6 IPFIX record")
+		}
+	} else {
+		err := t.sendDataRecord(entry, false)
+		if err != nil {
+			ilog.WithError(err).Error("Failed in send v4 IPFIX record")
 		}
 	}
 

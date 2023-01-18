@@ -27,5 +27,8 @@ func (w *WriteIpfix) Validate() error {
 	if w.TargetPort == 0 {
 		return errors.New("targetPort can't be empty")
 	}
+	if w.Transport != "tcp" && w.Transport != "udp" && w.Transport != "" {
+		return errors.New("transport should be tcp/udp")
+	}
 	return nil
 }
