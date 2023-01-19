@@ -35,8 +35,8 @@ func TestSchedulingGroupToLabelValue(t *testing.T) {
 			"Non-default scheduling group",
 			0,
 			api.ConnTrackSchedulingGroup{
-				Selector: map[string]interface{}{
-					"Proto": 1,
+				Selector: map[string]string{
+					"Proto": "1",
 					"ip":    "10.0.0.0",
 				},
 			},
