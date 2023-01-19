@@ -376,7 +376,7 @@ func setStandardIEValue(record config.GenericMap, ieValPtr *entities.InfoElement
 			return fmt.Errorf("unable to find flow start time (TimeFlowStartMs) in record")
 		}
 	case "flowEndMilliseconds":
-		if record["TimeFlowStartMs"] != nil {
+		if record["TimeFlowEndMs"] != nil {
 			ieVal.SetUnsigned64Value(uint64(record["TimeFlowEndMs"].(int64)))
 		} else {
 			return fmt.Errorf("unable to find flow end time (TimeFlowEndMs) in record")
