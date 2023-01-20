@@ -144,7 +144,7 @@ push-single-multiarch-linux/%: build-single-multiarch-linux/%
 # note: to build and push custom image tag use: DOCKER_TAG=test make push-image
 .PHONY: build-image-multiarch
 build-multiarch-manifest: push-single-multiarch-linux/amd64 push-single-multiarch-linux/arm64 push-single-multiarch-linux/ppc64le
-	#if using Docker,
+	#if using Docker, image needs to be pushed before beeing added to the manifest
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest create $(DOCKER_IMG):$(DOCKER_TAG) --amend $(DOCKER_IMG):$(DOCKER_TAG)-amd64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-arm64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-ppc64le
 
 .PHONY: push-image-multiarch
