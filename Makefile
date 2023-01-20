@@ -14,7 +14,8 @@ GOARCH ?= amd64
 SHELL := /usr/bin/env bash
 DOCKER_TAG ?= latest
 DOCKER_IMG ?= quay.io/netobserv/flowlogs-pipeline
-OCI_RUNTIME ?= $(shell which podman  || which docker)
+OCI_RUNTIME_PATH = $(shell which podman  || which docker)
+OCI_RUNTIME ?= $(shell v='$(OCI_RUNTIME_PATH)'; echo "$${v##*/}")
 MIN_GO_VERSION := 1.18.0
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
@@ -146,7 +147,7 @@ push-image-multiarch-linux/%:
 .PHONY: push-image-multiarch
 push-image-multiarch: build-image-multiarch push-image-multiarch-linux/amd64 push-image-multiarch-linux/arm64 push-image-multiarch-linux/ppc64le
 	@echo 'publish manifest $(DOCKER_TAG) to $(DOCKER_IMG)'
-ifeq ($(shell basename $(OCI_RUNTIME)), docker)
+ifeq (${OCI_RUNTIME} , docker)
 		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest push $(DOCKER_IMG):$(DOCKER_TAG)
 else
 		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest push $(DOCKER_IMG):$(DOCKER_TAG) docker://$(DOCKER_IMG):$(DOCKER_TAG)
