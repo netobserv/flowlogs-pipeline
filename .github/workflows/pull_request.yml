@@ -34,3 +34,5 @@ jobs:
         token: ${{ secrets.CODECOV_SECRET }}
         flags: unittests
         fail_ci_if_error: true
+    - name: build images
+      run: OCI_RUNTIME=docker DOCKER_TAG=temporary-multiarch-test make build-image-multiarch
