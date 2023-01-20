@@ -43,7 +43,8 @@ type ConfigFileStruct struct {
 }
 
 type Health struct {
-	Port string
+	Address string
+	Port    string
 }
 
 type Profile struct {

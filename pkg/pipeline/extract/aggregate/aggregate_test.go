@@ -20,6 +20,7 @@ package aggregate
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -38,7 +39,7 @@ func GetMockAggregate() Aggregate {
 		},
 		cache:      utils.NewTimedCache(),
 		mutex:      &sync.Mutex{},
-		expiryTime: 30,
+		expiryTime: 30 * time.Second,
 	}
 	return aggregate
 }

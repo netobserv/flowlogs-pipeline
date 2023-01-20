@@ -27,8 +27,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const defaultServerHost = "0.0.0.0"
-
 type Server struct {
 	handler healthcheck.Handler
 	Address string
@@ -45,8 +43,7 @@ func (hs *Server) Serve() {
 func NewHealthServer(opts *config.Options, isAlive healthcheck.Check, isReady healthcheck.Check) *Server {
 
 	handler := healthcheck.NewHandler()
-	address := net.JoinHostPort(defaultServerHost, opts.Health.Port)
-
+	address := net.JoinHostPort(opts.Health.Address, opts.Health.Port)
 	handler.AddLivenessCheck("PipelineCheck", isAlive)
 	handler.AddReadinessCheck("PipelineCheck", isReady)
 

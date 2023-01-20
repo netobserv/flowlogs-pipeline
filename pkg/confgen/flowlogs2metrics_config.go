@@ -19,7 +19,7 @@ package confgen
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -56,6 +56,7 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.ConfigFileStruct {
 	}
 	if len(cg.promMetrics) > 0 {
 		metricsNode.EncodePrometheus("encode_prom", api.PromEncode{
+			Address: cg.config.Encode.Prom.Address,
 			Port:    cg.config.Encode.Prom.Port,
 			Prefix:  cg.config.Encode.Prom.Prefix,
 			Metrics: cg.promMetrics,
@@ -104,7 +105,7 @@ func (cg *ConfGen) writeConfigFile(fileName string, cfg interface{}) error {
 	}
 	header := "# This file was generated automatically by flowlogs-pipeline confgenerator"
 	data := fmt.Sprintf("%s\n%s\n", header, configData)
-	err = ioutil.WriteFile(fileName, []byte(data), 0664)
+	err = os.WriteFile(fileName, []byte(data), 0664)
 	if err != nil {
 		return err
 	}

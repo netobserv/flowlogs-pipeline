@@ -17,6 +17,7 @@ Following is the supported API format for prometheus encode:
                  valueKey: entry key from which to resolve metric value
                  labels: labels to be associated with the metric
                  buckets: histogram buckets
+         address: address to expose "/metrics" endpoint
          port: port number to expose "/metrics" endpoint
          prefix: prefix added to each metric name
          expiryTime: seconds of no-flow to wait before deleting prometheus data item
@@ -59,6 +60,7 @@ Following is the supported API format for S3 encode:
          bucket: bucket into which to store objects
          writeTimeout: timeout (in seconds) for write operation
          batchSize: limit on how many flows will be buffered before being sent to an object
+         secure: true for https, false for http (default: false)
          objectHeaderParameters: parameters to include in object header (key/value pairs)
 </pre>
 ## Ingest collector API
@@ -115,6 +117,7 @@ Following is the supported API format for generic transformations:
          rules: list of transform rules, each includes:
                  input: entry input field
                  output: entry output field
+                 multiplier: scaling factor to compenstate for sampling
 </pre>
 ## Transform Filter API
 Following is the supported API format for filter transformations:

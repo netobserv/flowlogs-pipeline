@@ -33,6 +33,15 @@ func ExitChannel() <-chan struct{} {
 	return exitChannel
 }
 
+// InitExitChannel and CloseExitChannel are needed for some tests
+func InitExitChannel() {
+	exitChannel = make(chan struct{})
+}
+
+func CloseExitChannel() {
+	close(exitChannel)
+}
+
 func SetupElegantExit() {
 	logrus.Debugf("entering SetupElegantExit")
 	// handle elegant exit; create support for channels of go routines that want to exit cleanly

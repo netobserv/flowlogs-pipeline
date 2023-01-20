@@ -51,6 +51,7 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 		"TimeFlowEndMs":   flow.TimeFlowEnd.AsTime().UnixMilli(),
 		"TimeReceived":    time.Now().Unix(),
 		"Interface":       flow.Interface,
+		"AgentIP":         ipToStr(flow.AgentIp),
 	}
 	return out
 }

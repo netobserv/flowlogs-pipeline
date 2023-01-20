@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -47,7 +48,7 @@ type Aggregate struct {
 	Definition api.AggregateDefinition
 	cache      *utils.TimedCache
 	mutex      *sync.Mutex
-	expiryTime int64
+	expiryTime time.Duration
 }
 
 type GroupState struct {

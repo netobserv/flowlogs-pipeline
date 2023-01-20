@@ -35,7 +35,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const defaultExpiryTime = 120
+const defaultExpiryTime = 2 * time.Minute
 
 type gaugeInfo struct {
 	gauge *prometheus.GaugeVec
@@ -57,7 +57,7 @@ type EncodeProm struct {
 	counters         []counterInfo
 	histos           []histoInfo
 	aggHistos        []histoInfo
-	expiryTime       int64
+	expiryTime       time.Duration
 	mCache           *utils.TimedCache
 	exitChan         <-chan struct{}
 	server           *http.Server
@@ -232,14 +232,14 @@ func (e *EncodeProm) Cleanup(cleanupFunc interface{}) {
 }
 
 func (e *EncodeProm) cleanupExpiredEntriesLoop() {
-	ticker := time.NewTicker(time.Duration(e.expiryTime) * time.Second)
+	ticker := time.NewTicker(e.expiryTime)
 	for {
 		select {
 		case <-e.exitChan:
 			log.Debugf("exiting cleanupExpiredEntriesLoop because of signal")
 			return
 		case <-ticker.C:
-			e.mCache.CleanupExpiredEntries(e.expiryTime, e)
+			e.mCache.CleanupExpiredEntries(e.expiryTime, e.Cleanup)
 		}
 	}
 }
@@ -274,11 +274,11 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		cfg = *params.Encode.Prom
 	}
 
-	expiryTime := int64(cfg.ExpiryTime)
+	expiryTime := time.Duration(cfg.ExpiryTime) * time.Second
 	if expiryTime == 0 {
 		expiryTime = defaultExpiryTime
 	}
-	log.Debugf("expiryTime = %d", expiryTime)
+	log.Debugf("expiryTime = %v", expiryTime)
 
 	counters := []counterInfo{}
 	gauges := []gaugeInfo{}
@@ -348,7 +348,8 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	log.Debugf("histos = %v", histos)
 	log.Debugf("aggHistos = %v", aggHistos)
 
-	addr := fmt.Sprintf(":%v", cfg.Port)
+	// if value of address is empty, then by default it will take 0.0.0.0
+	addr := fmt.Sprintf("%s:%v", cfg.Address, cfg.Port)
 	log.Infof("startServer: addr = %s", addr)
 
 	w := &EncodeProm{

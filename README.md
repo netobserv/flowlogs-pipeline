@@ -49,6 +49,7 @@ Usage:
   
 Flags:  
       --config string             config file (default is $HOME/.flowlogs-pipeline)  
+      --health.address string     Health server address (default "0.0.0.0")  
       --health.port string        Health server port (default "8080")  
   -h, --help                      help for flowlogs-pipeline  
       --log-level string          Log level: debug, info, warning, error (default "error")  
@@ -93,7 +94,7 @@ These instructions apply for deploying FLP development and exploration environme
 tested on Ubuntu 20.4 and Fedora 34.
 1. Make sure the following commands are installed and can be run from the current shell:
    - make
-   - go (version 1.17)
+   - go (version 1.18)
    - docker
 2. To deploy the full simulated environment which includes a kind cluster with FLP, Prometheus, Grafana, and
    netflow-simulator, run (note that depending on your user permissions, you may have to run this command under sudo):
@@ -254,6 +255,12 @@ Specify `policy: replace_keys` to use only the newly specified keys.
 To include the original keys and values in addition to those specified in the `rules`,
 specify `policy: preserve_original_keys`.
 
+The rule `multiplier` takes the input field, multiplies it by the provided value, and
+places the result in the output field.
+This is useful to use when provided with only a sample of the flow logs (e.g. 1 our of 20),
+and some of the variables need to be adjusted accordingly.
+If `multipier` is not set or if it is set to 0, then the input field is simply copied to the output field.
+
 For example, suppose we have a flow log with the following syntax:
 ```
 {"Bytes":20800,"DstAddr":"10.130.2.2","DstPort":36936,"Packets":400,"Proto":6,"SequenceNum":1919,"SrcAddr":"10.130.2.13","SrcHostIP":"10.0.197.206","SrcPort":3100,"TCPFlags":0,"TimeFlowStart":0,"TimeReceived":1637501832}
@@ -272,12 +279,14 @@ parameters:
         rules:
           - input: Bytes
             output: bytes
+            multiplier: 20
           - input: DstAddr
             output: dstAddr
           - input: DstPort
             output: dstPort
           - input: Packets
             output: packets
+            multiplier: 20
           - input: SrcAddr
             output: srcAddr
           - input: SrcPort
@@ -290,6 +299,11 @@ Each field specified by `input` is translated into a field specified by the corr
 Only those specified fields are saved for further processing in the pipeline.
 Further stages in the pipeline should use these new field names.
 This mechanism allows us to translate from any flow-log layout to a standard set of field names.
+
+In the above example, the `bytes` and `packets` fields have a multiplier of 20.
+This may be done in case only a sampling of the flow logs are provided, in this case 1 in 20,
+so that these fields need to be scaled accordingly.
+
 If the `input` and `output` fields are identical, then that field is simply passed to the next stage.
 For example:
 ```yaml
@@ -728,6 +742,7 @@ parameters:
     encode:
       type: prom
       prom:
+        address: 0.0.0.0
         port: 9103
         prefix: test_
         metrics:
@@ -789,7 +804,7 @@ A batch of flow logs received in some time interval are collected and stored in 
 The configuration provides the URL of the object store, credentials to access the object store, the bucket in the object store into which the objects should be placed, and parameters (key/value pairs) to be stored as metadata of the created objects.
 Object names are constructed according to the following format:
 ```
-<bucket>/year={xxxx}/month={yy}/day={zz}/hour={hh}/stream-id={stream-id}/{sequence-number}
+<bucket>/<account>/year={xxxx}/month={yy}/day={zz}/hour={hh}/stream-id={stream-id}/{sequence-number}
 ```
 
 The `{stream-id}` is derived from the time flowlogs-pipeline started to run.
@@ -803,7 +818,7 @@ parameters:
       s3:
         endpoint: 1.2.3.4:9000
         bucket: bucket1
-        account: tenant1
+        account: account1
         accessKeyId: accessKey1
         secretAccessKey: secretAccessKey1
         writeTimeout: 60s
@@ -820,7 +835,7 @@ The content of the object consists of object header fields followed by the actua
 The object header contains the following fields: `version`, `capture_start_time`, `capture_end_time`, `number_of_flow_logs`, plus all the fields provided in the configuration under the `objectHeaderParameters`.
 
 If no flow logs arrive within the `writeTimeout` period, then an object is created with no flows.
-An object is created either when we have accumulated `batchSize` flow logs or when `writeTimeout` seconds have passed.
+An object is created either when we have accumulated `batchSize` flow logs or when `writeTimeout` has passed.
 
 
 # Development

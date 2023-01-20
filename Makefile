@@ -8,13 +8,14 @@ export GOFLAGS=-mod=vendor
 export GO111MODULE=on
 export CGO_ENABLED=0
 export GOOS=linux
-export GOARCH=amd64
 
-SHELL := /bin/bash
+GOARCH ?= amd64
+
+SHELL := /usr/bin/env bash
 DOCKER_TAG ?= latest
 DOCKER_IMG ?= quay.io/netobserv/flowlogs-pipeline
 OCI_RUNTIME ?= $(shell which podman  || which docker)
-MIN_GO_VERSION := 1.17.0
+MIN_GO_VERSION := 1.18.0
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
 NETFLOW_GENERATOR=nflow-generator
@@ -65,16 +66,12 @@ validate_go:
 
 .PHONY: validate_go lint
 lint: $(GOLANGCI_LINT) ## Lint the code
-	@current_ver=$$(go version | { read _ _ v _; echo $${v#go}; }); \
-	if [[ "$$current_ver" == *"1.18"* ]]; then echo "Linting is not fully supported for golang 1.18. Consider using golang 1.17";\
-		$(GOLANGCI_LINT) run --disable-all --enable goimports --enable gofmt --enable ineffassign --timeout 5m; else \
-		$(GOLANGCI_LINT) run --enable goimports --timeout 5m; \
-	fi
+	$(GOLANGCI_LINT) run --enable goimports --enable gofmt --enable ineffassign --timeout 5m
 
 .PHONY: build_code
 build_code:
-	go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${FLP_BIN_FILE}"
-	go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${CG_BIN_FILE}"
+	GOARCH=${GOARCH} go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${FLP_BIN_FILE}"
+	GOARCH=${GOARCH} go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${CG_BIN_FILE}"
 
 .PHONY: build
 build: validate_go lint build_code docs ## Build flowlogs-pipeline executable and update the docs
@@ -132,6 +129,29 @@ run: build ## Run
 .PHONY: build-image
 build-image:
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build -t $(DOCKER_IMG):$(DOCKER_TAG) -f contrib/docker/Dockerfile .
+
+build-image-multiarch-linux/%:
+#The --load option is ignored by podman but required for docker
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) buildx build --load --build-arg TARGETPLATFORM=linux/$* --build-arg TARGETARCH=$* --build-arg BUILDPLATFORM=linux/amd64 -t $(DOCKER_IMG):$(DOCKER_TAG)-$* -f contrib/docker/Dockerfile .
+
+# note: to build and push custom image tag use: DOCKER_TAG=test make push-image
+.PHONY: build-image-multiarch
+build-image-multiarch: build-image-multiarch-linux/amd64 build-image-multiarch-linux/arm64 build-image-multiarch-linux/ppc64le
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest create $(DOCKER_IMG):$(DOCKER_TAG) --amend $(DOCKER_IMG):$(DOCKER_TAG)-amd64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-arm64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-ppc64le
+
+push-image-multiarch-linux/%:
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)-$*
+
+
+.PHONY: push-image-multiarch
+push-image-multiarch: build-image-multiarch push-image-multiarch-linux/amd64 push-image-multiarch-linux/arm64 push-image-multiarch-linux/ppc64le
+	@echo 'publish manifest $(DOCKER_TAG) to $(DOCKER_IMG)'
+ifeq ($(shell basename $(OCI_RUNTIME)), docker)
+		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest push $(DOCKER_IMG):$(DOCKER_TAG)
+else
+		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest push $(DOCKER_IMG):$(DOCKER_TAG) docker://$(DOCKER_IMG):$(DOCKER_TAG)
+endif
+
 
 .PHONY: build-ci-images
 build-ci-images:

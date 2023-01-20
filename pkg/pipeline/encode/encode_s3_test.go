@@ -18,11 +18,14 @@
 package encode
 
 import (
+	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
@@ -38,7 +41,7 @@ parameters:
       s3:
         endpoint: 1.2.3.4:9000
         bucket: bucket1
-        account: tenant1
+        account: account1
         accessKeyId: accessKey1
         secretAccessKey: secretAccessKey1
         writeTimeout: 1s
@@ -79,15 +82,20 @@ func initNewEncodeS3(t *testing.T, configString string) *encodeS3 {
 	newEncode, err := NewEncodeS3(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 	encodeS3 := newEncode.(*encodeS3)
-	encodeS3.s3Writer = &fakeS3Writer{}
+	f := &fakeS3Writer{}
+	encodeS3.s3Writer = f
+	f.objects = nil
+	f.objectNames = nil
+	f.bucketNames = nil
 	return encodeS3
 }
 
 func Test_EncodeS3(t *testing.T) {
+	utils.InitExitChannel()
 	encodeS3 := initNewEncodeS3(t, testS3Config1)
 	require.Equal(t, "1.2.3.4:9000", encodeS3.s3Params.Endpoint)
 	require.Equal(t, "bucket1", encodeS3.s3Params.Bucket)
-	require.Equal(t, "tenant1", encodeS3.s3Params.Account)
+	require.Equal(t, "account1", encodeS3.s3Params.Account)
 	require.Equal(t, "accessKey1", encodeS3.s3Params.AccessKeyId)
 	require.Equal(t, "secretAccessKey1", encodeS3.s3Params.SecretAccessKey)
 
@@ -98,19 +106,85 @@ func Test_EncodeS3(t *testing.T) {
 
 	<-syncChan
 
-	// confirm object names, bucket name
-	// confirm that object created has batchSize=3 entries
 	writer := encodeS3.s3Writer
 	fakeWriter := writer.(*fakeS3Writer)
 	fakeWriter.mutex.Lock()
 	object0 := fakeWriter.objects[0]
+	objectName0 := fakeWriter.objectNames[0]
+
+	// confirm object header fields
 	require.Contains(t, object0, "version")
 	require.Contains(t, object0, "capture_start_time")
 	require.Contains(t, object0, "capture_end_time")
 	require.Contains(t, object0, "number_of_flow_logs")
+
+	// confirm that object created has batchSize=3 entries
 	require.Equal(t, 3, object0["number_of_flow_logs"])
+
+	// confirm object names, bucket name
 	require.Equal(t, "bucket1", fakeWriter.bucketNames[0])
+	expectedSubstring := "account1"
+	require.Contains(t, objectName0, expectedSubstring)
+	expectedSubstring = "year"
+	require.Contains(t, objectName0, expectedSubstring)
+	expectedSubstring = "month="
+	require.Contains(t, objectName0, expectedSubstring)
+	expectedSubstring = "day="
+	require.Contains(t, objectName0, expectedSubstring)
+	expectedSubstring = "hour="
+	require.Contains(t, objectName0, expectedSubstring)
+	expectedSubstring = "stream-id="
+	require.Contains(t, objectName0, expectedSubstring)
+	expectedSubstring = "00000000"
+	require.Contains(t, objectName0, expectedSubstring)
+	expectedSubstring = "00000001"
+	require.Contains(t, fakeWriter.objectNames[1], expectedSubstring)
+	expectedSubstring = "00000002"
+	require.Contains(t, fakeWriter.objectNames[2], expectedSubstring)
 	fakeWriter.mutex.Unlock()
+	utils.CloseExitChannel()
 }
 
-// TBD: more tests; additional parameters, bad credentials, missing/default config parameters, timeout
+func Test_timeout(t *testing.T) {
+	utils.InitExitChannel()
+	encodeS3 := initNewEncodeS3(t, testS3Config1)
+	entry := test.GetExtractMockEntry()
+	// write a single entry, which will be written only after a timeout
+	encodeS3.Encode(entry)
+	writer := encodeS3.s3Writer
+	fakeWriter := writer.(*fakeS3Writer)
+	fakeWriter.mutex.Lock()
+	require.Equal(t, 0, len(fakeWriter.objects))
+	fakeWriter.mutex.Unlock()
+	fmt.Printf("sleep for a second to reach timeout \n")
+	time.Sleep(1 * time.Second)
+	<-syncChan
+	fakeWriter.mutex.Lock()
+	require.Equal(t, 1, len(fakeWriter.objects))
+	fakeWriter.mutex.Unlock()
+	utils.CloseExitChannel()
+}
+
+const testS3Config2 = `---
+log-level: debug
+pipeline:
+  - name: encode2
+parameters:
+  - name: encode2
+    encode:
+      type: s3
+      s3:
+        endpoint: 1.2.3.4:9000
+        bucket: bucket1
+        account: account1
+        accessKeyId: accessKey1
+        secretAccessKey: secretAccessKey1
+`
+
+func Test_defaults(t *testing.T) {
+	utils.InitExitChannel()
+	encodeS3 := initNewEncodeS3(t, testS3Config2)
+	require.Equal(t, defaultTimeOut, encodeS3.s3Params.WriteTimeout)
+	require.Equal(t, defaultBatchSize, encodeS3.s3Params.BatchSize)
+	utils.CloseExitChannel()
+}

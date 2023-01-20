@@ -61,7 +61,7 @@ func Test_NewAggregatesFromConfig(t *testing.T) {
 
 func Test_CleanupExpiredEntriesLoop(t *testing.T) {
 
-	defaultExpiryTime = 4 // expiration after 4 seconds
+	defaultExpiryTime = 4 * time.Second // expiration after 4 seconds
 	aggregates := initAggregates(t)
 	expectedAggregate := GetMockAggregate()
 	require.Equal(t, expectedAggregate.Definition, aggregates.Aggregates[0].Definition)
