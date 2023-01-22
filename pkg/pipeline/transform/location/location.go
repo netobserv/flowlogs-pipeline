@@ -94,7 +94,7 @@ func InitLocationDB() error {
 			return fmt.Errorf("failed http.Get %v ", getErr)
 		}
 
-		log.Infof("Got reponse %s", resp.Status)
+		log.Infof("Got response %s", resp.Status)
 
 		written, copyErr := io.Copy(out, resp.Body)
 		if copyErr != nil {

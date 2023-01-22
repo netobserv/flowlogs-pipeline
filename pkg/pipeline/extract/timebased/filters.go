@@ -112,7 +112,7 @@ func getInitValue(operation string) float64 {
 	case api.FilterOperationName("FilterOperationMin"):
 		return math.MaxFloat64
 	default:
-		log.Panicf("unkown operation %v", operation)
+		log.Panicf("unknown operation %v", operation)
 		return 0
 	}
 }
