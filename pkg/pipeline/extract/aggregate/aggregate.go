@@ -116,7 +116,7 @@ func getInitValue(operation string) float64 {
 		// Actually, in OperationRawValues the value is ignored.
 		return 0
 	default:
-		log.Panicf("unkown operation %v", operation)
+		log.Panicf("unknown operation %v", operation)
 		return 0
 	}
 }
