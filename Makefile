@@ -170,11 +170,10 @@ endif
 .PHONY: push-ci-images
 push-ci-images: build-ci-images
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(COMMIT)
-	ifeq ($(DOCKER_TAG), main)
-		# Also tag "latest" only for branch "main"
-		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)
-		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):latest
-	endif
+ifeq ($(DOCKER_TAG), main)
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):latest
+endif
 
 .PHONY: push-image
 push-image: build-image ## Push latest image
