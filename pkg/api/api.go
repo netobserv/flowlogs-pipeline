@@ -28,7 +28,7 @@ const (
 	S3Type                       = "s3"
 	StdoutType                   = "stdout"
 	LokiType                     = "loki"
-  IpfixType                    = "ipfix"
+	IpfixType                    = "ipfix"
 	AggregateType                = "aggregates"
 	TimebasedType                = "timebased"
 	PromType                     = "prom"
