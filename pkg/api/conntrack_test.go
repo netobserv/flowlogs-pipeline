@@ -186,7 +186,7 @@ func TestConnTrackValidate(t *testing.T) {
 			conntrackInvalidError{defaultGroupAndNotLast: true},
 		},
 		{
-			"Exactly 1 default selector",
+			"Missing default selector",
 			ConnTrack{
 				KeyDefinition: KeyDefinition{
 					FieldGroups: []FieldGroup{
@@ -196,6 +196,21 @@ func TestConnTrackValidate(t *testing.T) {
 				Scheduling: []ConnTrackSchedulingGroup{},
 			},
 			conntrackInvalidError{exactlyOneDefaultSelector: true},
+		},
+		{
+			"2 default selectors",
+			ConnTrack{
+				KeyDefinition: KeyDefinition{
+					FieldGroups: []FieldGroup{
+						{Name: "src", Fields: []string{"srcIP"}},
+					},
+				},
+				Scheduling: []ConnTrackSchedulingGroup{
+					{Selector: map[string]string{}},
+					{Selector: map[string]string{}},
+				},
+			},
+			conntrackInvalidError{defaultGroupAndNotLast: true},
 		},
 	}
 
