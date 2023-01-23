@@ -14,7 +14,8 @@ GOARCH ?= amd64
 SHELL := /usr/bin/env bash
 DOCKER_TAG ?= latest
 DOCKER_IMG ?= quay.io/netobserv/flowlogs-pipeline
-OCI_RUNTIME ?= $(shell which podman  || which docker)
+OCI_RUNTIME_PATH = $(shell which podman  || which docker)
+OCI_RUNTIME ?= $(shell v='$(OCI_RUNTIME_PATH)'; echo "$${v##*/}")
 MIN_GO_VERSION := 1.18.0
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
@@ -130,23 +131,26 @@ run: build ## Run
 build-image:
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build -t $(DOCKER_IMG):$(DOCKER_TAG) -f contrib/docker/Dockerfile .
 
-build-image-multiarch-linux/%:
+# It would have been better to have
+build-single-multiarch-linux/%:
 #The --load option is ignored by podman but required for docker
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) buildx build --load --build-arg TARGETPLATFORM=linux/$* --build-arg TARGETARCH=$* --build-arg BUILDPLATFORM=linux/amd64 -t $(DOCKER_IMG):$(DOCKER_TAG)-$* -f contrib/docker/Dockerfile .
 
-# note: to build and push custom image tag use: DOCKER_TAG=test make push-image
-.PHONY: build-image-multiarch
-build-image-multiarch: build-image-multiarch-linux/amd64 build-image-multiarch-linux/arm64 build-image-multiarch-linux/ppc64le
-	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest create $(DOCKER_IMG):$(DOCKER_TAG) --amend $(DOCKER_IMG):$(DOCKER_TAG)-amd64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-arm64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-ppc64le
-
-push-image-multiarch-linux/%:
+# It would have been better to have
+push-single-multiarch-linux/%: build-single-multiarch-linux/%
+#The --load option is ignored by podman but required for docker
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)-$*
 
+# note: to build and push custom image tag use: DOCKER_TAG=test make push-image
+.PHONY: build-multiarch-manifest
+build-multiarch-manifest: push-single-multiarch-linux/amd64 push-single-multiarch-linux/arm64 push-single-multiarch-linux/ppc64le
+	#if using Docker, image needs to be pushed before beeing added to the manifest
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest create $(DOCKER_IMG):$(DOCKER_TAG) --amend $(DOCKER_IMG):$(DOCKER_TAG)-amd64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-arm64 --amend $(DOCKER_IMG):$(DOCKER_TAG)-ppc64le
 
-.PHONY: push-image-multiarch
-push-image-multiarch: build-image-multiarch push-image-multiarch-linux/amd64 push-image-multiarch-linux/arm64 push-image-multiarch-linux/ppc64le
+.PHONY: push-multiarch-manifest
+push-multiarch-manifest: build-multiarch-manifest
 	@echo 'publish manifest $(DOCKER_TAG) to $(DOCKER_IMG)'
-ifeq ($(shell basename $(OCI_RUNTIME)), docker)
+ifeq (${OCI_RUNTIME} , docker)
 		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest push $(DOCKER_IMG):$(DOCKER_TAG)
 else
 		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) manifest push $(DOCKER_IMG):$(DOCKER_TAG) docker://$(DOCKER_IMG):$(DOCKER_TAG)
@@ -162,6 +166,15 @@ else
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build -t $(DOCKER_IMG):$(DOCKER_TAG) -f contrib/docker/Dockerfile .
 endif
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build --build-arg BASE_IMAGE=$(DOCKER_IMG):$(DOCKER_TAG) -t $(DOCKER_IMG):$(COMMIT) -f contrib/docker/shortlived.Dockerfile .
+
+.PHONY: push-ci-images
+push-ci-images:
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(COMMIT)
+	ifeq ($(DOCKER_TAG), main)
+		# Also tag "latest" only for branch "main"
+		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)
+		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):latest
+	endif
 
 .PHONY: push-image
 push-image: build-image ## Push latest image
