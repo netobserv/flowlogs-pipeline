@@ -13,7 +13,7 @@ env:
 jobs:
   push-image:
     name: push image
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         go: ['1.18']

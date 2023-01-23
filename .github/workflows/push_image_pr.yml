@@ -12,7 +12,7 @@ jobs:
   push-pr-image:
     if: ${{ github.event.label.name == 'ok-to-test' }}
     name: push PR image
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         go: ['1.18']
