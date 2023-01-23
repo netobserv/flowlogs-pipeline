@@ -167,10 +167,20 @@ else
 endif
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) build --build-arg BASE_IMAGE=$(DOCKER_IMG):$(DOCKER_TAG) -t $(DOCKER_IMG):$(COMMIT) -f contrib/docker/shortlived.Dockerfile .
 
+.PHONY: push-ci-images
+push-ci-images:
+ifeq ($(DOCKER_TAG), main)
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(COMMIT)
+
 .PHONY: push-image
 push-image: build-image ## Push latest image
 	@echo 'publish image $(DOCKER_TAG) to $(DOCKER_IMG)'
-	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(COMMIT)
+	ifeq ($(DOCKER_TAG), main)
+		# Also tag "latest" only for branch "main"
+		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)
+		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):latest
+	endif
 
 ##@ kubernetes
 
