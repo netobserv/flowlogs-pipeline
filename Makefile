@@ -15,7 +15,7 @@ SHELL := /usr/bin/env bash
 DOCKER_TAG ?= latest
 DOCKER_IMG ?= quay.io/netobserv/flowlogs-pipeline
 OCI_RUNTIME_PATH = $(shell which podman  || which docker)
-OCI_RUNTIME ?= $(shell v='$(OCI_RUNTIME_PATH)'; echo "$${v##*/}")
+OCI_RUNTIME ?= $(shell echo '$(OCI_RUNTIME_PATH)'|sed -e 's/.*\/\(.*\)/\1/g')
 MIN_GO_VERSION := 1.18.0
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
@@ -170,11 +170,10 @@ endif
 .PHONY: push-ci-images
 push-ci-images: build-ci-images
 	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(COMMIT)
-	ifeq ($(DOCKER_TAG), main)
-		# Also tag "latest" only for branch "main"
-		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)
-		DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):latest
-	endif
+ifeq ($(DOCKER_TAG), main)
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):$(DOCKER_TAG)
+	DOCKER_BUILDKIT=1 $(OCI_RUNTIME) push $(DOCKER_IMG):latest
+endif
 
 .PHONY: push-image
 push-image: build-image ## Push latest image
