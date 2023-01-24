@@ -15,7 +15,7 @@ SHELL := /usr/bin/env bash
 DOCKER_TAG ?= latest
 DOCKER_IMG ?= quay.io/netobserv/flowlogs-pipeline
 OCI_RUNTIME_PATH = $(shell which podman  || which docker)
-OCI_RUNTIME ?= $(shell v='$(OCI_RUNTIME_PATH)'; echo "$${v##*/}")
+OCI_RUNTIME ?= $(shell echo '$(OCI_RUNTIME_PATH)'|sed -e 's/.*\/\(.*\)/\1/g')
 MIN_GO_VERSION := 1.18.0
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
