@@ -118,7 +118,7 @@ func (cg *ConfGen) Run() error {
 		return err
 	}
 
-	err = cg.generateGrafanaJsonnet(cg.opts.DestGrafanaJsonnetFolder)
+	err = cg.generateGrafanaJsonnetFiles(cg.opts.DestGrafanaJsonnetFolder)
 	if err != nil {
 		log.Debugf("cg.generateGrafanaJsonnet err: %v ", err)
 		return err
