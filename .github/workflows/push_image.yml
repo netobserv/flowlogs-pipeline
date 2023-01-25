@@ -37,12 +37,5 @@ jobs:
         run: echo "::set-output name=short_sha::$(git rev-parse --short HEAD)"
       - name: build and push images
         run: OCI_RUNTIME=docker DOCKER_TAG=${{ env.TAG }} make push-ci-images
-      - name: push to quay.io
-        id: push-to-quay
-        uses: redhat-actions/push-to-registry@v2
-        with:
-          image: ${{ env.IMAGE }}
-          tags: ${{ env.TAG }} ${{ steps.shortsha.outputs.short_sha }} latest
-          registry: ${{ env.REGISTRY }}
       - name: print image url
         run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
