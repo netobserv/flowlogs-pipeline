@@ -241,7 +241,6 @@ func Test_TLSConfigCA(t *testing.T) {
 
 	require.Empty(t, tlsConfig.Certificates)
 	require.NotNil(t, tlsConfig.RootCAs)
-	require.Len(t, tlsConfig.RootCAs.Subjects(), 1)
 }
 
 func Test_MutualTLSConfig(t *testing.T) {

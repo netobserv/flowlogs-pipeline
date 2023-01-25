@@ -16,7 +16,7 @@ encode:
 visualization:
   grafana:
     dashboards:
-      - name: "details"
+      - name: "test"
         title: "Flow-Logs to Metrics - Details"
         time_from: "now-15m"
         tags: "['flp','grafana','dashboard','details']"

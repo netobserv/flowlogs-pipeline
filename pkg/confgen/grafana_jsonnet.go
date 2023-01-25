@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"text/template"
 
+	jsonnet "github.com/google/go-jsonnet"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,6 +33,7 @@ const singleStatTypeGraphPanel = "singleStat"
 const barGaugeTypeGraphPanel = "barGauge"
 const heatmapTypeGraphPanel = "heatmap"
 const panelTargetTypeLokiGraphPanel = "lokiGraphPanel"
+const grafanaFileLocation = "vendor/github.com/grafana/grafonnet-lib/grafonnet/"
 
 const jsonNetHeaderTemplate = `
 local grafana = import 'grafana.libsonnet';
@@ -165,18 +167,34 @@ type Dashboard struct {
 	Panels []byte
 }
 
-func (cg *ConfGen) generateGrafanaJsonnet(folderName string) error {
+func (dashboard *Dashboard) generateDashboardJson() []byte {
+	output := []byte(jsonNetHeaderTemplate)
+	output = append(output, dashboard.Header...)
+	output = append(output, dashboard.Panels...)
+	return output
+}
+
+func (cg *ConfGen) generateGrafanaDashboards() (Dashboards, error) {
 	// generate dashboards
 	dashboards, err := cg.generateGrafanaJsonnetDashboards()
 	if err != nil {
 		log.Debugf("cg.generateGrafanaJsonnetDashboards err: %v ", err)
-		return err
+		return nil, err
 	}
 
 	// add all panels
 	dashboards, err = cg.addPanelsToDashboards(dashboards)
 	if err != nil {
 		log.Debugf("cg.addPanelsToDashboards err: %v ", err)
+		return nil, err
+	}
+	return dashboards, nil
+}
+
+func (cg *ConfGen) generateGrafanaJsonnetFiles(folderName string) error {
+	dashboards, err := cg.generateGrafanaDashboards()
+	if err != nil {
+		log.Debugf("cg.generateGrafanaJsonnetDashboards err: %v ", err)
 		return err
 	}
 
@@ -185,12 +203,9 @@ func (cg *ConfGen) generateGrafanaJsonnet(folderName string) error {
 		log.Debugf("os.MkdirAll err: %v ", err)
 		return err
 	}
-
 	// write to destination files
 	for _, dashboard := range dashboards {
-		output := []byte(jsonNetHeaderTemplate)
-		output = append(output, dashboard.Header...)
-		output = append(output, dashboard.Panels...)
+		output := dashboard.generateDashboardJson()
 
 		fileName := filepath.Join(folderName, "dashboard_"+dashboard.Name+".jsonnet")
 		err = os.WriteFile(fileName, output, 0644)
@@ -201,6 +216,28 @@ func (cg *ConfGen) generateGrafanaJsonnet(folderName string) error {
 	}
 
 	return nil
+}
+
+func (cg *ConfGen) GenerateGrafanaJson() (string, error) {
+	dashboards, err := cg.generateGrafanaDashboards()
+	if err != nil {
+		log.Debugf("cg.generateGrafanaJsonnetDashboards err: %v ", err)
+		return "", err
+	}
+	vm := jsonnet.MakeVM()
+	// dependiing on where program is run, we look for the grafana file path from current directory or parent directories
+	vm.Importer(&jsonnet.FileImporter{JPaths: []string{grafanaFileLocation, "../" + grafanaFileLocation, "../../" + grafanaFileLocation}})
+	panelsJson := ""
+	for _, dashboard := range dashboards {
+		output := dashboard.generateDashboardJson()
+		jsonStr, err := vm.EvaluateAnonymousSnippet("/dev/null", string(output))
+		if err != nil {
+			log.Errorf("EvaluateFile failure, err = %v \n", err)
+			return "", err
+		}
+		panelsJson = panelsJson + jsonStr
+	}
+	return panelsJson, nil
 }
 
 func (cg *ConfGen) generateGrafanaJsonnetDashboards() (Dashboards, error) {
