@@ -36,7 +36,6 @@ const barGaugeTypeGraphPanel = "barGauge"
 const heatmapTypeGraphPanel = "heatmap"
 const panelTargetTypeLokiGraphPanel = "lokiGraphPanel"
 
-//local grafana = import '/home/meth/go/src/github.com/grafana/grafonnet-lib/grafonnet/grafana.libsonnet';
 const jsonNetHeaderTemplate = `
 local grafana = import 'grafana.libsonnet';
 local dashboard = grafana.dashboard;
