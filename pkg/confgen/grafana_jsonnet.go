@@ -19,10 +19,13 @@ package confgen
 
 import (
 	"bytes"
+	"embed"
+	"fmt"
 	"os"
 	"path/filepath"
 	"text/template"
 
+	"github.com/google/go-jsonnet"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,6 +36,7 @@ const barGaugeTypeGraphPanel = "barGauge"
 const heatmapTypeGraphPanel = "heatmap"
 const panelTargetTypeLokiGraphPanel = "lokiGraphPanel"
 
+//local grafana = import '/home/meth/go/src/github.com/grafana/grafonnet-lib/grafonnet/grafana.libsonnet';
 const jsonNetHeaderTemplate = `
 local grafana = import 'grafana.libsonnet';
 local dashboard = grafana.dashboard;
@@ -165,18 +169,34 @@ type Dashboard struct {
 	Panels []byte
 }
 
-func (cg *ConfGen) generateGrafanaJsonnet(folderName string) error {
+func (dashboard *Dashboard) generateDashboardJson() []byte {
+	output := []byte(jsonNetHeaderTemplate)
+	output = append(output, dashboard.Header...)
+	output = append(output, dashboard.Panels...)
+	return output
+}
+
+func (cg *ConfGen) generateGrafanaDashboards() (Dashboards, error) {
 	// generate dashboards
 	dashboards, err := cg.generateGrafanaJsonnetDashboards()
 	if err != nil {
 		log.Debugf("cg.generateGrafanaJsonnetDashboards err: %v ", err)
-		return err
+		return nil, err
 	}
 
 	// add all panels
 	dashboards, err = cg.addPanelsToDashboards(dashboards)
 	if err != nil {
 		log.Debugf("cg.addPanelsToDashboards err: %v ", err)
+		return nil, err
+	}
+	return dashboards, nil
+}
+
+func (cg *ConfGen) generateGrafanaJsonnetFiles(folderName string) error {
+	dashboards, err := cg.generateGrafanaDashboards()
+	if err != nil {
+		log.Debugf("cg.generateGrafanaJsonnetDashboards err: %v ", err)
 		return err
 	}
 
@@ -185,12 +205,9 @@ func (cg *ConfGen) generateGrafanaJsonnet(folderName string) error {
 		log.Debugf("os.MkdirAll err: %v ", err)
 		return err
 	}
-
 	// write to destination files
 	for _, dashboard := range dashboards {
-		output := []byte(jsonNetHeaderTemplate)
-		output = append(output, dashboard.Header...)
-		output = append(output, dashboard.Panels...)
+		output := dashboard.generateDashboardJson()
 
 		fileName := filepath.Join(folderName, "dashboard_"+dashboard.Name+".jsonnet")
 		err = os.WriteFile(fileName, output, 0644)
@@ -291,4 +308,87 @@ func (cg *ConfGen) addPanelsToDashboards(dashboards Dashboards) (Dashboards, err
 	}
 
 	return dashboards, nil
+}
+
+const grafanaDirPath = "grafana/grafonnet-lib/grafonnet"
+
+//go:embed grafana/grafonnet-lib/grafonnet
+var grafanaDir embed.FS
+
+type embedImporter struct {
+	fsBase  embed.FS
+	fsCache map[string]*fsCacheEntry
+}
+
+type fsCacheEntry struct {
+	contents *[]byte
+	exists   bool
+}
+
+func (cg *ConfGen) GenerateGrafanaJson() (string, error) {
+	log.Debugf("grafanaDir = %v", grafanaDir)
+	dashboards, err := cg.generateGrafanaDashboards()
+	if err != nil {
+		log.Debugf("cg.generateGrafanaJsonnetDashboards err: %v ", err)
+		return "", err
+	}
+	vm := jsonnet.MakeVM()
+	importer := &embedImporter{fsBase: grafanaDir}
+	err = importer.initializeCache()
+	if err != nil {
+		log.Debugf("cg.generateGrafanaJsonnetDashboards err: %v ", err)
+		return "", err
+	}
+	vm.Importer(importer)
+	panelsJson := ""
+	for _, dashboard := range dashboards {
+		output := dashboard.generateDashboardJson()
+		jsonStr, err := vm.EvaluateAnonymousSnippet("/dev/null", string(output))
+		if err != nil {
+			log.Errorf("EvaluateFile failure, err = %v \n", err)
+		}
+		panelsJson = panelsJson + jsonStr
+	}
+	return panelsJson, nil
+}
+
+func (importer *embedImporter) initializeCache() error {
+	importer.fsCache = make(map[string]*fsCacheEntry)
+	entries, err := importer.fsBase.ReadDir(grafanaDirPath)
+	if err != nil {
+		return fmt.Errorf("failed to access grafana directory: %w", err)
+	}
+	for _, entry := range entries {
+		fileName := entry.Name()
+		cacheEntry := &fsCacheEntry{
+			exists: false,
+		}
+		importer.fsCache[fileName] = cacheEntry
+	}
+	return nil
+}
+
+// Import is the function required by the Importer interface to find source files
+func (importer *embedImporter) Import(importedFrom, importedPath string) (jsonnet.Contents, string, error) {
+	// ignore the importedFrom parameter
+
+	// search for item in cache
+	entry, ok := importer.fsCache[importedPath]
+	if !ok {
+		contents := jsonnet.MakeContentsRaw([]byte{})
+		return contents, importedPath, fmt.Errorf("grafana file not found: %s", importedPath)
+	}
+	if !entry.exists {
+		// read in the data
+		filePath := filepath.Join(grafanaDirPath, importedPath)
+		fileData, err := grafanaDir.ReadFile(filePath)
+		if err != nil {
+			contents := jsonnet.MakeContentsRaw([]byte{})
+			return contents, importedPath, fmt.Errorf("error reading grafana file: %s", importedPath)
+		}
+		entry.exists = true
+		entry.contents = &fileData
+	}
+	contents := jsonnet.MakeContentsRaw(*entry.contents)
+	return contents, importedPath, nil
 }

@@ -352,6 +352,10 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 	})
 	err := cg.ParseDefinition("defs", []byte(test.ConfgenNetworkDefBase))
 	require.NoError(t, err)
+	var config Config
+	err = yaml.UnmarshalStrict([]byte(test.ConfgenShortConfig), &config)
+	require.NoError(t, err)
+	cg.config = &config
 
 	// Run
 	params := cg.GenerateTruncatedConfig()
@@ -377,6 +381,12 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 			Labels:   []string{"groupByKeys", "aggregate"},
 		}},
 	}, params[1].Encode.Prom)
+
+	panels, err := cg.GenerateGrafanaJson()
+	require.NoError(t, err)
+	var panelJson map[string]interface{}
+	err = yaml.UnmarshalStrict([]byte(panels), &panelJson)
+	require.NoError(t, err)
 }
 
 func Test_GenerateTruncatedNoAgg(t *testing.T) {
