@@ -232,3 +232,7 @@ func NewConfGen(opts *Options) *ConfGen {
 		visualizations:       Visualizations{},
 	}
 }
+
+func (cg *ConfGen) SetConfig(config *Config) {
+	cg.config = config
+}
