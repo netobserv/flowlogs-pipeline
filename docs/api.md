@@ -149,11 +149,22 @@ Following is the supported API format for network transformations:
                      add_location: add output location fields from input
                      add_service: add output network service field from input port and parameters protocol field
                      add_kubernetes: add output kubernetes fields from input
+                     reinterpret_direction: reinterpret flow direction at a higher level than the interface
+                     add_ip_category: categorize IPs based on known subnets configuration
                  parameters: parameters specific to type
                  assignee: value needs to assign to output field
          kubeConfigPath: path to kubeconfig file (optional)
          servicesFile: path to services file (optional, default: /etc/services)
          protocolsFile: path to protocols file (optional, default: /etc/protocols)
+         ipCategories: configure IP categories
+                 cidrs: list of CIDRs to match a category
+                 name: name of the category
+         directionInfo: information to reinterpret flow direction (optional, to use with reinterpret_direction rule)
+             reporterIPField: field providing the reporter (agent) host IP
+             srcHostField: source host field
+             dstHostField: destination host field
+             flowDirectionField: field providing the flow direction in the input entries; it will be rewritten
+             ifDirectionField: interface-level field for flow direction, to create in output
 </pre>
 ## Write Loki API
 Following is the supported API format for writing to loki:
