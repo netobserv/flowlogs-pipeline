@@ -15,16 +15,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.18']
+        go: ['1.19']
     steps:
       - name: install make
         run: sudo apt-get install make
       - name: set up go 1.x
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go }}
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: "refs/pull/${{ github.event.number }}/merge"
       - name: docker login to quay.io
@@ -34,11 +34,11 @@ jobs:
           password: ${{ secrets.QUAY_SECRET }}
           registry: quay.io
       - name: get short sha
-        id: shortsha
-        run: echo "::set-output name=short_sha::$(git rev-parse --short HEAD)"
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
       - name: build and push images
         run: OCI_RUNTIME=docker DOCKER_TAG=temp make push-ci-images
-      - uses: actions/github-script@v5
+      - uses: actions/github-script@v6
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
@@ -46,5 +46,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'New image: ${{ steps.push-to-quay.outputs.registry-paths }}. It will expire after two weeks.'
+              body: 'New image: ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ env.short_sha }}. It will expire after two weeks.'
             })
