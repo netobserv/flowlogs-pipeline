@@ -192,14 +192,8 @@ func (cg *ConfGen) generateGrafanaDashboards() (Dashboards, error) {
 	return dashboards, nil
 }
 
-func (cg *ConfGen) generateGrafanaJsonnetFiles(folderName string) error {
-	dashboards, err := cg.generateGrafanaDashboards()
-	if err != nil {
-		log.Debugf("cg.generateGrafanaJsonnetDashboards err: %v ", err)
-		return err
-	}
-
-	err = os.MkdirAll(folderName, 0755)
+func (cg *ConfGen) generateGrafanaJsonnetFiles(folderName string, dashboards Dashboards) error {
+	err := os.MkdirAll(folderName, 0755)
 	if err != nil {
 		log.Debugf("os.MkdirAll err: %v ", err)
 		return err
@@ -219,9 +213,34 @@ func (cg *ConfGen) generateGrafanaJsonnetFiles(folderName string) error {
 	return nil
 }
 
+func (cg *ConfGen) generateJsonFiles(folderName string, dashboards Dashboards) error {
+	err := os.MkdirAll(folderName, 0755)
+	if err != nil {
+		log.Debugf("os.MkdirAll err: %v ", err)
+		return err
+	}
+	// write to destination files
+	for _, dashboard := range dashboards {
+		jsonStr, err := cg.generateGrafanaJsonStr(dashboard)
+		if err != nil {
+			return err
+		}
+		fileName := filepath.Join(folderName, "dashboard_"+dashboard.Name+".json")
+		err = os.WriteFile(fileName, []byte(jsonStr), 0644)
+		if err != nil {
+			log.Debugf("os.WriteFile to file %s err: %v ", fileName, err)
+			return err
+		}
+	}
+	return nil
+}
+
 func (cg *ConfGen) generateGrafanaJsonnetDashboards() (Dashboards, error) {
 	dashboards := Dashboards{}
 	dashboardTemplate := template.Must(template.New("dashboardTemplate").Parse(dashboardsTemplate))
+	if cg.config == nil {
+		return nil, fmt.Errorf("config missing")
+	}
 	for _, dashboard := range cg.config.Visualization.Grafana.Dashboards {
 		newDashboard := new(bytes.Buffer)
 		err := dashboardTemplate.Execute(newDashboard, dashboard)
@@ -331,24 +350,32 @@ func (cg *ConfGen) GenerateGrafanaJson() (string, error) {
 		log.Debugf("cg.generateGrafanaJsonnetDashboards err: %v ", err)
 		return "", err
 	}
+	panelsJson := ""
+	for _, dashboard := range dashboards {
+		jsonStr, err := cg.generateGrafanaJsonStr(dashboard)
+		if err != nil {
+			return "", err
+		}
+		panelsJson = panelsJson + jsonStr
+	}
+	return panelsJson, nil
+}
+
+func (cg *ConfGen) generateGrafanaJsonStr(dashboard Dashboard) (string, error) {
 	vm := jsonnet.MakeVM()
 	importer := &embedImporter{fsBase: grafanaDir}
-	err = importer.initializeCache()
+	err := importer.initializeCache()
 	if err != nil {
 		log.Debugf("cg.generateGrafanaJsonnetDashboards err: %v ", err)
 		return "", err
 	}
 	vm.Importer(importer)
-	panelsJson := ""
-	for _, dashboard := range dashboards {
-		output := dashboard.generateDashboardJson()
-		jsonStr, err := vm.EvaluateAnonymousSnippet("/dev/null", string(output))
-		if err != nil {
-			log.Errorf("EvaluateFile failure, err = %v \n", err)
-		}
-		panelsJson = panelsJson + jsonStr
+	output := dashboard.generateDashboardJson()
+	jsonStr, err := vm.EvaluateAnonymousSnippet("/dev/null", string(output))
+	if err != nil {
+		log.Errorf("EvaluateFile failure, err = %v \n", err)
 	}
-	return panelsJson, nil
+	return jsonStr, nil
 }
 
 func (importer *embedImporter) initializeCache() error {

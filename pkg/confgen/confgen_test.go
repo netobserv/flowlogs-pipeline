@@ -355,7 +355,7 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 	var config Config
 	err = yaml.UnmarshalStrict([]byte(test.ConfgenShortConfig), &config)
 	require.NoError(t, err)
-	cg.config = &config
+	cg.SetConfig(&config)
 
 	// Run
 	params := cg.GenerateTruncatedConfig()

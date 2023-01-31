@@ -118,9 +118,21 @@ func (cg *ConfGen) Run() error {
 		return err
 	}
 
-	err = cg.generateGrafanaJsonnetFiles(cg.opts.DestGrafanaJsonnetFolder)
+	dashboards, err := cg.generateGrafanaDashboards()
 	if err != nil {
-		log.Debugf("cg.generateGrafanaJsonnet err: %v ", err)
+		log.Debugf("cg.generateGrafanaDashboards err: %v ", err)
+		return err
+	}
+
+	err = cg.generateGrafanaJsonnetFiles(cg.opts.DestGrafanaJsonnetFolder, dashboards)
+	if err != nil {
+		log.Debugf("cg.generateGrafanaJsonnetFiles err: %v ", err)
+		return err
+	}
+
+	err = cg.generateJsonFiles(cg.opts.DestDashboardFolder, dashboards)
+	if err != nil {
+		log.Debugf("cg.generateJsonFiles err: %v ", err)
 		return err
 	}
 	return nil
