@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -41,7 +42,7 @@ type connection interface {
 	// for this connection (i.e. newConnection, updateConnection, endConnection).
 	// It returns true on the first invocation to indicate the first report. Otherwise, it returns false.
 	markReported() bool
-	isMatchSelector(map[string]string) bool
+	isMatchSelectorStrings(map[string]string) bool
 }
 
 type connType struct {
@@ -108,10 +109,59 @@ func (c *connType) markReported() bool {
 	return isFirst
 }
 
-func (c *connType) isMatchSelector(selector map[string]string) bool {
+func (c *connType) isMatchSelectorStrings(selector map[string]string) bool {
 	for k, v := range selector {
-		if fmt.Sprintf("%v", c.keys[k]) != v {
+		connValueRaw, found := c.keys[k]
+		if !found {
 			return false
+		}
+		if fmt.Sprintf("%v", connValueRaw) != v {
+			return false
+		}
+	}
+	return true
+}
+
+func (c *connType) isMatchSelectorGeneric(selector map[string]interface{}) bool {
+	for k, v := range selector {
+		connValueRaw, found := c.keys[k]
+		if !found {
+			return false
+		}
+		switch connValue := connValueRaw.(type) {
+		case int:
+			selectorValue, err := utils.ConvertToInt(v)
+			if err != nil || connValue != selectorValue {
+				return false
+			}
+		case uint32:
+			selectorValue, err := utils.ConvertToUint32(v)
+			if err != nil || connValue != selectorValue {
+				return false
+			}
+		case uint64:
+			selectorValue, err := utils.ConvertToUint64(v)
+			if err != nil || connValue != selectorValue {
+				return false
+			}
+		case int64:
+			selectorValue, err := utils.ConvertToInt64(v)
+			if err != nil || connValue != selectorValue {
+				return false
+			}
+		case float64:
+			selectorValue, err := utils.ConvertToFloat64(v)
+			if err != nil || connValue != selectorValue {
+				return false
+			}
+		case bool:
+			selectorValue, err := utils.ConvertToBool(v)
+			if err != nil || connValue != selectorValue {
+				return false
+			}
+		case string:
+		default:
+			return fmt.Sprintf("%v", c.keys[k]) != connValue
 		}
 	}
 	return true

@@ -51,7 +51,7 @@ type groupType struct {
 
 func (cs *connectionStore) getGroupIdx(conn connection) (groupIdx int) {
 	for i, group := range cs.groups {
-		if conn.isMatchSelector(group.scheduling.Selector) {
+		if conn.isMatchSelectorStrings(group.scheduling.Selector) {
 			// connection belongs to scheduling group i
 			return i
 		}
