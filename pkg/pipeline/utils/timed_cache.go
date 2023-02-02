@@ -29,6 +29,7 @@ var log = logrus.WithField("component", "utils.TimedCache")
 
 // Functions to manage an LRU cache with an expiry
 // When an item expires, allow a callback to allow the specific implementation to perform its particular cleanup
+// Size of cache may be limited by setting  maxEntries; if cache is full, do not enter new items.
 
 type CacheCallback func(entry interface{})
 
@@ -42,9 +43,10 @@ type cacheEntry struct {
 type TimedCacheMap map[string]*cacheEntry
 
 type TimedCache struct {
-	mu        sync.RWMutex
-	cacheList *list.List
-	cacheMap  TimedCacheMap
+	mu         sync.RWMutex
+	cacheList  *list.List
+	cacheMap   TimedCacheMap
+	maxEntries int
 }
 
 func (tc *TimedCache) GetCacheEntry(key string) (interface{}, bool) {
@@ -60,7 +62,9 @@ func (tc *TimedCache) GetCacheEntry(key string) (interface{}, bool) {
 
 var uclog = log.WithField("method", "UpdateCacheEntry")
 
-func (tc *TimedCache) UpdateCacheEntry(key string, entry interface{}) *cacheEntry {
+// If cache entry exists, update it and return it; if it does not exist, create it if there is room.
+// If we exceed the size of the cache, then do not allocate new entry
+func (tc *TimedCache) UpdateCacheEntry(key string, entry interface{}) (*cacheEntry, bool) {
 	nowInSecs := time.Now()
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
@@ -72,6 +76,9 @@ func (tc *TimedCache) UpdateCacheEntry(key string, entry interface{}) *cacheEntr
 		tc.cacheList.MoveToBack(cEntry.e)
 	} else {
 		// create new entry for cache
+		if (tc.maxEntries > 0) && (tc.cacheList.Len() > tc.maxEntries) {
+			return nil, false
+		}
 		cEntry = &cacheEntry{
 			lastUpdatedTime: nowInSecs,
 			key:             key,
@@ -82,7 +89,7 @@ func (tc *TimedCache) UpdateCacheEntry(key string, entry interface{}) *cacheEntr
 		cEntry.e = tc.cacheList.PushBack(cEntry)
 		tc.cacheMap[key] = cEntry
 	}
-	return cEntry
+	return cEntry, true
 }
 
 func (tc *TimedCache) GetCacheLen() int {
@@ -134,10 +141,11 @@ func (tc *TimedCache) CleanupExpiredEntries(expiry time.Duration, callback Cache
 	}
 }
 
-func NewTimedCache() *TimedCache {
+func NewTimedCache(maxEntries int) *TimedCache {
 	l := &TimedCache{
-		cacheList: list.New(),
-		cacheMap:  make(TimedCacheMap),
+		cacheList:  list.New(),
+		cacheMap:   make(TimedCacheMap),
+		maxEntries: maxEntries,
 	}
 	return l
 }

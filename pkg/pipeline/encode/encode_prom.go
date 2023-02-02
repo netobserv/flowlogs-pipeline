@@ -63,6 +63,7 @@ type EncodeProm struct {
 	server           *http.Server
 	tlsConfig        *api.PromTLSConf
 	metricsProcessed prometheus.Counter
+	metricsDropped   prometheus.Counter
 	errorsCounter    *prometheus.CounterVec
 }
 
@@ -70,6 +71,12 @@ var (
 	metricsProcessed = operational.DefineMetric(
 		"metrics_processed",
 		"Number of metrics processed",
+		operational.TypeCounter,
+		"stage",
+	)
+	metricsDropped = operational.DefineMetric(
+		"metrics_dropped",
+		"Number of metrics dropped",
 		operational.TypeCounter,
 		"stage",
 	)
@@ -165,7 +172,11 @@ func (e *EncodeProm) prepareMetric(flow config.GenericMap, info *api.PromMetrics
 
 	entryLabels, key := e.extractLabelsAndKey(flow, info)
 	// Update entry for expiry mechanism (the entry itself is its own cleanup function)
-	e.mCache.UpdateCacheEntry(key, func() { m.Delete(entryLabels) })
+	_, ok := e.mCache.UpdateCacheEntry(key, func() { m.Delete(entryLabels) })
+	if !ok {
+		e.metricsDropped.Inc()
+		return nil, 0
+	}
 	return entryLabels, floatVal
 }
 
@@ -182,7 +193,11 @@ func (e *EncodeProm) prepareAggHisto(flow config.GenericMap, info *api.PromMetri
 
 	entryLabels, key := e.extractLabelsAndKey(flow, info)
 	// Update entry for expiry mechanism (the entry itself is its own cleanup function)
-	e.mCache.UpdateCacheEntry(key, func() { m.Delete(entryLabels) })
+	_, ok = e.mCache.UpdateCacheEntry(key, func() { m.Delete(entryLabels) })
+	if !ok {
+		e.metricsDropped.Inc()
+		return nil, nil
+	}
 	return entryLabels, values
 }
 
@@ -366,9 +381,10 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		histos:           histos,
 		aggHistos:        aggHistos,
 		expiryTime:       expiryTime,
-		mCache:           utils.NewTimedCache(),
+		mCache:           utils.NewTimedCache(cfg.MaxMetrics),
 		exitChan:         utils.ExitChannel(),
 		metricsProcessed: opMetrics.NewCounter(&metricsProcessed, params.Name),
+		metricsDropped:   opMetrics.NewCounter(&metricsDropped, params.Name),
 		errorsCounter:    opMetrics.NewCounterVec(&encodePromErrors),
 	}
 	go w.startServer()

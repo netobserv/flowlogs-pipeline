@@ -71,6 +71,14 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Labels** | stage | 
 
 
+### metrics_dropped
+| **Name** | metrics_dropped | 
+|:---|:---|
+| **Description** | Number of metrics dropped | 
+| **Type** | counter | 
+| **Labels** | stage | 
+
+
 ### metrics_processed
 | **Name** | metrics_processed | 
 |:---|:---|
