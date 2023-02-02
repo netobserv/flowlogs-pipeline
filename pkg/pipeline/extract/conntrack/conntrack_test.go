@@ -712,6 +712,7 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 // TestScheduling tests scheduling groups. It configures 2 scheduling groups:
 //  1. ICMP connections
 //  2. default group (matches TCP connections among other things)
+//
 // Then, it creates 4 flow logs: 2 that belong to an ICMP connection and 2 that belong to a TCP connection.
 // The test verifies that updateConnection and endConnection records are emitted at the right timestamps for each
 // connection according to its scheduling group.
