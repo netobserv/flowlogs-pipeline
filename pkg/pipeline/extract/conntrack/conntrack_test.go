@@ -35,7 +35,7 @@ import (
 var opMetrics = operational.NewMetrics(&config.MetricsSettings{})
 
 func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
-	updateConnectionInterval, endConnectionTimeout time.Duration) *config.StageParam {
+	heartbeatInterval, endConnectionTimeout time.Duration) *config.StageParam {
 	splitAB := isBidirectional
 	var hash api.ConnTrackHash
 	if isBidirectional {
@@ -86,9 +86,9 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
 				OutputRecordTypes: outputRecordType,
 				Scheduling: []api.ConnTrackSchedulingGroup{
 					{
-						Selector:                 map[string]interface{}{},
-						UpdateConnectionInterval: api.Duration{Duration: updateConnectionInterval},
-						EndConnectionTimeout:     api.Duration{Duration: endConnectionTimeout},
+						Selector:             map[string]interface{}{},
+						HeartbeatInterval:    api.Duration{Duration: heartbeatInterval},
+						EndConnectionTimeout: api.Duration{Duration: endConnectionTimeout},
 					},
 				},
 			}, // end of api.ConnTrack
@@ -97,7 +97,7 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
 }
 
 func TestTrack(t *testing.T) {
-	updateConnectionInterval := 10 * time.Second
+	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
 	ipA := "10.0.0.1"
 	ipB := "10.0.0.2"
@@ -120,7 +120,7 @@ func TestTrack(t *testing.T) {
 	}{
 		{
 			"bidirectional, output new connection",
-			buildMockConnTrackConfig(true, []string{"newConnection"}, updateConnectionInterval, endConnectionTimeout),
+			buildMockConnTrackConfig(true, []string{"newConnection"}, heartbeatInterval, endConnectionTimeout),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
@@ -128,7 +128,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"bidirectional, output new connection and flow log",
-			buildMockConnTrackConfig(true, []string{"newConnection", "flowLog"}, updateConnectionInterval, endConnectionTimeout),
+			buildMockConnTrackConfig(true, []string{"newConnection", "flowLog"}, heartbeatInterval, endConnectionTimeout),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
@@ -140,7 +140,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"unidirectional, output new connection",
-			buildMockConnTrackConfig(false, []string{"newConnection"}, updateConnectionInterval, endConnectionTimeout),
+			buildMockConnTrackConfig(false, []string{"newConnection"}, heartbeatInterval, endConnectionTimeout),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
@@ -149,7 +149,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"unidirectional, output new connection and flow log",
-			buildMockConnTrackConfig(false, []string{"newConnection", "flowLog"}, updateConnectionInterval, endConnectionTimeout),
+			buildMockConnTrackConfig(false, []string{"newConnection", "flowLog"}, heartbeatInterval, endConnectionTimeout),
 			[]config.GenericMap{flAB1, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
@@ -181,9 +181,9 @@ func TestTrack(t *testing.T) {
 func TestEndConn_Bidirectional(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	updateConnectionInterval := 10 * time.Second
+	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
-	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
+	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"}, heartbeatInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -267,9 +267,9 @@ func TestEndConn_Bidirectional(t *testing.T) {
 func TestEndConn_Unidirectional(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	updateConnectionInterval := 10 * time.Second
+	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
-	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
+	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "endConnection"}, heartbeatInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -362,17 +362,16 @@ func TestEndConn_Unidirectional(t *testing.T) {
 	}
 }
 
-// TestUpdateConn_Unidirectional tests that update connection records are outputted correctly and in the right time in
+// TestHeartbeat_Unidirectional tests that heartbeat records are outputted correctly and in the right time in
 // unidirectional setting.
 // The test simulates 2 flow logs from A to B and 2 from B to A in different timestamps.
-// Then the test verifies that an update connection record is outputted only after 10 seconds from the last update
-// connection report.
-func TestUpdateConn_Unidirectional(t *testing.T) {
+// Then the test verifies that a heartbeat record is outputted only after 10 seconds from the last heartbeat.
+func TestHeartbeat_Unidirectional(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	updateConnectionInterval := 10 * time.Second
+	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
-	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "updateConnection", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
+	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "heartbeat", "endConnection"}, heartbeatInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -414,73 +413,73 @@ func TestUpdateConn_Unidirectional(t *testing.T) {
 			},
 		},
 		{
-			"9s: no update report",
+			"9s: no heartbeat",
 			startTime.Add(9 * time.Second),
 			nil,
 			nil,
 		},
 		{
-			"11s: update report AB",
+			"11s: heartbeat AB",
 			startTime.Add(11 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
+				newMockRecordHeartbeat(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
 			},
 		},
 		{
-			"14s: no update report",
+			"14s: no heartbeat",
 			startTime.Add(14 * time.Second),
 			nil,
 			nil,
 		},
 		{
-			"16s: update report BA",
+			"16s: heartbeat BA",
 			startTime.Add(16 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordUpdateConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
+				newMockRecordHeartbeat(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
 			},
 		},
 		{
-			"20s: no update report",
+			"20s: no heartbeat",
 			startTime.Add(20 * time.Second),
 			nil,
 			nil,
 		},
 		{
-			"22s: update report AB",
+			"22s: heartbeat AB",
 			startTime.Add(22 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
+				newMockRecordHeartbeat(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
 			},
 		},
 		{
-			"25s: no update report",
+			"25s: no heartbeat",
 			startTime.Add(25 * time.Second),
 			nil,
 			nil,
 		},
 		{
-			"27s: update report BA",
+			"27s: heartbeat BA",
 			startTime.Add(27 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordUpdateConn(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
+				newMockRecordHeartbeat(ipB, portB, ipA, portA, protocol, 333, 33, 1).withHash(hashIdBA).get(),
 			},
 		},
 		{
-			"31s: no update report",
+			"31s: no heartbeat",
 			startTime.Add(31 * time.Second),
 			nil,
 			nil,
 		},
 		{
-			"33s: update report AB",
+			"33s: heartbeat AB",
 			startTime.Add(33 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
+				newMockRecordHeartbeat(ipA, portA, ipB, portB, protocol, 333, 33, 2).withHash(hashIdAB).get(),
 			},
 		},
 		{
@@ -513,14 +512,14 @@ func TestUpdateConn_Unidirectional(t *testing.T) {
 	}
 }
 
-// TestIsFirst_LongConnection tests the IsFirst works right in long connections that have multiple updateConnection records.
-// In the following test, there should be 2 update connection records and 1 endConnection. Only the first updateConnection record has isFirst set to true.
+// TestIsFirst_LongConnection tests the IsFirst works right in long connections that have multiple heartbeat records.
+// In the following test, there should be 2 heartbeat records and 1 endConnection. Only the first heartbeat record has isFirst set to true.
 func TestIsFirst_LongConnection(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	updateConnectionInterval := 10 * time.Second
+	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
-	conf := buildMockConnTrackConfig(false, []string{"updateConnection", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
+	conf := buildMockConnTrackConfig(false, []string{"heartbeat", "endConnection"}, heartbeatInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -545,31 +544,31 @@ func TestIsFirst_LongConnection(t *testing.T) {
 			nil,
 		},
 		{
-			"9s: no update report",
+			"9s: no heartbeat",
 			startTime.Add(9 * time.Second),
 			nil,
 			nil,
 		},
 		{
-			"11s: update report AB (with isFirst=true)",
+			"11s: heartbeat AB (with isFirst=true)",
 			startTime.Add(11 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).markFirst().get(),
+				newMockRecordHeartbeat(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).markFirst().get(),
 			},
 		},
 		{
-			"20s: no update report",
+			"20s: no heartbeat",
 			startTime.Add(20 * time.Second),
 			nil,
 			nil,
 		},
 		{
-			"22s: update report AB (with isFirst=false)",
+			"22s: heartbeat AB (with isFirst=false)",
 			startTime.Add(22 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordUpdateConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
+				newMockRecordHeartbeat(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
 			},
 		},
 		{
@@ -606,10 +605,10 @@ func TestIsFirst_LongConnection(t *testing.T) {
 func TestIsFirst_ShortConnection(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	updateConnectionInterval := 10 * time.Second
+	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 5 * time.Second
-	conf := buildMockConnTrackConfig(false, []string{"updateConnection", "endConnection"},
-		updateConnectionInterval, endConnectionTimeout)
+	conf := buildMockConnTrackConfig(false, []string{"heartbeat", "endConnection"},
+		heartbeatInterval, endConnectionTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -663,15 +662,15 @@ func TestIsFirst_ShortConnection(t *testing.T) {
 }
 
 func TestPrepareUpdateConnectionRecords(t *testing.T) {
-	// This test tests prepareUpdateConnectionRecords().
-	// It sets the update report interval to 10 seconds and creates 3 records for the first interval and 3 records for the second interval (6 in total).
-	// Then, it calls prepareUpdateConnectionRecords() a couple of times in different times.
+	// This test tests prepareHeartbeatRecords().
+	// It sets the heartbeat interval to 10 seconds and creates 3 records for the first interval and 3 records for the second interval (6 in total).
+	// Then, it calls prepareHeartbeatRecords() a couple of times in different times.
 	// It makes sure that only the right records are returned on each call.
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	updateConnectionInterval := 10 * time.Second
+	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
-	conf := buildMockConnTrackConfig(false, []string{"updateConnection"}, updateConnectionInterval, endConnectionTimeout)
+	conf := buildMockConnTrackConfig(false, []string{"heartbeat"}, heartbeatInterval, endConnectionTimeout)
 	interval := 10 * time.Second
 	extract, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
@@ -694,18 +693,18 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 		builder := NewConnBuilder()
 		conn := builder.Hash(hash).Build()
 		ct.connStore.addConnection(hash.hashTotal, conn)
-		conn.setNextUpdateReportTime(r.nextReportTime)
+		conn.setNextHeartbeatTime(r.nextReportTime)
 	}
 	clk.Set(startTime.Add(interval))
-	actual := ct.prepareUpdateConnectionRecords()
+	actual := ct.prepareHeartbeatRecords()
 	assertHashOrder(t, []uint64{0x01, 0x02, 0x03}, actual)
 
 	clk.Set(startTime.Add(2 * interval))
-	actual = ct.prepareUpdateConnectionRecords()
+	actual = ct.prepareHeartbeatRecords()
 	assertHashOrder(t, []uint64{0x0a, 0x0b, 0x0c}, actual)
 
 	clk.Set(startTime.Add(3 * interval))
-	actual = ct.prepareUpdateConnectionRecords()
+	actual = ct.prepareHeartbeatRecords()
 	assertHashOrder(t, []uint64{0x01, 0x02, 0x03}, actual)
 }
 
@@ -714,32 +713,32 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 //  2. default group (matches TCP connections among other things)
 //
 // Then, it creates 4 flow logs: 2 that belong to an ICMP connection and 2 that belong to a TCP connection.
-// The test verifies that updateConnection and endConnection records are emitted at the right timestamps for each
+// The test verifies that heartbeat and endConnection records are emitted at the right timestamps for each
 // connection according to its scheduling group.
 // The timeline events of the test is as follows ("I" and "O" indicates input and output):
 // 0s:  I flow 			TCP
 // 0s:  I flow 			ICMP
 // 10s: I flow 			TCP
 // 15s: I flow			ICMP
-// 20s: O updateConn	TCP
+// 20s: O heartbeat		TCP
 // 25s: O endConn 		TCP
-// 30s: O updateConn	ICMP
+// 30s: O heartbeat		ICMP
 // 35s: O endConn 		ICMP
 func TestScheduling(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
 	defaultUpdateConnectionInterval := 20 * time.Second
 	defaultEndConnectionTimeout := 15 * time.Second
-	conf := buildMockConnTrackConfig(true, []string{"updateConnection", "endConnection"},
+	conf := buildMockConnTrackConfig(true, []string{"heartbeat", "endConnection"},
 		defaultUpdateConnectionInterval, defaultEndConnectionTimeout)
 	// Insert a scheduling group before the default group.
 	// https://github.com/golang/go/wiki/SliceTricks#push-frontunshift
 	conf.Extract.ConnTrack.Scheduling = append(
 		[]api.ConnTrackSchedulingGroup{
 			{
-				Selector:                 map[string]interface{}{"Proto": 1}, // ICMP
-				UpdateConnectionInterval: api.Duration{Duration: 30 * time.Second},
-				EndConnectionTimeout:     api.Duration{Duration: 20 * time.Second},
+				Selector:             map[string]interface{}{"Proto": 1}, // ICMP
+				HeartbeatInterval:    api.Duration{Duration: 30 * time.Second},
+				EndConnectionTimeout: api.Duration{Duration: 20 * time.Second},
 			},
 		},
 		conf.Extract.ConnTrack.Scheduling...)
@@ -784,17 +783,17 @@ func TestScheduling(t *testing.T) {
 			nil,
 		},
 		{
-			"19s: no update report",
+			"19s: no heartbeat",
 			startTime.Add(19 * time.Second),
 			nil,
 			nil,
 		},
 		{
-			"21s: update report TCP conn",
+			"21s: heartbeat TCP conn",
 			startTime.Add(21 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordUpdateConnAB(ipA, portA, ipB, portB, protocolTCP, 111, 222, 11, 22, 2).withHash(hashIdTCP).markFirst().get(),
+				newMockRecordHeartbeatAB(ipA, portA, ipB, portB, protocolTCP, 111, 222, 11, 22, 2).withHash(hashIdTCP).markFirst().get(),
 			},
 		},
 		{
@@ -812,17 +811,17 @@ func TestScheduling(t *testing.T) {
 			},
 		},
 		{
-			"29s: no update report",
+			"29s: no heartbeat",
 			startTime.Add(29 * time.Second),
 			nil,
 			nil,
 		},
 		{
-			"31s: update report ICMP conn",
+			"31s: heartbeat ICMP conn",
 			startTime.Add(31 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordUpdateConnAB(ipA, portA, ipB, portB, protocolICMP, 333, 444, 33, 44, 2).withHash(hashIdICMP).markFirst().get(),
+				newMockRecordHeartbeatAB(ipA, portA, ipB, portB, protocolICMP, 333, 444, 33, 44, 2).withHash(hashIdICMP).markFirst().get(),
 			},
 		},
 		{

@@ -105,7 +105,7 @@ parameters:
         input: timeReceived
       scheduling:
       - endConnectionTimeout: 10s
-        updateConnectionInterval: 30s
+        heartbeatInterval: 30s
 - name: transform_network
   transform:
     type: network

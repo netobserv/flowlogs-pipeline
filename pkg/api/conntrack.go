@@ -37,10 +37,10 @@ type ConnTrack struct {
 }
 
 type ConnTrackOutputRecordTypeEnum struct {
-	NewConnection    string `yaml:"newConnection" doc:"New connection"`
-	EndConnection    string `yaml:"endConnection" doc:"End connection"`
-	UpdateConnection string `yaml:"updateConnection" doc:"Update connection"`
-	FlowLog          string `yaml:"flowLog" doc:"Flow log"`
+	NewConnection string `yaml:"newConnection" doc:"New connection"`
+	EndConnection string `yaml:"endConnection" doc:"End connection"`
+	Heartbeat     string `yaml:"heartbeat" doc:"Heartbeat"`
+	FlowLog       string `yaml:"flowLog" doc:"Flow log"`
 }
 
 func ConnTrackOutputRecordTypeName(operation string) string {
@@ -84,9 +84,9 @@ type ConnTrackOperationEnum struct {
 }
 
 type ConnTrackSchedulingGroup struct {
-	Selector                 map[string]interface{} `yaml:"selector,omitempty" doc:"key-value map to match against connection fields to apply this scheduling"`
-	EndConnectionTimeout     Duration               `yaml:"endConnectionTimeout,omitempty" doc:"duration of time to wait from the last flow log to end a connection"`
-	UpdateConnectionInterval Duration               `yaml:"updateConnectionInterval,omitempty" doc:"duration of time to wait between update reports of a connection"`
+	Selector             map[string]interface{} `yaml:"selector,omitempty" doc:"key-value map to match against connection fields to apply this scheduling"`
+	EndConnectionTimeout Duration               `yaml:"endConnectionTimeout,omitempty" doc:"duration of time to wait from the last flow log to end a connection"`
+	HeartbeatInterval    Duration               `yaml:"heartbeatInterval,omitempty" doc:"duration of time to wait between heartbeat reports of a connection"`
 }
 
 func ConnTrackOperationName(operation string) string {
@@ -231,7 +231,7 @@ func isOutputRecordTypeValid(value string) bool {
 	switch value {
 	case ConnTrackOutputRecordTypeName("NewConnection"):
 	case ConnTrackOutputRecordTypeName("EndConnection"):
-	case ConnTrackOutputRecordTypeName("UpdateConnection"):
+	case ConnTrackOutputRecordTypeName("Heartbeat"):
 	case ConnTrackOutputRecordTypeName("FlowLog"):
 	default:
 		valid = false

@@ -553,7 +553,7 @@ additional hash id field to correlate with the connection records.
 There are 4  output records types:
 1. **New connection**: indicates that a new connection is detected. i.e. the input contains a flow-log that doesn't
 belong to any of the tracked connections.
-2. **Update connection**: a periodic report of the connection statistics for long connections.
+2. **Heartbeat**: a periodic report of the connection statistics for long connections.
 3. **End connection**: indicates that a connection has ended. Currently, a connection is considered ended once the 
 timeout since the latest flow-log of the connection has elapsed.
 4. **Flow log**: a copy of the input flow log with the additional `_RecordType` and `_HashId` fields.
@@ -606,7 +606,7 @@ parameters:
       outputRecordTypes:
       - newConnection
       - endConnection
-      - updateConnection
+      - heartbeat
       - flowLog
       outputFields:
       - name: Bytes_total
@@ -627,10 +627,10 @@ parameters:
       - selector: # UDP connections
           Proto: 17
         endConnectionTimeout: 5s
-        updateConnectionInterval: 40s
+        heartbeatInterval: 40s
       - selector: {} # Default group
         endConnectionTimeout: 10s
-        updateConnectionInterval: 30s
+        heartbeatInterval: 30s
 ```
 
 A possible output would look like:
@@ -670,7 +670,7 @@ Output fields that set `splitAB: true` (like in `Bytes`) are split into 2 fields
 aggregate values separately based on direction A->B and B->A respectively.
 When `splitAB` is absent, its default value is `false`.
 
-The boolean field `_IsFirst` exists only in records of type `newConnection`, `updateConnection` and `endConnection`.
+The boolean field `_IsFirst` exists only in records of type `newConnection`, `heartbeat` and `endConnection`.
 It is set to true only on the first record of the connection.
 The `_IsFirst` fields is useful in cases where `newConnection` records are not outputted (to reduce the number output records)
 and there is a need to count the total number of connections: simply counting `_IsFirst=true` 

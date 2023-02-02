@@ -42,16 +42,16 @@ const (
 )
 
 type conntrackImpl struct {
-	clock                        clock.Clock
-	config                       *api.ConnTrack
-	hashProvider                 func() hash.Hash64
-	connStore                    *connectionStore
-	aggregators                  []aggregator
-	shouldOutputFlowLogs         bool
-	shouldOutputNewConnection    bool
-	shouldOutputEndConnection    bool
-	shouldOutputUpdateConnection bool
-	metrics                      *metricsType
+	clock                     clock.Clock
+	config                    *api.ConnTrack
+	hashProvider              func() hash.Hash64
+	connStore                 *connectionStore
+	aggregators               []aggregator
+	shouldOutputFlowLogs      bool
+	shouldOutputNewConnection bool
+	shouldOutputEndConnection bool
+	shouldOutputHeartbeats    bool
+	metrics                   *metricsType
 }
 
 func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericMap {
@@ -78,7 +78,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 					Aggregators(ct.aggregators).
 					Build()
 				ct.connStore.addConnection(computedHash.hashTotal, conn)
-				ct.connStore.updateNextReportTime(computedHash.hashTotal)
+				ct.connStore.updateNextHeartbeatTime(computedHash.hashTotal)
 				ct.updateConnection(conn, fl, computedHash)
 				ct.metrics.inputRecords.WithLabelValues("newConnection").Inc()
 				if ct.shouldOutputNewConnection {
@@ -111,10 +111,10 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 		ct.metrics.outputRecords.WithLabelValues("endConnection").Add(float64(len(endConnectionRecords)))
 	}
 
-	if ct.shouldOutputUpdateConnection {
-		updateConnectionRecords := ct.prepareUpdateConnectionRecords()
-		outputRecords = append(outputRecords, updateConnectionRecords...)
-		ct.metrics.outputRecords.WithLabelValues("updateConnection").Add(float64(len(updateConnectionRecords)))
+	if ct.shouldOutputHeartbeats {
+		heartbeatRecords := ct.prepareHeartbeatRecords()
+		outputRecords = append(outputRecords, heartbeatRecords...)
+		ct.metrics.outputRecords.WithLabelValues("heartbeat").Add(float64(len(heartbeatRecords)))
 	}
 
 	return outputRecords
@@ -139,17 +139,17 @@ func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 	return outputRecords
 }
 
-func (ct *conntrackImpl) prepareUpdateConnectionRecords() []config.GenericMap {
-	connections := ct.connStore.prepareUpdateConnections()
+func (ct *conntrackImpl) prepareHeartbeatRecords() []config.GenericMap {
+	connections := ct.connStore.prepareHeartbeats()
 
 	var outputRecords []config.GenericMap
 	// Convert the connections to GenericMaps and add meta fields
 	for _, conn := range connections {
 		record := conn.toGenericMap()
 		addHashField(record, conn.getHash().hashTotal)
-		addTypeField(record, api.ConnTrackOutputRecordTypeName("UpdateConnection"))
+		addTypeField(record, api.ConnTrackOutputRecordTypeName("Heartbeat"))
 		var isFirst bool
-		if ct.shouldOutputUpdateConnection {
+		if ct.shouldOutputHeartbeats {
 			isFirst = conn.markReported()
 		}
 		addIsFirstField(record, isFirst)
@@ -158,7 +158,6 @@ func (ct *conntrackImpl) prepareUpdateConnectionRecords() []config.GenericMap {
 	return outputRecords
 }
 
-// TBD: think of how to avoid confusion with the word "update". It is used with periodic connections updates and for update a connection with incoming flow logs.
 func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.GenericMap, flowLogHash totalHashType) {
 	d := ct.getFlowLogDirection(conn, flowLogHash)
 	for _, agg := range ct.aggregators {
@@ -199,7 +198,7 @@ func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam
 	shouldOutputFlowLogs := false
 	shouldOutputNewConnection := false
 	shouldOutputEndConnection := false
-	shouldOutputUpdateConnection := false
+	shouldOutputHeartbeats := false
 	for _, option := range cfg.OutputRecordTypes {
 		switch option {
 		case api.ConnTrackOutputRecordTypeName("FlowLog"):
@@ -208,8 +207,8 @@ func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam
 			shouldOutputNewConnection = true
 		case api.ConnTrackOutputRecordTypeName("EndConnection"):
 			shouldOutputEndConnection = true
-		case api.ConnTrackOutputRecordTypeName("UpdateConnection"):
-			shouldOutputUpdateConnection = true
+		case api.ConnTrackOutputRecordTypeName("Heartbeat"):
+			shouldOutputHeartbeats = true
 		default:
 			return nil, fmt.Errorf("unknown OutputRecordTypes: %v", option)
 		}
@@ -217,16 +216,16 @@ func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam
 
 	metrics := newMetrics(opMetrics)
 	conntrack := &conntrackImpl{
-		clock:                        clock,
-		connStore:                    newConnectionStore(cfg.Scheduling, metrics, clock.Now),
-		config:                       cfg,
-		hashProvider:                 fnv.New64a,
-		aggregators:                  aggregators,
-		shouldOutputFlowLogs:         shouldOutputFlowLogs,
-		shouldOutputNewConnection:    shouldOutputNewConnection,
-		shouldOutputEndConnection:    shouldOutputEndConnection,
-		shouldOutputUpdateConnection: shouldOutputUpdateConnection,
-		metrics:                      metrics,
+		clock:                     clock,
+		connStore:                 newConnectionStore(cfg.Scheduling, metrics, clock.Now),
+		config:                    cfg,
+		hashProvider:              fnv.New64a,
+		aggregators:               aggregators,
+		shouldOutputFlowLogs:      shouldOutputFlowLogs,
+		shouldOutputNewConnection: shouldOutputNewConnection,
+		shouldOutputEndConnection: shouldOutputEndConnection,
+		shouldOutputHeartbeats:    shouldOutputHeartbeats,
+		metrics:                   metrics,
 	}
 	return conntrack, nil
 }
