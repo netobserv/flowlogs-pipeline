@@ -76,7 +76,7 @@ func (tc *TimedCache) UpdateCacheEntry(key string, entry interface{}) (*cacheEnt
 		tc.cacheList.MoveToBack(cEntry.e)
 	} else {
 		// create new entry for cache
-		if (tc.maxEntries > 0) && (tc.cacheList.Len() > tc.maxEntries) {
+		if (tc.maxEntries > 0) && (tc.cacheList.Len() >= tc.maxEntries) {
 			return nil, false
 		}
 		cEntry = &cacheEntry{
