@@ -13,9 +13,9 @@ require (
 	github.com/mariomac/guara v0.0.0-20220523124851-5fc279816f1f
 	github.com/minio/minio-go/v7 v7.0.44
 	github.com/mitchellh/mapstructure v1.4.3
-	github.com/netobserv/gopipes v0.2.0
+	github.com/netobserv/gopipes v0.3.0
 	github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500
-	github.com/netobserv/netobserv-ebpf-agent v0.2.4-0.20221220155455-aa7838d82f4d
+	github.com/netobserv/netobserv-ebpf-agent v0.2.4
 	github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.1
