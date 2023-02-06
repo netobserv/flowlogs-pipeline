@@ -48,8 +48,8 @@ type builder struct {
 	configParams     []config.StageParam
 	pipelineEntryMap map[string]*pipelineEntry
 	createdStages    map[string]interface{}
-	startNodes       []*node.Init
-	terminalNodes    []*node.Terminal
+	startNodes       []*node.Start[config.GenericMap]
+	terminalNodes    []*node.Terminal[config.GenericMap]
 	opMetrics        *operational.Metrics
 	stageDuration    *prometheus.HistogramVec
 	batchMaxLen      int
@@ -153,7 +153,7 @@ func (b *builder) build() (*Pipeline, error) {
 		if err != nil {
 			return nil, err
 		}
-		dst, ok := dstNode.(node.Receiver)
+		dst, ok := dstNode.(node.Receiver[config.GenericMap])
 		if !ok {
 			return nil, fmt.Errorf("stage %q of type %q can't receive data",
 				connection.Name, dstEntry.stageType)
@@ -167,7 +167,7 @@ func (b *builder) build() (*Pipeline, error) {
 		if err != nil {
 			return nil, err
 		}
-		src, ok := srcNode.(node.Sender)
+		src, ok := srcNode.(node.Sender[config.GenericMap])
 		if !ok {
 			return nil, fmt.Errorf("stage %q of type %q can't send data",
 				connection.Follows, srcEntry.stageType)
@@ -262,7 +262,7 @@ func (b *builder) getStageNode(pe *pipelineEntry, stageID string) (interface{}, 
 	// as we do with Ingest
 	switch pe.stageType {
 	case StageIngest:
-		init := node.AsInit(pe.Ingester.Ingest)
+		init := node.AsStart(pe.Ingester.Ingest)
 		b.startNodes = append(b.startNodes, init)
 		stage = init
 	case StageWrite:

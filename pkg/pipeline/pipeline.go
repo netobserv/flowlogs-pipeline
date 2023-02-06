@@ -37,8 +37,8 @@ const (
 
 // Pipeline manager
 type Pipeline struct {
-	startNodes    []*node.Init
-	terminalNodes []*node.Terminal
+	startNodes    []*node.Start[config.GenericMap]
+	terminalNodes []*node.Terminal[config.GenericMap]
 	IsRunning     bool
 	// TODO: this field is only used for test verification. We should rewrite the build process
 	// to be able to remove it from here
