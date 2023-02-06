@@ -168,7 +168,7 @@ type Dashboard struct {
 	Panels []byte
 }
 
-func (dashboard *Dashboard) generateDashboardJson() []byte {
+func (dashboard *Dashboard) generateDashboardJsonnet() []byte {
 	output := []byte(jsonNetHeaderTemplate)
 	output = append(output, dashboard.Header...)
 	output = append(output, dashboard.Panels...)
@@ -200,7 +200,7 @@ func (cg *ConfGen) generateGrafanaJsonnetFiles(folderName string, dashboards Das
 	}
 	// write to destination files
 	for _, dashboard := range dashboards {
-		output := dashboard.generateDashboardJson()
+		output := dashboard.generateDashboardJsonnet()
 
 		fileName := filepath.Join(folderName, "dashboard_"+dashboard.Name+".jsonnet")
 		err = os.WriteFile(fileName, output, 0644)
@@ -370,7 +370,7 @@ func (cg *ConfGen) generateGrafanaJsonStr(dashboard Dashboard) (string, error) {
 		return "", err
 	}
 	vm.Importer(importer)
-	output := dashboard.generateDashboardJson()
+	output := dashboard.generateDashboardJsonnet()
 	jsonStr, err := vm.EvaluateAnonymousSnippet("/dev/null", string(output))
 	if err != nil {
 		log.Errorf("EvaluateFile failure, err = %v \n", err)

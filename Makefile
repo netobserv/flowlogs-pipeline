@@ -77,11 +77,6 @@ build_code:
 .PHONY: build
 build: validate_go lint build_code docs ## Build flowlogs-pipeline executable and update the docs
 
-# Note: To change dashboards, change `dashboards.jsonnet`. Do not change manually `dashboards.json`
-.PHONY: dashboards
-dashboards: $(JB) $(JSONNET) ## Build grafana dashboards
-	./hack/generate-dashboards.sh
-
 .PHONY: docs
 docs: FORCE ## Update flowlogs-pipeline documentation
 	@./hack/update-docs.sh
