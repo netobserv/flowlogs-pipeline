@@ -28,12 +28,12 @@ const (
 )
 
 type ConnTrack struct {
-	// TODO: should by a pointer instead?
 	KeyDefinition         KeyDefinition              `yaml:"keyDefinition,omitempty" doc:"fields that are used to identify the connection"`
 	OutputRecordTypes     []string                   `yaml:"outputRecordTypes,omitempty" enum:"ConnTrackOutputRecordTypeEnum" doc:"output record types to emit"`
 	OutputFields          []OutputField              `yaml:"outputFields,omitempty" doc:"list of output fields"`
 	Scheduling            []ConnTrackSchedulingGroup `yaml:"scheduling,omitempty" doc:"list of timeouts and intervals to apply per selector"`
 	MaxConnectionsTracked int                        `yaml:"maxConnectionsTracked,omitempty" doc:"maximum number of connections we keep in our cache (0 means no limit)"`
+	TCPFlags              ConnTrackTCPFlags          `yaml:"tcpFlags,omitempty" doc:"settings for handling TCP flags"`
 }
 
 type ConnTrackOutputRecordTypeEnum struct {
@@ -91,6 +91,12 @@ type ConnTrackSchedulingGroup struct {
 
 func ConnTrackOperationName(operation string) string {
 	return GetEnumName(ConnTrackOperationEnum{}, operation)
+}
+
+type ConnTrackTCPFlags struct {
+	FieldName           string `yaml:"fieldName,omitempty" doc:"name of the field containing TCP flags"`
+	DetectEndConnection bool   `yaml:"detectEndConnection,omitempty" doc:"detect end connections by FIN_ACK flag"`
+	CorrectDirection    bool   `yaml:"correctDirection,omitempty" doc:"swap source and destination when the first flowlog contains the SYN_ACK flag"`
 }
 
 func (ct *ConnTrack) Validate() error {
@@ -201,6 +207,7 @@ func (ct *ConnTrack) Validate() error {
 			msg: fmt.Errorf("found %v default selectors. There should be exactly 1", numOfDefault)}
 	}
 
+	// TODO: Check that CorrectDirection is True only when bidi is enabled
 	return nil
 }
 

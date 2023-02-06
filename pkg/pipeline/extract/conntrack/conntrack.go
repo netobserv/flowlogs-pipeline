@@ -28,6 +28,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -165,7 +166,29 @@ func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.Generi
 			agg.update(conn, flowLog, d)
 		}
 	}
-	ct.connStore.updateConnectionExpiryTime(flowLogHash.hashTotal)
+
+	if ct.config.TCPFlags.DetectEndConnection && ct.isLastFlowLogOfConnection(flowLog) {
+		ct.connStore.expireConnection(flowLogHash.hashTotal)
+	} else {
+		ct.connStore.updateConnectionExpiryTime(flowLogHash.hashTotal)
+	}
+}
+
+func (ct *conntrackImpl) isLastFlowLogOfConnection(flowLog config.GenericMap) bool {
+	tcpFlagsRaw, ok := flowLog[ct.config.TCPFlags.FieldName]
+	if ok {
+		tcpFlags, err := utils.ConvertToUint32(tcpFlagsRaw)
+		if err != nil {
+			log.Warningf("cannot convert TCP flag %q to uint32: %v", tcpFlagsRaw, err)
+			return false
+		}
+		containsFinAck := tcpFlags&FIN_ACK_FLAG == FIN_ACK_FLAG
+		if containsFinAck {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalHashType) direction {
