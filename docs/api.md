@@ -201,7 +201,7 @@ Following is the supported API format for specifying metrics aggregations:
  aggregates:
          name: description of aggregation result
          groupByKeys: list of fields on which to aggregate
-         operationType: sum, min, max, avg or raw_values
+         operationType: sum, min, max, count, avg or raw_values
          operationKey: internal field on which to perform the operation
 </pre>
 ## Connection tracking API

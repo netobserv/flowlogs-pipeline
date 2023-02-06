@@ -42,6 +42,8 @@ type cacheEntry struct {
 
 type TimedCacheMap map[string]*cacheEntry
 
+// If maxEntries is non-zero, this limits the number of entries in the cache to the number specified.
+// If maxEntries is zero, the cache has no size limit.
 type TimedCache struct {
 	mu         sync.RWMutex
 	cacheList  *list.List
