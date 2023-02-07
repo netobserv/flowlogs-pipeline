@@ -20,6 +20,7 @@ package conntrack
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -32,6 +33,7 @@ var conn = connType{keys: map[string]interface{}{
 	"DstAddr": "10.0.0.2",
 	"DstPort": uint32(80),
 	"Proto":   uint32(6),
+	"Custom":  time.Time{},
 }}
 
 var table = []struct {
@@ -71,6 +73,34 @@ var table = []struct {
 			"DstAddr":       "10.0.0.2",
 			"DstPort":       80,
 			"MISSING_FIELD": "",
+		},
+		false,
+	},
+	{
+		"string match",
+		map[string]interface{}{
+			"SrcAddr": "10.0.0.1",
+		},
+		true,
+	},
+	{
+		"string mismatch",
+		map[string]interface{}{
+			"SrcAddr": "10.0.0.255",
+		},
+		false,
+	},
+	{
+		"custom match",
+		map[string]interface{}{
+			"Custom": "0001-01-01 00:00:00 +0000 UTC",
+		},
+		true,
+	},
+	{
+		"custom mismatch",
+		map[string]interface{}{
+			"Custom": "0",
 		},
 		false,
 	},
@@ -114,6 +144,15 @@ func BenchmarkIsMatchSelectorGeneric(b *testing.B) {
 			// so the compiler cannot eliminate the Benchmark itself.
 			// https://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
 			result = r
+		})
+	}
+}
+
+func TestIsMatchSelectorGeneric(t *testing.T) {
+	for _, test := range table {
+		t.Run(test.name, func(tt *testing.T) {
+			actual := conn.isMatchSelectorGeneric(test.selector)
+			require.Equal(tt, test.expectedResult, actual)
 		})
 	}
 }

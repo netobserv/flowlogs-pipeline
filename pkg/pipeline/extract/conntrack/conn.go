@@ -160,8 +160,16 @@ func (c *connType) isMatchSelectorGeneric(selector map[string]interface{}) bool 
 				return false
 			}
 		case string:
+			selectorValue := fmt.Sprintf("%v", v)
+			if connValue != selectorValue {
+				return false
+			}
 		default:
-			return fmt.Sprintf("%v", c.keys[k]) != connValue
+			connValue = fmt.Sprintf("%v", connValue)
+			selectorValue := fmt.Sprintf("%v", v)
+			if connValue != selectorValue {
+				return false
+			}
 		}
 	}
 	return true
