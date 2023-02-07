@@ -745,3 +745,30 @@ func hex2int(hexStr string) uint64 {
 	result, _ := strconv.ParseUint(cleaned, 16, 64)
 	return uint64(result)
 }
+
+func TestMaxConnections(t *testing.T) {
+	test.ResetPromRegistry()
+	maxConnections := 23
+	clk := clock.NewMock()
+	updateConnectionInterval := 10 * time.Second
+	endConnectionTimeout := 30 * time.Second
+	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
+	conf.Extract.ConnTrack.MaxConnectionsTracked = maxConnections
+	extract, err := NewConnectionTrack(opMetrics, *conf, clk)
+	require.NoError(t, err)
+
+	ct := extract.(*conntrackImpl)
+	require.Equal(t, 0, ct.connStore.mom.Len())
+
+	flowLogs := test.GenerateConnectionEntries(10)
+	ct.Extract(flowLogs)
+	require.Equal(t, 10, ct.connStore.mom.Len())
+
+	flowLogs = test.GenerateConnectionEntries(20)
+	ct.Extract(flowLogs)
+	require.Equal(t, 20, ct.connStore.mom.Len())
+
+	flowLogs = test.GenerateConnectionEntries(40)
+	ct.Extract(flowLogs)
+	require.Equal(t, maxConnections, ct.connStore.mom.Len())
+}
