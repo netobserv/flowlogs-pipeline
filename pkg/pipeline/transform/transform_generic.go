@@ -57,23 +57,23 @@ func (g *Generic) performMultiplier(entry config.GenericMap, transformRule api.G
 	case int:
 		outputEntry[transformRule.Output] = transformRule.Multiplier * entry[transformRule.Input].(int)
 	case uint:
-		outputEntry[transformRule.Output] = uint(transformRule.Multiplier) * outputEntry[transformRule.Input].(uint)
+		outputEntry[transformRule.Output] = uint(transformRule.Multiplier) * entry[transformRule.Input].(uint)
 	case int8:
-		outputEntry[transformRule.Output] = int8(transformRule.Multiplier) * outputEntry[transformRule.Input].(int8)
+		outputEntry[transformRule.Output] = int8(transformRule.Multiplier) * entry[transformRule.Input].(int8)
 	case uint8:
-		outputEntry[transformRule.Output] = uint8(transformRule.Multiplier) * outputEntry[transformRule.Input].(uint8)
+		outputEntry[transformRule.Output] = uint8(transformRule.Multiplier) * entry[transformRule.Input].(uint8)
 	case int16:
-		outputEntry[transformRule.Output] = int16(transformRule.Multiplier) * outputEntry[transformRule.Input].(int16)
+		outputEntry[transformRule.Output] = int16(transformRule.Multiplier) * entry[transformRule.Input].(int16)
 	case uint16:
-		outputEntry[transformRule.Output] = uint16(transformRule.Multiplier) * outputEntry[transformRule.Input].(uint16)
+		outputEntry[transformRule.Output] = uint16(transformRule.Multiplier) * entry[transformRule.Input].(uint16)
 	case int32:
-		outputEntry[transformRule.Output] = int32(transformRule.Multiplier) * outputEntry[transformRule.Input].(int32)
+		outputEntry[transformRule.Output] = int32(transformRule.Multiplier) * entry[transformRule.Input].(int32)
 	case uint32:
-		outputEntry[transformRule.Output] = uint32(transformRule.Multiplier) * outputEntry[transformRule.Input].(uint32)
+		outputEntry[transformRule.Output] = uint32(transformRule.Multiplier) * entry[transformRule.Input].(uint32)
 	case int64:
-		outputEntry[transformRule.Output] = int64(transformRule.Multiplier) * outputEntry[transformRule.Input].(int64)
+		outputEntry[transformRule.Output] = int64(transformRule.Multiplier) * entry[transformRule.Input].(int64)
 	case uint64:
-		outputEntry[transformRule.Output] = uint64(transformRule.Multiplier) * outputEntry[transformRule.Input].(uint64)
+		outputEntry[transformRule.Output] = uint64(transformRule.Multiplier) * entry[transformRule.Input].(uint64)
 	case float32:
 		outputEntry[transformRule.Output] = float32(transformRule.Multiplier) * entry[transformRule.Input].(float32)
 	case float64:
