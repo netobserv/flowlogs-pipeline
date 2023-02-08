@@ -18,7 +18,6 @@
 package conntrack
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -106,36 +105,13 @@ var table = []struct {
 	},
 }
 
-func BenchmarkIsMatchSelectorStrings(b *testing.B) {
-	for _, tt := range table {
-		stringsSelector := map[string]string{}
-		for k, v := range tt.selector {
-			stringsSelector[k] = fmt.Sprintf("%v", v)
-		}
-		b.Run(tt.name, func(bb *testing.B) {
-			var r bool
-			bb.StartTimer()
-			for i := 0; i < bb.N; i++ {
-				r = conn.isMatchSelectorStrings(stringsSelector)
-			}
-			bb.StopTimer()
-			require.Equal(bb, tt.expectedResult, r)
-
-			// always store the result to a package level variable
-			// so the compiler cannot eliminate the Benchmark itself.
-			// https://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
-			result = r
-		})
-	}
-}
-
 func BenchmarkIsMatchSelectorGeneric(b *testing.B) {
 	for _, tt := range table {
 		b.Run(tt.name, func(bb *testing.B) {
 			var r bool
 			bb.StartTimer()
 			for i := 0; i < bb.N; i++ {
-				r = conn.isMatchSelectorGeneric(tt.selector)
+				r = conn.isMatchSelector(tt.selector)
 			}
 			bb.StopTimer()
 			require.Equal(bb, tt.expectedResult, r)
@@ -151,7 +127,7 @@ func BenchmarkIsMatchSelectorGeneric(b *testing.B) {
 func TestIsMatchSelectorGeneric(t *testing.T) {
 	for _, test := range table {
 		t.Run(test.name, func(tt *testing.T) {
-			actual := conn.isMatchSelectorGeneric(test.selector)
+			actual := conn.isMatchSelector(test.selector)
 			require.Equal(tt, test.expectedResult, actual)
 		})
 	}

@@ -86,7 +86,7 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
 				OutputRecordTypes: outputRecordType,
 				Scheduling: []api.ConnTrackSchedulingGroup{
 					{
-						Selector:                 map[string]string{},
+						Selector:                 map[string]interface{}{},
 						UpdateConnectionInterval: api.Duration{Duration: updateConnectionInterval},
 						EndConnectionTimeout:     api.Duration{Duration: endConnectionTimeout},
 					},
@@ -737,7 +737,7 @@ func TestScheduling(t *testing.T) {
 	conf.Extract.ConnTrack.Scheduling = append(
 		[]api.ConnTrackSchedulingGroup{
 			{
-				Selector:                 map[string]string{"Proto": "1"}, // ICMP
+				Selector:                 map[string]interface{}{"Proto": 1}, // ICMP
 				UpdateConnectionInterval: api.Duration{Duration: 30 * time.Second},
 				EndConnectionTimeout:     api.Duration{Duration: 20 * time.Second},
 			},
