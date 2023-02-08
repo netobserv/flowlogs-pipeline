@@ -37,7 +37,7 @@ func GetMockAggregate() Aggregate {
 			OperationType: "avg",
 			OperationKey:  "value",
 		},
-		cache:      utils.NewTimedCache(),
+		cache:      utils.NewTimedCache(0),
 		mutex:      &sync.Mutex{},
 		expiryTime: 30 * time.Second,
 	}

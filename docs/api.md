@@ -24,6 +24,7 @@ Following is the supported API format for prometheus encode:
          tls: TLS configuration for the prometheus endpoint
              certPath: path to the certificate file
              keyPath: path to the key file
+         maxMetrics: maximum number of metrics to report (default: unlimited)
 </pre>
 ## Kafka encode API
 Following is the supported API format for kafka encode:
@@ -149,11 +150,22 @@ Following is the supported API format for network transformations:
                      add_location: add output location fields from input
                      add_service: add output network service field from input port and parameters protocol field
                      add_kubernetes: add output kubernetes fields from input
+                     reinterpret_direction: reinterpret flow direction at a higher level than the interface
+                     add_ip_category: categorize IPs based on known subnets configuration
                  parameters: parameters specific to type
                  assignee: value needs to assign to output field
          kubeConfigPath: path to kubeconfig file (optional)
          servicesFile: path to services file (optional, default: /etc/services)
          protocolsFile: path to protocols file (optional, default: /etc/protocols)
+         ipCategories: configure IP categories
+                 cidrs: list of CIDRs to match a category
+                 name: name of the category
+         directionInfo: information to reinterpret flow direction (optional, to use with reinterpret_direction rule)
+             reporterIPField: field providing the reporter (agent) host IP
+             srcHostField: source host field
+             dstHostField: destination host field
+             flowDirectionField: field providing the flow direction in the input entries; it will be rewritten
+             ifDirectionField: interface-level field for flow direction, to create in output
 </pre>
 ## Write Loki API
 Following is the supported API format for writing to loki:
@@ -189,7 +201,7 @@ Following is the supported API format for specifying metrics aggregations:
  aggregates:
          name: description of aggregation result
          groupByKeys: list of fields on which to aggregate
-         operationType: sum, min, max, avg or raw_values
+         operationType: sum, min, max, count, avg or raw_values
          operationKey: internal field on which to perform the operation
 </pre>
 ## Connection tracking API
@@ -221,6 +233,7 @@ Following is the supported API format for specifying connection tracking:
                  input: The input field to base the operation on. When omitted, 'name' is used
          endConnectionTimeout: duration of time to wait from the last flow log to end a connection
          updateConnectionInterval: duration of time to wait between update reports of a connection
+         maxConnectionsTracked: maximum number of connections we keep in our cache (0 means no limit)
 </pre>
 ## Time-based Filters API
 Following is the supported API format for specifying metrics time-based filters:
