@@ -20,7 +20,7 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 |:---|:---|
 | **Description** | The total number of tracked connections in memory. | 
 | **Type** | gauge | 
-| **Labels** |  | 
+| **Labels** | group | 
 
 
 ### conntrack_output_records

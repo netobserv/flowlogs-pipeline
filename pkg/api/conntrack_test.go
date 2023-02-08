@@ -145,6 +145,73 @@ func TestConnTrackValidate(t *testing.T) {
 			},
 			conntrackInvalidError{unknownOutputRecord: true},
 		},
+		{
+			"Undefined selector key",
+			ConnTrack{
+				KeyDefinition: KeyDefinition{
+					FieldGroups: []FieldGroup{
+						{Name: "src", Fields: []string{"srcIP"}},
+					},
+				},
+				Scheduling: []ConnTrackSchedulingGroup{
+					{
+						Selector: map[string]interface{}{
+							"srcIP":         "value",
+							"undefined_key": "0",
+						},
+					},
+				},
+			},
+			conntrackInvalidError{undefinedSelectorKey: true},
+		},
+		{
+			"Default selector on a scheduling group that is not the last scheduling group",
+			ConnTrack{
+				KeyDefinition: KeyDefinition{
+					FieldGroups: []FieldGroup{
+						{Name: "src", Fields: []string{"srcIP"}},
+					},
+				},
+				Scheduling: []ConnTrackSchedulingGroup{
+					{
+						Selector: map[string]interface{}{},
+					},
+					{
+						Selector: map[string]interface{}{
+							"srcIP": "value",
+						},
+					},
+				},
+			},
+			conntrackInvalidError{defaultGroupAndNotLast: true},
+		},
+		{
+			"Missing default selector",
+			ConnTrack{
+				KeyDefinition: KeyDefinition{
+					FieldGroups: []FieldGroup{
+						{Name: "src", Fields: []string{"srcIP"}},
+					},
+				},
+				Scheduling: []ConnTrackSchedulingGroup{},
+			},
+			conntrackInvalidError{exactlyOneDefaultSelector: true},
+		},
+		{
+			"2 default selectors",
+			ConnTrack{
+				KeyDefinition: KeyDefinition{
+					FieldGroups: []FieldGroup{
+						{Name: "src", Fields: []string{"srcIP"}},
+					},
+				},
+				Scheduling: []ConnTrackSchedulingGroup{
+					{Selector: map[string]interface{}{}},
+					{Selector: map[string]interface{}{}},
+				},
+			},
+			conntrackInvalidError{defaultGroupAndNotLast: true},
+		},
 	}
 
 	for _, tt := range tests {

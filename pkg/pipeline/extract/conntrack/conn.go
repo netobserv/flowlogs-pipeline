@@ -18,8 +18,10 @@
 package conntrack
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -40,6 +42,7 @@ type connection interface {
 	// for this connection (i.e. newConnection, updateConnection, endConnection).
 	// It returns true on the first invocation to indicate the first report. Otherwise, it returns false.
 	markReported() bool
+	isMatchSelector(map[string]interface{}) bool
 }
 
 type connType struct {
@@ -106,6 +109,59 @@ func (c *connType) markReported() bool {
 	return isFirst
 }
 
+func (c *connType) isMatchSelector(selector map[string]interface{}) bool {
+	for k, v := range selector {
+		connValueRaw, found := c.keys[k]
+		if !found {
+			return false
+		}
+		switch connValue := connValueRaw.(type) {
+		case int:
+			selectorValue, err := utils.ConvertToInt(v)
+			if err != nil || connValue != selectorValue {
+				return false
+			}
+		case uint32:
+			selectorValue, err := utils.ConvertToUint32(v)
+			if err != nil || connValue != selectorValue {
+				return false
+			}
+		case uint64:
+			selectorValue, err := utils.ConvertToUint64(v)
+			if err != nil || connValue != selectorValue {
+				return false
+			}
+		case int64:
+			selectorValue, err := utils.ConvertToInt64(v)
+			if err != nil || connValue != selectorValue {
+				return false
+			}
+		case float64:
+			selectorValue, err := utils.ConvertToFloat64(v)
+			if err != nil || connValue != selectorValue {
+				return false
+			}
+		case bool:
+			selectorValue, err := utils.ConvertToBool(v)
+			if err != nil || connValue != selectorValue {
+				return false
+			}
+		case string:
+			selectorValue := fmt.Sprintf("%v", v)
+			if connValue != selectorValue {
+				return false
+			}
+		default:
+			connValue = fmt.Sprintf("%v", connValue)
+			selectorValue := fmt.Sprintf("%v", v)
+			if connValue != selectorValue {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 type connBuilder struct {
 	conn *connType
 }
@@ -138,11 +194,6 @@ func (cb *connBuilder) Aggregators(aggs []aggregator) *connBuilder {
 	for _, agg := range aggs {
 		agg.addField(cb.conn)
 	}
-	return cb
-}
-
-func (cb *connBuilder) NextUpdateReportTime(t time.Time) *connBuilder {
-	cb.conn.setNextUpdateReportTime(t)
 	return cb
 }
 

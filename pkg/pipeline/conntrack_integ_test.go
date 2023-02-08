@@ -48,7 +48,9 @@ parameters:
     extract:
       type: conntrack
       conntrack:
-        endConnectionTimeout: 1s
+        scheduling:
+          - selector: {}
+            endConnectionTimeout: 1s
         outputRecordTypes:
           - newConnection
           - flowLog

@@ -585,8 +585,6 @@ parameters:
   extract:
     type: conntrack
     conntrack:
-      endConnectionTimeout: 30s
-      updateConnectionInterval: 10s
       keyDefinition:
         fieldGroups:
         - name: src
@@ -625,6 +623,14 @@ parameters:
       - name: TimeFlowEnd
         operation: max
         input: TimeReceived
+      scheduling:
+      - selector: # UDP connections
+          Proto: 17
+        endConnectionTimeout: 5s
+        updateConnectionInterval: 40s
+      - selector: {} # Default group
+        endConnectionTimeout: 10s
+        updateConnectionInterval: 30s
 ```
 
 A possible output would look like:
@@ -668,6 +674,11 @@ The boolean field `_IsFirst` exists only in records of type `newConnection`, `up
 It is set to true only on the first record of the connection.
 The `_IsFirst` fields is useful in cases where `newConnection` records are not outputted (to reduce the number output records)
 and there is a need to count the total number of connections: simply counting `_IsFirst=true` 
+
+The configuration allows defining scheduling groups. That is, defining different timeouts based on connection key fields' values.
+The order of the defined groups is important since the group of a connection is determined by the first matching group.
+The last group must have an empty selector indicating a match-all rule serving as a default group for connections that 
+don't match any of the other groups. There can't be more than one default group.
 
 ### Timebased TopK
 

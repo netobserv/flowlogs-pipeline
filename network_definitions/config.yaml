@@ -37,7 +37,10 @@ transform:
         output: timeReceived
 extract:
   conntrack:
-    endConnectionTimeout: 30s
+    scheduling:
+      - selector: {}
+        updateConnectionInterval: 30s
+        endConnectionTimeout: 10s
     outputRecordTypes:
       - newConnection
       - flowLog
