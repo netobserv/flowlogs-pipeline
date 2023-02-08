@@ -10,10 +10,8 @@ pipeline:
   follows: extract_conntrack
 - name: extract_aggregate
   follows: transform_network
-- name: extract_timebased
-  follows: extract_aggregate
 - name: encode_prom
-  follows: extract_timebased
+  follows: extract_aggregate
 - name: write_loki
   follows: transform_network
 parameters:
@@ -239,17 +237,6 @@ parameters:
       - service
       - _RecordType
       operationType: count
-- name: extract_timebased
-  extract:
-    type: timebased
-    timebased:
-      rules:
-      - name: bandwidth_source_subnet
-        indexKey: srcSubnet
-        operationType: sum
-        operationKey: total_value
-        topK: 5
-        timeInterval: 1m0s
 - name: encode_prom
   encode:
     type: prom

@@ -24,14 +24,6 @@ extract:
         - _RecordType
       operationType: sum
       operationKey: bytes
-  timebased:
-    rules:
-      - name: bandwidth_source_subnet
-        operationType: sum
-        operationKey: total_value
-        indexKey: srcSubnet
-        topK: 5
-        timeInterval: 1m
 encode:
   type: prom
   prom:
