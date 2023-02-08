@@ -67,7 +67,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 		}
 		conn, exists := ct.connStore.getConnection(computedHash.hashTotal)
 		if !exists {
-			if (ct.config.MaxConnectionsTracked > 0) && (ct.config.MaxConnectionsTracked <= ct.connStore.mom.Len()) {
+			if (ct.config.MaxConnectionsTracked > 0) && (ct.connStore.len() >= ct.config.MaxConnectionsTracked) {
 				log.Warningf("too many connections; skipping flow log %v: ", fl)
 				ct.metrics.inputRecords.WithLabelValues("discarded").Inc()
 			} else {

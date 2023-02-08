@@ -175,6 +175,10 @@ func (cs *connectionStore) prepareUpdateConnections() []connection {
 	return connections
 }
 
+func (cs *connectionStore) len() int {
+	return len(cs.hashId2groupIdx)
+}
+
 // schedulingGroupToLabelValue returns a string representation of a scheduling group to be used as a Prometheus label
 // value.
 func schedulingGroupToLabelValue(groupIdx int, group api.ConnTrackSchedulingGroup) string {
