@@ -76,12 +76,14 @@ func Test_RunShortConfGen(t *testing.T) {
 	configOut := filepath.Join(outDirPath, "config.yaml")
 	docOut := filepath.Join(outDirPath, "doc.md")
 	jsonnetOut := filepath.Join(outDirPath, "jsonnet")
+	dashboards := filepath.Join(outDirPath, "dashboards")
 
 	cg := NewConfGen(&Options{
 		SrcFolder:                dirPath,
 		DestConfFile:             configOut,
 		DestDocFile:              docOut,
 		DestGrafanaJsonnetFolder: jsonnetOut,
+		DestDashboardFolder:      dashboards,
 		GlobalMetricsPrefix:      "flp_",
 	})
 	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(test.ConfgenShortConfig), 0644)
@@ -165,12 +167,14 @@ func Test_RunConfGenNoAgg(t *testing.T) {
 	configOut := filepath.Join(outDirPath, "config.yaml")
 	docOut := filepath.Join(outDirPath, "doc.md")
 	jsonnetOut := filepath.Join(outDirPath, "jsonnet")
+	dashboards := filepath.Join(outDirPath, "dashboards")
 
 	cg := NewConfGen(&Options{
 		SrcFolder:                dirPath,
 		DestConfFile:             configOut,
 		DestDocFile:              docOut,
 		DestGrafanaJsonnetFolder: jsonnetOut,
+		DestDashboardFolder:      dashboards,
 	})
 	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(test.ConfgenShortConfig), 0644)
 	require.NoError(t, err)
@@ -243,12 +247,14 @@ func Test_RunLongConfGen(t *testing.T) {
 	configOut := filepath.Join(outDirPath, "config.yaml")
 	docOut := filepath.Join(outDirPath, "doc.md")
 	jsonnetOut := filepath.Join(outDirPath, "jsonnet")
+	dashboards := filepath.Join(outDirPath, "dashboards")
 
 	cg := NewConfGen(&Options{
 		SrcFolder:                dirPath,
 		DestConfFile:             configOut,
 		DestDocFile:              docOut,
 		DestGrafanaJsonnetFolder: jsonnetOut,
+		DestDashboardFolder:      dashboards,
 	})
 	err = os.WriteFile(filepath.Join(dirPath, configFileName), []byte(test.ConfgenLongConfig), 0644)
 	require.NoError(t, err)
@@ -352,6 +358,10 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 	})
 	err := cg.ParseDefinition("defs", []byte(test.ConfgenNetworkDefBase))
 	require.NoError(t, err)
+	var config Config
+	err = yaml.UnmarshalStrict([]byte(test.ConfgenShortConfig), &config)
+	require.NoError(t, err)
+	cg.SetConfig(&config)
 
 	// Run
 	params := cg.GenerateTruncatedConfig()
@@ -377,6 +387,12 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 			Labels:   []string{"groupByKeys", "aggregate"},
 		}},
 	}, params[1].Encode.Prom)
+
+	panels, err := cg.GenerateGrafanaJson()
+	require.NoError(t, err)
+	var panelJson map[string]interface{}
+	err = yaml.UnmarshalStrict([]byte(panels), &panelJson)
+	require.NoError(t, err)
 }
 
 func Test_GenerateTruncatedNoAgg(t *testing.T) {

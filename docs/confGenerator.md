@@ -22,6 +22,7 @@ Usage:
 Flags:
       --config string                     config file (default is $HOME/.confgen)
       --destConfFile string               destination configuration file (default "/tmp/flowlogs-pipeline.conf.yaml")
+      --destDashboardFolder string        destination grafana dashboard folder (default "/tmp/dashboards")
       --destDocFile string                destination documentation file (.md) (default "/tmp/metrics.md")
       --destGrafanaJsonnetFolder string   destination grafana jsonnet folder (default "/tmp/jsonnet")
       --generateStages strings            Produce only specified stages (ingest, transform_generic, transform_network, extract_aggregate, encode_prom, write_loki
@@ -46,6 +47,8 @@ flowlogs-pipeline pipeline steps and visualization configuration
 
 > Note: It is possible to activate `ConfGenrator` with the default flowlogs-pipeline configuration using the command `make generate-configuration`. 
 > This command compiles the code and generates default outputs.
+
+> Note: `Confgenerator` uses grafana libraries taken from `github.com/grafana/grafonnet-lib`, (commit 30280196507e0fe6fa978a3e0eaca3a62844f817).
 
 ## How to write a network definitions
 

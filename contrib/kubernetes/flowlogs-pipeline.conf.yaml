@@ -42,6 +42,7 @@ parameters:
         output: proto
       - input: Bytes
         output: bytes
+        multiplier: 1
       - input: TCPFlags
         output: TCPFlags
       - input: SrcAS
@@ -50,6 +51,7 @@ parameters:
         output: dstAS
       - input: Packets
         output: packets
+        multiplier: 1
       - input: TimeReceived
         output: timeReceived
 - name: extract_conntrack
@@ -443,7 +445,6 @@ parameters:
         - service
         - _RecordType
         buckets: []
-      address: 0.0.0.0
       port: 9102
       prefix: flp_
 - name: write_loki
@@ -453,3 +454,4 @@ parameters:
       url: http://loki.default.svc.cluster.local:3100
       staticLabels:
         job: flowlogs-pipeline
+

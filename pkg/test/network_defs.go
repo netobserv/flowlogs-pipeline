@@ -95,7 +95,7 @@ visualization:
   grafana:
   - expr: 'test expression'
     type: graphPanel
-    dashboard: test
+    dashboard: details
     title:
       Test grafana title
 `
@@ -159,7 +159,7 @@ visualization:
   grafana:
   - expr: 'test expression'
     type: graphPanel
-    dashboard: test
+    dashboard: details
     title:
       Test grafana title
 `

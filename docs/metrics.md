@@ -36,6 +36,18 @@ and the transformation to generate the exported metric.
 |||  
 
 
+### bandwidth per src subnet
+| **Description** | This metric observes the network bandwidth per source subnet | 
+|:---|:---|
+| **Details** | Sum bytes for all traffic per source subnet | 
+| **Usage** | Evaluate network usage breakdown per source subnet | 
+| **Tags** | bandwidth, graph, rate, subnet |
+| **OperationType** | aggregate by `srcSubnet, _RecordType` and `sum` field `bytes` |
+| **Exposed as** | `flp_bandwidth_per_source_subnet` of type `gauge` |
+| **Visualized as** | "Bandwidth per source subnet" on dashboard `details` |
+|||  
+
+
 ### connection length histogram
 | **Description** | A histogram of connection size in bytes | 
 |:---|:---|

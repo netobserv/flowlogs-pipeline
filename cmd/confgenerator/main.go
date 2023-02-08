@@ -133,6 +133,7 @@ func initFlags() {
 	rootCmd.PersistentFlags().StringVar(&opts.DestConfFile, "destConfFile", "/tmp/flowlogs-pipeline.conf.yaml", "destination configuration file")
 	rootCmd.PersistentFlags().StringVar(&opts.DestDocFile, "destDocFile", "/tmp/metrics.md", "destination documentation file (.md)")
 	rootCmd.PersistentFlags().StringVar(&opts.DestGrafanaJsonnetFolder, "destGrafanaJsonnetFolder", "/tmp/jsonnet", "destination grafana jsonnet folder")
+	rootCmd.PersistentFlags().StringVar(&opts.DestDashboardFolder, "destDashboardFolder", "/tmp/dashboards", "destination grafana dashboard folder")
 	rootCmd.PersistentFlags().StringSliceVar(&opts.SkipWithTags, "skipWithTags", nil, "Skip definitions with Tags")
 	rootCmd.PersistentFlags().StringSliceVar(&opts.GenerateStages, "generateStages", nil, "Produce only specified stages (ingest, transform_generic, transform_network, extract_aggregate, encode_prom, write_loki")
 	rootCmd.PersistentFlags().StringVar(&opts.GlobalMetricsPrefix, "globalMetricsPrefix", "", "Common prefix for all generated metrics, including operational ones")

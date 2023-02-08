@@ -864,7 +864,6 @@ General
 Develop  
   lint                  Lint the code  
   build                 Build flowlogs-pipeline executable and update the docs  
-  dashboards            Build grafana dashboards  
   docs                  Update flowlogs-pipeline documentation  
   clean                 Clean  
   tests-unit            Unit tests  
