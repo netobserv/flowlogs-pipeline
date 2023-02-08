@@ -105,7 +105,7 @@ var table = []struct {
 	},
 }
 
-func BenchmarkIsMatchSelectorGeneric(b *testing.B) {
+func BenchmarkIsMatchSelector(b *testing.B) {
 	for _, tt := range table {
 		b.Run(tt.name, func(bb *testing.B) {
 			var r bool
@@ -124,7 +124,7 @@ func BenchmarkIsMatchSelectorGeneric(b *testing.B) {
 	}
 }
 
-func TestIsMatchSelectorGeneric(t *testing.T) {
+func TestIsMatchSelector(t *testing.T) {
 	for _, test := range table {
 		t.Run(test.name, func(tt *testing.T) {
 			actual := conn.isMatchSelector(test.selector)
