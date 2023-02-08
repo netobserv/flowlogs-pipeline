@@ -70,26 +70,26 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 			if (ct.config.MaxConnectionsTracked > 0) && (ct.config.MaxConnectionsTracked <= ct.connStore.mom.Len()) {
 				log.Warningf("too many connections; skipping flow log %v: ", fl)
 				ct.metrics.inputRecords.WithLabelValues("discarded").Inc()
-				continue
-			}
-			builder := NewConnBuilder()
-			conn = builder.
-				Hash(computedHash).
-				KeysFrom(fl, ct.config.KeyDefinition).
-				Aggregators(ct.aggregators).
-				NextUpdateReportTime(ct.clock.Now().Add(ct.config.UpdateConnectionInterval.Duration)).
-				Build()
-			ct.connStore.addConnection(computedHash.hashTotal, conn)
-			ct.updateConnection(conn, fl, computedHash)
-			ct.metrics.inputRecords.WithLabelValues("newConnection").Inc()
-			if ct.shouldOutputNewConnection {
-				record := conn.toGenericMap()
-				addHashField(record, computedHash.hashTotal)
-				addTypeField(record, api.ConnTrackOutputRecordTypeName("NewConnection"))
-				isFirst := conn.markReported()
-				addIsFirstField(record, isFirst)
-				outputRecords = append(outputRecords, record)
-				ct.metrics.outputRecords.WithLabelValues("newConnection").Inc()
+			} else {
+				builder := NewConnBuilder()
+				conn = builder.
+					Hash(computedHash).
+					KeysFrom(fl, ct.config.KeyDefinition).
+					Aggregators(ct.aggregators).
+					NextUpdateReportTime(ct.clock.Now().Add(ct.config.UpdateConnectionInterval.Duration)).
+					Build()
+				ct.connStore.addConnection(computedHash.hashTotal, conn)
+				ct.updateConnection(conn, fl, computedHash)
+				ct.metrics.inputRecords.WithLabelValues("newConnection").Inc()
+				if ct.shouldOutputNewConnection {
+					record := conn.toGenericMap()
+					addHashField(record, computedHash.hashTotal)
+					addTypeField(record, api.ConnTrackOutputRecordTypeName("NewConnection"))
+					isFirst := conn.markReported()
+					addIsFirstField(record, isFirst)
+					outputRecords = append(outputRecords, record)
+					ct.metrics.outputRecords.WithLabelValues("newConnection").Inc()
+				}
 			}
 		} else {
 			ct.updateConnection(conn, fl, computedHash)

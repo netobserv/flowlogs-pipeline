@@ -34,7 +34,7 @@ type ConnTrack struct {
 	OutputFields             []OutputField `yaml:"outputFields,omitempty" doc:"list of output fields"`
 	EndConnectionTimeout     Duration      `yaml:"endConnectionTimeout,omitempty" doc:"duration of time to wait from the last flow log to end a connection"`
 	UpdateConnectionInterval Duration      `yaml:"updateConnectionInterval,omitempty" doc:"duration of time to wait between update reports of a connection"`
-	MaxConnectionsTracked    int           `yaml:"maxConnectionsTracked,omitempty" doc:"maximum number of connections we keep in our cache (to limit memory usage)"`
+	MaxConnectionsTracked    int           `yaml:"maxConnectionsTracked,omitempty" doc:"maximum number of connections we keep in our cache (0 means no limit)"`
 }
 
 type ConnTrackOutputRecordTypeEnum struct {

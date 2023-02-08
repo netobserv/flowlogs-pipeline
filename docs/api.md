@@ -233,7 +233,7 @@ Following is the supported API format for specifying connection tracking:
                  input: The input field to base the operation on. When omitted, 'name' is used
          endConnectionTimeout: duration of time to wait from the last flow log to end a connection
          updateConnectionInterval: duration of time to wait between update reports of a connection
-         maxConnectionsTracked: maximum number of connections we keep in our cache (to limit memory usage)
+         maxConnectionsTracked: maximum number of connections we keep in our cache (0 means no limit)
 </pre>
 ## Time-based Filters API
 Following is the supported API format for specifying metrics time-based filters:
