@@ -237,3 +237,27 @@ func TestConnTrackValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestGetABFields(t *testing.T) {
+	fieldsA := []string{"SrcIP", "SrcPort"}
+	fieldsB := []string{"DstIP", "DstPort"}
+	conf := ConnTrack{
+		Scheduling: []ConnTrackSchedulingGroup{{Selector: map[string]interface{}{}}},
+		KeyDefinition: KeyDefinition{
+			FieldGroups: []FieldGroup{
+				{Name: "src", Fields: fieldsA},
+				{Name: "dst", Fields: fieldsB},
+			},
+			Hash: ConnTrackHash{
+				FieldGroupARef: "src",
+				FieldGroupBRef: "dst",
+			},
+		},
+	}
+
+	require.NoError(t, conf.Validate())
+
+	actualA, actualB := conf.GetABFields()
+	require.Equal(t, fieldsA, actualA)
+	require.Equal(t, fieldsB, actualB)
+}

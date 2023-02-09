@@ -211,7 +211,27 @@ func (ct *ConnTrack) Validate() error {
 		return conntrackInvalidError{emptyTCPFlagsField: true,
 			msg: fmt.Errorf("TCPFlags.FieldName is empty although DetectEndConnection or CorrectDirection are enabled")}
 	}
+	if ct.TCPFlags.CorrectDirection && !isBidi {
+		return conntrackInvalidError{correctDirectionWithNoBidi: true,
+			msg: fmt.Errorf("CorrectDirection is enabled although bidirection is not enabled (fieldGroupARef is empty)")}
+	}
 	return nil
+}
+
+func (ct *ConnTrack) GetABFields() ([]string, []string) {
+	endpointAFieldGroupName := ct.KeyDefinition.Hash.FieldGroupARef
+	endpointBFieldGroupName := ct.KeyDefinition.Hash.FieldGroupBRef
+	var endpointAFields []string
+	var endpointBFields []string
+	for _, fg := range ct.KeyDefinition.FieldGroups {
+		if fg.Name == endpointAFieldGroupName {
+			endpointAFields = fg.Fields
+		}
+		if fg.Name == endpointBFieldGroupName {
+			endpointBFields = fg.Fields
+		}
+	}
+	return endpointAFields, endpointBFields
 }
 
 // addToSet adds an item to a set and returns true if it's a new item. Otherwise, it returns false.
@@ -250,20 +270,21 @@ func isOutputRecordTypeValid(value string) bool {
 }
 
 type conntrackInvalidError struct {
-	msg                       error
-	fieldGroupABOnlyOneIsSet  bool
-	splitABWithNoBidi         bool
-	unknownOperation          bool
-	duplicateFieldGroup       bool
-	duplicateOutputFieldNames bool
-	undefinedFieldGroupARef   bool
-	undefinedFieldGroupBRef   bool
-	undefinedFieldGroupRef    bool
-	unknownOutputRecord       bool
-	undefinedSelectorKey      bool
-	defaultGroupAndNotLast    bool
-	exactlyOneDefaultSelector bool
-	emptyTCPFlagsField        bool
+	msg                        error
+	fieldGroupABOnlyOneIsSet   bool
+	splitABWithNoBidi          bool
+	unknownOperation           bool
+	duplicateFieldGroup        bool
+	duplicateOutputFieldNames  bool
+	undefinedFieldGroupARef    bool
+	undefinedFieldGroupBRef    bool
+	undefinedFieldGroupRef     bool
+	unknownOutputRecord        bool
+	undefinedSelectorKey       bool
+	defaultGroupAndNotLast     bool
+	exactlyOneDefaultSelector  bool
+	correctDirectionWithNoBidi bool
+	emptyTCPFlagsField         bool
 }
 
 func (err conntrackInvalidError) Error() string {

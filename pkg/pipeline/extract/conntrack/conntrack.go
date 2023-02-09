@@ -43,16 +43,17 @@ const (
 )
 
 type conntrackImpl struct {
-	clock                     clock.Clock
-	config                    *api.ConnTrack
-	hashProvider              func() hash.Hash64
-	connStore                 *connectionStore
-	aggregators               []aggregator
-	shouldOutputFlowLogs      bool
-	shouldOutputNewConnection bool
-	shouldOutputEndConnection bool
-	shouldOutputHeartbeats    bool
-	metrics                   *metricsType
+	clock                            clock.Clock
+	config                           *api.ConnTrack
+	endpointAFields, endpointBFields []string
+	hashProvider                     func() hash.Hash64
+	connStore                        *connectionStore
+	aggregators                      []aggregator
+	shouldOutputFlowLogs             bool
+	shouldOutputNewConnection        bool
+	shouldOutputEndConnection        bool
+	shouldOutputHeartbeats           bool
+	metrics                          *metricsType
 }
 
 func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericMap {
@@ -75,7 +76,8 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				builder := NewConnBuilder()
 				conn = builder.
 					Hash(computedHash).
-					KeysFrom(fl, ct.config.KeyDefinition).
+					ShouldSwapAB(ct.shouldCorrectDirection(fl)).
+					KeysFrom(fl, ct.config.KeyDefinition, ct.endpointAFields, ct.endpointBFields).
 					Aggregators(ct.aggregators).
 					Build()
 				ct.connStore.addConnection(computedHash.hashTotal, conn)
@@ -175,6 +177,14 @@ func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.Generi
 }
 
 func (ct *conntrackImpl) isLastFlowLogOfConnection(flowLog config.GenericMap) bool {
+	return ct.containsTcpFlag(flowLog, FIN_ACK_FLAG)
+}
+
+func (ct *conntrackImpl) shouldCorrectDirection(flowLog config.GenericMap) bool {
+	return ct.containsTcpFlag(flowLog, SYN_ACK_FLAG)
+}
+
+func (ct *conntrackImpl) containsTcpFlag(flowLog config.GenericMap, tcpFlag uint32) bool {
 	tcpFlagsRaw, ok := flowLog[ct.config.TCPFlags.FieldName]
 	if ok {
 		tcpFlags, err := utils.ConvertToUint32(tcpFlagsRaw)
@@ -182,8 +192,8 @@ func (ct *conntrackImpl) isLastFlowLogOfConnection(flowLog config.GenericMap) bo
 			log.Warningf("cannot convert TCP flag %q to uint32: %v", tcpFlagsRaw, err)
 			return false
 		}
-		containsFinAck := tcpFlags&FIN_ACK_FLAG == FIN_ACK_FLAG
-		if containsFinAck {
+		containsFlag := tcpFlags&tcpFlag == tcpFlag
+		if containsFlag {
 			return true
 		}
 	}
@@ -239,11 +249,14 @@ func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam
 		}
 	}
 
+	endpointAFields, endpointBFields := cfg.GetABFields()
 	metrics := newMetrics(opMetrics)
 	conntrack := &conntrackImpl{
 		clock:                     clock,
 		connStore:                 newConnectionStore(cfg.Scheduling, metrics, clock.Now),
 		config:                    cfg,
+		endpointAFields:           endpointAFields,
+		endpointBFields:           endpointBFields,
 		hashProvider:              fnv.New64a,
 		aggregators:               aggregators,
 		shouldOutputFlowLogs:      shouldOutputFlowLogs,

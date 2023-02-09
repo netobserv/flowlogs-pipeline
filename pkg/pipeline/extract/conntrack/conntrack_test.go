@@ -1036,3 +1036,57 @@ func TestDetectEndConnection(t *testing.T) {
 		})
 	}
 }
+
+func TestCorrectDirection(t *testing.T) {
+	test.ResetPromRegistry()
+	clk := clock.NewMock()
+	defaultUpdateConnectionInterval := 30 * time.Second
+	defaultEndConnectionTimeout := 10 * time.Second
+	conf := buildMockConnTrackConfig(true, []string{"newConnection", "endConnection"},
+		defaultUpdateConnectionInterval, defaultEndConnectionTimeout)
+	tcpFlagsFieldName := "TCPFlags"
+	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{
+		FieldName:           tcpFlagsFieldName,
+		DetectEndConnection: true,
+	}
+	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
+	require.NoError(t, err)
+
+	ipA := "10.0.0.1"
+	ipB := "10.0.0.2"
+	portA := 9001
+	portB := 9002
+	protocolTCP := 6
+	hashIdTCP := "705baa5149302fa1"
+	flTCP1 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, 111, 11)
+	flTCP1[tcpFlagsFieldName] = SYN_ACK_FLAG
+
+	startTime := clk.Now()
+	table := []struct {
+		name          string
+		time          time.Time
+		inputFlowLogs []config.GenericMap
+		expected      []config.GenericMap
+	}{
+		{
+			"new connection (A and B are swapped)",
+			startTime.Add(0 * time.Second),
+			[]config.GenericMap{flTCP1},
+			[]config.GenericMap{
+				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocolTCP, 111, 0, 11, 0, 1).withHash(hashIdTCP).markFirst().get(),
+			},
+		},
+	}
+
+	var prevTime time.Time
+	for _, tt := range table {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
+			assertStoreConsistency(t, ct)
+		})
+	}
+}

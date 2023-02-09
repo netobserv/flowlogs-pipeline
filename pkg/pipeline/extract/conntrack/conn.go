@@ -163,7 +163,8 @@ func (c *connType) isMatchSelector(selector map[string]interface{}) bool {
 }
 
 type connBuilder struct {
-	conn *connType
+	conn         *connType
+	shouldSwapAB bool
 }
 
 func NewConnBuilder() *connBuilder {
@@ -181,10 +182,23 @@ func (cb *connBuilder) Hash(h totalHashType) *connBuilder {
 	return cb
 }
 
-func (cb *connBuilder) KeysFrom(flowLog config.GenericMap, kd api.KeyDefinition) *connBuilder {
+func (cb *connBuilder) ShouldSwapAB(b bool) *connBuilder {
+	cb.shouldSwapAB = b
+	return cb
+}
+
+func (cb *connBuilder) KeysFrom(flowLog config.GenericMap, kd api.KeyDefinition, endpointAFields, endpointBFields []string) *connBuilder {
 	for _, fg := range kd.FieldGroups {
 		for _, f := range fg.Fields {
 			cb.conn.keys[f] = flowLog[f]
+		}
+	}
+	if cb.shouldSwapAB {
+		for i, _ := range endpointAFields {
+			fieldA := endpointAFields[i]
+			fieldB := endpointBFields[i]
+			cb.conn.keys[fieldA] = flowLog[fieldB]
+			cb.conn.keys[fieldB] = flowLog[fieldA]
 		}
 	}
 	return cb
