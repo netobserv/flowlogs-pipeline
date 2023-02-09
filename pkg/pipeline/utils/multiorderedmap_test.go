@@ -80,6 +80,8 @@ func TestMultiOrderedMap_MoveToBack(t *testing.T) {
 	mustAddRecord(t, mom, 6, "ddd")
 	mustAddRecord(t, mom, 7, "b")
 	mustAddRecord(t, mom, 8, "cc")
+	assertOrder(t, mom, lengthOrder, []string{"aaaa", "ddd", "b", "cc"})
+	assertOrder(t, mom, lexicalOrder, []string{"aaaa", "ddd", "b", "cc"})
 
 	err := mom.MoveToBack(7, lengthOrder)
 	require.NoError(t, err)
@@ -93,6 +95,34 @@ func TestMultiOrderedMap_MoveToBack(t *testing.T) {
 	err = mom.MoveToBack(0, lengthOrder)
 	require.Error(t, err)
 	err = mom.MoveToBack(5, "ERROR")
+	require.Error(t, err)
+	assertLengthConsistency(t, mom)
+}
+
+func TestMultiOrderedMap_MoveToFront(t *testing.T) {
+	lengthOrder := OrderID("length")
+	lexicalOrder := OrderID("lexical")
+	mom := NewMultiOrderedMap(lengthOrder, lexicalOrder)
+
+	mustAddRecord(t, mom, 5, "bbb")
+	mustAddRecord(t, mom, 6, "aa")
+	mustAddRecord(t, mom, 7, "cccc")
+	mustAddRecord(t, mom, 8, "d")
+	assertOrder(t, mom, lengthOrder, []string{"bbb", "aa", "cccc", "d"})
+	assertOrder(t, mom, lexicalOrder, []string{"bbb", "aa", "cccc", "d"})
+
+	err := mom.MoveToFront(7, lengthOrder)
+	require.NoError(t, err)
+	err = mom.MoveToFront(6, lexicalOrder)
+	require.NoError(t, err)
+
+	assertOrder(t, mom, lengthOrder, []string{"cccc", "bbb", "aa", "d"})
+	assertOrder(t, mom, lexicalOrder, []string{"aa", "bbb", "cccc", "d"})
+
+	// Test invalid args
+	err = mom.MoveToFront(0, lengthOrder)
+	require.Error(t, err)
+	err = mom.MoveToFront(5, "ERROR")
 	require.Error(t, err)
 	assertLengthConsistency(t, mom)
 }

@@ -113,7 +113,6 @@ func (mom MultiOrderedMap) MoveToBack(key Key, orderID OrderID) error {
 
 // MoveToFront moves the record of key `key` to the front of orderID. If the key or the orderID doesn't exist, an error
 // is returned.
-// TODO: Add tests
 func (mom MultiOrderedMap) MoveToFront(key Key, orderID OrderID) error {
 	rw, found := mom.m[key]
 	if !found {
