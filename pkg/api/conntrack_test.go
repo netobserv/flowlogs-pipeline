@@ -212,6 +212,22 @@ func TestConnTrackValidate(t *testing.T) {
 			},
 			conntrackInvalidError{defaultGroupAndNotLast: true},
 		},
+		{
+			"Empty TCPFlags field name 1",
+			ConnTrack{
+				Scheduling: []ConnTrackSchedulingGroup{{Selector: map[string]interface{}{}}},
+				TCPFlags:   ConnTrackTCPFlags{DetectEndConnection: true},
+			},
+			conntrackInvalidError{emptyTCPFlagsField: true},
+		},
+		{
+			"Empty TCPFlags field name 2",
+			ConnTrack{
+				Scheduling: []ConnTrackSchedulingGroup{{Selector: map[string]interface{}{}}},
+				TCPFlags:   ConnTrackTCPFlags{CorrectDirection: true},
+			},
+			conntrackInvalidError{emptyTCPFlagsField: true},
+		},
 	}
 
 	for _, tt := range tests {

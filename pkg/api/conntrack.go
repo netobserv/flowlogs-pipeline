@@ -207,7 +207,10 @@ func (ct *ConnTrack) Validate() error {
 			msg: fmt.Errorf("found %v default selectors. There should be exactly 1", numOfDefault)}
 	}
 
-	// TODO: Check that CorrectDirection is True only when bidi is enabled
+	if len(ct.TCPFlags.FieldName) == 0 && (ct.TCPFlags.DetectEndConnection || ct.TCPFlags.CorrectDirection) {
+		return conntrackInvalidError{emptyTCPFlagsField: true,
+			msg: fmt.Errorf("TCPFlags.FieldName is empty although DetectEndConnection or CorrectDirection are enabled")}
+	}
 	return nil
 }
 
@@ -260,6 +263,7 @@ type conntrackInvalidError struct {
 	undefinedSelectorKey      bool
 	defaultGroupAndNotLast    bool
 	exactlyOneDefaultSelector bool
+	emptyTCPFlagsField        bool
 }
 
 func (err conntrackInvalidError) Error() string {
