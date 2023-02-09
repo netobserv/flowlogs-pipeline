@@ -727,10 +727,10 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 func TestScheduling(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
-	defaultUpdateConnectionInterval := 20 * time.Second
+	defaultHeartbeatInterval := 20 * time.Second
 	defaultEndConnectionTimeout := 15 * time.Second
 	conf := buildMockConnTrackConfig(true, []string{"heartbeat", "endConnection"},
-		defaultUpdateConnectionInterval, defaultEndConnectionTimeout)
+		defaultHeartbeatInterval, defaultEndConnectionTimeout)
 	// Insert a scheduling group before the default group.
 	// https://github.com/golang/go/wiki/SliceTricks#push-frontunshift
 	conf.Extract.ConnTrack.Scheduling = append(
@@ -887,9 +887,9 @@ func TestMaxConnections(t *testing.T) {
 	test.ResetPromRegistry()
 	maxConnections := 23
 	clk := clock.NewMock()
-	updateConnectionInterval := 10 * time.Second
+	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
-	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"}, updateConnectionInterval, endConnectionTimeout)
+	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"}, heartbeatInterval, endConnectionTimeout)
 	conf.Extract.ConnTrack.MaxConnectionsTracked = maxConnections
 	extract, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
