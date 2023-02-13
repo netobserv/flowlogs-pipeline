@@ -66,6 +66,7 @@ const graphPanelTemplate = `
   .addTarget(
     prometheus.target(
       expr='{{.Expr}}',
+      legendFormat='{{.Legend}}',
     )
   ), gridPos={
     x: 0,
@@ -84,6 +85,7 @@ const singleStatTemplate = `
   .addTarget(
     prometheus.target(
       expr='{{.Expr}}',
+      legendFormat='{{.Legend}}',
     )
   ), gridPos={
     x: 0,
@@ -110,7 +112,7 @@ const barGaugeTemplate = `
     prometheus.target(
       expr='{{.Expr}}',
       format='heatmap',
-      legendFormat='` + "{{`{{le}}`}}" + `',
+      legendFormat='{{.Legend}}',
     )
   ), gridPos={
     x: 0,
@@ -132,7 +134,7 @@ const heatmapTemplate = `
     prometheus.target(
       expr='{{.Expr}}',
       format='heatmap',
-      legendFormat='` + "{{`{{le}}`}}" + `',
+      legendFormat='{{.Legend}}',
     )
   ), gridPos={
     x: 0,
@@ -151,6 +153,7 @@ const lokiGraphPanelTemplate = `
   .addTarget(
     prometheus.target(
       expr='{{.Expr}}',
+      legendFormat='{{.Legend}}',
     )
   ), gridPos={
     x: 0,
