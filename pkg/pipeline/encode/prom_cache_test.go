@@ -18,6 +18,7 @@ package encode
 
 import (
 	"testing"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
@@ -25,7 +26,7 @@ import (
 )
 
 var (
-	yamlConfig1 = `
+	yamlConfigMax1Metric = `
 pipeline:
  - name: encode
 parameters:
@@ -45,7 +46,7 @@ parameters:
              - SrcAddr
 `
 
-	yamlConfig2 = `
+	yamlConfigMax2Metrics = `
 pipeline:
  - name: encode
 parameters:
@@ -70,7 +71,7 @@ parameters:
              - SrcAddr
 `
 
-	yamlConfig3 = `
+	yamlConfigNoMax = `
 pipeline:
  - name: encode
 parameters:
@@ -103,10 +104,10 @@ func encodeEntries(promEncode *EncodeProm, entries []config.GenericMap) {
 
 // Test_Prom_Cache tests the integration between encode_prom and timebased_cache.
 // Set a cache size, create many prom metrics, and verify that they interact properly.
-func Test_Prom_Cache1(t *testing.T) {
+func Test_PromCacheMax1Metric(t *testing.T) {
 	var entries []config.GenericMap
 
-	v, cfg := test.InitConfig(t, yamlConfig1)
+	v, cfg := test.InitConfig(t, yamlConfigMax1Metric)
 	require.NotNil(t, v)
 
 	promEncode, cleanup, err := initPromWithServer(cfg.Parameters[0].Encode.Prom)
@@ -122,12 +123,15 @@ func Test_Prom_Cache1(t *testing.T) {
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 30, promEncode.mCache.GetCacheLen())
+
+	time.Sleep(100 * time.Millisecond)
+	test.ReadExposedMetrics(t)
 }
 
-func Test_Prom_Cache2(t *testing.T) {
+func Test_PromCacheMax2Metrics(t *testing.T) {
 	var entries []config.GenericMap
 
-	v, cfg := test.InitConfig(t, yamlConfig2)
+	v, cfg := test.InitConfig(t, yamlConfigMax2Metrics)
 	require.NotNil(t, v)
 
 	promEncode, cleanup, err := initPromWithServer(cfg.Parameters[0].Encode.Prom)
@@ -143,12 +147,15 @@ func Test_Prom_Cache2(t *testing.T) {
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 30, promEncode.mCache.GetCacheLen())
+
+	time.Sleep(100 * time.Millisecond)
+	test.ReadExposedMetrics(t)
 }
 
-func Test_Prom_Cache3(t *testing.T) {
+func Test_PromCacheNoMax(t *testing.T) {
 	var entries []config.GenericMap
 
-	v, cfg := test.InitConfig(t, yamlConfig3)
+	v, cfg := test.InitConfig(t, yamlConfigNoMax)
 	require.NotNil(t, v)
 
 	promEncode, cleanup, err := initPromWithServer(cfg.Parameters[0].Encode.Prom)
@@ -164,4 +171,7 @@ func Test_Prom_Cache3(t *testing.T) {
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 80, promEncode.mCache.GetCacheLen())
+
+	time.Sleep(100 * time.Millisecond)
+	test.ReadExposedMetrics(t)
 }
