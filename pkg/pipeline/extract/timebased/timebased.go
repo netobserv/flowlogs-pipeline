@@ -83,6 +83,7 @@ func CreateIndexKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*Ind
 		switch filterRule.OperationType {
 		case api.FilterOperationName("FilterOperationLast"),
 			api.FilterOperationName("FilterOperationDiff"),
+			api.FilterOperationName("FilterOperationCnt"),
 			api.FilterOperationName("FilterOperationAvg"),
 			api.FilterOperationName("FilterOperationMax"),
 			api.FilterOperationName("FilterOperationMin"),

@@ -164,6 +164,23 @@ parameters:
             timeInterval: 10s
 `
 
+var yamlConfig7 = `
+pipeline:
+  - name: extract7
+parameters:
+  - name: extract7
+    extract:
+      type: timebased
+      timebased:
+        rules:
+          - name: Count_Flows
+            operationType: count
+            operationKey: Bytes
+            indexKey: SrcAddr
+            topK: 5
+            timeInterval: 10s
+`
+
 func initTimebased(t *testing.T, yamlConfig string) *ExtractTimebased {
 	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
@@ -358,6 +375,55 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 			"operation":        "sum",
 			"operation_key":    "Bytes",
 			"operation_result": float64(1000),
+			"index_key":        "SrcAddr",
+			"SrcAddr":          "10.0.0.4",
+		},
+	}
+	for _, configMap := range expectedOutput {
+		require.Contains(t, output, configMap)
+	}
+}
+
+func Test_ExtractTimebasedExtract7(t *testing.T) {
+	tb := initTimebased(t, yamlConfig7)
+	require.NotNil(t, tb)
+	entries := test.GetExtractMockEntries2()
+	output := tb.Extract(entries)
+	require.Equal(t, 4, len(output))
+	expectedOutput := []config.GenericMap{
+		{
+			"key":              "10.0.0.1",
+			"name":             "Count_Flows",
+			"operation":        "count",
+			"operation_key":    "Bytes",
+			"operation_result": float64(3),
+			"index_key":        "SrcAddr",
+			"SrcAddr":          "10.0.0.1",
+		},
+		{
+			"key":              "10.0.0.2",
+			"name":             "Count_Flows",
+			"operation":        "count",
+			"operation_key":    "Bytes",
+			"operation_result": float64(3),
+			"index_key":        "SrcAddr",
+			"SrcAddr":          "10.0.0.2",
+		},
+		{
+			"key":              "10.0.0.3",
+			"name":             "Count_Flows",
+			"operation":        "count",
+			"operation_key":    "Bytes",
+			"operation_result": float64(3),
+			"index_key":        "SrcAddr",
+			"SrcAddr":          "10.0.0.3",
+		},
+		{
+			"key":              "10.0.0.4",
+			"name":             "Count_Flows",
+			"operation":        "count",
+			"operation_key":    "Bytes",
+			"operation_result": float64(1),
 			"index_key":        "SrcAddr",
 			"SrcAddr":          "10.0.0.4",
 		},
