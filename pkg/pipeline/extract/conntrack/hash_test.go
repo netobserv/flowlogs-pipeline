@@ -70,32 +70,32 @@ func TestComputeHash_Unidirectional(t *testing.T) {
 	}{
 		{
 			"Same IP, port and protocol",
-			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22),
-			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 222, 11),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22, false),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 222, 11, false),
 			true,
 		},
 		{
 			"Alternating ip+port",
-			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22),
-			newMockFlowLog(ipB, portB, ipA, portA, protocolA, 222, 11),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22, false),
+			newMockFlowLog(ipB, portB, ipA, portA, protocolA, 222, 11, false),
 			false,
 		},
 		{
 			"Alternating ip",
-			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22),
-			newMockFlowLog(ipB, portA, ipA, portB, protocolA, 222, 11),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22, false),
+			newMockFlowLog(ipB, portA, ipA, portB, protocolA, 222, 11, false),
 			false,
 		},
 		{
 			"Alternating port",
-			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22),
-			newMockFlowLog(ipA, portB, ipB, portA, protocolA, 222, 11),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22, false),
+			newMockFlowLog(ipA, portB, ipB, portA, protocolA, 222, 11, false),
 			false,
 		},
 		{
 			"Same IP+port, different protocol",
-			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22),
-			newMockFlowLog(ipA, portA, ipB, portB, protocolB, 222, 11),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22, false),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolB, 222, 11, false),
 			false,
 		},
 	}
@@ -158,32 +158,32 @@ func TestComputeHash_Bidirectional(t *testing.T) {
 	}{
 		{
 			"Same IP, port and protocol",
-			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22),
-			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 222, 11),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22, false),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 222, 11, false),
 			true,
 		},
 		{
 			"Alternating ip+port",
-			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22),
-			newMockFlowLog(ipB, portB, ipA, portA, protocolA, 222, 11),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22, false),
+			newMockFlowLog(ipB, portB, ipA, portA, protocolA, 222, 11, false),
 			true,
 		},
 		{
 			"Alternating ip",
-			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22),
-			newMockFlowLog(ipB, portA, ipA, portB, protocolA, 222, 11),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22, false),
+			newMockFlowLog(ipB, portA, ipA, portB, protocolA, 222, 11, false),
 			false,
 		},
 		{
 			"Alternating port",
-			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22),
-			newMockFlowLog(ipA, portB, ipB, portA, protocolA, 222, 11),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22, false),
+			newMockFlowLog(ipA, portB, ipB, portA, protocolA, 222, 11, false),
 			false,
 		},
 		{
 			"Same IP+port, different protocol",
-			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22),
-			newMockFlowLog(ipA, portA, ipB, portB, protocolB, 222, 11),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22, false),
+			newMockFlowLog(ipA, portA, ipB, portB, protocolB, 222, 11, false),
 			false,
 		},
 	}
@@ -224,7 +224,7 @@ func TestComputeHash_MissingField(t *testing.T) {
 	portB := 9002
 	protocolA := 6
 
-	fl := newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22)
+	fl := newMockFlowLog(ipA, portA, ipB, portB, protocolA, 111, 22, false)
 
 	h, err := ComputeHash(fl, keyDefinition, testHasher)
 	require.NoError(t, err)

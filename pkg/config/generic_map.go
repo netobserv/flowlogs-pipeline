@@ -29,3 +29,12 @@ func (m GenericMap) Copy() GenericMap {
 
 	return result
 }
+
+func (m GenericMap) IsDuplicate() bool {
+	if duplicate, hasKey := m["Duplicate"]; hasKey {
+		if isDuplicate, ok := duplicate.(bool); ok && isDuplicate {
+			return true
+		}
+	}
+	return false
+}
