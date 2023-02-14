@@ -34,24 +34,24 @@ type connection interface {
 	updateAggValue(fieldName string, newValueFn func(curr float64) float64)
 	setExpiryTime(t time.Time)
 	getExpiryTime() time.Time
-	setNextUpdateReportTime(t time.Time)
-	getNextUpdateReportTime() time.Time
+	setNextHeartbeatTime(t time.Time)
+	getNextHeartbeatTime() time.Time
 	toGenericMap() config.GenericMap
 	getHash() totalHashType
 	// markReported marks the connection as has been reported. That is, at least one connection record has been emitted
-	// for this connection (i.e. newConnection, updateConnection, endConnection).
+	// for this connection (i.e. newConnection, heartbeat, endConnection).
 	// It returns true on the first invocation to indicate the first report. Otherwise, it returns false.
 	markReported() bool
 	isMatchSelector(map[string]interface{}) bool
 }
 
 type connType struct {
-	hash                 totalHashType
-	keys                 config.GenericMap
-	aggFields            map[string]float64
-	expiryTime           time.Time
-	nextUpdateReportTime time.Time
-	isReported           bool
+	hash              totalHashType
+	keys              config.GenericMap
+	aggFields         map[string]float64
+	expiryTime        time.Time
+	nextHeartbeatTime time.Time
+	isReported        bool
 }
 
 func (c *connType) addAgg(fieldName string, initValue float64) {
@@ -79,12 +79,12 @@ func (c *connType) getExpiryTime() time.Time {
 	return c.expiryTime
 }
 
-func (c *connType) setNextUpdateReportTime(t time.Time) {
-	c.nextUpdateReportTime = t
+func (c *connType) setNextHeartbeatTime(t time.Time) {
+	c.nextHeartbeatTime = t
 }
 
-func (c *connType) getNextUpdateReportTime() time.Time {
-	return c.nextUpdateReportTime
+func (c *connType) getNextHeartbeatTime() time.Time {
+	return c.nextHeartbeatTime
 }
 
 func (c *connType) toGenericMap() config.GenericMap {

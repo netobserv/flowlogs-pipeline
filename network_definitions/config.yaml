@@ -39,7 +39,7 @@ extract:
   conntrack:
     scheduling:
       - selector: {}
-        updateConnectionInterval: 30s
+        heartbeatInterval: 30s
         endConnectionTimeout: 10s
     outputRecordTypes:
       - newConnection

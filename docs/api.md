@@ -220,7 +220,7 @@ Following is the supported API format for specifying connection tracking:
          outputRecordTypes: (enum) output record types to emit
              newConnection: New connection
              endConnection: End connection
-             updateConnection: Update connection
+             heartbeat: Heartbeat
              flowLog: Flow log
          outputFields: list of output fields
                  name: output field name
@@ -234,7 +234,7 @@ Following is the supported API format for specifying connection tracking:
          scheduling: list of timeouts and intervals to apply per selector
                  selector: key-value map to match against connection fields to apply this scheduling
                  endConnectionTimeout: duration of time to wait from the last flow log to end a connection
-                 updateConnectionInterval: duration of time to wait between update reports of a connection
+                 heartbeatInterval: duration of time to wait between heartbeat reports of a connection
          maxConnectionsTracked: maximum number of connections we keep in our cache (0 means no limit)
 </pre>
 ## Time-based Filters API

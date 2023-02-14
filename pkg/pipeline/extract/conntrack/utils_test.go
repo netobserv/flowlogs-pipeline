@@ -81,9 +81,9 @@ func newMockRecordEndConnAB(srcIP string, srcPort int, dstIP string, dstPort int
 
 }
 
-func newMockRecordUpdateConnAB(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytesAB, bytesBA, packetsAB, packetsBA, numFlowLogs float64) *mockRecord {
+func newMockRecordHeartbeatAB(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytesAB, bytesBA, packetsAB, packetsBA, numFlowLogs float64) *mockRecord {
 	return newMockRecordConnAB(srcIP, srcPort, dstIP, dstPort, protocol, bytesAB, bytesBA, packetsAB, packetsBA, numFlowLogs).
-		withType("updateConnection")
+		withType("heartbeat")
 
 }
 
@@ -115,9 +115,9 @@ func newMockRecordEndConn(srcIP string, srcPort int, dstIP string, dstPort int, 
 		withType("endConnection")
 }
 
-func newMockRecordUpdateConn(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytes, packets, numFlowLogs float64) *mockRecord {
+func newMockRecordHeartbeat(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytes, packets, numFlowLogs float64) *mockRecord {
 	return newMockRecordConn(srcIP, srcPort, dstIP, dstPort, protocol, bytes, packets, numFlowLogs).
-		withType("updateConnection")
+		withType("heartbeat")
 }
 
 func (m *mockRecord) withHash(hashStr string) *mockRecord {

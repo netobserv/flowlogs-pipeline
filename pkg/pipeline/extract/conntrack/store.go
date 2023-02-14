@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	expiryOrder               = utils.OrderID("expiryOrder")
-	nextUpdateReportTimeOrder = utils.OrderID("nextUpdateReportTimeOrder")
+	expiryOrder            = utils.OrderID("expiryOrder")
+	nextHeartbeatTimeOrder = utils.OrderID("nextHeartbeatTimeOrder")
 )
 
 // connectionStore provides means to manage the connections such as retrieving a connection by its hash and organizing
@@ -108,7 +108,7 @@ func (cs *connectionStore) updateConnectionExpiryTime(hashId uint64) {
 	}
 }
 
-func (cs *connectionStore) updateNextReportTime(hashId uint64) {
+func (cs *connectionStore) updateNextHeartbeatTime(hashId uint64) {
 	conn, ok := cs.getConnection(hashId)
 	if !ok {
 		log.Panicf("BUG. connection hash %x doesn't exist", hashId)
@@ -116,13 +116,13 @@ func (cs *connectionStore) updateNextReportTime(hashId uint64) {
 	}
 	groupIdx := cs.hashId2groupIdx[hashId]
 	mom := cs.groups[groupIdx].mom
-	timeout := cs.groups[groupIdx].scheduling.UpdateConnectionInterval.Duration
-	newNextUpdateReportTime := cs.now().Add(timeout)
-	conn.setNextUpdateReportTime(newNextUpdateReportTime)
+	timeout := cs.groups[groupIdx].scheduling.HeartbeatInterval.Duration
+	newNextHeartbeatTime := cs.now().Add(timeout)
+	conn.setNextHeartbeatTime(newNextHeartbeatTime)
 	// Move to the back of the list
-	err := mom.MoveToBack(utils.Key(hashId), nextUpdateReportTimeOrder)
+	err := mom.MoveToBack(utils.Key(hashId), nextHeartbeatTimeOrder)
 	if err != nil {
-		log.Panicf("BUG. Can't next report time for hash %x: %v", hashId, err)
+		log.Panicf("BUG. Can't update next heartbeat time for hash %x: %v", hashId, err)
 		return
 	}
 }
@@ -153,18 +153,18 @@ func (cs *connectionStore) popEndConnections() []connection {
 	return poppedConnections
 }
 
-func (cs *connectionStore) prepareUpdateConnections() []connection {
+func (cs *connectionStore) prepareHeartbeats() []connection {
 	var connections []connection
 	// Iterate over the connections by scheduling groups.
-	// In each scheduling group iterate over them by their next update report time from old to new.
+	// In each scheduling group iterate over them by their next heartbeat time from old to new.
 	for _, group := range cs.groups {
-		group.mom.IterateFrontToBack(nextUpdateReportTimeOrder, func(r utils.Record) (shouldDelete, shouldStop bool) {
+		group.mom.IterateFrontToBack(nextHeartbeatTimeOrder, func(r utils.Record) (shouldDelete, shouldStop bool) {
 			conn := r.(connection)
-			nextUpdate := conn.getNextUpdateReportTime()
-			needToReport := cs.now().After(nextUpdate)
+			nextHeartbeat := conn.getNextHeartbeatTime()
+			needToReport := cs.now().After(nextHeartbeat)
 			if needToReport {
 				connections = append(connections, conn)
-				cs.updateNextReportTime(conn.getHash().hashTotal)
+				cs.updateNextHeartbeatTime(conn.getHash().hashTotal)
 				shouldDelete, shouldStop = false, false
 			} else {
 				shouldDelete, shouldStop = false, true
@@ -203,7 +203,7 @@ func newConnectionStore(scheduling []api.ConnTrackSchedulingGroup, metrics *metr
 	for groupIdx, sg := range scheduling {
 		groups[groupIdx] = &groupType{
 			scheduling: sg,
-			mom:        utils.NewMultiOrderedMap(expiryOrder, nextUpdateReportTimeOrder),
+			mom:        utils.NewMultiOrderedMap(expiryOrder, nextHeartbeatTimeOrder),
 			labelValue: schedulingGroupToLabelValue(groupIdx, sg),
 		}
 	}
