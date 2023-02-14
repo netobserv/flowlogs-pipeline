@@ -54,7 +54,7 @@ func GetMockTimebased1() ExtractTimebased {
 	return tb
 }
 
-var yamlConfig1 = `
+var yamlConfigTopAvg = `
 pipeline:
   - name: extract1
 parameters:
@@ -78,7 +78,7 @@ parameters:
             timeInterval: 15s
 `
 
-var yamlConfig2 = `
+var yamlConfigSum = `
 pipeline:
   - name: extract2
 parameters:
@@ -95,7 +95,7 @@ parameters:
             timeInterval: 10s
 `
 
-var yamlConfig3 = `
+var yamlConfigDiff = `
 pipeline:
   - name: extract3
 parameters:
@@ -113,7 +113,7 @@ parameters:
             timeInterval: 10s
 `
 
-var yamlConfig4 = `
+var yamlConfigMax = `
 pipeline:
   - name: extract4
 parameters:
@@ -130,7 +130,7 @@ parameters:
             timeInterval: 10s
 `
 
-var yamlConfig5 = `
+var yamlConfigMinReversed = `
 pipeline:
   - name: extract5
 parameters:
@@ -148,7 +148,7 @@ parameters:
             timeInterval: 10s
 `
 
-var yamlConfig6 = `
+var yamlConfigAllFlows = `
 pipeline:
   - name: extract6
 parameters:
@@ -164,7 +164,7 @@ parameters:
             timeInterval: 10s
 `
 
-var yamlConfig7 = `
+var yamlConfigCount = `
 pipeline:
   - name: extract7
 parameters:
@@ -192,15 +192,15 @@ func initTimebased(t *testing.T, yamlConfig string) *ExtractTimebased {
 
 func Test_NewExtractTimebased(t *testing.T) {
 
-	tb := initTimebased(t, yamlConfig1)
+	tb := initTimebased(t, yamlConfigTopAvg)
 	require.NotNil(t, tb)
 	expectedTimebased := GetMockTimebased1()
 	require.Equal(t, expectedTimebased.Filters[0].Rule, tb.Filters[0].Rule)
 	require.Equal(t, expectedTimebased.Filters[1].Rule, tb.Filters[1].Rule)
 }
 
-func Test_ExtractTimebasedExtract1(t *testing.T) {
-	tb := initTimebased(t, yamlConfig1)
+func Test_ExtractTimebasedTopAvg(t *testing.T) {
+	tb := initTimebased(t, yamlConfigTopAvg)
 	require.NotNil(t, tb)
 	entries := test.GetExtractMockEntries2()
 	output := tb.Extract(entries)
@@ -255,8 +255,8 @@ func Test_ExtractTimebasedExtract1(t *testing.T) {
 	require.Equal(t, expectedOutput, output)
 }
 
-func Test_ExtractTimebasedExtract2(t *testing.T) {
-	tb := initTimebased(t, yamlConfig2)
+func Test_ExtractTimebasedSum(t *testing.T) {
+	tb := initTimebased(t, yamlConfigSum)
 	require.NotNil(t, tb)
 	entries := test.GetExtractMockEntries2()
 	output := tb.Extract(entries)
@@ -275,8 +275,8 @@ func Test_ExtractTimebasedExtract2(t *testing.T) {
 	require.Equal(t, expectedOutput, output)
 }
 
-func Test_ExtractTimebasedExtract3(t *testing.T) {
-	tb := initTimebased(t, yamlConfig3)
+func Test_ExtractTimebasedDiff(t *testing.T) {
+	tb := initTimebased(t, yamlConfigDiff)
 	require.NotNil(t, tb)
 	entries := test.GetExtractMockEntries2()
 	output := tb.Extract(entries)
@@ -295,8 +295,8 @@ func Test_ExtractTimebasedExtract3(t *testing.T) {
 	require.Equal(t, expectedOutput, output)
 }
 
-func Test_ExtractTimebasedExtract4(t *testing.T) {
-	tb := initTimebased(t, yamlConfig4)
+func Test_ExtractTimebasedMax(t *testing.T) {
+	tb := initTimebased(t, yamlConfigMax)
 	require.NotNil(t, tb)
 	entries := test.GetExtractMockEntries2()
 	output := tb.Extract(entries)
@@ -315,8 +315,8 @@ func Test_ExtractTimebasedExtract4(t *testing.T) {
 	require.Equal(t, expectedOutput, output)
 }
 
-func Test_ExtractTimebasedExtract5(t *testing.T) {
-	tb := initTimebased(t, yamlConfig5)
+func Test_ExtractTimebasedMinReversed(t *testing.T) {
+	tb := initTimebased(t, yamlConfigMinReversed)
 	require.NotNil(t, tb)
 	entries := test.GetExtractMockEntries2()
 	output := tb.Extract(entries)
@@ -335,8 +335,8 @@ func Test_ExtractTimebasedExtract5(t *testing.T) {
 	require.Equal(t, expectedOutput, output)
 }
 
-func Test_ExtractTimebasedExtract6(t *testing.T) {
-	tb := initTimebased(t, yamlConfig6)
+func Test_ExtractTimebasedAllFlows(t *testing.T) {
+	tb := initTimebased(t, yamlConfigAllFlows)
 	require.NotNil(t, tb)
 	entries := test.GetExtractMockEntries2()
 	output := tb.Extract(entries)
@@ -384,8 +384,8 @@ func Test_ExtractTimebasedExtract6(t *testing.T) {
 	}
 }
 
-func Test_ExtractTimebasedExtract7(t *testing.T) {
-	tb := initTimebased(t, yamlConfig7)
+func Test_ExtractTimebasedCount(t *testing.T) {
+	tb := initTimebased(t, yamlConfigCount)
 	require.NotNil(t, tb)
 	entries := test.GetExtractMockEntries2()
 	output := tb.Extract(entries)
