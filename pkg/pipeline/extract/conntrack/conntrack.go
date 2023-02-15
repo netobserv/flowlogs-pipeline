@@ -159,8 +159,8 @@ func (ct *conntrackImpl) prepareHeartbeatRecords() []config.GenericMap {
 }
 
 func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.GenericMap, flowLogHash totalHashType) {
-	d := ct.getFlowLogDirection(conn, flowLogHash)
 	if !flowLog.IsDuplicate() {
+		d := ct.getFlowLogDirection(conn, flowLogHash)
 		for _, agg := range ct.aggregators {
 			agg.update(conn, flowLog, d)
 		}
