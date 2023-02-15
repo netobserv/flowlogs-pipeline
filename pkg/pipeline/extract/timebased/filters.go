@@ -97,6 +97,9 @@ func (fs *FilterStruct) CalculateValue(l *list.List, oldestValidTime time.Time) 
 	if fs.Rule.OperationType == api.FilterOperationName("FilterOperationAvg") && nItems > 0 {
 		currentValue = currentValue / float64(nItems)
 	}
+	if fs.Rule.OperationType == api.FilterOperationName("FilterOperationCnt") {
+		currentValue = float64(nItems)
+	}
 	return currentValue
 }
 
@@ -104,6 +107,7 @@ func getInitValue(operation string) float64 {
 	switch operation {
 	case api.FilterOperationName("FilterOperationSum"),
 		api.FilterOperationName("FilterOperationAvg"),
+		api.FilterOperationName("FilterOperationCnt"),
 		api.FilterOperationName("FilterOperationLast"),
 		api.FilterOperationName("FilterOperationDiff"):
 		return 0
