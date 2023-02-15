@@ -215,6 +215,13 @@ func (ct *ConnTrack) Validate() error {
 		return conntrackInvalidError{correctDirectionWithNoBidi: true,
 			msg: fmt.Errorf("CorrectDirection is enabled although bidirection is not enabled (fieldGroupARef is empty)")}
 	}
+
+	fieldsA, fieldsB := ct.GetABFields()
+	if len(fieldsA) != len(fieldsB) {
+		return conntrackInvalidError{mismatchABFieldsCount: true,
+			msg: fmt.Errorf("mismatch between the field count of fieldGroupARef %v and fieldGroupBRef %v", len(fieldsA), len(fieldsB))}
+	}
+
 	return nil
 }
 
@@ -285,6 +292,7 @@ type conntrackInvalidError struct {
 	exactlyOneDefaultSelector  bool
 	correctDirectionWithNoBidi bool
 	emptyTCPFlagsField         bool
+	mismatchABFieldsCount      bool
 }
 
 func (err conntrackInvalidError) Error() string {

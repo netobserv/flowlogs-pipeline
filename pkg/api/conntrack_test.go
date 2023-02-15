@@ -228,6 +228,29 @@ func TestConnTrackValidate(t *testing.T) {
 			},
 			conntrackInvalidError{emptyTCPFlagsField: true},
 		},
+		{
+			"Mismatch between field count of FieldGroupARef and FieldGroupBRef",
+			ConnTrack{
+				KeyDefinition: KeyDefinition{
+					FieldGroups: []FieldGroup{
+						{
+							Name:   "src",
+							Fields: []string{"SrcIP", "SrcPort"},
+						},
+						{
+							Name:   "dst",
+							Fields: []string{"DstIP"},
+						},
+					},
+					Hash: ConnTrackHash{
+						FieldGroupARef: "src",
+						FieldGroupBRef: "dst",
+					},
+				},
+				Scheduling: []ConnTrackSchedulingGroup{{Selector: map[string]interface{}{}}},
+			},
+			conntrackInvalidError{mismatchABFieldsCount: true},
+		},
 	}
 
 	for _, tt := range tests {
