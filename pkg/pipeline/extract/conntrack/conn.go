@@ -196,7 +196,7 @@ func (cb *connBuilder) KeysFrom(flowLog config.GenericMap, kd api.KeyDefinition,
 		}
 	}
 	if cb.shouldSwapAB {
-		for i, _ := range endpointAFields {
+		for i := range endpointAFields {
 			fieldA := endpointAFields[i]
 			fieldB := endpointBFields[i]
 			cb.conn.keys[fieldA] = flowLog[fieldB]
