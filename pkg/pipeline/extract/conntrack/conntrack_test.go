@@ -930,38 +930,56 @@ func TestIsLastFlowLogOfConnection(t *testing.T) {
 	table := []struct {
 		name         string
 		inputFlowLog config.GenericMap
+		flag         uint32
 		expected     bool
 	}{
 		{
 			"Happy path",
 			config.GenericMap{tcpFlagsFieldName: uint32(FIN_ACK_FLAG)},
+			FIN_ACK_FLAG,
+			true,
+		},
+		{
+			"Multiple flags 1",
+			config.GenericMap{tcpFlagsFieldName: uint32(FIN_ACK_FLAG | SYN_ACK_FLAG)},
+			FIN_ACK_FLAG,
+			true,
+		},
+		{
+			"Multiple flags 2",
+			config.GenericMap{tcpFlagsFieldName: uint32(FIN_ACK_FLAG | SYN_ACK_FLAG)},
+			SYN_ACK_FLAG,
 			true,
 		},
 		{
 			"Convert from string",
 			config.GenericMap{tcpFlagsFieldName: fmt.Sprint(FIN_ACK_FLAG)},
+			FIN_ACK_FLAG,
 			true,
 		},
 		{
 			"Cannot parse value",
 			config.GenericMap{tcpFlagsFieldName: ""},
+			FIN_ACK_FLAG,
 			false,
 		},
 		{
 			"Other flag than FIN_ACK",
 			config.GenericMap{tcpFlagsFieldName: FIN_FLAG},
+			FIN_ACK_FLAG,
 			false,
 		},
 		{
 			"Missing TCPFlags field",
 			config.GenericMap{"": ""},
+			FIN_ACK_FLAG,
 			false,
 		},
 	}
 
 	for _, tt := range table {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := ct.(*conntrackImpl).isLastFlowLogOfConnection(tt.inputFlowLog)
+			actual := ct.(*conntrackImpl).containsTcpFlag(tt.inputFlowLog, tt.flag)
 			require.Equal(t, tt.expected, actual)
 		})
 	}
