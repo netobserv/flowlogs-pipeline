@@ -694,7 +694,7 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 	}
 	for _, r := range reportTimes {
 		hash := totalHashType{hashTotal: r.hash}
-		builder := NewConnBuilder()
+		builder := NewConnBuilder(nil)
 		conn := builder.Hash(hash).Build()
 		ct.connStore.addConnection(hash.hashTotal, conn)
 		conn.setNextHeartbeatTime(r.nextReportTime)
@@ -1035,6 +1035,8 @@ func TestDetectEndConnection(t *testing.T) {
 			assertStoreConsistency(t, ct)
 		})
 	}
+	exposed := test.ReadExposedMetrics(t)
+	require.Contains(t, exposed, `conntrack_tcp_flags{action="detectEndConnection"} 1`)
 }
 
 func TestCorrectDirection(t *testing.T) {
@@ -1089,4 +1091,6 @@ func TestCorrectDirection(t *testing.T) {
 			assertStoreConsistency(t, ct)
 		})
 	}
+	exposed := test.ReadExposedMetrics(t)
+	require.Contains(t, exposed, `conntrack_tcp_flags{action="swapAB"} 1`)
 }

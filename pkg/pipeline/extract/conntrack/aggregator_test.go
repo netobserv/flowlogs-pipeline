@@ -140,7 +140,7 @@ func TestAddField_and_Update(t *testing.T) {
 		},
 	}
 
-	conn := NewConnBuilder().Build()
+	conn := NewConnBuilder(nil).Build()
 	for _, agg := range aggs {
 		agg.addField(conn)
 	}

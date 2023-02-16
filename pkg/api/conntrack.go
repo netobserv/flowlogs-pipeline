@@ -96,7 +96,8 @@ func ConnTrackOperationName(operation string) string {
 type ConnTrackTCPFlags struct {
 	FieldName           string `yaml:"fieldName,omitempty" doc:"name of the field containing TCP flags"`
 	DetectEndConnection bool   `yaml:"detectEndConnection,omitempty" doc:"detect end connections by FIN_ACK flag"`
-	CorrectDirection    bool   `yaml:"correctDirection,omitempty" doc:"swap source and destination when the first flowlog contains the SYN_ACK flag"`
+	// TODO: Rename to SwapAB
+	CorrectDirection bool `yaml:"correctDirection,omitempty" doc:"swap source and destination when the first flowlog contains the SYN_ACK flag"`
 }
 
 func (ct *ConnTrack) Validate() error {

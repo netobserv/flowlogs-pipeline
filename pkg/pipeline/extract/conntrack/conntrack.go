@@ -73,7 +73,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				log.Warningf("too many connections; skipping flow log %v: ", fl)
 				ct.metrics.inputRecords.WithLabelValues("discarded").Inc()
 			} else {
-				builder := NewConnBuilder()
+				builder := NewConnBuilder(ct.metrics)
 				conn = builder.
 					Hash(computedHash).
 					ShouldSwapAB(ct.shouldCorrectDirection(fl)).
@@ -170,6 +170,7 @@ func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.Generi
 	}
 
 	if ct.config.TCPFlags.DetectEndConnection && ct.isLastFlowLogOfConnection(flowLog) {
+		ct.metrics.tcpFlags.WithLabelValues("detectEndConnection").Inc()
 		ct.connStore.expireConnection(flowLogHash.hashTotal)
 	} else {
 		ct.connStore.updateConnectionExpiryTime(flowLogHash.hashTotal)

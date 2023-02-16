@@ -43,12 +43,20 @@ var (
 		operational.TypeCounter,
 		"type",
 	)
+
+	tcpFlagsDef = operational.DefineMetric(
+		"conntrack_tcp_flags",
+		"The total number of actions taken based on TCP flags.",
+		operational.TypeCounter,
+		"action",
+	)
 )
 
 type metricsType struct {
 	connStoreLength *prometheus.GaugeVec
 	inputRecords    *prometheus.CounterVec
 	outputRecords   *prometheus.CounterVec
+	tcpFlags        *prometheus.CounterVec
 }
 
 func newMetrics(opMetrics *operational.Metrics) *metricsType {
@@ -56,5 +64,6 @@ func newMetrics(opMetrics *operational.Metrics) *metricsType {
 		connStoreLength: opMetrics.NewGaugeVec(&connStoreLengthDef),
 		inputRecords:    opMetrics.NewCounterVec(&inputRecordsDef),
 		outputRecords:   opMetrics.NewCounterVec(&outputRecordsDef),
+		tcpFlags:        opMetrics.NewCounterVec(&tcpFlagsDef),
 	}
 }

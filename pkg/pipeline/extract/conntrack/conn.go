@@ -165,15 +165,17 @@ func (c *connType) isMatchSelector(selector map[string]interface{}) bool {
 type connBuilder struct {
 	conn         *connType
 	shouldSwapAB bool
+	metrics      *metricsType
 }
 
-func NewConnBuilder() *connBuilder {
+func NewConnBuilder(metrics *metricsType) *connBuilder {
 	return &connBuilder{
 		conn: &connType{
 			aggFields:  make(map[string]float64),
 			keys:       config.GenericMap{},
 			isReported: false,
 		},
+		metrics: metrics,
 	}
 }
 
@@ -200,6 +202,7 @@ func (cb *connBuilder) KeysFrom(flowLog config.GenericMap, kd api.KeyDefinition,
 			cb.conn.keys[fieldA] = flowLog[fieldB]
 			cb.conn.keys[fieldB] = flowLog[fieldA]
 		}
+		cb.metrics.tcpFlags.WithLabelValues("swapAB").Inc()
 	}
 	return cb
 }
