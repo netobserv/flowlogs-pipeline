@@ -31,6 +31,14 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Labels** | type | 
 
 
+### conntrack_tcp_flags
+| **Name** | conntrack_tcp_flags | 
+|:---|:---|
+| **Description** | The total number of actions taken based on TCP flags. | 
+| **Type** | counter | 
+| **Labels** | action | 
+
+
 ### encode_prom_errors
 | **Name** | encode_prom_errors | 
 |:---|:---|
