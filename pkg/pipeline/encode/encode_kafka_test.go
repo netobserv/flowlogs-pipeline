@@ -117,7 +117,7 @@ func Test_TLSConfigCA(t *testing.T) {
 
 	require.Empty(t, tlsConfig.Certificates)
 	require.NotNil(t, tlsConfig.RootCAs)
-	require.Len(t, tlsConfig.RootCAs.Subjects(), 1)
+	require.Len(t, tlsConfig.RootCAs.Subjects(), 1) //nolint:staticcheck
 }
 
 func Test_MutualTLSConfig(t *testing.T) {
@@ -143,5 +143,5 @@ func Test_MutualTLSConfig(t *testing.T) {
 	require.NotEmpty(t, tlsConfig.Certificates[0].Certificate)
 	require.NotNil(t, tlsConfig.Certificates[0].PrivateKey)
 	require.NotNil(t, tlsConfig.RootCAs)
-	require.Len(t, tlsConfig.RootCAs.Subjects(), 1)
+	require.Len(t, tlsConfig.RootCAs.Subjects(), 1) //nolint:staticcheck
 }
