@@ -130,9 +130,10 @@ Following is the supported API format for filter transformations:
                  type: (enum) one of the following:
                      remove_field: removes the field from the entry
                      remove_entry_if_exists: removes the entry if the field exists
-                     remove_entry_if_doesnt_exist: removes the entry if the field doesnt exist
+                     remove_entry_if_doesnt_exist: removes the entry if the field does not exist
                      remove_entry_if_equal: removes the entry if the field value equals specified value
                      remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
+                     add_field_if_doesnt_exist: adds a field to the entry if the field does not exist
                  value: specified value of input field:
 </pre>
 ## Transform Network API
