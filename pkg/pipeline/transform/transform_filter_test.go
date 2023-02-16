@@ -101,6 +101,24 @@ parameters:
           value: "test message"
 `
 
+const testConfigTransformFilterAddField = `---
+log-level: debug
+pipeline:
+  - name: filter1
+parameters:
+  - name: filter1
+    transform:
+      type: filter
+      filter:
+        rules:
+        - input: dstPort
+          type: add_field_if_doesnt_exist
+          value: dummy_value
+        - input: dummy_field
+          type: add_field_if_doesnt_exist
+          value: dummy_value
+`
+
 func getFilterExpectedOutput() config.GenericMap {
 	return config.GenericMap{
 		"srcIP":        "10.0.0.1",
@@ -181,6 +199,26 @@ func TestNewTransformFilterRemoveEntryIfNotEqual(t *testing.T) {
 	input["message"] = "dummy message"
 	_, ok = transformFilter.Transform(input)
 	require.False(t, ok)
+}
+
+func TestNewTransformFilterAddField(t *testing.T) {
+	newTransform := InitNewTransformFilter(t, testConfigTransformFilterAddField)
+	transformFilter := newTransform.(*Filter)
+	require.Len(t, transformFilter.Rules, 2)
+
+	input := test.GetIngestMockEntry(false)
+	output, ok := transformFilter.Transform(input)
+	require.True(t, ok)
+	require.Equal(t, 22, output["dstPort"])
+	require.Equal(t, "dummy_value", output["dummy_field"])
+
+	input = test.GetIngestMockEntry(false)
+	input["dstPort"] = 3490
+	input["dummy_field"] = 1
+	output, ok = transformFilter.Transform(input)
+	require.True(t, ok)
+	require.Equal(t, 3490, output["dstPort"])
+	require.Equal(t, 1, output["dummy_field"])
 }
 
 func InitNewTransformFilter(t *testing.T, configFile string) Transformer {

@@ -58,6 +58,10 @@ func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 					return nil, false
 				}
 			}
+		case api.TransformFilterOperationName("AddFieldIfDoesntExist"):
+			if _, ok := entry[rule.Input]; !ok {
+				outputEntry[rule.Input] = rule.Value
+			}
 		default:
 			tlog.Panicf("unknown type %s for transform.Filter rule: %v", rule.Type, rule)
 		}
