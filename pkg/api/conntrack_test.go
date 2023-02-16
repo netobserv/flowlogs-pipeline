@@ -224,7 +224,7 @@ func TestConnTrackValidate(t *testing.T) {
 			"Empty TCPFlags field name 2",
 			ConnTrack{
 				Scheduling: []ConnTrackSchedulingGroup{{Selector: map[string]interface{}{}}},
-				TCPFlags:   ConnTrackTCPFlags{CorrectDirection: true},
+				TCPFlags:   ConnTrackTCPFlags{SwapAB: true},
 			},
 			conntrackInvalidError{emptyTCPFlagsField: true},
 		},

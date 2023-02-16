@@ -96,8 +96,7 @@ func ConnTrackOperationName(operation string) string {
 type ConnTrackTCPFlags struct {
 	FieldName           string `yaml:"fieldName,omitempty" doc:"name of the field containing TCP flags"`
 	DetectEndConnection bool   `yaml:"detectEndConnection,omitempty" doc:"detect end connections by FIN_ACK flag"`
-	// TODO: Rename to SwapAB
-	CorrectDirection bool `yaml:"correctDirection,omitempty" doc:"swap source and destination when the first flowlog contains the SYN_ACK flag"`
+	SwapAB              bool   `yaml:"swapAB,omitempty" doc:"swap source and destination when the first flowlog contains the SYN_ACK flag"`
 }
 
 func (ct *ConnTrack) Validate() error {
@@ -208,13 +207,13 @@ func (ct *ConnTrack) Validate() error {
 			msg: fmt.Errorf("found %v default selectors. There should be exactly 1", numOfDefault)}
 	}
 
-	if len(ct.TCPFlags.FieldName) == 0 && (ct.TCPFlags.DetectEndConnection || ct.TCPFlags.CorrectDirection) {
+	if len(ct.TCPFlags.FieldName) == 0 && (ct.TCPFlags.DetectEndConnection || ct.TCPFlags.SwapAB) {
 		return conntrackInvalidError{emptyTCPFlagsField: true,
-			msg: fmt.Errorf("TCPFlags.FieldName is empty although DetectEndConnection or CorrectDirection are enabled")}
+			msg: fmt.Errorf("TCPFlags.FieldName is empty although DetectEndConnection or SwapAB are enabled")}
 	}
-	if ct.TCPFlags.CorrectDirection && !isBidi {
-		return conntrackInvalidError{correctDirectionWithNoBidi: true,
-			msg: fmt.Errorf("CorrectDirection is enabled although bidirection is not enabled (fieldGroupARef is empty)")}
+	if ct.TCPFlags.SwapAB && !isBidi {
+		return conntrackInvalidError{swapABWithNoBidi: true,
+			msg: fmt.Errorf("SwapAB is enabled although bidirection is not enabled (fieldGroupARef is empty)")}
 	}
 
 	fieldsA, fieldsB := ct.GetABFields()
@@ -278,22 +277,22 @@ func isOutputRecordTypeValid(value string) bool {
 }
 
 type conntrackInvalidError struct {
-	msg                        error
-	fieldGroupABOnlyOneIsSet   bool
-	splitABWithNoBidi          bool
-	unknownOperation           bool
-	duplicateFieldGroup        bool
-	duplicateOutputFieldNames  bool
-	undefinedFieldGroupARef    bool
-	undefinedFieldGroupBRef    bool
-	undefinedFieldGroupRef     bool
-	unknownOutputRecord        bool
-	undefinedSelectorKey       bool
-	defaultGroupAndNotLast     bool
-	exactlyOneDefaultSelector  bool
-	correctDirectionWithNoBidi bool
-	emptyTCPFlagsField         bool
-	mismatchABFieldsCount      bool
+	msg                       error
+	fieldGroupABOnlyOneIsSet  bool
+	splitABWithNoBidi         bool
+	unknownOperation          bool
+	duplicateFieldGroup       bool
+	duplicateOutputFieldNames bool
+	undefinedFieldGroupARef   bool
+	undefinedFieldGroupBRef   bool
+	undefinedFieldGroupRef    bool
+	unknownOutputRecord       bool
+	undefinedSelectorKey      bool
+	defaultGroupAndNotLast    bool
+	exactlyOneDefaultSelector bool
+	swapABWithNoBidi          bool
+	emptyTCPFlagsField        bool
+	mismatchABFieldsCount     bool
 }
 
 func (err conntrackInvalidError) Error() string {

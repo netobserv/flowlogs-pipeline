@@ -76,7 +76,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				builder := NewConnBuilder(ct.metrics)
 				conn = builder.
 					Hash(computedHash).
-					ShouldSwapAB(ct.shouldCorrectDirection(fl)).
+					ShouldSwapAB(ct.shouldSwapAB(fl)).
 					KeysFrom(fl, ct.config.KeyDefinition, ct.endpointAFields, ct.endpointBFields).
 					Aggregators(ct.aggregators).
 					Build()
@@ -181,7 +181,7 @@ func (ct *conntrackImpl) isLastFlowLogOfConnection(flowLog config.GenericMap) bo
 	return ct.containsTcpFlag(flowLog, FIN_ACK_FLAG)
 }
 
-func (ct *conntrackImpl) shouldCorrectDirection(flowLog config.GenericMap) bool {
+func (ct *conntrackImpl) shouldSwapAB(flowLog config.GenericMap) bool {
 	return ct.containsTcpFlag(flowLog, SYN_ACK_FLAG)
 }
 

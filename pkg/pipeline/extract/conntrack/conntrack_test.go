@@ -1039,7 +1039,7 @@ func TestDetectEndConnection(t *testing.T) {
 	require.Contains(t, exposed, `conntrack_tcp_flags{action="detectEndConnection"} 1`)
 }
 
-func TestCorrectDirection(t *testing.T) {
+func TestSwapAB(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
 	defaultUpdateConnectionInterval := 30 * time.Second
