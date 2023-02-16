@@ -185,7 +185,7 @@ func (ct *conntrackImpl) shouldSwapAB(flowLog config.GenericMap) bool {
 	return ct.containsTcpFlag(flowLog, SYN_ACK_FLAG)
 }
 
-func (ct *conntrackImpl) containsTcpFlag(flowLog config.GenericMap, tcpFlag uint32) bool {
+func (ct *conntrackImpl) containsTcpFlag(flowLog config.GenericMap, queryFlag uint32) bool {
 	tcpFlagsRaw, ok := flowLog[ct.config.TCPFlags.FieldName]
 	if ok {
 		tcpFlags, err := utils.ConvertToUint32(tcpFlagsRaw)
@@ -193,7 +193,7 @@ func (ct *conntrackImpl) containsTcpFlag(flowLog config.GenericMap, tcpFlag uint
 			log.Warningf("cannot convert TCP flag %q to uint32: %v", tcpFlagsRaw, err)
 			return false
 		}
-		containsFlag := tcpFlags&tcpFlag == tcpFlag
+		containsFlag := tcpFlags&queryFlag == queryFlag
 		if containsFlag {
 			return true
 		}
