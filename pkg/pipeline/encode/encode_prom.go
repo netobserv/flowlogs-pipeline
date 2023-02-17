@@ -29,7 +29,9 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	putils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -58,7 +60,7 @@ type EncodeProm struct {
 	histos           []histoInfo
 	aggHistos        []histoInfo
 	expiryTime       time.Duration
-	mCache           *utils.TimedCache
+	mCache           *putils.TimedCache
 	exitChan         <-chan struct{}
 	server           *http.Server
 	tlsConfig        *api.PromTLSConf
@@ -381,8 +383,8 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		histos:           histos,
 		aggHistos:        aggHistos,
 		expiryTime:       expiryTime,
-		mCache:           utils.NewTimedCache(cfg.MaxMetrics),
-		exitChan:         utils.ExitChannel(),
+		mCache:           putils.NewTimedCache(cfg.MaxMetrics),
+		exitChan:         putils.ExitChannel(),
 		metricsProcessed: opMetrics.NewCounter(&metricsProcessed, params.Name),
 		metricsDropped:   opMetrics.NewCounter(&metricsDropped, params.Name),
 		errorsCounter:    opMetrics.NewCounterVec(&encodePromErrors),

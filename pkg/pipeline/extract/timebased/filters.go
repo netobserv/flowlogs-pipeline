@@ -24,7 +24,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -17,6 +17,8 @@
 
 package config
 
+import "github.com/netobserv/flowlogs-pipeline/pkg/utils"
+
 type GenericMap map[string]interface{}
 
 // Copy will create a flat copy of GenericMap
@@ -28,4 +30,13 @@ func (m GenericMap) Copy() GenericMap {
 	}
 
 	return result
+}
+
+func (m GenericMap) IsDuplicate() bool {
+	if duplicate, hasKey := m["Duplicate"]; hasKey {
+		if isDuplicate, err := utils.ConvertToBool(duplicate); err != nil {
+			return isDuplicate
+		}
+	}
+	return false
 }
