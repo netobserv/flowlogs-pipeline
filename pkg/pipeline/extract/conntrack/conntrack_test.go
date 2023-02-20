@@ -1007,8 +1007,8 @@ func TestDetectEndConnection(t *testing.T) {
 	portB := 9002
 	protocolTCP := 6
 	hashIdTCP := "705baa5149302fa1"
-	flTCP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolTCP, 111, 11)
-	flTCP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, 222, 22)
+	flTCP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolTCP, 111, 11, false)
+	flTCP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, 222, 22, false)
 	flTCP2[tcpFlagsFieldName] = FIN_ACK_FLAG
 
 	startTime := clk.Now()
@@ -1078,7 +1078,7 @@ func TestSwapAB(t *testing.T) {
 	portB := 9002
 	protocolTCP := 6
 	hashIdTCP := "705baa5149302fa1"
-	flTCP1 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, 111, 11)
+	flTCP1 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, 111, 11, false)
 	flTCP1[tcpFlagsFieldName] = SYN_ACK_FLAG
 
 	startTime := clk.Now()
