@@ -1066,8 +1066,8 @@ func TestSwapAB(t *testing.T) {
 		defaultUpdateConnectionInterval, defaultEndConnectionTimeout)
 	tcpFlagsFieldName := "TCPFlags"
 	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{
-		FieldName:           tcpFlagsFieldName,
-		DetectEndConnection: true,
+		FieldName: tcpFlagsFieldName,
+		SwapAB:    true,
 	}
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)

@@ -76,7 +76,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				builder := NewConnBuilder(ct.metrics)
 				conn = builder.
 					Hash(computedHash).
-					ShouldSwapAB(ct.shouldSwapAB(fl)).
+					ShouldSwapAB(ct.config.TCPFlags.SwapAB && ct.shouldSwapAB(fl)).
 					KeysFrom(fl, ct.config.KeyDefinition, ct.endpointAFields, ct.endpointBFields).
 					Aggregators(ct.aggregators).
 					Build()
