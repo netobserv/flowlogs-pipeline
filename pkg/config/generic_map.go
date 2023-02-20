@@ -34,7 +34,7 @@ func (m GenericMap) Copy() GenericMap {
 
 func (m GenericMap) IsDuplicate() bool {
 	if duplicate, hasKey := m["Duplicate"]; hasKey {
-		if isDuplicate, err := utils.ConvertToBool(duplicate); err != nil {
+		if isDuplicate, err := utils.ConvertToBool(duplicate); err == nil {
 			return isDuplicate
 		}
 	}
