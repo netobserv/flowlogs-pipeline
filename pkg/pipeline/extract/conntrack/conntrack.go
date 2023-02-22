@@ -193,7 +193,7 @@ func (ct *conntrackImpl) containsTcpFlag(flowLog config.GenericMap, queryFlag ui
 			log.Warningf("cannot convert TCP flag %q to uint32: %v", tcpFlagsRaw, err)
 			return false
 		}
-		containsFlag := tcpFlags&queryFlag == queryFlag
+		containsFlag := (tcpFlags & queryFlag) == queryFlag
 		if containsFlag {
 			return true
 		}
