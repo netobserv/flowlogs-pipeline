@@ -33,7 +33,7 @@ type ConnTrack struct {
 	OutputFields          []OutputField              `yaml:"outputFields,omitempty" json:"outputFields,omitempty" doc:"list of output fields"`
 	Scheduling            []ConnTrackSchedulingGroup `yaml:"scheduling,omitempty" json:"scheduling,omitempty" doc:"list of timeouts and intervals to apply per selector"`
 	MaxConnectionsTracked int                        `yaml:"maxConnectionsTracked,omitempty" json:"maxConnectionsTracked,omitempty" doc:"maximum number of connections we keep in our cache (0 means no limit)"`
-	TCPFlags              ConnTrackTCPFlags          `yaml:"tcpFlags,omitempty" json:"tcpFlags" doc:"settings for handling TCP flags"`
+	TCPFlags              ConnTrackTCPFlags          `yaml:"tcpFlags,omitempty" json:"tcpFlags,omitempty" doc:"settings for handling TCP flags"`
 }
 
 type ConnTrackOutputRecordTypeEnum struct {
@@ -94,7 +94,7 @@ func ConnTrackOperationName(operation string) string {
 }
 
 type ConnTrackTCPFlags struct {
-	FieldName           string `yaml:"fieldName" json:"fieldName" doc:"name of the field containing TCP flags"`
+	FieldName           string `yaml:"fieldName,omitempty" json:"fieldName,omitempty" doc:"name of the field containing TCP flags"`
 	DetectEndConnection bool   `yaml:"detectEndConnection,omitempty" json:"detectEndConnection,omitempty" doc:"detect end connections by FIN_ACK flag"`
 	SwapAB              bool   `yaml:"swapAB,omitempty" json:"swapAB,omitempty" doc:"swap source and destination when the first flowlog contains the SYN_ACK flag"`
 }
