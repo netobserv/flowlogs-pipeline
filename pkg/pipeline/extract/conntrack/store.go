@@ -78,7 +78,10 @@ func (cs *connectionStore) addConnection(hashId uint64, conn connection) {
 }
 
 func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
-	groupIdx := cs.hashId2groupIdx[hashId]
+	groupIdx, found := cs.hashId2groupIdx[hashId]
+	if !found {
+		return nil, false
+	}
 	mom := cs.groups[groupIdx].mom
 
 	record, ok := mom.GetRecord(utils.Key(hashId))
