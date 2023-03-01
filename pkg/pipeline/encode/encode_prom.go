@@ -22,7 +22,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -33,7 +32,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -261,26 +259,6 @@ func (e *EncodeProm) cleanupExpiredEntriesLoop() {
 	}
 }
 
-// startServer listens for prometheus resource usage requests
-func (e *EncodeProm) startServer() {
-	log.Debugf("entering startServer")
-
-	// The Handler function provides a default handler to expose metrics
-	// via an HTTP server. "/metrics" is the usual endpoint for that.
-	http.Handle("/metrics", promhttp.Handler())
-
-	var err error
-	if e.tlsConfig != nil {
-		err = e.server.ListenAndServeTLS(e.tlsConfig.CertPath, e.tlsConfig.KeyPath)
-	} else {
-		err = e.server.ListenAndServe()
-	}
-	if err != nil && err != http.ErrServerClosed {
-		log.Errorf("error in http.ListenAndServe: %v", err)
-		os.Exit(1)
-	}
-}
-
 func (e *EncodeProm) closeServer(ctx context.Context) error {
 	return e.server.Shutdown(ctx)
 }
@@ -389,7 +367,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		metricsDropped:   opMetrics.NewCounter(&metricsDropped, params.Name),
 		errorsCounter:    opMetrics.NewCounterVec(&encodePromErrors),
 	}
-	go w.startServer()
+	go putils.StartPromServer(w.tlsConfig, w.server)
 	go w.cleanupExpiredEntriesLoop()
 	return w, nil
 }
