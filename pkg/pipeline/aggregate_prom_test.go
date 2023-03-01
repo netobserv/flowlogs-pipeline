@@ -64,7 +64,6 @@ parameters:
    encode:
      type: prom
      prom:
-       port: 9103
        prefix: test_
        expiryTime: 1
        metrics:

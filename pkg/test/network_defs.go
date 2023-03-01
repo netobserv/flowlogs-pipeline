@@ -12,7 +12,6 @@ encode:
   type: prom
   prom:
     prefix: flp_
-    port: 9102
 visualization:
   grafana:
     dashboards:
@@ -40,7 +39,6 @@ encode:
   type: prom
   prom:
     prefix: flp_
-    port: 9102
 write:
   type: loki
   loki:

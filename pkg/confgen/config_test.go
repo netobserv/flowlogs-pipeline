@@ -53,7 +53,6 @@ ingest:
     port: 8888
 encode:
   prom:
-    port: 7777
     prefix: prefix
 `
 

@@ -33,7 +33,6 @@ parameters:
    encode:
      type: prom
      prom:
-       port: 9103
        prefix: test_
        expiryTime: 1
        maxMetrics: 30
@@ -53,7 +52,6 @@ parameters:
    encode:
      type: prom
      prom:
-       port: 9103
        prefix: test_
        expiryTime: 1
        maxMetrics: 30
@@ -78,7 +76,6 @@ parameters:
    encode:
      type: prom
      prom:
-       port: 9103
        prefix: test_
        expiryTime: 1
        metrics:
