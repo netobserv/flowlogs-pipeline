@@ -56,6 +56,7 @@ type EncodeProm struct {
 	aggHistos        []histoInfo
 	expiryTime       time.Duration
 	mCache           *putils.TimedCache
+	mChacheLen       prometheus.Gauge
 	exitChan         <-chan struct{}
 	metricsProcessed prometheus.Counter
 	metricsDropped   prometheus.Counter
@@ -334,13 +335,22 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	log.Debugf("histos = %v", histos)
 	log.Debugf("aggHistos = %v", aggHistos)
 
+	mChacheLen := operational.DefineMetric(
+		"encode_prom_metrics_reported",
+		"Total number of prometheus metrics reported by this stage",
+		operational.TypeGauge,
+		"stage",
+	)
+	mChacheLenMetric := opMetrics.NewGauge(&mChacheLen, params.Name)
+
 	w := &EncodeProm{
 		counters:         counters,
 		gauges:           gauges,
 		histos:           histos,
 		aggHistos:        aggHistos,
 		expiryTime:       expiryTime,
-		mCache:           putils.NewTimedCache(cfg.MaxMetrics),
+		mCache:           putils.NewTimedCache(cfg.MaxMetrics, mChacheLenMetric),
+		mChacheLen:       mChacheLenMetric,
 		exitChan:         putils.ExitChannel(),
 		metricsProcessed: opMetrics.NewCounter(&metricsProcessed, params.Name),
 		metricsDropped:   opMetrics.NewCounter(&metricsDropped, params.Name),
