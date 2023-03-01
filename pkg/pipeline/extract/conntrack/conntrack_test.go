@@ -18,6 +18,7 @@
 package conntrack
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -693,7 +694,7 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 	}
 	for _, r := range reportTimes {
 		hash := totalHashType{hashTotal: r.hash}
-		builder := NewConnBuilder()
+		builder := NewConnBuilder(nil)
 		conn := builder.Hash(hash).Build()
 		ct.connStore.addConnection(hash.hashTotal, conn)
 		conn.setNextHeartbeatTime(r.nextReportTime)
@@ -911,4 +912,203 @@ func TestMaxConnections(t *testing.T) {
 	flowLogs = test.GenerateConnectionEntries(40)
 	ct.Extract(flowLogs)
 	require.Equal(t, maxConnections, ct.connStore.len())
+}
+
+func TestIsLastFlowLogOfConnection(t *testing.T) {
+	test.ResetPromRegistry()
+	clk := clock.NewMock()
+	heartbeatInterval := 30 * time.Second
+	endConnectionTimeout := 10 * time.Second
+	conf := buildMockConnTrackConfig(true, []string{}, heartbeatInterval, endConnectionTimeout)
+	tcpFlagsFieldName := "TCPFlags"
+	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{
+		FieldName:           tcpFlagsFieldName,
+		DetectEndConnection: true,
+	}
+	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
+	require.NoError(t, err)
+	table := []struct {
+		name         string
+		inputFlowLog config.GenericMap
+		flag         uint32
+		expected     bool
+	}{
+		{
+			"Happy path",
+			config.GenericMap{tcpFlagsFieldName: uint32(FIN_ACK_FLAG)},
+			FIN_ACK_FLAG,
+			true,
+		},
+		{
+			"Multiple flags 1",
+			config.GenericMap{tcpFlagsFieldName: uint32(FIN_ACK_FLAG | SYN_ACK_FLAG)},
+			FIN_ACK_FLAG,
+			true,
+		},
+		{
+			"Multiple flags 2",
+			config.GenericMap{tcpFlagsFieldName: uint32(FIN_ACK_FLAG | SYN_ACK_FLAG)},
+			SYN_ACK_FLAG,
+			true,
+		},
+		{
+			"Convert from string",
+			config.GenericMap{tcpFlagsFieldName: fmt.Sprint(FIN_ACK_FLAG)},
+			FIN_ACK_FLAG,
+			true,
+		},
+		{
+			"Cannot parse value",
+			config.GenericMap{tcpFlagsFieldName: ""},
+			FIN_ACK_FLAG,
+			false,
+		},
+		{
+			"Other flag than FIN_ACK",
+			config.GenericMap{tcpFlagsFieldName: FIN_FLAG},
+			FIN_ACK_FLAG,
+			false,
+		},
+		{
+			"Missing TCPFlags field",
+			config.GenericMap{"": ""},
+			FIN_ACK_FLAG,
+			false,
+		},
+	}
+
+	for _, tt := range table {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := ct.(*conntrackImpl).containsTcpFlag(tt.inputFlowLog, tt.flag)
+			require.Equal(t, tt.expected, actual)
+		})
+	}
+
+}
+
+func TestDetectEndConnection(t *testing.T) {
+	test.ResetPromRegistry()
+	clk := clock.NewMock()
+	defaultUpdateConnectionInterval := 30 * time.Second
+	defaultEndConnectionTimeout := 10 * time.Second
+	conf := buildMockConnTrackConfig(true, []string{"newConnection", "endConnection"},
+		defaultUpdateConnectionInterval, defaultEndConnectionTimeout)
+	tcpFlagsFieldName := "TCPFlags"
+	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{
+		FieldName:           tcpFlagsFieldName,
+		DetectEndConnection: true,
+	}
+	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
+	require.NoError(t, err)
+
+	ipA := "10.0.0.1"
+	ipB := "10.0.0.2"
+	portA := 9001
+	portB := 9002
+	protocolTCP := 6
+	hashIdTCP := "705baa5149302fa1"
+	flTCP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolTCP, 111, 11, false)
+	flTCP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, 222, 22, false)
+	flTCP2[tcpFlagsFieldName] = FIN_ACK_FLAG
+
+	startTime := clk.Now()
+	table := []struct {
+		name          string
+		time          time.Time
+		inputFlowLogs []config.GenericMap
+		expected      []config.GenericMap
+	}{
+		{
+			"start: new connection",
+			startTime.Add(0 * time.Second),
+			[]config.GenericMap{flTCP1},
+			[]config.GenericMap{
+				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocolTCP, 111, 0, 11, 0, 1).withHash(hashIdTCP).markFirst().get(),
+			},
+		},
+		{
+			"5s: end connection",
+			startTime.Add(5 * time.Second),
+			[]config.GenericMap{flTCP2},
+			[]config.GenericMap{
+				newMockRecordEndConnAB(ipA, portA, ipB, portB, protocolTCP, 111, 222, 11, 22, 2).withHash(hashIdTCP).get(),
+			},
+		},
+		{
+			"16s: no end connection",
+			startTime.Add(16 * time.Second),
+			[]config.GenericMap{},
+			nil,
+		},
+	}
+
+	var prevTime time.Time
+	for _, tt := range table {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
+			assertStoreConsistency(t, ct)
+		})
+	}
+	exposed := test.ReadExposedMetrics(t)
+	require.Contains(t, exposed, `conntrack_tcp_flags{action="detectEndConnection"} 1`)
+}
+
+func TestSwapAB(t *testing.T) {
+	test.ResetPromRegistry()
+	clk := clock.NewMock()
+	defaultUpdateConnectionInterval := 30 * time.Second
+	defaultEndConnectionTimeout := 10 * time.Second
+	conf := buildMockConnTrackConfig(true, []string{"newConnection", "endConnection"},
+		defaultUpdateConnectionInterval, defaultEndConnectionTimeout)
+	tcpFlagsFieldName := "TCPFlags"
+	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{
+		FieldName: tcpFlagsFieldName,
+		SwapAB:    true,
+	}
+	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
+	require.NoError(t, err)
+
+	ipA := "10.0.0.1"
+	ipB := "10.0.0.2"
+	portA := 9001
+	portB := 9002
+	protocolTCP := 6
+	hashIdTCP := "705baa5149302fa1"
+	flTCP1 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, 111, 11, false)
+	flTCP1[tcpFlagsFieldName] = SYN_ACK_FLAG
+
+	startTime := clk.Now()
+	table := []struct {
+		name          string
+		time          time.Time
+		inputFlowLogs []config.GenericMap
+		expected      []config.GenericMap
+	}{
+		{
+			"new connection (A and B are swapped)",
+			startTime.Add(0 * time.Second),
+			[]config.GenericMap{flTCP1},
+			[]config.GenericMap{
+				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocolTCP, 111, 0, 11, 0, 1).withHash(hashIdTCP).markFirst().get(),
+			},
+		},
+	}
+
+	var prevTime time.Time
+	for _, tt := range table {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
+			assertStoreConsistency(t, ct)
+		})
+	}
+	exposed := test.ReadExposedMetrics(t)
+	require.Contains(t, exposed, `conntrack_tcp_flags{action="swapAB"} 1`)
 }

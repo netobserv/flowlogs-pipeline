@@ -203,11 +203,10 @@ github.com/munnerz/goautoneg
 # github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f
 ## explicit
 github.com/mwitkow/go-conntrack
-# github.com/netobserv/gopipes v0.2.0
-## explicit; go 1.17
-github.com/netobserv/gopipes/pkg/internal/connect
-github.com/netobserv/gopipes/pkg/internal/refl
+# github.com/netobserv/gopipes v0.3.0
+## explicit; go 1.18
 github.com/netobserv/gopipes/pkg/node
+github.com/netobserv/gopipes/pkg/node/internal/connect
 # github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500
 ## explicit; go 1.15
 github.com/netobserv/loki-client-go/loki
@@ -217,8 +216,8 @@ github.com/netobserv/loki-client-go/pkg/labelutil
 github.com/netobserv/loki-client-go/pkg/logproto
 github.com/netobserv/loki-client-go/pkg/metric
 github.com/netobserv/loki-client-go/pkg/urlutil
-# github.com/netobserv/netobserv-ebpf-agent v0.2.4-0.20221220155455-aa7838d82f4d
-## explicit; go 1.17
+# github.com/netobserv/netobserv-ebpf-agent v0.2.4
+## explicit; go 1.18
 github.com/netobserv/netobserv-ebpf-agent/pkg/grpc
 github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow
 # github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785

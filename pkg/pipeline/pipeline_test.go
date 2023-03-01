@@ -202,6 +202,7 @@ parameters:
 			AgentIp: &pbflow.IP{
 				IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x0a0b0c0d},
 			},
+			Flags: 0x100,
 		}},
 	})
 	require.NoError(t, err)
@@ -231,6 +232,7 @@ parameters:
 		"TimeFlowEndMs":   float64(endTime.UnixMilli()),
 		"Interface":       "eth0",
 		"AgentIP":         "10.11.12.13",
+		"Flags":           float64(0x100),
 	}, capturedRecord)
 }
 

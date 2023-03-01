@@ -28,6 +28,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -42,16 +43,17 @@ const (
 )
 
 type conntrackImpl struct {
-	clock                     clock.Clock
-	config                    *api.ConnTrack
-	hashProvider              func() hash.Hash64
-	connStore                 *connectionStore
-	aggregators               []aggregator
-	shouldOutputFlowLogs      bool
-	shouldOutputNewConnection bool
-	shouldOutputEndConnection bool
-	shouldOutputHeartbeats    bool
-	metrics                   *metricsType
+	clock                            clock.Clock
+	config                           *api.ConnTrack
+	endpointAFields, endpointBFields []string
+	hashProvider                     func() hash.Hash64
+	connStore                        *connectionStore
+	aggregators                      []aggregator
+	shouldOutputFlowLogs             bool
+	shouldOutputNewConnection        bool
+	shouldOutputEndConnection        bool
+	shouldOutputHeartbeats           bool
+	metrics                          *metricsType
 }
 
 func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericMap {
@@ -71,10 +73,11 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				log.Warningf("too many connections; skipping flow log %v: ", fl)
 				ct.metrics.inputRecords.WithLabelValues("discarded").Inc()
 			} else {
-				builder := NewConnBuilder()
+				builder := NewConnBuilder(ct.metrics)
 				conn = builder.
 					Hash(computedHash).
-					KeysFrom(fl, ct.config.KeyDefinition).
+					ShouldSwapAB(ct.config.TCPFlags.SwapAB && ct.shouldSwapAB(fl)).
+					KeysFrom(fl, ct.config.KeyDefinition, ct.endpointAFields, ct.endpointBFields).
 					Aggregators(ct.aggregators).
 					Build()
 				ct.connStore.addConnection(computedHash.hashTotal, conn)
@@ -165,7 +168,38 @@ func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.Generi
 			agg.update(conn, flowLog, d)
 		}
 	}
-	ct.connStore.updateConnectionExpiryTime(flowLogHash.hashTotal)
+
+	if ct.config.TCPFlags.DetectEndConnection && ct.isLastFlowLogOfConnection(flowLog) {
+		ct.metrics.tcpFlags.WithLabelValues("detectEndConnection").Inc()
+		ct.connStore.expireConnection(flowLogHash.hashTotal)
+	} else {
+		ct.connStore.updateConnectionExpiryTime(flowLogHash.hashTotal)
+	}
+}
+
+func (ct *conntrackImpl) isLastFlowLogOfConnection(flowLog config.GenericMap) bool {
+	return ct.containsTcpFlag(flowLog, FIN_ACK_FLAG)
+}
+
+func (ct *conntrackImpl) shouldSwapAB(flowLog config.GenericMap) bool {
+	return ct.containsTcpFlag(flowLog, SYN_ACK_FLAG)
+}
+
+func (ct *conntrackImpl) containsTcpFlag(flowLog config.GenericMap, queryFlag uint32) bool {
+	tcpFlagsRaw, ok := flowLog[ct.config.TCPFlags.FieldName]
+	if ok {
+		tcpFlags, err := utils.ConvertToUint32(tcpFlagsRaw)
+		if err != nil {
+			log.Warningf("cannot convert TCP flag %q to uint32: %v", tcpFlagsRaw, err)
+			return false
+		}
+		containsFlag := (tcpFlags & queryFlag) == queryFlag
+		if containsFlag {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalHashType) direction {
@@ -216,11 +250,14 @@ func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam
 		}
 	}
 
+	endpointAFields, endpointBFields := cfg.GetABFields()
 	metrics := newMetrics(opMetrics)
 	conntrack := &conntrackImpl{
 		clock:                     clock,
 		connStore:                 newConnectionStore(cfg.Scheduling, metrics, clock.Now),
 		config:                    cfg,
+		endpointAFields:           endpointAFields,
+		endpointBFields:           endpointBFields,
 		hashProvider:              fnv.New64a,
 		aggregators:               aggregators,
 		shouldOutputFlowLogs:      shouldOutputFlowLogs,

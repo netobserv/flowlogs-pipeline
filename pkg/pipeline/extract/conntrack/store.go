@@ -92,6 +92,24 @@ func (cs *connectionStore) getConnection(hashId uint64) (connection, bool) {
 	return conn, true
 }
 
+func (cs *connectionStore) expireConnection(hashId uint64) {
+	conn, ok := cs.getConnection(hashId)
+	if !ok {
+		log.Panicf("BUG. connection hash %x doesn't exist", hashId)
+		return
+	}
+	groupIdx := cs.hashId2groupIdx[hashId]
+	mom := cs.groups[groupIdx].mom
+	// Set the expiry time to the zero value of Time
+	conn.setExpiryTime(time.Time{})
+	// Move to the front of the list
+	err := mom.MoveToFront(utils.Key(hashId), expiryOrder)
+	if err != nil {
+		log.Panicf("BUG. Can't update connection expiry time for hash %x: %v", hashId, err)
+		return
+	}
+}
+
 func (cs *connectionStore) updateConnectionExpiryTime(hashId uint64) {
 	conn, ok := cs.getConnection(hashId)
 	if !ok {

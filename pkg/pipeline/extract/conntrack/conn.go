@@ -163,16 +163,19 @@ func (c *connType) isMatchSelector(selector map[string]interface{}) bool {
 }
 
 type connBuilder struct {
-	conn *connType
+	conn         *connType
+	shouldSwapAB bool
+	metrics      *metricsType
 }
 
-func NewConnBuilder() *connBuilder {
+func NewConnBuilder(metrics *metricsType) *connBuilder {
 	return &connBuilder{
 		conn: &connType{
 			aggFields:  make(map[string]float64),
 			keys:       config.GenericMap{},
 			isReported: false,
 		},
+		metrics: metrics,
 	}
 }
 
@@ -181,11 +184,25 @@ func (cb *connBuilder) Hash(h totalHashType) *connBuilder {
 	return cb
 }
 
-func (cb *connBuilder) KeysFrom(flowLog config.GenericMap, kd api.KeyDefinition) *connBuilder {
+func (cb *connBuilder) ShouldSwapAB(b bool) *connBuilder {
+	cb.shouldSwapAB = b
+	return cb
+}
+
+func (cb *connBuilder) KeysFrom(flowLog config.GenericMap, kd api.KeyDefinition, endpointAFields, endpointBFields []string) *connBuilder {
 	for _, fg := range kd.FieldGroups {
 		for _, f := range fg.Fields {
 			cb.conn.keys[f] = flowLog[f]
 		}
+	}
+	if cb.shouldSwapAB {
+		for i := range endpointAFields {
+			fieldA := endpointAFields[i]
+			fieldB := endpointBFields[i]
+			cb.conn.keys[fieldA] = flowLog[fieldB]
+			cb.conn.keys[fieldB] = flowLog[fieldA]
+		}
+		cb.metrics.tcpFlags.WithLabelValues("swapAB").Inc()
 	}
 	return cb
 }

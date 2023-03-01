@@ -212,6 +212,45 @@ func TestConnTrackValidate(t *testing.T) {
 			},
 			conntrackInvalidError{defaultGroupAndNotLast: true},
 		},
+		{
+			"Empty TCPFlags field name 1",
+			ConnTrack{
+				Scheduling: []ConnTrackSchedulingGroup{{Selector: map[string]interface{}{}}},
+				TCPFlags:   ConnTrackTCPFlags{DetectEndConnection: true},
+			},
+			conntrackInvalidError{emptyTCPFlagsField: true},
+		},
+		{
+			"Empty TCPFlags field name 2",
+			ConnTrack{
+				Scheduling: []ConnTrackSchedulingGroup{{Selector: map[string]interface{}{}}},
+				TCPFlags:   ConnTrackTCPFlags{SwapAB: true},
+			},
+			conntrackInvalidError{emptyTCPFlagsField: true},
+		},
+		{
+			"Mismatch between field count of FieldGroupARef and FieldGroupBRef",
+			ConnTrack{
+				KeyDefinition: KeyDefinition{
+					FieldGroups: []FieldGroup{
+						{
+							Name:   "src",
+							Fields: []string{"SrcIP", "SrcPort"},
+						},
+						{
+							Name:   "dst",
+							Fields: []string{"DstIP"},
+						},
+					},
+					Hash: ConnTrackHash{
+						FieldGroupARef: "src",
+						FieldGroupBRef: "dst",
+					},
+				},
+				Scheduling: []ConnTrackSchedulingGroup{{Selector: map[string]interface{}{}}},
+			},
+			conntrackInvalidError{mismatchABFieldsCount: true},
+		},
 	}
 
 	for _, tt := range tests {
@@ -220,4 +259,28 @@ func TestConnTrackValidate(t *testing.T) {
 			require.ErrorIs(t, err, tt.expectedErr)
 		})
 	}
+}
+
+func TestGetABFields(t *testing.T) {
+	fieldsA := []string{"SrcIP", "SrcPort"}
+	fieldsB := []string{"DstIP", "DstPort"}
+	conf := ConnTrack{
+		Scheduling: []ConnTrackSchedulingGroup{{Selector: map[string]interface{}{}}},
+		KeyDefinition: KeyDefinition{
+			FieldGroups: []FieldGroup{
+				{Name: "src", Fields: fieldsA},
+				{Name: "dst", Fields: fieldsB},
+			},
+			Hash: ConnTrackHash{
+				FieldGroupARef: "src",
+				FieldGroupBRef: "dst",
+			},
+		},
+	}
+
+	require.NoError(t, conf.Validate())
+
+	actualA, actualB := conf.GetABFields()
+	require.Equal(t, fieldsA, actualA)
+	require.Equal(t, fieldsB, actualB)
 }

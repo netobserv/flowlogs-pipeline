@@ -44,6 +44,7 @@ func TestDecodeProtobuf(t *testing.T) {
 		AgentIp: &pbflow.IP{
 			IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x0a090807},
 		},
+		Flags: 0x100,
 	}
 	rawPB, err := proto.Marshal(&flow)
 	require.NoError(t, err)
@@ -69,6 +70,7 @@ func TestDecodeProtobuf(t *testing.T) {
 		"TimeFlowEndMs":   someTime.UnixMilli(),
 		"Interface":       "eth0",
 		"AgentIP":         "10.9.8.7",
+		"Flags":           uint32(0x100),
 	}, out)
 }
 
@@ -103,6 +105,7 @@ func TestPBFlowToMap(t *testing.T) {
 		AgentIp: &pbflow.IP{
 			IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x0a090807},
 		},
+		Flags: 0x100,
 	}
 
 	out := PBFlowToMap(flow)
@@ -125,6 +128,7 @@ func TestPBFlowToMap(t *testing.T) {
 		"TimeFlowEndMs":   someTime.UnixMilli(),
 		"Interface":       "eth0",
 		"AgentIP":         "10.9.8.7",
+		"Flags":           uint32(0x100),
 	}, out)
 
 }

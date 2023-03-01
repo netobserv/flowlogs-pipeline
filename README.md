@@ -567,6 +567,9 @@ While, in bidirectional setting, they are grouped together.
 
 Bidirectional setting requires defining both `fieldGroupARef` and `fieldGroupBRef` sections to allow the connection
 tracking module to identify which set of fields can swap values and still be considered as the same connection.
+The pairs of fields that can swap are determined by their order in the fieldGroup.
+In the example below, `SrcAddr` and `DstAddr` are first in their fieldGroup, so they are swappable.
+The same is true for `SrcPort` and `DstPort` which are second.
 
 The configuration example below defines a bidirectional setting. So flow-logs that have the values of `SrcAddr` and `SrcPort` 
 swapped with `DstAddr` and `DstPort` are grouped together as long as they have the same `Proto` field.

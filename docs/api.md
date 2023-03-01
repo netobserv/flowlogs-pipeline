@@ -237,6 +237,10 @@ Following is the supported API format for specifying connection tracking:
                  endConnectionTimeout: duration of time to wait from the last flow log to end a connection
                  heartbeatInterval: duration of time to wait between heartbeat reports of a connection
          maxConnectionsTracked: maximum number of connections we keep in our cache (0 means no limit)
+         tcpFlags: settings for handling TCP flags
+             fieldName: name of the field containing TCP flags
+             detectEndConnection: detect end connections by FIN_ACK flag
+             swapAB: swap source and destination when the first flowlog contains the SYN_ACK flag
 </pre>
 ## Time-based Filters API
 Following is the supported API format for specifying metrics time-based filters:
