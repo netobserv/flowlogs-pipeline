@@ -18,10 +18,7 @@
 package encode
 
 import (
-	"context"
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -60,8 +57,6 @@ type EncodeProm struct {
 	expiryTime       time.Duration
 	mCache           *putils.TimedCache
 	exitChan         <-chan struct{}
-	server           *http.Server
-	tlsConfig        *api.PromTLSConf
 	metricsProcessed prometheus.Counter
 	metricsDropped   prometheus.Counter
 	errorsCounter    *prometheus.CounterVec
@@ -259,10 +254,6 @@ func (e *EncodeProm) cleanupExpiredEntriesLoop() {
 	}
 }
 
-func (e *EncodeProm) closeServer(ctx context.Context) error {
-	return e.server.Shutdown(ctx)
-}
-
 func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (Encoder, error) {
 	cfg := api.PromEncode{}
 	if params.Encode != nil && params.Encode.Prom != nil {
@@ -343,19 +334,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	log.Debugf("histos = %v", histos)
 	log.Debugf("aggHistos = %v", aggHistos)
 
-	// if value of address is empty, then by default it will take 0.0.0.0
-	addr := fmt.Sprintf("%s:%v", cfg.Address, cfg.Port)
-	log.Infof("startServer: addr = %s", addr)
-
 	w := &EncodeProm{
-		server: &http.Server{
-			Addr: addr,
-			// TLS clients must use TLS 1.2 or higher
-			TLSConfig: &tls.Config{
-				MinVersion: tls.VersionTLS12,
-			},
-		},
-		tlsConfig:        cfg.TLS,
 		counters:         counters,
 		gauges:           gauges,
 		histos:           histos,
@@ -367,7 +346,6 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		metricsDropped:   opMetrics.NewCounter(&metricsDropped, params.Name),
 		errorsCounter:    opMetrics.NewCounterVec(&encodePromErrors),
 	}
-	go putils.StartPromServer(w.tlsConfig, w.server)
 	go w.cleanupExpiredEntriesLoop()
 	return w, nil
 }

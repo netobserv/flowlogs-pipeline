@@ -18,6 +18,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -142,7 +143,7 @@ func initFlags() {
 	rootCmd.PersistentFlags().IntVar(&opts.Profile.Port, "profile.port", 0, "Go pprof tool port (default: disabled)")
 	rootCmd.PersistentFlags().StringVar(&opts.PipeLine, "pipeline", "", "json of config file pipeline field")
 	rootCmd.PersistentFlags().StringVar(&opts.Parameters, "parameters", "", "json of config file parameters field")
-	rootCmd.PersistentFlags().StringVar(&opts.MetricsSettings, "metrics-settings", "", "json for global metrics settings")
+	rootCmd.PersistentFlags().StringVar(&opts.MetricsSettings, "metricsSettings", "", "json for global metrics settings")
 }
 
 func main() {
@@ -176,6 +177,20 @@ func run() {
 
 	// Setup (threads) exit manager
 	utils.SetupElegantExit()
+
+	// create prometheus server for operational metrics
+	// if value of address is empty, then by default it will take 0.0.0.0
+	addr := fmt.Sprintf("%s:%v", cfg.MetricsSettings.Address, cfg.MetricsSettings.Port)
+	log.Infof("startServer: addr = %s", addr)
+	promServer := &http.Server{
+		Addr: addr,
+		// TLS clients must use TLS 1.2 or higher
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		},
+	}
+	tlsConfig := cfg.MetricsSettings.TLS
+	go utils.StartPromServer(tlsConfig, promServer)
 
 	// Create new flows pipeline
 	mainPipeline, err = pipeline.NewPipeline(&cfg)

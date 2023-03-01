@@ -109,9 +109,8 @@ func Test_Prom_Cache1(t *testing.T) {
 	v, cfg := test.InitConfig(t, yamlConfig1)
 	require.NotNil(t, v)
 
-	promEncode, cleanup, err := initPromWithServer(cfg.Parameters[0].Encode.Prom)
+	promEncode, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
-	defer cleanup()
 
 	entries = test.GenerateConnectionEntries(10)
 	require.Equal(t, 10, len(entries))
@@ -130,9 +129,8 @@ func Test_Prom_Cache2(t *testing.T) {
 	v, cfg := test.InitConfig(t, yamlConfig2)
 	require.NotNil(t, v)
 
-	promEncode, cleanup, err := initPromWithServer(cfg.Parameters[0].Encode.Prom)
+	promEncode, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
-	defer cleanup()
 
 	entries = test.GenerateConnectionEntries(10)
 	require.Equal(t, 10, len(entries))
@@ -151,9 +149,8 @@ func Test_Prom_Cache3(t *testing.T) {
 	v, cfg := test.InitConfig(t, yamlConfig3)
 	require.NotNil(t, v)
 
-	promEncode, cleanup, err := initPromWithServer(cfg.Parameters[0].Encode.Prom)
+	promEncode, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
-	defer cleanup()
 
 	entries = test.GenerateConnectionEntries(10)
 	require.Equal(t, 10, len(entries))

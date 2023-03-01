@@ -129,7 +129,6 @@ func TestKafkaPromPipeline(t *testing.T) {
 			Labels:   []string{"by", "aggregate"},
 			Buckets:  []float64{},
 		}},
-		Port:   9090,
 		Prefix: "flp_",
 	})
 	stages := pl.GetStages()

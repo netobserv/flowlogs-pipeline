@@ -18,8 +18,6 @@
 package encode
 
 import (
-	"context"
-	"fmt"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -73,7 +71,7 @@ parameters:
             labels:
 `
 
-func initPromWithServer(params *api.PromEncode) (*EncodeProm, func(), error) {
+func initProm(params *api.PromEncode) (*EncodeProm, error) {
 	// We need to re-instanciate globals used here and there, to avoid errors such as:
 	//  "panic: http: multiple registrations for /metrics"
 	//  TODO: remove use of default globals.
@@ -84,30 +82,23 @@ func initPromWithServer(params *api.PromEncode) (*EncodeProm, func(), error) {
 	opMetrics := operational.NewMetrics(&config.MetricsSettings{})
 	enc, err := NewEncodeProm(opMetrics, config.StageParam{Encode: &config.Encode{Prom: params}})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	prom := enc.(*EncodeProm)
-	return prom, func() {
-		err := prom.closeServer(context.Background())
-		if err != nil {
-			fmt.Printf("Error while closing prom server: %v\n", err)
-		}
-	}, nil
+	return prom, nil
 }
 
 func Test_NewEncodeProm(t *testing.T) {
 	v, cfg := test.InitConfig(t, testConfig)
 	require.NotNil(t, v)
-	encodeProm, cleanup, err := initPromWithServer(cfg.Parameters[0].Encode.Prom)
+	encodeProm, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
-	defer cleanup()
 
 	require.Equal(t, 1, len(encodeProm.counters))
 	require.Equal(t, 1, len(encodeProm.gauges))
 	require.Equal(t, 1, len(encodeProm.histos))
 	require.Equal(t, 1, len(encodeProm.aggHistos))
 	require.Equal(t, time.Second, encodeProm.expiryTime)
-	require.Equal(t, (*api.PromTLSConf)(nil), encodeProm.tlsConfig)
 
 	require.Equal(t, encodeProm.gauges[0].info.Name, "Bytes")
 	expectedList := []string{"srcAddr", "dstAddr", "srcPort"}
@@ -158,7 +149,6 @@ func Test_CustomMetric(t *testing.T) {
 	}}
 
 	params := api.PromEncode{
-		Port:       9090,
 		Prefix:     "test_",
 		ExpiryTime: 60,
 		Metrics: []api.PromMetricsItem{{
@@ -195,9 +185,8 @@ func Test_CustomMetric(t *testing.T) {
 		}},
 	}
 
-	encodeProm, cleanup, err := initPromWithServer(&params)
+	encodeProm, err := initProm(&params)
 	require.NoError(t, err)
-	defer cleanup()
 	for _, metric := range metrics {
 		encodeProm.Encode(metric)
 	}
@@ -242,7 +231,6 @@ func Test_MetricTTL(t *testing.T) {
 	}}
 
 	params := api.PromEncode{
-		Port:       9090,
 		Prefix:     "test_",
 		ExpiryTime: 1,
 		Metrics: []api.PromMetricsItem{{
@@ -253,9 +241,8 @@ func Test_MetricTTL(t *testing.T) {
 		}},
 	}
 
-	encodeProm, cleanup, err := initPromWithServer(&params)
+	encodeProm, err := initProm(&params)
 	require.NoError(t, err)
-	defer cleanup()
 
 	for _, metric := range metrics {
 		encodeProm.Encode(metric)
@@ -296,7 +283,6 @@ func hundredFlows() []config.GenericMap {
 
 func BenchmarkPromEncode(b *testing.B) {
 	params := api.PromEncode{
-		Port:       9090,
 		Prefix:     "test_",
 		ExpiryTime: 60,
 		Metrics: []api.PromMetricsItem{{
@@ -318,9 +304,8 @@ func BenchmarkPromEncode(b *testing.B) {
 		}},
 	}
 
-	prom, cleanup, err := initPromWithServer(&params)
+	prom, err := initProm(&params)
 	require.NoError(b, err)
-	defer cleanup()
 
 	for i := 0; i < b.N; i++ {
 		for _, metric := range hundredFlows() {
