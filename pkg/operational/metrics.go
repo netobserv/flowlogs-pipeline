@@ -111,7 +111,9 @@ func NewMetrics(settings *config.MetricsSettings) *Metrics {
 func (o *Metrics) register(c prometheus.Collector, name string) {
 	err := prometheus.DefaultRegisterer.Register(c)
 	if err != nil {
-		if o.settings.NoPanic {
+		if _, ok := err.(prometheus.AlreadyRegisteredError); ok {
+			logrus.Errorf("metrics registration error [%s]: %v", name, err)
+		} else if o.settings.NoPanic {
 			logrus.Errorf("metrics registration error [%s]: %v", name, err)
 		} else {
 			logrus.Panicf("metrics registration error [%s]: %v", name, err)
