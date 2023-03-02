@@ -32,38 +32,56 @@ var (
 
 	inputRecordsDef = operational.DefineMetric(
 		"conntrack_input_records",
-		"The total number of input records per classification.",
+		"The total number of input records per classification",
 		operational.TypeCounter,
 		"classification",
 	)
 
 	outputRecordsDef = operational.DefineMetric(
 		"conntrack_output_records",
-		"The total number of output records.",
+		"The total number of output records",
 		operational.TypeCounter,
 		"type",
 	)
 
 	tcpFlagsDef = operational.DefineMetric(
 		"conntrack_tcp_flags",
-		"The total number of actions taken based on TCP flags.",
+		"The total number of actions taken based on TCP flags",
 		operational.TypeCounter,
 		"action",
+	)
+
+	hashErrorsDef = operational.DefineMetric(
+		"conntrack_hash_errors",
+		"The total number of errors during hash computation",
+		operational.TypeCounter,
+		"error", "field",
+	)
+
+	aggregatorErrorsDef = operational.DefineMetric(
+		"conntrack_aggregator_errors",
+		"The total number of errors during aggregation",
+		operational.TypeCounter,
+		"error", "field",
 	)
 )
 
 type metricsType struct {
-	connStoreLength *prometheus.GaugeVec
-	inputRecords    *prometheus.CounterVec
-	outputRecords   *prometheus.CounterVec
-	tcpFlags        *prometheus.CounterVec
+	connStoreLength  *prometheus.GaugeVec
+	inputRecords     *prometheus.CounterVec
+	outputRecords    *prometheus.CounterVec
+	tcpFlags         *prometheus.CounterVec
+	hashErrors       *prometheus.CounterVec
+	aggregatorErrors *prometheus.CounterVec
 }
 
 func newMetrics(opMetrics *operational.Metrics) *metricsType {
 	return &metricsType{
-		connStoreLength: opMetrics.NewGaugeVec(&connStoreLengthDef),
-		inputRecords:    opMetrics.NewCounterVec(&inputRecordsDef),
-		outputRecords:   opMetrics.NewCounterVec(&outputRecordsDef),
-		tcpFlags:        opMetrics.NewCounterVec(&tcpFlagsDef),
+		connStoreLength:  opMetrics.NewGaugeVec(&connStoreLengthDef),
+		inputRecords:     opMetrics.NewCounterVec(&inputRecordsDef),
+		outputRecords:    opMetrics.NewCounterVec(&outputRecordsDef),
+		tcpFlags:         opMetrics.NewCounterVec(&tcpFlagsDef),
+		hashErrors:       opMetrics.NewCounterVec(&hashErrorsDef),
+		aggregatorErrors: opMetrics.NewCounterVec(&aggregatorErrorsDef),
 	}
 }

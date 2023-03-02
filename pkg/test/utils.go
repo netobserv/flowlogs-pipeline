@@ -192,6 +192,8 @@ func GetExtractMockEntries2() []config.GenericMap {
 	return entries
 }
 
+// ResetPromRegistry resets the prometheus registry. Invoke this function on tests that may register metrics that were
+// already registered by other tests.
 func ResetPromRegistry() {
 	reg := prometheus.NewRegistry()
 	prometheus.DefaultRegisterer = reg

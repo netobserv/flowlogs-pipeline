@@ -61,7 +61,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 
 	var outputRecords []config.GenericMap
 	for _, fl := range flowLogs {
-		computedHash, err := ComputeHash(fl, ct.config.KeyDefinition, ct.hashProvider())
+		computedHash, err := ComputeHash(fl, ct.config.KeyDefinition, ct.hashProvider(), ct.metrics)
 		if err != nil {
 			log.Warningf("skipping flow log %v: %v", fl, err)
 			ct.metrics.inputRecords.WithLabelValues("rejected").Inc()
@@ -220,9 +220,11 @@ func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam
 		return nil, fmt.Errorf("ConnectionTrack config is invalid: %w", err)
 	}
 
+	metrics := newMetrics(opMetrics)
+
 	var aggregators []aggregator
 	for _, of := range cfg.OutputFields {
-		agg, err := newAggregator(of)
+		agg, err := newAggregator(of, metrics)
 		if err != nil {
 			return nil, fmt.Errorf("error creating aggregator: %w", err)
 		}
@@ -248,7 +250,6 @@ func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam
 	}
 
 	endpointAFields, endpointBFields := cfg.GetABFields()
-	metrics := newMetrics(opMetrics)
 	conntrack := &conntrackImpl{
 		clock:                     clock,
 		connStore:                 newConnectionStore(cfg.Scheduling, metrics, clock.Now),
