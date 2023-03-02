@@ -214,7 +214,7 @@ func run() {
 	// Starts the flows pipeline
 	mainPipeline.Run()
 
-	promServer.Shutdown(context.Background())
+	_ = promServer.Shutdown(context.Background())
 
 	// Give all threads a chance to exit and then exit the process
 	time.Sleep(time.Second)
