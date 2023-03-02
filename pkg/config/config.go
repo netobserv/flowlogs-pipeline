@@ -36,9 +36,9 @@ type Options struct {
 
 type ConfigFileStruct struct {
 	LogLevel        string          `yaml:"log-level,omitempty" json:"log-level,omitempty"`
+	MetricsSettings MetricsSettings `yaml:"metricsSettings,omitempty" json:"metricsSettings,omitempty"`
 	Pipeline        []Stage         `yaml:"pipeline,omitempty" json:"pipeline,omitempty"`
 	Parameters      []StageParam    `yaml:"parameters,omitempty" json:"parameters,omitempty"`
-	MetricsSettings MetricsSettings `yaml:"metricsSettings,omitempty" json:"metricsSettings,omitempty"`
 	PerfSettings    PerfSettings    `yaml:"perfSettings,omitempty" json:"perfSettings,omitempty"`
 }
 

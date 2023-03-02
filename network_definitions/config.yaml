@@ -88,7 +88,6 @@ extract:
 encode:
   prom:
     prefix: flp_
-    port: 9102
 write:
   type: loki
   loki:
