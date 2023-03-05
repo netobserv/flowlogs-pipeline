@@ -26,9 +26,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// StartServer listens for prometheus resource usage requests
-func StartPromServer(tlsConfig *api.PromTLSConf, server *http.Server) {
-	logrus.Debugf("entering startServer")
+// StartPromServer listens for prometheus resource usage requests
+func StartPromServer(tlsConfig *api.PromTLSConf, server *http.Server, panicOnError bool) {
+	logrus.Debugf("entering StartPromServer")
 
 	// The Handler function provides a default handler to expose metrics
 	// via an HTTP server. "/metrics" is the usual endpoint for that.
@@ -42,6 +42,8 @@ func StartPromServer(tlsConfig *api.PromTLSConf, server *http.Server) {
 	}
 	if err != nil && err != http.ErrServerClosed {
 		logrus.Errorf("error in http.ListenAndServe: %v", err)
-		os.Exit(1)
+		if panicOnError {
+			os.Exit(1)
+		}
 	}
 }

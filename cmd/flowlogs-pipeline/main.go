@@ -191,7 +191,7 @@ func run() {
 		},
 	}
 	tlsConfig := cfg.MetricsSettings.TLS
-	go utils.StartPromServer(tlsConfig, promServer)
+	go utils.StartPromServer(tlsConfig, promServer, !cfg.MetricsSettings.NoPanic)
 
 	// Create new flows pipeline
 	mainPipeline, err = pipeline.NewPipeline(&cfg)
