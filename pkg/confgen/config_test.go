@@ -31,7 +31,6 @@ func expectedConfig() *Config {
 		Description: "test description",
 		Encode: config.Encode{
 			Prom: &api.PromEncode{
-				Port:   7777,
 				Prefix: "prefix",
 			},
 		},
@@ -54,7 +53,6 @@ ingest:
     port: 8888
 encode:
   prom:
-    port: 7777
     prefix: prefix
 `
 

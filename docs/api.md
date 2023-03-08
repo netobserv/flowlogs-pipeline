@@ -17,13 +17,8 @@ Following is the supported API format for prometheus encode:
                  valueKey: entry key from which to resolve metric value
                  labels: labels to be associated with the metric
                  buckets: histogram buckets
-         address: address to expose "/metrics" endpoint
-         port: port number to expose "/metrics" endpoint
          prefix: prefix added to each metric name
          expiryTime: seconds of no-flow to wait before deleting prometheus data item
-         tls: TLS configuration for the prometheus endpoint
-             certPath: path to the certificate file
-             keyPath: path to the key file
          maxMetrics: maximum number of metrics to report (default: unlimited)
 </pre>
 ## Kafka encode API

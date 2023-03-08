@@ -142,7 +142,6 @@ func Test_RunShortConfGen(t *testing.T) {
 	// Expects prom encode
 	require.Len(t, out.Parameters[3].Encode.Prom.Metrics, 1)
 	require.Equal(t, &api.PromEncode{
-		Port:   9102,
 		Prefix: "flp_",
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
@@ -222,7 +221,6 @@ func Test_RunConfGenNoAgg(t *testing.T) {
 	// Expects prom encode
 	require.Len(t, out.Parameters[2].Encode.Prom.Metrics, 1)
 	require.Equal(t, &api.PromEncode{
-		Port:   9102,
 		Prefix: "flp_",
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
@@ -325,7 +323,6 @@ func Test_RunLongConfGen(t *testing.T) {
 	// Expects prom encode; make sure type "histogram" is changed to "agg_histogram"
 	require.Len(t, out.Parameters[4].Encode.Prom.Metrics, 2)
 	require.Equal(t, &api.PromEncode{
-		Port:   9102,
 		Prefix: "flp_",
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
