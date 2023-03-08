@@ -20,126 +20,22 @@ package kubernetes
 import (
 	"testing"
 
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/cache"
 )
-
-type IndexerMock struct {
-	mock.Mock
-	cache.Indexer
-}
-
-type InformerMock struct {
-	mock.Mock
-	InformerInterface
-}
-
-type InformerInterface interface {
-	cache.SharedInformer
-	AddIndexers(indexers cache.Indexers) error
-	GetIndexer() cache.Indexer
-}
-
-func (indexMock *IndexerMock) ByIndex(indexName, indexedValue string) ([]interface{}, error) {
-	args := indexMock.Called(indexName, indexedValue)
-	return args.Get(0).([]interface{}), args.Error(1)
-}
-
-func (indexMock *IndexerMock) GetByKey(key string) (interface{}, bool, error) {
-	args := indexMock.Called(key)
-	return args.Get(0), args.Bool(1), args.Error(2)
-}
-
-func (informerMock *InformerMock) GetIndexer() cache.Indexer {
-	args := informerMock.Called()
-	return args.Get(0).(cache.Indexer)
-}
-
-func (m *IndexerMock) mockPod(ip, name, namespace, nodeIP string, owner *Owner) {
-	var ownerRef []metav1.OwnerReference
-	if owner != nil {
-		ownerRef = []metav1.OwnerReference{{
-			Kind: owner.Type,
-			Name: owner.Name,
-		}}
-	}
-	m.On("ByIndex", IndexIP, ip).Return([]interface{}{&Info{
-		Type: "Pod",
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            name,
-			Namespace:       namespace,
-			OwnerReferences: ownerRef,
-		},
-		HostIP: nodeIP,
-	}}, nil)
-}
-
-func (m *IndexerMock) mockNode(ip, name string) {
-	m.On("ByIndex", IndexIP, ip).Return([]interface{}{&Info{
-		Type:       "Node",
-		ObjectMeta: metav1.ObjectMeta{Name: name},
-	}}, nil)
-}
-
-func (m *IndexerMock) mockService(ip, name, namespace string) {
-	m.On("ByIndex", IndexIP, ip).Return([]interface{}{&Info{
-		Type:       "Service",
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-	}}, nil)
-}
-
-func (m *IndexerMock) mockReplicaSet(name, namespace string, owner Owner) {
-	m.On("GetByKey", namespace+"/"+name).Return(&metav1.ObjectMeta{
-		Name: name,
-		OwnerReferences: []metav1.OwnerReference{{
-			Kind: owner.Type,
-			Name: owner.Name,
-		}},
-	}, true, nil)
-}
-
-func (m *IndexerMock) fallbackNotFound() {
-	m.On("ByIndex", IndexIP, mock.Anything).Return([]interface{}{}, nil)
-}
-
-func setupMocks(kd *KubeData) (pods, nodes, svc, rs *IndexerMock) {
-	// pods informer
-	pods = &IndexerMock{}
-	pim := InformerMock{}
-	pim.On("GetIndexer").Return(pods)
-	kd.pods = &pim
-	// nodes informer
-	nodes = &IndexerMock{}
-	him := InformerMock{}
-	him.On("GetIndexer").Return(nodes)
-	kd.nodes = &him
-	// svc informer
-	svc = &IndexerMock{}
-	sim := InformerMock{}
-	sim.On("GetIndexer").Return(svc)
-	kd.services = &sim
-	// rs informer
-	rs = &IndexerMock{}
-	rim := InformerMock{}
-	rim.On("GetIndexer").Return(rs)
-	kd.replicaSets = &rim
-	return
-}
 
 func TestGetInfo(t *testing.T) {
 	kubeData := KubeData{}
-	pidx, hidx, sidx, ridx := setupMocks(&kubeData)
-	pidx.mockPod("1.2.3.4", "pod1", "podNamespace", "10.0.0.1", nil)
-	pidx.mockPod("1.2.3.5", "pod2", "podNamespace", "10.0.0.1", &Owner{Name: "rs1", Type: "ReplicaSet"})
-	pidx.fallbackNotFound()
-	ridx.mockReplicaSet("rs1", "podNamespace", Owner{Name: "dep1", Type: "Deployment"})
-	ridx.fallbackNotFound()
-	sidx.mockService("1.2.3.100", "svc1", "svcNamespace")
-	sidx.fallbackNotFound()
-	hidx.mockNode("10.0.0.1", "node1")
-	hidx.fallbackNotFound()
+	pidx, hidx, sidx, ridx := SetupIndexerMocks(&kubeData)
+	pidx.MockPod("1.2.3.4", "pod1", "podNamespace", "10.0.0.1", nil)
+	pidx.MockPod("1.2.3.5", "pod2", "podNamespace", "10.0.0.1", &Owner{Name: "rs1", Type: "ReplicaSet"})
+	pidx.FallbackNotFound()
+	ridx.MockReplicaSet("rs1", "podNamespace", Owner{Name: "dep1", Type: "Deployment"})
+	ridx.FallbackNotFound()
+	sidx.MockService("1.2.3.100", "svc1", "svcNamespace")
+	sidx.FallbackNotFound()
+	hidx.MockNode("10.0.0.1", "node1")
+	hidx.FallbackNotFound()
 
 	// Test get orphan pod
 	info, err := kubeData.GetInfo("1.2.3.4")

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConvertToFloat64(t *testing.T) {
+func TestConvert(t *testing.T) {
 	type tt struct {
 		input   interface{}
 		wantf64 float64
@@ -33,7 +33,7 @@ func TestConvertToFloat64(t *testing.T) {
 		wanti:   1,
 	}, {
 		input:   "1",
-		wantf64: 1,
+		wantf64: 1.0,
 		wantu32: 1,
 		wantu64: 1,
 		wanti64: 1,
@@ -89,27 +89,26 @@ func TestConvertToFloat64(t *testing.T) {
 		wanti:   42,
 	}}
 	for _, tc := range cases {
-		tc := tc
-		t.Run(fmt.Sprintf("%t", tc.input), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%T", tc.input), func(t *testing.T) {
 			f, err := ConvertToFloat64(tc.input)
 			assert.NoError(t, err)
-			assert.InDelta(t, tc.wantf64, f, 0.001)
+			assert.InDelta(t, tc.wantf64, f, 0.001, fmt.Sprintf("%T -> float64 failed", tc.input))
 
 			u64, err := ConvertToUint64(tc.input)
 			assert.NoError(t, err)
-			assert.Equal(t, tc.wantu64, u64)
+			assert.Equal(t, tc.wantu64, u64, fmt.Sprintf("%T -> uint64 failed", tc.input))
 
 			u32, err := ConvertToUint32(tc.input)
 			assert.NoError(t, err)
-			assert.Equal(t, tc.wantu32, u32)
+			assert.Equal(t, tc.wantu32, u32, fmt.Sprintf("%T -> uint32 failed", tc.input))
 
 			i64, err := ConvertToInt64(tc.input)
 			assert.NoError(t, err)
-			assert.Equal(t, tc.wanti64, i64)
+			assert.Equal(t, tc.wanti64, i64, fmt.Sprintf("%T -> int64 failed", tc.input))
 
 			i, err := ConvertToInt(tc.input)
 			assert.NoError(t, err)
-			assert.Equal(t, tc.wanti, i)
+			assert.Equal(t, tc.wanti, i, fmt.Sprintf("%T -> int failed", tc.input))
 		})
 	}
 }
