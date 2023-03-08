@@ -5,6 +5,8 @@ metadata:
 data:
   flowlogs-pipeline.conf.yaml: |
     log-level: error
+    metricsSettings:
+      port: 9102
     parameters:
       - ingest:
           collector:
@@ -267,7 +269,6 @@ data:
                   - groupByKeys
                   - aggregate
                 buckets: []
-            port: 9102
             prefix: flp_
           type: prom
         name: encode_prom
