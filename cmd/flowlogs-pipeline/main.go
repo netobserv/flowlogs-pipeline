@@ -35,6 +35,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -178,6 +179,13 @@ func run() {
 
 	// Setup (threads) exit manager
 	utils.SetupElegantExit()
+
+	// set up private prometheus registry
+	if cfg.MetricsSettings.SuppressGoMetrics {
+		reg := prometheus.NewRegistry()
+		prometheus.DefaultRegisterer = reg
+		prometheus.DefaultGatherer = reg
+	}
 
 	// create prometheus server for operational metrics
 	// if value of address is empty, then by default it will take 0.0.0.0
