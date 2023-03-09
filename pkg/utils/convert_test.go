@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConvert(t *testing.T) {
@@ -109,6 +110,33 @@ func TestConvert(t *testing.T) {
 			i, err := ConvertToInt(tc.input)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.wanti, i, fmt.Sprintf("%T -> int failed", tc.input))
+		})
+	}
+}
+
+func TestConvertToBool(t *testing.T) {
+	truthiness := []interface{}{"1", "t", "T", "true", "TRUE", "True", true, 1, 1.0}
+	falsiness := []interface{}{"0", "f", "F", "false", "FALSE", "False", false, 0, 0.0}
+	erroneous := []interface{}{"2", "a", "fAlse", "tRue", 2, 2.2}
+
+	for _, tt := range truthiness {
+		t.Run(fmt.Sprintf("Truthiness: %T %#v", tt, tt), func(t *testing.T) {
+			actual, err := ConvertToBool(tt)
+			require.NoError(t, err)
+			require.True(t, actual)
+		})
+	}
+	for _, tt := range falsiness {
+		t.Run(fmt.Sprintf("Falsiness: %T %#v", tt, tt), func(t *testing.T) {
+			actual, err := ConvertToBool(tt)
+			require.NoError(t, err)
+			require.False(t, actual)
+		})
+	}
+	for _, tt := range erroneous {
+		t.Run(fmt.Sprintf("Erroneous: %T %#v", tt, tt), func(t *testing.T) {
+			_, err := ConvertToBool(tt)
+			require.Error(t, err)
 		})
 	}
 }
