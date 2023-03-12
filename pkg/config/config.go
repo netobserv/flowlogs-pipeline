@@ -90,6 +90,7 @@ type Ingest struct {
 	Collector *api.IngestCollector `yaml:"collector,omitempty" json:"collector,omitempty"`
 	Kafka     *api.IngestKafka     `yaml:"kafka,omitempty" json:"kafka,omitempty"`
 	GRPC      *api.IngestGRPCProto `yaml:"grpc,omitempty" json:"grpc,omitempty"`
+	Synthetic *api.IngestSynthetic `yaml:"synthetic,omitempty" json:"synthetic,omitempty"`
 }
 
 type File struct {

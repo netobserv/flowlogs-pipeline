@@ -902,15 +902,15 @@ func TestMaxConnections(t *testing.T) {
 	ct := extract.(*conntrackImpl)
 	require.Equal(t, 0, ct.connStore.len())
 
-	flowLogs := utils.GenerateConnectionEntries(10)
+	flowLogs := utils.GenerateConnectionFlowEntries(10)
 	ct.Extract(flowLogs)
 	require.Equal(t, 10, ct.connStore.len())
 
-	flowLogs = utils.GenerateConnectionEntries(20)
+	flowLogs = utils.GenerateConnectionFlowEntries(20)
 	ct.Extract(flowLogs)
 	require.Equal(t, 20, ct.connStore.len())
 
-	flowLogs = utils.GenerateConnectionEntries(40)
+	flowLogs = utils.GenerateConnectionFlowEntries(40)
 	ct.Extract(flowLogs)
 	require.Equal(t, maxConnections, ct.connStore.len())
 }

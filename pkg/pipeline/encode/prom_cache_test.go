@@ -110,12 +110,12 @@ func Test_Prom_Cache1(t *testing.T) {
 	promEncode, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
 
-	entries = utils.GenerateConnectionEntries(10)
+	entries = utils.GenerateConnectionFlowEntries(10)
 	require.Equal(t, 10, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 10, promEncode.mCache.GetCacheLen())
 
-	entries = utils.GenerateConnectionEntries(40)
+	entries = utils.GenerateConnectionFlowEntries(40)
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 30, promEncode.mCache.GetCacheLen())
@@ -130,12 +130,12 @@ func Test_Prom_Cache2(t *testing.T) {
 	promEncode, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
 
-	entries = utils.GenerateConnectionEntries(10)
+	entries = utils.GenerateConnectionFlowEntries(10)
 	require.Equal(t, 10, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 20, promEncode.mCache.GetCacheLen())
 
-	entries = utils.GenerateConnectionEntries(40)
+	entries = utils.GenerateConnectionFlowEntries(40)
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 30, promEncode.mCache.GetCacheLen())
@@ -150,12 +150,12 @@ func Test_Prom_Cache3(t *testing.T) {
 	promEncode, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
 
-	entries = utils.GenerateConnectionEntries(10)
+	entries = utils.GenerateConnectionFlowEntries(10)
 	require.Equal(t, 10, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 20, promEncode.mCache.GetCacheLen())
 
-	entries = utils.GenerateConnectionEntries(40)
+	entries = utils.GenerateConnectionFlowEntries(40)
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 80, promEncode.mCache.GetCacheLen())

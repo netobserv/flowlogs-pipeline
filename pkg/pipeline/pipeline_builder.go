@@ -330,6 +330,8 @@ func getIngester(opMetrics *operational.Metrics, params config.StageParam) (inge
 	switch params.Ingest.Type {
 	case api.FileType, api.FileLoopType, api.FileChunksType:
 		ingester, err = ingest.NewIngestFile(params)
+	case api.SyntheticType:
+		ingester, err = ingest.NewIngestSynthetic(params)
 	case api.CollectorType:
 		ingester, err = ingest.NewIngestCollector(opMetrics, params)
 	case api.KafkaType:

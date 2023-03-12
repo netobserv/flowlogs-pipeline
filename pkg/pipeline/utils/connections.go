@@ -25,10 +25,10 @@ import (
 
 const subnetBatchSize = 200
 
-// GenerateConnectionEntries generates data with one entry for each of nConnections
+// GenerateConnectionFlowEntries generates data with one entry for each of nConnections
 // Create the entries in a predictable manner so that the first K entries in each call
 // to the function reproduce the same connection.
-func GenerateConnectionEntries(nConnections int) []config.GenericMap {
+func GenerateConnectionFlowEntries(nConnections int) []config.GenericMap {
 	entries := make([]config.GenericMap, 0)
 	nSubnets := (nConnections / subnetBatchSize) + 1
 	if nSubnets > 254 {
