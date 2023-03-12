@@ -197,34 +197,3 @@ func ResetPromRegistry() {
 	prometheus.DefaultRegisterer = reg
 	prometheus.DefaultGatherer = reg
 }
-
-const subnetBatchSize = 200
-
-// GenerateConnectionEntries generates data with one entry for each of nConnections
-// Create the entries in a predictable manner so that the first K entries in each call
-// to the function reproduce the same connection.
-func GenerateConnectionEntries(nConnections int) []config.GenericMap {
-	entries := make([]config.GenericMap, 0)
-	nSubnets := (nConnections / subnetBatchSize) + 1
-	if nSubnets > 254 {
-		nSubnets = 254
-	}
-	count := 0
-	for i := 1; i <= nSubnets; i++ {
-		for j := 1; j <= subnetBatchSize; j++ {
-			srcAddr := fmt.Sprintf("10.1.%d.%d", i, j)
-			count++
-			entry := config.GenericMap{
-				"SrcAddr": srcAddr,
-				"DstAddr": "11.1.1.1",
-				"Bytes":   100,
-				"Packets": 1,
-			}
-			entries = append(entries, entry)
-			if count >= nConnections {
-				return entries
-			}
-		}
-	}
-	return entries
-}

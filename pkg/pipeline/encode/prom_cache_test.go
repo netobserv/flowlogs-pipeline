@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
@@ -109,12 +110,12 @@ func Test_Prom_Cache1(t *testing.T) {
 	promEncode, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
 
-	entries = test.GenerateConnectionEntries(10)
+	entries = utils.GenerateConnectionEntries(10)
 	require.Equal(t, 10, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 10, promEncode.mCache.GetCacheLen())
 
-	entries = test.GenerateConnectionEntries(40)
+	entries = utils.GenerateConnectionEntries(40)
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 30, promEncode.mCache.GetCacheLen())
@@ -129,12 +130,12 @@ func Test_Prom_Cache2(t *testing.T) {
 	promEncode, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
 
-	entries = test.GenerateConnectionEntries(10)
+	entries = utils.GenerateConnectionEntries(10)
 	require.Equal(t, 10, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 20, promEncode.mCache.GetCacheLen())
 
-	entries = test.GenerateConnectionEntries(40)
+	entries = utils.GenerateConnectionEntries(40)
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 30, promEncode.mCache.GetCacheLen())
@@ -149,12 +150,12 @@ func Test_Prom_Cache3(t *testing.T) {
 	promEncode, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
 
-	entries = test.GenerateConnectionEntries(10)
+	entries = utils.GenerateConnectionEntries(10)
 	require.Equal(t, 10, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 20, promEncode.mCache.GetCacheLen())
 
-	entries = test.GenerateConnectionEntries(40)
+	entries = utils.GenerateConnectionEntries(40)
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
 	require.Equal(t, 80, promEncode.mCache.GetCacheLen())

@@ -29,6 +29,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
@@ -901,15 +902,15 @@ func TestMaxConnections(t *testing.T) {
 	ct := extract.(*conntrackImpl)
 	require.Equal(t, 0, ct.connStore.len())
 
-	flowLogs := test.GenerateConnectionEntries(10)
+	flowLogs := utils.GenerateConnectionEntries(10)
 	ct.Extract(flowLogs)
 	require.Equal(t, 10, ct.connStore.len())
 
-	flowLogs = test.GenerateConnectionEntries(20)
+	flowLogs = utils.GenerateConnectionEntries(20)
 	ct.Extract(flowLogs)
 	require.Equal(t, 20, ct.connStore.len())
 
-	flowLogs = test.GenerateConnectionEntries(40)
+	flowLogs = utils.GenerateConnectionEntries(40)
 	ct.Extract(flowLogs)
 	require.Equal(t, maxConnections, ct.connStore.len())
 }
