@@ -47,14 +47,6 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Labels** | error, metric, key | 
 
 
-### encode_prom_metrics_reported
-| **Name** | encode_prom_metrics_reported | 
-|:---|:---|
-| **Description** | Total number of prometheus metrics reported by this stage | 
-| **Type** | gauge | 
-| **Labels** | stage | 
-
-
 ### ingest_batch_size_bytes
 | **Name** | ingest_batch_size_bytes | 
 |:---|:---|

@@ -82,12 +82,6 @@ var (
 		operational.TypeCounter,
 		"error", "metric", "key",
 	)
-	mChacheLen = operational.DefineMetric(
-		"encode_prom_metrics_reported",
-		"Total number of prometheus metrics reported by this stage",
-		operational.TypeGauge,
-		"stage",
-	)
 )
 
 // Encode encodes a metric before being stored
