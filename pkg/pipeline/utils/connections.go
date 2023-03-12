@@ -40,10 +40,16 @@ func GenerateConnectionEntries(nConnections int) []config.GenericMap {
 			srcAddr := fmt.Sprintf("10.1.%d.%d", i, j)
 			count++
 			entry := config.GenericMap{
-				"SrcAddr": srcAddr,
-				"DstAddr": "11.1.1.1",
-				"Bytes":   100,
-				"Packets": 1,
+				"SrcAddr":      srcAddr,
+				"SrcPort":      1234,
+				"DstAddr":      "11.1.1.1",
+				"DstPort":      8000,
+				"Bytes":        100,
+				"Packets":      1,
+				"Proto":        6,
+				"SrcAS":        0,
+				"DstAS":        0,
+				"TimeReceived": 0,
 			}
 			entries = append(entries, entry)
 			if count >= nConnections {
