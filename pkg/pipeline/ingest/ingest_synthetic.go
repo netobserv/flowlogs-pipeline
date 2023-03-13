@@ -22,13 +22,16 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
 type IngestSynthetic struct {
-	params   api.IngestSynthetic
-	exitChan <-chan struct{}
+	params           api.IngestSynthetic
+	exitChan         <-chan struct{}
+	metricsProcessed prometheus.Counter
 }
 
 const (
@@ -37,24 +40,33 @@ const (
 	defaultFlowLogsPerMin = 2000
 )
 
+var (
+	metricsProcessed = operational.DefineMetric(
+		"ingest_synthetic_flows_processed",
+		"Number of metrics processed",
+		operational.TypeCounter,
+		"stage",
+	)
+)
+
 // IngestSynthetic Ingest generates flow logs according to provided parameters
-func (ingestF *IngestSynthetic) Ingest(out chan<- config.GenericMap) {
-	log.Debugf("entering IngestSynthetic Ingest, params = %v", ingestF.params)
-	flowLogs := utils.GenerateConnectionFlowEntries(ingestF.params.Connections)
+func (ingestS *IngestSynthetic) Ingest(out chan<- config.GenericMap) {
+	log.Debugf("entering IngestSynthetic Ingest, params = %v", ingestS.params)
+	flowLogs := utils.GenerateConnectionFlowEntries(ingestS.params.Connections)
 	nLogs := len(flowLogs)
 	next := 0
 
 	// compute time interval between batches
-	ticker := time.NewTicker(time.Duration(int(time.Minute*time.Duration(ingestF.params.BatchMaxLen)) / ingestF.params.FlowLogsPerMin))
+	ticker := time.NewTicker(time.Duration(int(time.Minute*time.Duration(ingestS.params.BatchMaxLen)) / ingestS.params.FlowLogsPerMin))
 
 	// loop forever
 	for {
 		select {
-		case <-ingestF.exitChan:
+		case <-ingestS.exitChan:
 			log.Debugf("exiting IngestSynthetic because of signal")
 			return
 		case <-ticker.C:
-			flowsLeft := ingestF.params.BatchMaxLen
+			flowsLeft := ingestS.params.BatchMaxLen
 			log.Debugf("flowsLeft = %d", flowsLeft)
 			batchLen := flowsLeft
 			for flowsLeft > 0 {
@@ -64,7 +76,8 @@ func (ingestF *IngestSynthetic) Ingest(out chan<- config.GenericMap) {
 				}
 				log.Debugf("flowsLeft = %d, remainder = %d, batchLen = %d", flowsLeft, remainder, batchLen)
 				batch := flowLogs[next : next+batchLen]
-				ingestF.sendBatch(batch, out)
+				ingestS.sendBatch(batch, out)
+				ingestS.metricsProcessed.Add(float64(batchLen))
 				flowsLeft -= batchLen
 				next += batchLen
 				if batchLen == remainder {
@@ -76,14 +89,14 @@ func (ingestF *IngestSynthetic) Ingest(out chan<- config.GenericMap) {
 	}
 }
 
-func (ingestF *IngestSynthetic) sendBatch(flows []config.GenericMap, out chan<- config.GenericMap) {
+func (ingestS *IngestSynthetic) sendBatch(flows []config.GenericMap, out chan<- config.GenericMap) {
 	for _, flow := range flows {
 		out <- flow
 	}
 }
 
 // NewIngestSynthetic create a new ingester
-func NewIngestSynthetic(params config.StageParam) (Ingester, error) {
+func NewIngestSynthetic(opMetrics *operational.Metrics, params config.StageParam) (Ingester, error) {
 	log.Debugf("entering NewIngestSynthetic")
 	jsonIngestSynthetic := api.IngestSynthetic{}
 	if params.Ingest != nil || params.Ingest.Synthetic != nil {
@@ -101,7 +114,8 @@ func NewIngestSynthetic(params config.StageParam) (Ingester, error) {
 	log.Debugf("params = %v", jsonIngestSynthetic)
 
 	return &IngestSynthetic{
-		params:   jsonIngestSynthetic,
-		exitChan: utils.ExitChannel(),
+		params:           jsonIngestSynthetic,
+		exitChan:         utils.ExitChannel(),
+		metricsProcessed: opMetrics.NewCounter(&metricsProcessed, params.Name),
 	}, nil
 }

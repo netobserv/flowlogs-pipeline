@@ -22,6 +22,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,7 +34,7 @@ func TestIngestSynthetic(t *testing.T) {
 			Synthetic: &api.IngestSynthetic{},
 		},
 	}
-	ingest, err := NewIngestSynthetic(params)
+	ingest, err := NewIngestSynthetic(operational.NewMetrics(&config.MetricsSettings{}), params)
 	syn := ingest.(*IngestSynthetic)
 	require.NoError(t, err)
 	require.Equal(t, defaultBatchLen, syn.params.BatchMaxLen)
@@ -54,7 +55,7 @@ func TestIngestSynthetic(t *testing.T) {
 			Synthetic: &synthetic,
 		},
 	}
-	ingest, err = NewIngestSynthetic(params)
+	ingest, err = NewIngestSynthetic(operational.NewMetrics(&config.MetricsSettings{}), params)
 	syn = ingest.(*IngestSynthetic)
 	require.NoError(t, err)
 	require.Equal(t, batchMaxLen, syn.params.BatchMaxLen)
