@@ -154,6 +154,8 @@ func ParseConfig(opts Options) (ConfigFileStruct, error) {
 			return out, err
 		}
 		logrus.Debugf("metrics settings = %v ", out.MetricsSettings)
+	} else {
+		logrus.Errorf("metrics settings missing")
 	}
 
 	return out, nil
