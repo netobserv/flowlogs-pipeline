@@ -47,6 +47,8 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 		"Packets":         flow.Packets,
 		"Duplicate":       flow.Duplicate,
 		"Proto":           flow.Transport.GetProtocol(),
+		"ICMPType":        flow.Transport.GetIcmpType(),
+		"ICMPCode":        flow.Transport.GetIcmpCode(),
 		"TimeFlowStartMs": flow.TimeFlowStart.AsTime().UnixMilli(),
 		"TimeFlowEndMs":   flow.TimeFlowEnd.AsTime().UnixMilli(),
 		"TimeReceived":    time.Now().Unix(),

@@ -38,6 +38,8 @@ func TestDecodeProtobuf(t *testing.T) {
 		},
 		Transport: &pbflow.Transport{
 			Protocol: 1,
+			ICMPType: 8,
+			ICMPCode: 10,
 			SrcPort:  23000,
 			DstPort:  443,
 		},
@@ -99,6 +101,8 @@ func TestPBFlowToMap(t *testing.T) {
 		},
 		Transport: &pbflow.Transport{
 			Protocol: 1,
+			ICMPType: 8,
+			ICMPCode: 10,
 			SrcPort:  23000,
 			DstPort:  443,
 		},

@@ -196,6 +196,8 @@ parameters:
 			},
 			Transport: &pbflow.Transport{
 				Protocol: 1,
+				ICMPType: 8,
+				ICMPCode: 10,
 				SrcPort:  23000,
 				DstPort:  443,
 			},
