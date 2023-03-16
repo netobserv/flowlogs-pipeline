@@ -32,7 +32,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const defaultExpiryTime = 2 * time.Minute
+const defaultExpiryTime = time.Duration(2 * time.Second)
 
 type gaugeInfo struct {
 	gauge *prometheus.GaugeVec
@@ -267,9 +267,9 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		cfg = *params.Encode.Prom
 	}
 
-	expiryTime := time.Duration(cfg.ExpiryTime) * time.Second
-	if expiryTime == 0 {
-		expiryTime = defaultExpiryTime
+	expiryTime := cfg.ExpiryTime
+	if expiryTime.Seconds() == 0 && expiryTime.Microseconds() == 0 {
+		expiryTime.Duration = defaultExpiryTime
 	}
 	log.Debugf("expiryTime = %v", expiryTime)
 
@@ -348,7 +348,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		gauges:           gauges,
 		histos:           histos,
 		aggHistos:        aggHistos,
-		expiryTime:       expiryTime,
+		expiryTime:       expiryTime.Duration,
 		mCache:           putils.NewTimedCache(cfg.MaxMetrics, mChacheLenMetric),
 		mChacheLenMetric: mChacheLenMetric,
 		exitChan:         putils.ExitChannel(),

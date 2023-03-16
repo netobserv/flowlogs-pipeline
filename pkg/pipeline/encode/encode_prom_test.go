@@ -42,7 +42,7 @@ parameters:
       type: prom
       prom:
         prefix: test_
-        expiryTime: 1
+        expiryTime: 1s
         metrics:
           - name: Bytes
             type: gauge
@@ -146,10 +146,11 @@ func Test_CustomMetric(t *testing.T) {
 		"packets": 2,
 		"latency": 0.2,
 	}}
-
+	var expirtyTimeDuration api.Duration
+	expirtyTimeDuration.Duration = time.Duration(60 * time.Second)
 	params := api.PromEncode{
 		Prefix:     "test_",
-		ExpiryTime: 60,
+		ExpiryTime: expirtyTimeDuration,
 		Metrics: []api.PromMetricsItem{{
 			Name:     "bytes_total",
 			Type:     "counter",
@@ -229,9 +230,11 @@ func Test_MetricTTL(t *testing.T) {
 		"bytes": 12,
 	}}
 
+	var expirtyTimeDuration api.Duration
+	expirtyTimeDuration.Duration = time.Duration(1 * time.Second)
 	params := api.PromEncode{
 		Prefix:     "test_",
-		ExpiryTime: 1,
+		ExpiryTime: expirtyTimeDuration,
 		Metrics: []api.PromMetricsItem{{
 			Name:     "bytes_total",
 			Type:     "counter",
@@ -281,9 +284,11 @@ func hundredFlows() []config.GenericMap {
 }
 
 func BenchmarkPromEncode(b *testing.B) {
+	var expirtyTimeDuration api.Duration
+	expirtyTimeDuration.Duration = time.Duration(60 * time.Second)
 	params := api.PromEncode{
 		Prefix:     "test_",
-		ExpiryTime: 60,
+		ExpiryTime: expirtyTimeDuration,
 		Metrics: []api.PromMetricsItem{{
 			Name:     "bytes_total",
 			Type:     "counter",

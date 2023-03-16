@@ -65,7 +65,7 @@ parameters:
      type: prom
      prom:
        prefix: test_
-       expiryTime: 1
+       expiryTime: 1s
        metrics:
          - name: flow_count
            type: counter
