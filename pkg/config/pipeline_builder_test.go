@@ -118,6 +118,8 @@ func TestKafkaPromPipeline(t *testing.T) {
 		GroupByKeys:   api.AggregateBy{"srcAS"},
 		OperationType: "count",
 	}})
+	var expirtyTimeDuration api.Duration
+	expirtyTimeDuration.Duration = time.Duration(50 * time.Second)
 	pl = pl.EncodePrometheus("prom", api.PromEncode{
 		Metrics: api.PromMetricsItems{{
 			Name: "connections_per_source_as",
@@ -131,7 +133,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 			Buckets:  []float64{},
 		}},
 		Prefix:     "flp_",
-		ExpiryTime: api.Duration{time.Duration(50 * time.Second)},
+		ExpiryTime: expirtyTimeDuration,
 	})
 	stages := pl.GetStages()
 	require.Len(t, stages, 5)
