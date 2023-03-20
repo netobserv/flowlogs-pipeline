@@ -53,6 +53,8 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 		"Interface":       flow.Interface,
 		"AgentIP":         ipToStr(flow.AgentIp),
 		"Flags":           flow.Flags,
+		"IcmpType":        flow.Icmp.GetIcmpType(),
+		"IcmpCode":        flow.Icmp.GetIcmpCode(),
 	}
 	return out
 }
