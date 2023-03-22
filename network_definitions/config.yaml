@@ -85,6 +85,10 @@ extract:
       - name: timeEnd
         operation: max
         input: timeReceived
+    tcpFlags:
+      fieldName: TCPFlags
+      detectEndConnection: true
+      swapAB: true
 encode:
   prom:
     prefix: flp_
