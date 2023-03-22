@@ -44,19 +44,9 @@ func AddOvnIPs(ips []string, node *v1.Node) []string {
 }
 
 func unmarshalAnnotation(annot []byte) (string, error) {
-	// Depending on OVN (OCP) version, the annotation might be JSON-encoded as a string, or an array of strings
-	// Try first as string (legacy)
-	var subnetsAsString map[string]string
-	err := json.Unmarshal(annot, &subnetsAsString)
-	if err == nil {
-		if subnet, ok := subnetsAsString["default"]; ok {
-			return subnet, nil
-		}
-		return "", fmt.Errorf("unexpected content for annotation %s: %s", ovnSubnetAnnotation, annot)
-	}
-
+	// Depending on OVN (OCP) version, the annotation might be JSON-encoded as a string (legacy), or an array of strings
 	var subnetsAsArray map[string][]string
-	err = json.Unmarshal(annot, &subnetsAsArray)
+	err := json.Unmarshal(annot, &subnetsAsArray)
 	if err == nil {
 		if subnets, ok := subnetsAsArray["default"]; ok {
 			if len(subnets) > 0 {
@@ -66,7 +56,16 @@ func unmarshalAnnotation(annot []byte) (string, error) {
 		return "", fmt.Errorf("unexpected content for annotation %s: %s", ovnSubnetAnnotation, annot)
 	}
 
-	return "", fmt.Errorf("cannot read annotation %s: %v", ovnSubnetAnnotation, err)
+	var subnetsAsString map[string]string
+	err = json.Unmarshal(annot, &subnetsAsString)
+	if err == nil {
+		if subnet, ok := subnetsAsString["default"]; ok {
+			return subnet, nil
+		}
+		return "", fmt.Errorf("unexpected content for annotation %s: %s", ovnSubnetAnnotation, annot)
+	}
+
+	return "", fmt.Errorf("cannot read annotation %s: %w", ovnSubnetAnnotation, err)
 }
 
 func findOvnMp0IP(annotations map[string]string) (string, error) {
@@ -85,7 +84,7 @@ func findOvnMp0IP(annotations map[string]string) (string, error) {
 			// TODO: what's the rule with ipv6?
 			return "", nil
 		}
-		return fmt.Sprintf("%d.%d.%d.2", ip4[0], ip4[1], ip4[2]), nil
+		return fmt.Sprintf("%d.%d.%d.%d", ip4[0], ip4[1], ip4[2], ip4[3]+2), nil
 	}
 	// Annotation not present (expected if not using ovn-kubernetes) => just ignore, no error
 	return "", nil
