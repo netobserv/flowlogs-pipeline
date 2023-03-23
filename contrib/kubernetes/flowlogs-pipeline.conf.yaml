@@ -1,5 +1,8 @@
 # This file was generated automatically by flowlogs-pipeline confgenerator
 log-level: error
+metricsSettings:
+  port: 9102
+  prefix: flp_op
 pipeline:
 - name: ingest_collector
 - name: transform_generic
@@ -104,6 +107,10 @@ parameters:
       scheduling:
       - endConnectionTimeout: 10s
         heartbeatInterval: 30s
+      tcpFlags:
+        fieldName: TCPFlags
+        detectEndConnection: true
+        swapAB: true
 - name: transform_network
   transform:
     type: network
@@ -434,7 +441,6 @@ parameters:
         - service
         - _RecordType
         buckets: []
-      port: 9102
       prefix: flp_
 - name: write_loki
   write:

@@ -24,6 +24,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_bandwidth_per_network_service[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -40,6 +41,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_bandwidth_per_source_destination_subnet[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -56,6 +58,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_bandwidth_per_source_subnet[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -74,7 +77,7 @@ dashboard.new(
     prometheus.target(
       expr='sum(rate(flp_connection_size_histogram_bucket[$__interval])) by (le)',
       format='heatmap',
-      legendFormat='{{le}}',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -91,6 +94,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_connections_per_destination_subnet{_RecordType="newConnection"}[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -107,6 +111,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_connections_per_source_subnet{_RecordType="newConnection"}[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -123,6 +128,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_connections_per_tcp_flags[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -139,6 +145,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_connections_per_destination_as{_RecordType="newConnection"}[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -155,6 +162,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_connections_per_source_as{_RecordType="newConnection"}[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -171,6 +179,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_count_per_source_destination_subnet{_RecordType="newConnection"}[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -187,6 +196,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_egress_per_destination_subnet[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -203,6 +213,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='rate(flp_egress_per_namespace{aggregate=~".*Pod.*"}[1m])',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -238,6 +249,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_connections_per_destination_location{_RecordType="newConnection"}[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -254,6 +266,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='sum by (srcK8S_Namespace) (sum_over_time({job="flowlogs-pipeline"} | json | unwrap bytes |  __error__="" [1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -270,6 +283,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='rate({job="flowlogs-pipeline"}[60s])',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -286,6 +300,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='topk(10,rate(flp_service_count{_RecordType="newConnection"}[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,

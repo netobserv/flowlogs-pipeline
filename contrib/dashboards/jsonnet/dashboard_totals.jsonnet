@@ -31,7 +31,7 @@ dashboard.new(
     prometheus.target(
       expr='flp_connection_size_histogram_bucket{aggregate="endConnection"}',
       format='heatmap',
-      legendFormat='{{le}}',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -48,6 +48,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='sum(rate(flp_egress_per_destination_subnet[1m]))',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -71,7 +72,7 @@ dashboard.new(
     prometheus.target(
       expr='flp_flows_length_histogram_bucket',
       format='heatmap',
-      legendFormat='{{le}}',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,
@@ -88,6 +89,7 @@ dashboard.new(
   .addTarget(
     prometheus.target(
       expr='count(flp_service_count{_RecordType="newConnection"})',
+      legendFormat='',
     )
   ), gridPos={
     x: 0,

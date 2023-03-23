@@ -554,8 +554,8 @@ There are 4  output records types:
 1. **New connection**: indicates that a new connection is detected. i.e. the input contains a flow-log that doesn't
 belong to any of the tracked connections.
 2. **Heartbeat**: a periodic report of the connection statistics for long connections.
-3. **End connection**: indicates that a connection has ended. Currently, a connection is considered ended once the 
-timeout since the latest flow-log of the connection has elapsed.
+3. **End connection**: indicates that a connection has ended. A connection is considered ended once the 
+timeout since the latest flow-log of the connection has elapsed or a flow log of `FIN_ACK` has been received.
 4. **Flow log**: a copy of the input flow log with the additional `_RecordType` and `_HashId` fields.
 
 The configuration can suppress any of the output types.
@@ -634,6 +634,10 @@ parameters:
       - selector: {} # Default group
         endConnectionTimeout: 10s
         heartbeatInterval: 30s
+      tcpFlags:
+        fieldName: Flags
+        detectEndConnection: true
+        swapAB: true
 ```
 
 A possible output would look like:
@@ -675,13 +679,27 @@ When `splitAB` is absent, its default value is `false`.
 
 The boolean field `_IsFirst` exists only in records of type `newConnection`, `heartbeat` and `endConnection`.
 It is set to true only on the first record of the connection.
-The `_IsFirst` fields is useful in cases where `newConnection` records are not outputted (to reduce the number output records)
+The `_IsFirst` field is useful in cases where `newConnection` records are not outputted (to reduce the number output records)
 and there is a need to count the total number of connections: simply counting `_IsFirst=true` 
 
 The configuration allows defining scheduling groups. That is, defining different timeouts based on connection key fields' values.
 The order of the defined groups is important since the group of a connection is determined by the first matching group.
 The last group must have an empty selector indicating a match-all rule serving as a default group for connections that 
 don't match any of the other groups. There can't be more than one default group.
+
+The TCP flags section in the configuration allows utilizing the TCP flags data collected in the flow logs.
+It has the following features that could be enabled (by default, they aren't enabled):
+1. Ending connections when the `FIN_ACK` flag is set and avoid waiting the `EndConnectionTimeout`.
+2. Swapping source and destination of a connection when `SYN_ACK` is set on the first flow log.
+The source and destination of a connection are determined by the first received flow log of the connection.
+If the first received flow log happens to be of the opposite direction (server -> client) either because of sampling or out of order,
+then the source and destination of the connection are swapped.
+In special cases, where the first received flow log has the `SYN_ACK` flag,
+we can assume that it is the second step of the TCP handshake,
+the direction is from the server (source) to the client (destination) and we can swap them in the connection so the client will be the source and the server will be the destination.  
+
+
+
 
 ### Timebased TopK
 
