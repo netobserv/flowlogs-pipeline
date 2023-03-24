@@ -43,27 +43,48 @@ func AddOvnIPs(ips []string, node *v1.Node) []string {
 	return ips
 }
 
+func unmarshalAnnotation(annot []byte) (string, error) {
+	// Depending on OVN (OCP) version, the annotation might be JSON-encoded as a string (legacy), or an array of strings
+	var subnetsAsArray map[string][]string
+	err := json.Unmarshal(annot, &subnetsAsArray)
+	if err == nil {
+		if subnets, ok := subnetsAsArray["default"]; ok {
+			if len(subnets) > 0 {
+				return subnets[0], nil
+			}
+		}
+		return "", fmt.Errorf("unexpected content for annotation %s: %s", ovnSubnetAnnotation, annot)
+	}
+
+	var subnetsAsString map[string]string
+	err = json.Unmarshal(annot, &subnetsAsString)
+	if err == nil {
+		if subnet, ok := subnetsAsString["default"]; ok {
+			return subnet, nil
+		}
+		return "", fmt.Errorf("unexpected content for annotation %s: %s", ovnSubnetAnnotation, annot)
+	}
+
+	return "", fmt.Errorf("cannot read annotation %s: %w", ovnSubnetAnnotation, err)
+}
+
 func findOvnMp0IP(annotations map[string]string) (string, error) {
 	if subnetsJSON, ok := annotations[ovnSubnetAnnotation]; ok {
-		var subnets map[string]string
-		err := json.Unmarshal([]byte(subnetsJSON), &subnets)
+		subnet, err := unmarshalAnnotation([]byte(subnetsJSON))
 		if err != nil {
-			return "", fmt.Errorf("cannot read annotation %s: %v", ovnSubnetAnnotation, err)
+			return "", err
 		}
-		if subnet, ok := subnets["default"]; ok {
-			// From subnet like 10.128.0.0/23, we want to index IP 10.128.0.2
-			ip0, _, err := net.ParseCIDR(subnet)
-			if err != nil {
-				return "", err
-			}
-			ip4 := ip0.To4()
-			if ip4 == nil {
-				// TODO: what's the rule with ipv6?
-				return "", nil
-			}
-			return fmt.Sprintf("%d.%d.%d.2", ip4[0], ip4[1], ip4[2]), nil
+		// From subnet like 10.128.0.0/23, we want to index IP 10.128.0.2
+		ip0, _, err := net.ParseCIDR(subnet)
+		if err != nil {
+			return "", err
 		}
-		return "", fmt.Errorf("unexpected content for annotation %s: %s", ovnSubnetAnnotation, subnetsJSON)
+		ip4 := ip0.To4()
+		if ip4 == nil {
+			// TODO: what's the rule with ipv6?
+			return "", nil
+		}
+		return fmt.Sprintf("%d.%d.%d.%d", ip4[0], ip4[1], ip4[2], ip4[3]+2), nil
 	}
 	// Annotation not present (expected if not using ovn-kubernetes) => just ignore, no error
 	return "", nil

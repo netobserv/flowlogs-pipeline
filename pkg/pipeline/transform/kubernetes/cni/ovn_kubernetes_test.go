@@ -45,9 +45,16 @@ func TestFindOvnMp0IP(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid CIDR address")
 	require.Empty(t, ip)
 
-	// Valid annotation => no error, ip
+	// Valid annotation (legacy) => no error, ip
 	ip, err = findOvnMp0IP(map[string]string{
 		ovnSubnetAnnotation: `{"default":"10.129.0.0/23"}`,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "10.129.0.2", ip)
+
+	// Valid annotation => no error, ip
+	ip, err = findOvnMp0IP(map[string]string{
+		ovnSubnetAnnotation: `{"default":["10.129.0.0/23"]}`,
 	})
 	require.NoError(t, err)
 	require.Equal(t, "10.129.0.2", ip)
