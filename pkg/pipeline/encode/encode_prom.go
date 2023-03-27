@@ -32,7 +32,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const defaultExpiryTime = time.Duration(2 * time.Second)
+const defaultExpiryTime = time.Duration(2 * time.Minute)
 
 type gaugeInfo struct {
 	gauge *prometheus.GaugeVec
@@ -268,7 +268,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	}
 
 	expiryTime := cfg.ExpiryTime
-	if expiryTime.Seconds() == 0 && expiryTime.Microseconds() == 0 {
+	if expiryTime.Duration == 0 {
 		expiryTime.Duration = defaultExpiryTime
 	}
 	log.Debugf("expiryTime = %v", expiryTime)

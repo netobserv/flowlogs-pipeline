@@ -18,7 +18,7 @@ Following is the supported API format for prometheus encode:
                  labels: labels to be associated with the metric
                  buckets: histogram buckets
          prefix: prefix added to each metric name
-         expiryTime: seconds of no-flow to wait before deleting prometheus data item
+         expiryTime: time duration of no-flow to wait before deleting prometheus data item
          maxMetrics: maximum number of metrics to report (default: unlimited)
 </pre>
 ## Kafka encode API

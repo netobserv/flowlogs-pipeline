@@ -146,11 +146,11 @@ func Test_CustomMetric(t *testing.T) {
 		"packets": 2,
 		"latency": 0.2,
 	}}
-	var expirtyTimeDuration api.Duration
-	expirtyTimeDuration.Duration = time.Duration(60 * time.Second)
+	var expiryTimeDuration api.Duration
+	expiryTimeDuration.Duration = time.Duration(60 * time.Second)
 	params := api.PromEncode{
 		Prefix:     "test_",
-		ExpiryTime: expirtyTimeDuration,
+		ExpiryTime: expiryTimeDuration,
 		Metrics: []api.PromMetricsItem{{
 			Name:     "bytes_total",
 			Type:     "counter",
@@ -230,11 +230,11 @@ func Test_MetricTTL(t *testing.T) {
 		"bytes": 12,
 	}}
 
-	var expirtyTimeDuration api.Duration
-	expirtyTimeDuration.Duration = time.Duration(1 * time.Second)
+	var expiryTimeDuration api.Duration
+	expiryTimeDuration.Duration = time.Duration(1 * time.Second)
 	params := api.PromEncode{
 		Prefix:     "test_",
-		ExpiryTime: expirtyTimeDuration,
+		ExpiryTime: expiryTimeDuration,
 		Metrics: []api.PromMetricsItem{{
 			Name:     "bytes_total",
 			Type:     "counter",
@@ -284,11 +284,11 @@ func hundredFlows() []config.GenericMap {
 }
 
 func BenchmarkPromEncode(b *testing.B) {
-	var expirtyTimeDuration api.Duration
-	expirtyTimeDuration.Duration = time.Duration(60 * time.Second)
+	var expiryTimeDuration api.Duration
+	expiryTimeDuration.Duration = time.Duration(60 * time.Second)
 	params := api.PromEncode{
 		Prefix:     "test_",
-		ExpiryTime: expirtyTimeDuration,
+		ExpiryTime: expiryTimeDuration,
 		Metrics: []api.PromMetricsItem{{
 			Name:     "bytes_total",
 			Type:     "counter",
