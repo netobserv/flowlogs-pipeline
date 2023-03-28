@@ -1,0 +1,22 @@
+log-level: error
+metricsSettings:
+  prefix: flp_op_
+  port: 9102
+pipeline:
+- name: ingest_syn
+- name: encode_prom
+  follows: ingest_syn
+parameters:
+- name: ingest_syn
+  ingest:
+    type: synthetic
+    synthetic:
+      connections: 10
+      batchMaxLen: 1
+      flowLogsPerMin: 200000
+- name: encode_prom
+  encode:
+    type: prom
+    prom:
+      prefix: flp_
+

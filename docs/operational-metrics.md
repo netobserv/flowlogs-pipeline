@@ -47,6 +47,22 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Labels** | error, metric, key | 
 
 
+### encode_prom_metrics_dropped
+| **Name** | encode_prom_metrics_dropped | 
+|:---|:---|
+| **Description** | Number of metrics dropped | 
+| **Type** | counter | 
+| **Labels** | stage | 
+
+
+### encode_prom_metrics_processed
+| **Name** | encode_prom_metrics_processed | 
+|:---|:---|
+| **Description** | Number of metrics processed | 
+| **Type** | counter | 
+| **Labels** | stage | 
+
+
 ### encode_prom_metrics_reported
 | **Name** | encode_prom_metrics_reported | 
 |:---|:---|
@@ -91,22 +107,6 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Name** | ingest_synthetic_flows_processed | 
 |:---|:---|
 | **Description** | Number of flow logs processed | 
-| **Type** | counter | 
-| **Labels** | stage | 
-
-
-### metrics_dropped
-| **Name** | metrics_dropped | 
-|:---|:---|
-| **Description** | Number of metrics dropped | 
-| **Type** | counter | 
-| **Labels** | stage | 
-
-
-### metrics_processed
-| **Name** | metrics_processed | 
-|:---|:---|
-| **Description** | Number of metrics processed | 
 | **Type** | counter | 
 | **Labels** | stage | 
 

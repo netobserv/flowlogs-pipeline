@@ -65,13 +65,13 @@ type EncodeProm struct {
 
 var (
 	metricsProcessed = operational.DefineMetric(
-		"metrics_processed",
+		"encode_prom_metrics_processed",
 		"Number of metrics processed",
 		operational.TypeCounter,
 		"stage",
 	)
 	metricsDropped = operational.DefineMetric(
-		"metrics_dropped",
+		"encode_prom_metrics_dropped",
 		"Number of metrics dropped",
 		operational.TypeCounter,
 		"stage",

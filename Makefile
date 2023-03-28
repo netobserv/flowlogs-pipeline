@@ -19,6 +19,7 @@ OCI_RUNTIME ?= $(shell echo '$(OCI_RUNTIME_PATH)'|sed -e 's/.*\/\(.*\)/\1/g')
 MIN_GO_VERSION := 1.18.0
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
+PERF_BIN_FILE=perfmeasurements
 NETFLOW_GENERATOR=nflow-generator
 CMD_DIR=./cmd/
 FLP_CONF_FILE ?= contrib/kubernetes/flowlogs-pipeline.conf.yaml
@@ -76,6 +77,10 @@ build_code:
 
 .PHONY: build
 build: validate_go lint build_code docs ## Build flowlogs-pipeline executable and update the docs
+
+.PHONY: perf
+perf:
+	GOARCH=${GOARCH} go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${PERF_BIN_FILE}"
 
 .PHONY: docs
 docs: FORCE ## Update flowlogs-pipeline documentation
