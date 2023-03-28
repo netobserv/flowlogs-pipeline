@@ -90,7 +90,7 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 ### ingest_synthetic_flows_processed
 | **Name** | ingest_synthetic_flows_processed | 
 |:---|:---|
-| **Description** | Number of metrics processed | 
+| **Description** | Number of flow logs processed | 
 | **Type** | counter | 
 | **Labels** | stage | 
 
