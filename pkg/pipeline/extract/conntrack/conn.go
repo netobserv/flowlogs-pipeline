@@ -180,6 +180,9 @@ func NewConnBuilder(metrics *metricsType) *connBuilder {
 }
 
 func (cb *connBuilder) Hash(h totalHashType) *connBuilder {
+	if cb.shouldSwapAB {
+		h.hashA, h.hashB = h.hashB, h.hashA
+	}
 	cb.conn.hash = h
 	return cb
 }

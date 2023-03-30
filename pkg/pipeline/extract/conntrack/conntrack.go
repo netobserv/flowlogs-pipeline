@@ -75,10 +75,10 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 			} else {
 				builder := NewConnBuilder(ct.metrics)
 				conn = builder.
-					Hash(computedHash).
 					ShouldSwapAB(ct.config.TCPFlags.SwapAB && ct.shouldSwapAB(fl)).
 					KeysFrom(fl, ct.config.KeyDefinition, ct.endpointAFields, ct.endpointBFields).
 					Aggregators(ct.aggregators).
+					Hash(computedHash).
 					Build()
 				ct.connStore.addConnection(computedHash.hashTotal, conn)
 				ct.connStore.updateNextHeartbeatTime(computedHash.hashTotal)

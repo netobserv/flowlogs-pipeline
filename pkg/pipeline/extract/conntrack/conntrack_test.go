@@ -1094,7 +1094,7 @@ func TestSwapAB(t *testing.T) {
 			startTime.Add(0 * time.Second),
 			[]config.GenericMap{flTCP1},
 			[]config.GenericMap{
-				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocolTCP, 111, 0, 11, 0, 1).withHash(hashIdTCP).markFirst().get(),
+				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocolTCP, 0, 111, 0, 11, 1).withHash(hashIdTCP).markFirst().get(),
 			},
 		},
 	}
