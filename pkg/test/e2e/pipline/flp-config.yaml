@@ -81,84 +81,85 @@ data:
           type: network
       - extract:
           aggregates:
-            - name: bandwidth_network_service
-              groupByKeys:
-                - service
-              operationType: sum
-              operationKey: bytes
-            - name: bandwidth_source_destination_subnet
-              groupByKeys:
-                - dstSubnet24
-                - srcSubnet24
-              operationType: sum
-              operationKey: bytes
-            - name: bandwidth_source_subnet
-              groupByKeys:
-                - srcSubnet
-              operationType: sum
-              operationKey: bytes
-            - name: dest_connection_subnet_count
-              groupByKeys:
-                - dstSubnet
-              operationType: sum
-              operationKey: isNewFlow
-            - name: src_connection_count
-              groupByKeys:
-                - srcSubnet
-              operationType: count
-              operationKey: ""
-            - name: TCPFlags_count
-              groupByKeys:
-                - TCPFlags
-              operationType: count
-              operationKey: ""
-            - name: dst_as_connection_count
-              groupByKeys:
-                - dstAS
-              operationType: count
-              operationKey: ""
-            - name: src_as_connection_count
-              groupByKeys:
-                - srcAS
-              operationType: count
-              operationKey: ""
-            - name: count_source_destination_subnet
-              groupByKeys:
-                - dstSubnet24
-                - srcSubnet24
-              operationType: count
-              operationKey: ""
-            - name: bandwidth_destination_subnet
-              groupByKeys:
-                - dstSubnet
-              operationType: sum
-              operationKey: bytes
-            - name: bandwidth_namespace
-              groupByKeys:
-                - srcK8S_Namespace
-                - srcK8S_Type
-              operationType: sum
-              operationKey: bytes
-            - name: dest_connection_location_count
-              groupByKeys:
-                - dstLocation_CountryName
-              operationType: count
-              operationKey: ""
-            - name: mice_count
-              groupByKeys:
-                - mice_Evaluate
-              operationType: count
-              operationKey: ""
-            - name: elephant_count
-              groupByKeys:
-                - elephant_Evaluate
-              operationType: count
-              operationKey: ""
-            - name: dest_service_count
-              groupByKeys:
-                - service
-              operationType: count
-              operationKey: ""
+            rules:
+              - name: bandwidth_network_service
+                groupByKeys:
+                  - service
+                operationType: sum
+                operationKey: bytes
+              - name: bandwidth_source_destination_subnet
+                groupByKeys:
+                  - dstSubnet24
+                  - srcSubnet24
+                operationType: sum
+                operationKey: bytes
+              - name: bandwidth_source_subnet
+                groupByKeys:
+                  - srcSubnet
+                operationType: sum
+                operationKey: bytes
+              - name: dest_connection_subnet_count
+                groupByKeys:
+                  - dstSubnet
+                operationType: sum
+                operationKey: isNewFlow
+              - name: src_connection_count
+                groupByKeys:
+                  - srcSubnet
+                operationType: count
+                operationKey: ""
+              - name: TCPFlags_count
+                groupByKeys:
+                  - TCPFlags
+                operationType: count
+                operationKey: ""
+              - name: dst_as_connection_count
+                groupByKeys:
+                  - dstAS
+                operationType: count
+                operationKey: ""
+              - name: src_as_connection_count
+                groupByKeys:
+                  - srcAS
+                operationType: count
+                operationKey: ""
+              - name: count_source_destination_subnet
+                groupByKeys:
+                  - dstSubnet24
+                  - srcSubnet24
+                operationType: count
+                operationKey: ""
+              - name: bandwidth_destination_subnet
+                groupByKeys:
+                  - dstSubnet
+                operationType: sum
+                operationKey: bytes
+              - name: bandwidth_namespace
+                groupByKeys:
+                  - srcK8S_Namespace
+                  - srcK8S_Type
+                operationType: sum
+                operationKey: bytes
+              - name: dest_connection_location_count
+                groupByKeys:
+                  - dstLocation_CountryName
+                operationType: count
+                operationKey: ""
+              - name: mice_count
+                groupByKeys:
+                  - mice_Evaluate
+                operationType: count
+                operationKey: ""
+              - name: elephant_count
+                groupByKeys:
+                  - elephant_Evaluate
+                operationType: count
+                operationKey: ""
+              - name: dest_service_count
+                groupByKeys:
+                  - service
+                operationType: count
+                operationKey: ""
           type: aggregates
         name: extract_aggregate
       - encode:
