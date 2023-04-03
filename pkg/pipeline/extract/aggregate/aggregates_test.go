@@ -36,12 +36,13 @@ parameters:
     extract:
       type: aggregates
       aggregates:
-        - Name: "Avg by src and dst IP's"
-          GroupByKeys:
-            - "dstIP"
-            - "srcIP"
-          OperationType: "avg"
-          OperationKey: "value"
+        rules:
+          - Name: "Avg by src and dst IP's"
+            GroupByKeys:
+              - "dstIP"
+              - "srcIP"
+            OperationType: "avg"
+            OperationKey: "value"
 `
 	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
@@ -62,6 +63,7 @@ func Test_NewAggregatesFromConfig(t *testing.T) {
 func Test_CleanupExpiredEntriesLoop(t *testing.T) {
 
 	defaultExpiryTime = 4 * time.Second // expiration after 4 seconds
+	cleanupLoopTime = 4 * time.Second   // clean up after 4 seconds
 	aggregates := initAggregates(t)
 	expectedAggregate := GetMockAggregate()
 	require.Equal(t, expectedAggregate.Definition, aggregates.Aggregates[0].Definition)

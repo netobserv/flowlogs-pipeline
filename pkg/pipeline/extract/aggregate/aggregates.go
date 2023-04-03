@@ -28,10 +28,12 @@ import (
 )
 
 var defaultExpiryTime = 2 * time.Minute
+var cleanupLoopTime = 2 * time.Minute
 
 type Aggregates struct {
-	Aggregates      []Aggregate
-	cleanupLoopTime time.Duration
+	Aggregates        []Aggregate
+	cleanupLoopTime   time.Duration
+	defaultExpiryTime time.Duration
 }
 
 type Definitions []api.AggregateDefinition
@@ -97,12 +99,16 @@ func (aggregates *Aggregates) cleanupExpiredEntries() {
 	}
 }
 
-func NewAggregatesFromConfig(definitions []api.AggregateDefinition) (Aggregates, error) {
+func NewAggregatesFromConfig(aggConfig *api.Aggregates) (Aggregates, error) {
 	aggregates := Aggregates{
-		cleanupLoopTime: defaultExpiryTime,
+		cleanupLoopTime:   cleanupLoopTime,
+		defaultExpiryTime: aggConfig.DefaultExpiryTime.Duration,
+	}
+	if aggregates.defaultExpiryTime == 0 {
+		aggregates.defaultExpiryTime = defaultExpiryTime
 	}
 
-	for _, aggregateDefinition := range definitions {
+	for _, aggregateDefinition := range aggConfig.Rules {
 		aggregates.Aggregates = aggregates.AddAggregate(aggregateDefinition)
 	}
 

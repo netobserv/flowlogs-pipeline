@@ -17,12 +17,13 @@ transform:
 extract:
   type: aggregates
   aggregates:
-    - name: dest_connection_subnet_count
-      groupByKeys:
-        - dstSubnet
-        - _RecordType
-      operationType: count
-      operationKey: isNewFlow
+    rules:
+      - name: dest_connection_subnet_count
+        groupByKeys:
+          - dstSubnet
+          - _RecordType
+        operationType: count
+        operationKey: isNewFlow
 encode:
   type: prom
   prom:

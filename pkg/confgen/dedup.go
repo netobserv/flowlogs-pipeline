@@ -27,7 +27,7 @@ import (
 
 func (cg *ConfGen) dedupe() {
 	cg.transformRules = dedupeNetworkTransformRules(cg.transformRules)
-	cg.aggregateDefinitions = dedupeAggregateDefinitions(cg.aggregateDefinitions)
+	cg.aggregates.Rules = dedupeAggregateDefinitions(cg.aggregates.Rules)
 }
 
 type void struct{}

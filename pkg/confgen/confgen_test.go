@@ -131,13 +131,13 @@ func Test_RunShortConfGen(t *testing.T) {
 	}, out.Parameters[1].Transform.Network.Rules[0])
 
 	// Expects aggregates
-	require.Len(t, out.Parameters[2].Extract.Aggregates, 1)
+	require.Len(t, out.Parameters[2].Extract.Aggregates.Rules, 1)
 	require.Equal(t, api.AggregateDefinition{
 		Name:          "test_aggregates",
 		GroupByKeys:   api.AggregateBy{"service"},
 		OperationType: "sum",
 		OperationKey:  "test_operation_key",
-	}, out.Parameters[2].Extract.Aggregates[0])
+	}, out.Parameters[2].Extract.Aggregates.Rules[0])
 
 	// Expects prom encode
 	require.Len(t, out.Parameters[3].Encode.Prom.Metrics, 1)
@@ -306,19 +306,19 @@ func Test_RunLongConfGen(t *testing.T) {
 	}, out.Parameters[2].Transform.Network.Rules[0])
 
 	// Expects aggregates
-	require.Len(t, out.Parameters[3].Extract.Aggregates, 2)
+	require.Len(t, out.Parameters[3].Extract.Aggregates.Rules, 2)
 	require.Equal(t, api.AggregateDefinition{
 		Name:          "test_aggregates",
 		GroupByKeys:   api.AggregateBy{"service"},
 		OperationType: "sum",
 		OperationKey:  "test_operation_key",
-	}, out.Parameters[3].Extract.Aggregates[0])
+	}, out.Parameters[3].Extract.Aggregates.Rules[0])
 	require.Equal(t, api.AggregateDefinition{
 		Name:          "test_agg_histo",
 		GroupByKeys:   api.AggregateBy{"service"},
 		OperationType: "sum",
 		OperationKey:  "test_operation_key",
-	}, out.Parameters[3].Extract.Aggregates[1])
+	}, out.Parameters[3].Extract.Aggregates.Rules[1])
 
 	// Expects prom encode; make sure type "histogram" is changed to "agg_histogram"
 	require.Len(t, out.Parameters[4].Encode.Prom.Metrics, 2)
@@ -365,13 +365,13 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 
 	require.Len(t, params, 2)
 	// Expects aggregates
-	require.Len(t, params[0].Extract.Aggregates, 1)
+	require.Len(t, params[0].Extract.Aggregates.Rules, 1)
 	require.Equal(t, api.AggregateDefinition{
 		Name:          "test_aggregates",
 		GroupByKeys:   api.AggregateBy{"service"},
 		OperationType: "sum",
 		OperationKey:  "test_operation_key",
-	}, params[0].Extract.Aggregates[0])
+	}, params[0].Extract.Aggregates.Rules[0])
 
 	// Expects prom encode
 	require.Len(t, params[1].Encode.Prom.Metrics, 1)

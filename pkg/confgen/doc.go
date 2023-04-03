@@ -72,7 +72,7 @@ func (cg *ConfGen) generateDoc(fileName string) error {
 
 		labels := strings.Join(metric.Tags[:], ", ")
 		// TODO: add support for multiple operations
-		operation := cg.generateOperationText(*metric.AggregateDefinitions)
+		operation := cg.generateOperationText(metric.Aggregates.Rules)
 		expose := cg.generatePromEncodeText(metric.PromEncode.Metrics)
 		visualize := cg.generateVisualizeText(metric.Visualization.Grafana)
 		doc += fmt.Sprintf(

@@ -17,11 +17,12 @@ transform:
 extract:
   type: aggregates
   aggregates:
-    - name: src_connection_count
-      groupByKeys:
-        - srcSubnet
-        - _RecordType
-      operationType: count
+    rules:
+      - name: src_connection_count
+        groupByKeys:
+          - srcSubnet
+          - _RecordType
+        operationType: count
 encode:
   type: prom
   prom:

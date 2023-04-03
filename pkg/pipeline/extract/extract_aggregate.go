@@ -18,7 +18,6 @@
 package extract
 
 import (
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 	log "github.com/sirupsen/logrus"
@@ -43,11 +42,7 @@ func (ea *ExtractAggregate) Extract(entries []config.GenericMap) []config.Generi
 // NewExtractAggregate creates a new extractor
 func NewExtractAggregate(params config.StageParam) (Extractor, error) {
 	log.Debugf("entering NewExtractAggregate")
-	aggConfig := []api.AggregateDefinition{}
-	if params.Extract != nil {
-		aggConfig = params.Extract.Aggregates
-	}
-	aggregates, err := aggregate.NewAggregatesFromConfig(aggConfig)
+	aggregates, err := aggregate.NewAggregatesFromConfig(params.Extract.Aggregates)
 	if err != nil {
 		log.Errorf("error in NewAggregatesFromConfig: %v", err)
 		return nil, err

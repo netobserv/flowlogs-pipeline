@@ -19,11 +19,12 @@ transform:
 extract:
   type: aggregates
   aggregates:
-    - name: dest_service_count
-      groupByKeys:
-        - service
-        - _RecordType
-      operationType: count
+    rules:
+      - name: dest_service_count
+        groupByKeys:
+          - service
+          - _RecordType
+        operationType: count
 encode:
   type: prom
   prom:
