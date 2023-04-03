@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/aggregate"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,14 +42,14 @@ func Test_dedupeNetworkTransformRules(t *testing.T) {
 }
 
 func Test_dedupeAggregateDefinitions(t *testing.T) {
-	slice := aggregate.Definitions{
+	slice := api.AggregateDefinitions{
 		api.AggregateDefinition{Name: "n1", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o1")},
 		api.AggregateDefinition{Name: "n1", GroupByKeys: api.AggregateBy{"a"}, OperationType: api.AggregateOperation("o1")},
 		api.AggregateDefinition{Name: "n2", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o2")},
 		api.AggregateDefinition{Name: "n3", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o3")},
 		api.AggregateDefinition{Name: "n2", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o2")},
 	}
-	expected := aggregate.Definitions{
+	expected := api.AggregateDefinitions{
 		api.AggregateDefinition{Name: "n1", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o1")},
 		api.AggregateDefinition{Name: "n1", GroupByKeys: api.AggregateBy{"a"}, OperationType: api.AggregateOperation("o1")},
 		api.AggregateDefinition{Name: "n2", GroupByKeys: api.AggregateBy{"a", "b"}, OperationType: api.AggregateOperation("o2")},

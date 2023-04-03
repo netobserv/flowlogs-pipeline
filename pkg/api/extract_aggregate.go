@@ -18,12 +18,13 @@
 package api
 
 type Aggregates struct {
-	DefaultExpiryTime Duration              `yaml:"defaultExpiryTime,omitempty" json:"defaultExpiryTime,omitempty" doc:"default time duration of data aggregation to perform rules"`
-	Rules             []AggregateDefinition `yaml:"rules,omitempty" json:"rules,omitempty" doc:"list of aggregation rules, each includes:"`
+	DefaultExpiryTime Duration             `yaml:"defaultExpiryTime,omitempty" json:"defaultExpiryTime,omitempty" doc:"default time duration of data aggregation to perform rules"`
+	Rules             AggregateDefinitions `yaml:"rules,omitempty" json:"rules,omitempty" doc:"list of aggregation rules, each includes:"`
 }
 
 type AggregateBy []string
 type AggregateOperation string
+type AggregateDefinitions []AggregateDefinition
 
 type AggregateDefinition struct {
 	Name          string             `yaml:"name,omitempty" json:"name,omitempty" doc:"description of aggregation result"`

@@ -36,8 +36,6 @@ type Aggregates struct {
 	defaultExpiryTime time.Duration
 }
 
-type Definitions []api.AggregateDefinition
-
 func (aggregates *Aggregates) Evaluate(entries []config.GenericMap) error {
 	for _, aggregate := range aggregates.Aggregates {
 		err := aggregate.Evaluate(entries)
