@@ -192,3 +192,43 @@ func TestForkPipeline(t *testing.T) {
 	require.NoError(t, err)
 	require.JSONEq(t, `{"name":"stdout","write":{"type":"stdout","stdout":{}}}`, string(b))
 }
+
+func TestIPFIXPipeline(t *testing.T) {
+	pl := NewCollectorPipeline("ingest", api.IngestCollector{HostName: "127.0.0.1", Port: 9999})
+	pl = pl.TransformNetwork("enrich", api.TransformNetwork{Rules: api.NetworkTransformRules{{
+		Type:   api.AddKubernetesRuleType,
+		Input:  "SrcAddr",
+		Output: "SrcK8S",
+	}, {
+		Type:   api.AddKubernetesRuleType,
+		Input:  "DstAddr",
+		Output: "DstK8S",
+	}}})
+	pl = pl.WriteIpfix("ipfix", api.WriteIpfix{
+		TargetHost:   "ipfix-receiver-test",
+		TargetPort:   5999,
+		Transport:    "tcp",
+		EnterpriseID: 1,
+	})
+	stages := pl.GetStages()
+	require.Len(t, stages, 3)
+
+	b, err := json.Marshal(stages)
+	require.NoError(t, err)
+	require.JSONEq(t, `[{"name":"ingest"},{"name":"enrich","follows":"ingest"},{"name":"ipfix","follows":"enrich"}]`, string(b))
+
+	params := pl.GetStageParams()
+	require.Len(t, params, 3)
+
+	b, err = json.Marshal(params[0])
+	require.NoError(t, err)
+	require.Equal(t, `{"name":"ingest","ingest":{"type":"collector","collector":{"hostName":"127.0.0.1","port":9999}}}`, string(b))
+
+	b, err = json.Marshal(params[1])
+	require.NoError(t, err)
+	require.JSONEq(t, `{"name":"enrich","transform":{"type":"network","network":{"directionInfo":{},"rules":[{"input":"SrcAddr","output":"SrcK8S","type":"add_kubernetes"},{"input":"DstAddr","output":"DstK8S","type":"add_kubernetes"}]}}}`, string(b))
+
+	b, err = json.Marshal(params[2])
+	require.NoError(t, err)
+	require.JSONEq(t, `{"name":"ipfix","write":{"type":"ipfix","ipfix":{"targetHost":"ipfix-receiver-test","targetPort":5999,"transport":"tcp","EnterpriseId":1}}}`, string(b))
+}
