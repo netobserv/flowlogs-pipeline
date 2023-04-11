@@ -41,6 +41,7 @@ extract:
       - selector: {}
         heartbeatInterval: 30s
         endConnectionTimeout: 10s
+        terminatingTimeout: 5s
     outputRecordTypes:
       - newConnection
       - flowLog

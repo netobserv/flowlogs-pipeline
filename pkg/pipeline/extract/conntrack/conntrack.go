@@ -72,7 +72,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 			log.Debugf("skipping duplicated flow log %v", fl)
 			ct.metrics.inputRecords.WithLabelValues("duplicate").Inc()
 		} else {
-			conn, exists := ct.connStore.getConnection(computedHash.hashTotal)
+			conn, exists, _ := ct.connStore.getConnection(computedHash.hashTotal)
 			if !exists {
 				if (ct.config.MaxConnectionsTracked > 0) && (ct.connStore.len() >= ct.config.MaxConnectionsTracked) {
 					log.Warningf("too many connections; skipping flow log %v: ", fl)
@@ -80,14 +80,15 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 				} else {
 					builder := NewConnBuilder(ct.metrics)
 					conn = builder.
-						ShouldSwapAB(ct.config.TCPFlags.SwapAB && ct.shouldSwapAB(fl)).
+						ShouldSwapAB(ct.config.TCPFlags.SwapAB && ct.containsTcpFlag(fl, SYN_ACK_FLAG)).
+						Hash(computedHash).
 						KeysFrom(fl, ct.config.KeyDefinition, ct.endpointAFields, ct.endpointBFields).
 						Aggregators(ct.aggregators).
 						Hash(computedHash).
 						Build()
 					ct.connStore.addConnection(computedHash.hashTotal, conn)
 					ct.connStore.updateNextHeartbeatTime(computedHash.hashTotal)
-					ct.updateConnection(conn, fl, computedHash)
+					ct.updateConnection(conn, fl, computedHash, true)
 					ct.metrics.inputRecords.WithLabelValues("newConnection").Inc()
 					if ct.shouldOutputNewConnection {
 						record := conn.toGenericMap()
@@ -100,7 +101,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 					}
 				}
 			} else {
-				ct.updateConnection(conn, fl, computedHash)
+				ct.updateConnection(conn, fl, computedHash, false)
 				ct.metrics.inputRecords.WithLabelValues("update").Inc()
 			}
 		}
@@ -167,26 +168,18 @@ func (ct *conntrackImpl) prepareHeartbeatRecords() []config.GenericMap {
 	return outputRecords
 }
 
-func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.GenericMap, flowLogHash totalHashType) {
+func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.GenericMap, flowLogHash totalHashType, isNew bool) {
 	d := ct.getFlowLogDirection(conn, flowLogHash)
 	for _, agg := range ct.aggregators {
-		agg.update(conn, flowLog, d)
+		agg.update(conn, flowLog, d, isNew)
 	}
 
-	if ct.config.TCPFlags.DetectEndConnection && ct.isLastFlowLogOfConnection(flowLog) {
+	if ct.config.TCPFlags.DetectEndConnection && ct.containsTcpFlag(flowLog, FIN_FLAG) {
 		ct.metrics.tcpFlags.WithLabelValues("detectEndConnection").Inc()
-		ct.connStore.expireConnection(flowLogHash.hashTotal)
+		ct.connStore.setConnectionTerminating(flowLogHash.hashTotal)
 	} else {
 		ct.connStore.updateConnectionExpiryTime(flowLogHash.hashTotal)
 	}
-}
-
-func (ct *conntrackImpl) isLastFlowLogOfConnection(flowLog config.GenericMap) bool {
-	return ct.containsTcpFlag(flowLog, FIN_ACK_FLAG)
-}
-
-func (ct *conntrackImpl) shouldSwapAB(flowLog config.GenericMap) bool {
-	return ct.containsTcpFlag(flowLog, SYN_ACK_FLAG)
 }
 
 func (ct *conntrackImpl) containsTcpFlag(flowLog config.GenericMap, queryFlag uint32) bool {

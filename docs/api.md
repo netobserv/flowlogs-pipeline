@@ -225,16 +225,19 @@ Following is the supported API format for specifying connection tracking:
                      count: count
                      min: min
                      max: max
+                     first: first
+                     last: last
                  splitAB: When true, 2 output fields will be created. One for A->B and one for B->A flows.
                  input: The input field to base the operation on. When omitted, 'name' is used
          scheduling: list of timeouts and intervals to apply per selector
                  selector: key-value map to match against connection fields to apply this scheduling
                  endConnectionTimeout: duration of time to wait from the last flow log to end a connection
+                 terminatingTimeout: duration of time to wait from detected FIN flag to end a connection
                  heartbeatInterval: duration of time to wait between heartbeat reports of a connection
          maxConnectionsTracked: maximum number of connections we keep in our cache (0 means no limit)
          tcpFlags: settings for handling TCP flags
              fieldName: name of the field containing TCP flags
-             detectEndConnection: detect end connections by FIN_ACK flag
+             detectEndConnection: detect end connections by FIN flag
              swapAB: swap source and destination when the first flowlog contains the SYN_ACK flag
 </pre>
 ## Time-based Filters API
