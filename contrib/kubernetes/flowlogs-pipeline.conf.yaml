@@ -107,6 +107,7 @@ parameters:
       scheduling:
       - endConnectionTimeout: 10s
         heartbeatInterval: 30s
+        terminatingTimeout: 5s
       tcpFlags:
         fieldName: TCPFlags
         detectEndConnection: true
