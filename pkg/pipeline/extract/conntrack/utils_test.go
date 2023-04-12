@@ -22,16 +22,17 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 )
 
-func newMockFlowLog(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, bytes, packets int, duplicate bool) config.GenericMap {
+func newMockFlowLog(srcIP string, srcPort int, dstIP string, dstPort int, protocol int, direction int, bytes, packets int, duplicate bool) config.GenericMap {
 	return config.GenericMap{
-		"SrcAddr":   srcIP,
-		"SrcPort":   srcPort,
-		"DstAddr":   dstIP,
-		"DstPort":   dstPort,
-		"Proto":     protocol,
-		"Bytes":     bytes,
-		"Packets":   packets,
-		"Duplicate": duplicate,
+		"SrcAddr":       srcIP,
+		"SrcPort":       srcPort,
+		"DstAddr":       dstIP,
+		"DstPort":       dstPort,
+		"Proto":         protocol,
+		"FlowDirection": direction,
+		"Bytes":         bytes,
+		"Packets":       packets,
+		"Duplicate":     duplicate,
 	}
 }
 

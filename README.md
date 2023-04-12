@@ -631,9 +631,11 @@ parameters:
           Proto: 17
         endConnectionTimeout: 5s
         heartbeatInterval: 40s
+        terminatingTimeout: 5s
       - selector: {} # Default group
         endConnectionTimeout: 10s
         heartbeatInterval: 30s
+        terminatingTimeout: 5s
       tcpFlags:
         fieldName: Flags
         detectEndConnection: true
