@@ -18,9 +18,9 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 ### conntrack_memory_connections
 | **Name** | conntrack_memory_connections | 
 |:---|:---|
-| **Description** | The total number of tracked connections in memory. | 
+| **Description** | The total number of tracked connections in memory per group and phase. | 
 | **Type** | gauge | 
-| **Labels** | group | 
+| **Labels** | group, phase | 
 
 
 ### conntrack_output_records

@@ -25,9 +25,9 @@ import (
 var (
 	connStoreLengthDef = operational.DefineMetric(
 		"conntrack_memory_connections",
-		"The total number of tracked connections in memory.",
+		"The total number of tracked connections in memory per group and phase.",
 		operational.TypeGauge,
-		"group",
+		"group", "phase",
 	)
 
 	inputRecordsDef = operational.DefineMetric(

@@ -37,7 +37,7 @@ import (
 var opMetrics = operational.NewMetrics(&config.MetricsSettings{})
 
 func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
-	heartbeatInterval, endConnectionTimeout time.Duration) *config.StageParam {
+	heartbeatInterval, endConnectionTimeout time.Duration, terminatingTimeout time.Duration) *config.StageParam {
 	splitAB := isBidirectional
 	var hash api.ConnTrackHash
 	if isBidirectional {
@@ -91,6 +91,7 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
 						Selector:             map[string]interface{}{},
 						HeartbeatInterval:    api.Duration{Duration: heartbeatInterval},
 						EndConnectionTimeout: api.Duration{Duration: endConnectionTimeout},
+						TerminatingTimeout:   api.Duration{Duration: terminatingTimeout},
 					},
 				},
 			}, // end of api.ConnTrack
@@ -101,20 +102,24 @@ func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
 func TestTrack(t *testing.T) {
 	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
+	terminatingTimeout := 5 * time.Second
+
 	ipA := "10.0.0.1"
 	ipB := "10.0.0.2"
 	portA := 9001
 	portB := 9002
 	protocol := 6
+	flowDir := 0
 	hashId := "705baa5149302fa1"
 	hashIdAB := "705baa5149302fa1"
 	hashIdBA := "cc40f571f40f3111"
 
-	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 111, 11, false)
-	flAB1Duplicated := newMockFlowLog(ipA, portA, ipB, portB, protocol, 111, 11, true)
-	flAB2 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 222, 22, false)
-	flBA3 := newMockFlowLog(ipB, portB, ipA, portA, protocol, 333, 33, false)
-	flBA4 := newMockFlowLog(ipB, portB, ipA, portA, protocol, 444, 44, false)
+	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, flowDir, 111, 11, false)
+	// duplicates should be ignored
+	flAB1Duplicated := newMockFlowLog(ipA, portA, ipB, portB, protocol, flowDir, 111, 11, true)
+	flAB2 := newMockFlowLog(ipA, portA, ipB, portB, protocol, flowDir, 222, 22, false)
+	flBA3 := newMockFlowLog(ipB, portB, ipA, portA, protocol, flowDir, 333, 33, false)
+	flBA4 := newMockFlowLog(ipB, portB, ipA, portA, protocol, flowDir, 444, 44, false)
 	table := []struct {
 		name          string
 		conf          *config.StageParam
@@ -122,8 +127,16 @@ func TestTrack(t *testing.T) {
 		expected      []config.GenericMap
 	}{
 		{
+			"duplicates, doesn't output connection events",
+			buildMockConnTrackConfig(true, []string{"newConnection", "heartbeat", "endConnection"},
+				heartbeatInterval, endConnectionTimeout, terminatingTimeout),
+			[]config.GenericMap{flAB1Duplicated},
+			[]config.GenericMap(nil),
+		},
+		{
 			"bidirectional, output new connection",
-			buildMockConnTrackConfig(true, []string{"newConnection"}, heartbeatInterval, endConnectionTimeout),
+			buildMockConnTrackConfig(true, []string{"newConnection"},
+				heartbeatInterval, endConnectionTimeout, terminatingTimeout),
 			[]config.GenericMap{flAB1, flAB1Duplicated, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
@@ -131,7 +144,8 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"bidirectional, output new connection and flow log",
-			buildMockConnTrackConfig(true, []string{"newConnection", "flowLog"}, heartbeatInterval, endConnectionTimeout),
+			buildMockConnTrackConfig(true, []string{"newConnection", "flowLog"},
+				heartbeatInterval, endConnectionTimeout, terminatingTimeout),
 			[]config.GenericMap{flAB1, flAB1Duplicated, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocol, 111, 0, 11, 0, 1).withHash(hashId).get(),
@@ -144,7 +158,8 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"unidirectional, output new connection",
-			buildMockConnTrackConfig(false, []string{"newConnection"}, heartbeatInterval, endConnectionTimeout),
+			buildMockConnTrackConfig(false, []string{"newConnection"},
+				heartbeatInterval, endConnectionTimeout, terminatingTimeout),
 			[]config.GenericMap{flAB1, flAB1Duplicated, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
@@ -153,7 +168,8 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"unidirectional, output new connection and flow log",
-			buildMockConnTrackConfig(false, []string{"newConnection", "flowLog"}, heartbeatInterval, endConnectionTimeout),
+			buildMockConnTrackConfig(false, []string{"newConnection", "flowLog"},
+				heartbeatInterval, endConnectionTimeout, terminatingTimeout),
 			[]config.GenericMap{flAB1, flAB1Duplicated, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
 				newMockRecordNewConn(ipA, portA, ipB, portB, protocol, 111, 11, 1).withHash(hashIdAB).get(),
@@ -188,7 +204,10 @@ func TestEndConn_Bidirectional(t *testing.T) {
 	clk := clock.NewMock()
 	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
-	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"}, heartbeatInterval, endConnectionTimeout)
+	terminatingTimeout := 5 * time.Second
+
+	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"},
+		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -197,12 +216,13 @@ func TestEndConn_Bidirectional(t *testing.T) {
 	portA := 9001
 	portB := 9002
 	protocol := 6
+	flowDir := 0
 	hashId := "705baa5149302fa1"
 
-	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 111, 11, false)
-	flAB2 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 222, 22, false)
-	flBA3 := newMockFlowLog(ipB, portB, ipA, portA, protocol, 333, 33, false)
-	flBA4 := newMockFlowLog(ipB, portB, ipA, portA, protocol, 444, 44, false)
+	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, flowDir, 111, 11, false)
+	flAB2 := newMockFlowLog(ipA, portA, ipB, portB, protocol, flowDir, 222, 22, false)
+	flBA3 := newMockFlowLog(ipB, portB, ipA, portA, protocol, flowDir, 333, 33, false)
+	flBA4 := newMockFlowLog(ipB, portB, ipA, portA, protocol, flowDir, 444, 44, false)
 	startTime := clk.Now()
 	table := []struct {
 		name          string
@@ -274,7 +294,10 @@ func TestEndConn_Unidirectional(t *testing.T) {
 	clk := clock.NewMock()
 	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
-	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "endConnection"}, heartbeatInterval, endConnectionTimeout)
+	terminatingTimeout := 5 * time.Second
+
+	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "endConnection"},
+		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -283,13 +306,14 @@ func TestEndConn_Unidirectional(t *testing.T) {
 	portA := 9001
 	portB := 9002
 	protocol := 6
+	flowDir := 0
 	hashIdAB := "705baa5149302fa1"
 	hashIdBA := "cc40f571f40f3111"
 
-	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 111, 11, false)
-	flAB2 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 222, 22, false)
-	flBA3 := newMockFlowLog(ipB, portB, ipA, portA, protocol, 333, 33, false)
-	flBA4 := newMockFlowLog(ipB, portB, ipA, portA, protocol, 444, 44, false)
+	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, flowDir, 111, 11, false)
+	flAB2 := newMockFlowLog(ipA, portA, ipB, portB, protocol, flowDir, 222, 22, false)
+	flBA3 := newMockFlowLog(ipB, portB, ipA, portA, protocol, flowDir, 333, 33, false)
+	flBA4 := newMockFlowLog(ipB, portB, ipA, portA, protocol, flowDir, 444, 44, false)
 	startTime := clk.Now()
 	table := []struct {
 		name          string
@@ -376,7 +400,10 @@ func TestHeartbeat_Unidirectional(t *testing.T) {
 	clk := clock.NewMock()
 	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
-	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "heartbeat", "endConnection"}, heartbeatInterval, endConnectionTimeout)
+	terminatingTimeout := 5 * time.Second
+
+	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "heartbeat", "endConnection"},
+		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -385,12 +412,13 @@ func TestHeartbeat_Unidirectional(t *testing.T) {
 	portA := 9001
 	portB := 9002
 	protocol := 6
+	flowDir := 0
 	hashIdAB := "705baa5149302fa1"
 	hashIdBA := "cc40f571f40f3111"
 
-	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 111, 11, false)
-	flAB2 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 222, 22, false)
-	flBA3 := newMockFlowLog(ipB, portB, ipA, portA, protocol, 333, 33, false)
+	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, flowDir, 111, 11, false)
+	flAB2 := newMockFlowLog(ipA, portA, ipB, portB, protocol, flowDir, 222, 22, false)
+	flBA3 := newMockFlowLog(ipB, portB, ipA, portA, protocol, flowDir, 333, 33, false)
 	startTime := clk.Now()
 	table := []struct {
 		name          string
@@ -524,7 +552,10 @@ func TestIsFirst_LongConnection(t *testing.T) {
 	clk := clock.NewMock()
 	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
-	conf := buildMockConnTrackConfig(false, []string{"heartbeat", "endConnection"}, heartbeatInterval, endConnectionTimeout)
+	terminatingTimeout := 5 * time.Second
+
+	conf := buildMockConnTrackConfig(false, []string{"heartbeat", "endConnection"},
+		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -533,8 +564,9 @@ func TestIsFirst_LongConnection(t *testing.T) {
 	portA := 9001
 	portB := 9002
 	protocol := 6
+	flowDir := 0
 	hashIdAB := "705baa5149302fa1"
-	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 111, 11, false)
+	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, flowDir, 111, 11, false)
 	startTime := clk.Now()
 	table := []struct {
 		name          string
@@ -612,8 +644,10 @@ func TestIsFirst_ShortConnection(t *testing.T) {
 	clk := clock.NewMock()
 	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 5 * time.Second
+	terminatingTimeout := 5 * time.Second
+
 	conf := buildMockConnTrackConfig(false, []string{"heartbeat", "endConnection"},
-		heartbeatInterval, endConnectionTimeout)
+		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
 
@@ -622,8 +656,9 @@ func TestIsFirst_ShortConnection(t *testing.T) {
 	portA := 9001
 	portB := 9002
 	protocol := 6
+	flowDir := 0
 	hashIdAB := "705baa5149302fa1"
-	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, 111, 11, false)
+	flAB1 := newMockFlowLog(ipA, portA, ipB, portB, protocol, flowDir, 111, 11, false)
 	startTime := clk.Now()
 	table := []struct {
 		name          string
@@ -675,7 +710,10 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 	clk := clock.NewMock()
 	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
-	conf := buildMockConnTrackConfig(false, []string{"heartbeat"}, heartbeatInterval, endConnectionTimeout)
+	terminatingTimeout := 5 * time.Second
+
+	conf := buildMockConnTrackConfig(false, []string{"heartbeat"},
+		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	interval := 10 * time.Second
 	extract, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
@@ -734,8 +772,10 @@ func TestScheduling(t *testing.T) {
 	clk := clock.NewMock()
 	defaultHeartbeatInterval := 20 * time.Second
 	defaultEndConnectionTimeout := 15 * time.Second
+	defaultTerminatingTimeout := 5 * time.Second
+
 	conf := buildMockConnTrackConfig(true, []string{"heartbeat", "endConnection"},
-		defaultHeartbeatInterval, defaultEndConnectionTimeout)
+		defaultHeartbeatInterval, defaultEndConnectionTimeout, defaultTerminatingTimeout)
 	// Insert a scheduling group before the default group.
 	// https://github.com/golang/go/wiki/SliceTricks#push-frontunshift
 	conf.Extract.ConnTrack.Scheduling = append(
@@ -744,6 +784,7 @@ func TestScheduling(t *testing.T) {
 				Selector:             map[string]interface{}{"Proto": 1}, // ICMP
 				HeartbeatInterval:    api.Duration{Duration: 30 * time.Second},
 				EndConnectionTimeout: api.Duration{Duration: 20 * time.Second},
+				TerminatingTimeout:   api.Duration{Duration: 10 * time.Second},
 			},
 		},
 		conf.Extract.ConnTrack.Scheduling...)
@@ -756,12 +797,13 @@ func TestScheduling(t *testing.T) {
 	portB := 9002
 	protocolTCP := 6
 	protocolICMP := 1
+	flowDir := 0
 	hashIdTCP := "705baa5149302fa1"
 	hashIdICMP := "3dccf73fe57ba06f"
-	flTCP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolTCP, 111, 11, false)
-	flTCP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, 222, 22, false)
-	flICMP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolICMP, 333, 33, false)
-	flICMP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolICMP, 444, 44, false)
+	flTCP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolTCP, flowDir, 111, 11, false)
+	flTCP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, flowDir, 222, 22, false)
+	flICMP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolICMP, flowDir, 333, 33, false)
+	flICMP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolICMP, flowDir, 444, 44, false)
 	startTime := clk.Now()
 	table := []struct {
 		name          string
@@ -864,8 +906,9 @@ func assertStoreConsistency(t *testing.T, extractor extract.Extractor) {
 	groupsLenSlice := make([]int, 0)
 	sumGroupsLen := 0
 	for _, g := range store.groups {
-		sumGroupsLen += g.mom.Len()
-		groupsLenSlice = append(groupsLenSlice, g.mom.Len())
+		sumGroupsLen += g.terminatingMom.Len()
+		sumGroupsLen += g.activeMom.Len()
+		groupsLenSlice = append(groupsLenSlice, g.terminatingMom.Len()+g.activeMom.Len())
 	}
 	require.Equal(t, hashLen, sumGroupsLen, "hashLen(=%v) != sum(%v)", hashLen, groupsLenSlice)
 }
@@ -894,7 +937,10 @@ func TestMaxConnections(t *testing.T) {
 	clk := clock.NewMock()
 	heartbeatInterval := 10 * time.Second
 	endConnectionTimeout := 30 * time.Second
-	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"}, heartbeatInterval, endConnectionTimeout)
+	terminatingTimeout := 5 * time.Second
+
+	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"},
+		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	conf.Extract.ConnTrack.MaxConnectionsTracked = maxConnections
 	extract, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
@@ -920,7 +966,10 @@ func TestIsLastFlowLogOfConnection(t *testing.T) {
 	clk := clock.NewMock()
 	heartbeatInterval := 30 * time.Second
 	endConnectionTimeout := 10 * time.Second
-	conf := buildMockConnTrackConfig(true, []string{}, heartbeatInterval, endConnectionTimeout)
+	terminatingTimeout := 5 * time.Second
+
+	conf := buildMockConnTrackConfig(true, []string{},
+		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	tcpFlagsFieldName := "TCPFlags"
 	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{
 		FieldName:           tcpFlagsFieldName,
@@ -936,44 +985,44 @@ func TestIsLastFlowLogOfConnection(t *testing.T) {
 	}{
 		{
 			"Happy path",
-			config.GenericMap{tcpFlagsFieldName: uint32(FIN_ACK_FLAG)},
-			FIN_ACK_FLAG,
+			config.GenericMap{tcpFlagsFieldName: uint32(FIN_FLAG)},
+			FIN_FLAG,
 			true,
 		},
 		{
 			"Multiple flags 1",
-			config.GenericMap{tcpFlagsFieldName: uint32(FIN_ACK_FLAG | SYN_ACK_FLAG)},
-			FIN_ACK_FLAG,
+			config.GenericMap{tcpFlagsFieldName: uint32(FIN_FLAG | SYN_ACK_FLAG)},
+			FIN_FLAG,
 			true,
 		},
 		{
 			"Multiple flags 2",
-			config.GenericMap{tcpFlagsFieldName: uint32(FIN_ACK_FLAG | SYN_ACK_FLAG)},
+			config.GenericMap{tcpFlagsFieldName: uint32(FIN_FLAG | SYN_ACK_FLAG)},
 			SYN_ACK_FLAG,
 			true,
 		},
 		{
 			"Convert from string",
-			config.GenericMap{tcpFlagsFieldName: fmt.Sprint(FIN_ACK_FLAG)},
-			FIN_ACK_FLAG,
+			config.GenericMap{tcpFlagsFieldName: fmt.Sprint(FIN_FLAG)},
+			FIN_FLAG,
 			true,
 		},
 		{
 			"Cannot parse value",
 			config.GenericMap{tcpFlagsFieldName: ""},
-			FIN_ACK_FLAG,
+			FIN_FLAG,
 			false,
 		},
 		{
-			"Other flag than FIN_ACK",
-			config.GenericMap{tcpFlagsFieldName: FIN_FLAG},
-			FIN_ACK_FLAG,
+			"Other flag than FIN",
+			config.GenericMap{tcpFlagsFieldName: FIN_ACK_FLAG},
+			FIN_FLAG,
 			false,
 		},
 		{
 			"Missing TCPFlags field",
 			config.GenericMap{"": ""},
-			FIN_ACK_FLAG,
+			FIN_FLAG,
 			false,
 		},
 	}
@@ -992,8 +1041,10 @@ func TestDetectEndConnection(t *testing.T) {
 	clk := clock.NewMock()
 	defaultUpdateConnectionInterval := 30 * time.Second
 	defaultEndConnectionTimeout := 10 * time.Second
+	defaultTerminatingTimeout := 5 * time.Second
+
 	conf := buildMockConnTrackConfig(true, []string{"newConnection", "endConnection"},
-		defaultUpdateConnectionInterval, defaultEndConnectionTimeout)
+		defaultUpdateConnectionInterval, defaultEndConnectionTimeout, defaultTerminatingTimeout)
 	tcpFlagsFieldName := "TCPFlags"
 	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{
 		FieldName:           tcpFlagsFieldName,
@@ -1007,10 +1058,14 @@ func TestDetectEndConnection(t *testing.T) {
 	portA := 9001
 	portB := 9002
 	protocolTCP := 6
+	flowDir := 0
 	hashIdTCP := "705baa5149302fa1"
-	flTCP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolTCP, 111, 11, false)
-	flTCP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, 222, 22, false)
-	flTCP2[tcpFlagsFieldName] = FIN_ACK_FLAG
+	flTCP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolTCP, flowDir, 111, 11, false)
+	flTCP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, flowDir, 222, 22, false)
+	// duplicates should be ignored
+	flTCP2Duplicated := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, flowDir, 222, 22, true)
+
+	flTCP2[tcpFlagsFieldName] = FIN_FLAG
 
 	startTime := clk.Now()
 	table := []struct {
@@ -1031,15 +1086,21 @@ func TestDetectEndConnection(t *testing.T) {
 			"5s: end connection",
 			startTime.Add(5 * time.Second),
 			[]config.GenericMap{flTCP2},
+			[]config.GenericMap(nil),
+		},
+		{
+			"6s: end connection duplicated",
+			startTime.Add(6 * time.Second),
+			[]config.GenericMap{flTCP2Duplicated},
+			[]config.GenericMap(nil),
+		},
+		{
+			"20s: end connection without duplicated",
+			startTime.Add(20 * time.Second),
+			[]config.GenericMap{},
 			[]config.GenericMap{
 				newMockRecordEndConnAB(ipA, portA, ipB, portB, protocolTCP, 111, 222, 11, 22, 2).withHash(hashIdTCP).get(),
 			},
-		},
-		{
-			"16s: no end connection",
-			startTime.Add(16 * time.Second),
-			[]config.GenericMap{},
-			nil,
 		},
 	}
 
@@ -1056,6 +1117,7 @@ func TestDetectEndConnection(t *testing.T) {
 	}
 	exposed := test.ReadExposedMetrics(t)
 	require.Contains(t, exposed, `conntrack_tcp_flags{action="detectEndConnection"} 1`)
+	require.Contains(t, exposed, `conntrack_input_records{classification="duplicate"} 1`)
 }
 
 func TestSwapAB(t *testing.T) {
@@ -1063,8 +1125,10 @@ func TestSwapAB(t *testing.T) {
 	clk := clock.NewMock()
 	defaultUpdateConnectionInterval := 30 * time.Second
 	defaultEndConnectionTimeout := 10 * time.Second
+	defaultTerminatingTimeout := 5 * time.Second
+
 	conf := buildMockConnTrackConfig(true, []string{"newConnection", "endConnection"},
-		defaultUpdateConnectionInterval, defaultEndConnectionTimeout)
+		defaultUpdateConnectionInterval, defaultEndConnectionTimeout, defaultTerminatingTimeout)
 	tcpFlagsFieldName := "TCPFlags"
 	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{
 		FieldName: tcpFlagsFieldName,
@@ -1078,8 +1142,9 @@ func TestSwapAB(t *testing.T) {
 	portA := 9001
 	portB := 9002
 	protocolTCP := 6
+	flowDir := 0
 	hashIdTCP := "705baa5149302fa1"
-	flTCP1 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, 111, 11, false)
+	flTCP1 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, flowDir, 111, 11, false)
 	flTCP1[tcpFlagsFieldName] = SYN_ACK_FLAG
 
 	startTime := clk.Now()
@@ -1112,4 +1177,92 @@ func TestSwapAB(t *testing.T) {
 	}
 	exposed := test.ReadExposedMetrics(t)
 	require.Contains(t, exposed, `conntrack_tcp_flags{action="swapAB"} 1`)
+}
+
+func TestExpiringConnection(t *testing.T) {
+	test.ResetPromRegistry()
+	clk := clock.NewMock()
+	defaultUpdateConnectionInterval := 30 * time.Second
+	defaultEndConnectionTimeout := 10 * time.Second
+	defaultTerminatingTimeout := 5 * time.Second
+
+	conf := buildMockConnTrackConfig(true, []string{"newConnection", "endConnection"},
+		defaultUpdateConnectionInterval, defaultEndConnectionTimeout, defaultTerminatingTimeout)
+	tcpFlagsFieldName := "TCPFlags"
+	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{
+		FieldName:           tcpFlagsFieldName,
+		DetectEndConnection: true,
+	}
+	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
+	require.NoError(t, err)
+
+	ipA := "10.0.0.1"
+	ipB := "10.0.0.2"
+	portA := 9001
+	portB := 9002
+	protocolTCP := 6
+	flowDir := 0
+	hashIdTCP := "705baa5149302fa1"
+	flTCP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolTCP, flowDir, 111, 11, false)
+	flTCP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, flowDir, 222, 22, false)
+	flTCP2[tcpFlagsFieldName] = FIN_FLAG
+	flTCP3 := newMockFlowLog(ipA, portA, ipB, portB, protocolTCP, flowDir, 333, 33, false)
+	flTCP4 := newMockFlowLog(ipA, portA, ipB, portB, protocolTCP, flowDir, 555, 55, false)
+
+	startTime := clk.Now()
+	table := []struct {
+		name          string
+		time          time.Time
+		inputFlowLogs []config.GenericMap
+		expected      []config.GenericMap
+	}{
+		{
+			"start: new connection",
+			startTime.Add(0 * time.Second),
+			[]config.GenericMap{flTCP1},
+			[]config.GenericMap{
+				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocolTCP, 111, 0, 11, 0, 1).withHash(hashIdTCP).markFirst().get(),
+			},
+		},
+		{
+			"5s: FIN flow log to end the connection",
+			startTime.Add(5 * time.Second),
+			[]config.GenericMap{flTCP2},
+			[]config.GenericMap(nil),
+		},
+		{
+			"10s: flow log after FIN is still part of the connection",
+			startTime.Add(10 * time.Second),
+			[]config.GenericMap{flTCP3},
+			[]config.GenericMap(nil),
+		},
+		{
+			"16s: end connection. The after-FIN-flow-log doesn't extend the connection's life",
+			startTime.Add(16 * time.Second),
+			[]config.GenericMap{},
+			[]config.GenericMap{
+				newMockRecordEndConnAB(ipA, portA, ipB, portB, protocolTCP, 444, 222, 44, 22, 3).withHash(hashIdTCP).get(),
+			},
+		},
+		{
+			"17s: another flow log will create a new connection",
+			startTime.Add(17 * time.Second),
+			[]config.GenericMap{flTCP4},
+			[]config.GenericMap{
+				newMockRecordNewConnAB(ipA, portA, ipB, portB, protocolTCP, 555, 0, 55, 0, 1).withHash(hashIdTCP).markFirst().get(),
+			},
+		},
+	}
+
+	var prevTime time.Time
+	for _, tt := range table {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Less(t, prevTime, tt.time)
+			prevTime = tt.time
+			clk.Set(tt.time)
+			actual := ct.Extract(tt.inputFlowLogs)
+			require.Equal(t, tt.expected, actual)
+			assertStoreConsistency(t, ct)
+		})
+	}
 }
