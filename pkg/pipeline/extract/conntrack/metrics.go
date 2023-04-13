@@ -25,7 +25,7 @@ import (
 var (
 	connStoreLengthDef = operational.DefineMetric(
 		"conntrack_memory_connections",
-		"The total number of tracked connections in memory per group and phase.",
+		"The total number of tracked connections in memory per group and phase",
 		operational.TypeGauge,
 		"group", "phase",
 	)
@@ -64,6 +64,13 @@ var (
 		operational.TypeCounter,
 		"error", "field",
 	)
+
+	endConnectionsDef = operational.DefineMetric(
+		"conntrack_end_connections",
+		"The total number of connections ended per group and reason",
+		operational.TypeCounter,
+		"group", "reason",
+	)
 )
 
 type metricsType struct {
@@ -73,6 +80,7 @@ type metricsType struct {
 	tcpFlags         *prometheus.CounterVec
 	hashErrors       *prometheus.CounterVec
 	aggregatorErrors *prometheus.CounterVec
+	endConnections   *prometheus.CounterVec
 }
 
 func newMetrics(opMetrics *operational.Metrics) *metricsType {
@@ -83,5 +91,6 @@ func newMetrics(opMetrics *operational.Metrics) *metricsType {
 		tcpFlags:         opMetrics.NewCounterVec(&tcpFlagsDef),
 		hashErrors:       opMetrics.NewCounterVec(&hashErrorsDef),
 		aggregatorErrors: opMetrics.NewCounterVec(&aggregatorErrorsDef),
+		endConnections:   opMetrics.NewCounterVec(&endConnectionsDef),
 	}
 }

@@ -15,6 +15,14 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Labels** | error, field | 
 
 
+### conntrack_end_connections
+| **Name** | conntrack_end_connections | 
+|:---|:---|
+| **Description** | The total number of connections ended per group and reason | 
+| **Type** | counter | 
+| **Labels** | group, reason | 
+
+
 ### conntrack_hash_errors
 | **Name** | conntrack_hash_errors | 
 |:---|:---|
@@ -34,7 +42,7 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 ### conntrack_memory_connections
 | **Name** | conntrack_memory_connections | 
 |:---|:---|
-| **Description** | The total number of tracked connections in memory per group and phase. | 
+| **Description** | The total number of tracked connections in memory per group and phase | 
 | **Type** | gauge | 
 | **Labels** | group, phase | 
 
