@@ -230,6 +230,14 @@ func NewIngestKafka(opMetrics *operational.Metrics, params config.StageParam) (I
 		dialer.TLS = tlsConfig
 	}
 
+	if jsonIngestKafka.SASL != nil {
+		m, err := utils.SetupSASLMechanism(jsonIngestKafka.SASL)
+		if err != nil {
+			return nil, err
+		}
+		dialer.SASLMechanism = m
+	}
+
 	readerConfig := kafkago.ReaderConfig{
 		Brokers:        jsonIngestKafka.Brokers,
 		Topic:          jsonIngestKafka.Topic,

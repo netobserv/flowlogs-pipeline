@@ -24,8 +24,8 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/segmentio/kafka-go"
 	kafkago "github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -95,7 +95,7 @@ func NewEncodeKafka(opMetrics *operational.Metrics, params config.StageParam) (E
 		writeTimeoutSecs = config.WriteTimeout
 	}
 
-	transport := kafka.Transport{}
+	transport := kafkago.Transport{}
 	if config.TLS != nil {
 		log.Infof("Using TLS configuration: %v", config.TLS)
 		tlsConfig, err := config.TLS.Build()
@@ -103,6 +103,14 @@ func NewEncodeKafka(opMetrics *operational.Metrics, params config.StageParam) (E
 			return nil, err
 		}
 		transport.TLS = tlsConfig
+	}
+
+	if config.SASL != nil {
+		m, err := utils.SetupSASLMechanism(config.SASL)
+		if err != nil {
+			return nil, err
+		}
+		transport.SASL = m
 	}
 
 	// connect to the kafka server
