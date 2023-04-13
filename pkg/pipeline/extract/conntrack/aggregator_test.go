@@ -52,7 +52,7 @@ func TestNewAggregator_Invalid(t *testing.T) {
 		Operation: "first",
 		SplitAB:   true,
 		Input:     "Input",
-	})
+	}, nil)
 	require.NotNil(t, err)
 }
 
@@ -195,7 +195,7 @@ func TestMissingFieldError(t *testing.T) {
 	agg.addField(conn)
 
 	flowLog := config.GenericMap{}
-	agg.update(conn, flowLog, dirAB)
+	agg.update(conn, flowLog, dirAB, true)
 
 	exposed := test.ReadExposedMetrics(t)
 	require.Contains(t, exposed, `conntrack_aggregator_errors{error="MissingFieldError",field="Bytes"} 1`)
@@ -211,7 +211,7 @@ func TestFloat64ConversionError(t *testing.T) {
 	agg.addField(conn)
 
 	flowLog := config.GenericMap{"Bytes": "float64 inconvertible value"}
-	agg.update(conn, flowLog, dirAB)
+	agg.update(conn, flowLog, dirAB, true)
 
 	exposed := test.ReadExposedMetrics(t)
 	require.Contains(t, exposed, `conntrack_aggregator_errors{error="Float64ConversionError",field="Bytes"} 1`)
