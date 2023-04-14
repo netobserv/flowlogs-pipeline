@@ -147,7 +147,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"ingest","ingest":{"type":"kafka","kafka":{"brokers":["http://kafka"],"topic":"netflows","groupid":"my-group","decoder":{"type":"json"},"tls":{"insecureSkipVerify":true,"caCertPath":"/ca.crt"}}}}`, string(b))
+	require.JSONEq(t, `{"name":"ingest","ingest":{"type":"kafka","kafka":{"brokers":["http://kafka"],"topic":"netflows","groupid":"my-group","decoder":{"type":"json"},"sasl":null,"tls":{"insecureSkipVerify":true,"caCertPath":"/ca.crt"}}}}`, string(b))
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
