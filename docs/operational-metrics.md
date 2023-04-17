@@ -7,10 +7,34 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 
 	
 
+### conntrack_aggregator_errors
+| **Name** | conntrack_aggregator_errors | 
+|:---|:---|
+| **Description** | The total number of errors during aggregation | 
+| **Type** | counter | 
+| **Labels** | error, field | 
+
+
+### conntrack_end_connections
+| **Name** | conntrack_end_connections | 
+|:---|:---|
+| **Description** | The total number of connections ended per group and reason | 
+| **Type** | counter | 
+| **Labels** | group, reason | 
+
+
+### conntrack_hash_errors
+| **Name** | conntrack_hash_errors | 
+|:---|:---|
+| **Description** | The total number of errors during hash computation | 
+| **Type** | counter | 
+| **Labels** | error, field | 
+
+
 ### conntrack_input_records
 | **Name** | conntrack_input_records | 
 |:---|:---|
-| **Description** | The total number of input records per classification. | 
+| **Description** | The total number of input records per classification | 
 | **Type** | counter | 
 | **Labels** | classification | 
 
@@ -18,7 +42,7 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 ### conntrack_memory_connections
 | **Name** | conntrack_memory_connections | 
 |:---|:---|
-| **Description** | The total number of tracked connections in memory per group and phase. | 
+| **Description** | The total number of tracked connections in memory per group and phase | 
 | **Type** | gauge | 
 | **Labels** | group, phase | 
 
@@ -26,7 +50,7 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 ### conntrack_output_records
 | **Name** | conntrack_output_records | 
 |:---|:---|
-| **Description** | The total number of output records. | 
+| **Description** | The total number of output records | 
 | **Type** | counter | 
 | **Labels** | type | 
 
@@ -34,7 +58,7 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 ### conntrack_tcp_flags
 | **Name** | conntrack_tcp_flags | 
 |:---|:---|
-| **Description** | The total number of actions taken based on TCP flags. | 
+| **Description** | The total number of actions taken based on TCP flags | 
 | **Type** | counter | 
 | **Labels** | action | 
 

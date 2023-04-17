@@ -216,9 +216,14 @@ func (cs *connectionStore) popEndConnections() []connection {
 	var poppedConnections []connection
 	for _, group := range cs.groups {
 		// Pop terminating connections first
-		poppedConnections = append(poppedConnections, cs.popEndConnectionOfMap(group.terminatingMom, group)...)
+		terminatedConnections := cs.popEndConnectionOfMap(group.terminatingMom, group)
+		poppedConnections = append(poppedConnections, terminatedConnections...)
+		cs.metrics.endConnections.WithLabelValues(group.labelValue, "FIN_flag").Add(float64(len(terminatedConnections)))
+
 		// Pop active connections that expired without TCP flag
-		poppedConnections = append(poppedConnections, cs.popEndConnectionOfMap(group.activeMom, group)...)
+		timedoutConnections := cs.popEndConnectionOfMap(group.activeMom, group)
+		poppedConnections = append(poppedConnections, timedoutConnections...)
+		cs.metrics.endConnections.WithLabelValues(group.labelValue, "timeout").Add(float64(len(timedoutConnections)))
 	}
 	return poppedConnections
 }

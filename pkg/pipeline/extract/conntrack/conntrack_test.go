@@ -898,6 +898,8 @@ func TestScheduling(t *testing.T) {
 			assertStoreConsistency(t, ct)
 		})
 	}
+	exposed := test.ReadExposedMetrics(t)
+	require.Contains(t, exposed, `conntrack_end_connections{group="0: Proto=1, ",reason="timeout"} 1`)
 }
 
 func assertStoreConsistency(t *testing.T, extractor extract.Extractor) {
@@ -1265,4 +1267,6 @@ func TestExpiringConnection(t *testing.T) {
 			assertStoreConsistency(t, ct)
 		})
 	}
+	exposed := test.ReadExposedMetrics(t)
+	require.Contains(t, exposed, `conntrack_end_connections{group="0: DEFAULT",reason="FIN_flag"} 1`)
 }

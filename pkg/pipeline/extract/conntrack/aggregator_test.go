@@ -23,6 +23,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,7 +35,7 @@ func TestNewAggregator_Invalid(t *testing.T) {
 		Operation: "sum",
 		SplitAB:   true,
 		Input:     "Input",
-	})
+	}, nil)
 	require.NotNil(t, err)
 
 	// unknown OperationType
@@ -43,7 +44,7 @@ func TestNewAggregator_Invalid(t *testing.T) {
 		Operation: "unknown",
 		SplitAB:   true,
 		Input:     "Input",
-	})
+	}, nil)
 	require.NotNil(t, err)
 
 	// invalid first agg
@@ -51,7 +52,7 @@ func TestNewAggregator_Invalid(t *testing.T) {
 		Operation: "first",
 		SplitAB:   true,
 		Input:     "Input",
-	})
+	}, nil)
 	require.NotNil(t, err)
 }
 
@@ -64,58 +65,58 @@ func TestNewAggregator_Valid(t *testing.T) {
 		{
 			name:        "Default SplitAB",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "sum"},
-			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", false, float64(0)}},
+			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", false, float64(0), nil}},
 		},
 		{
 			name:        "Default input",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "sum", SplitAB: true},
-			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", true, float64(0)}},
+			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", true, float64(0), nil}},
 		},
 		{
 			name:        "Custom input",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "sum", Input: "MyInput"},
-			expected:    &aSum{aggregateBase{"MyInput", "MyAgg", false, float64(0)}},
+			expected:    &aSum{aggregateBase{"MyInput", "MyAgg", false, float64(0), nil}},
 		},
 		{
 			name:        "OperationType sum",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "sum"},
-			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", false, float64(0)}},
+			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", false, float64(0), nil}},
 		},
 		{
 			name:        "OperationType count",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "count"},
-			expected:    &aCount{aggregateBase{"MyAgg", "MyAgg", false, float64(0)}},
+			expected:    &aCount{aggregateBase{"MyAgg", "MyAgg", false, float64(0), nil}},
 		},
 		{
 			name:        "OperationType max",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "max"},
-			expected:    &aMax{aggregateBase{"MyAgg", "MyAgg", false, -math.MaxFloat64}},
+			expected:    &aMax{aggregateBase{"MyAgg", "MyAgg", false, -math.MaxFloat64, nil}},
 		},
 		{
 			name:        "OperationType min",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "min"},
-			expected:    &aMin{aggregateBase{"MyAgg", "MyAgg", false, math.MaxFloat64}},
+			expected:    &aMin{aggregateBase{"MyAgg", "MyAgg", false, math.MaxFloat64, nil}},
 		},
 		{
 			name:        "Default first",
 			outputField: api.OutputField{Name: "MyCp", Operation: "first"},
-			expected:    &aFirst{aggregateBase{"MyCp", "MyCp", false, nil}},
+			expected:    &aFirst{aggregateBase{"MyCp", "MyCp", false, nil, nil}},
 		},
 		{
 			name:        "Custom input first",
 			outputField: api.OutputField{Name: "MyCp", Operation: "first", Input: "MyInput"},
-			expected:    &aFirst{aggregateBase{"MyInput", "MyCp", false, nil}},
+			expected:    &aFirst{aggregateBase{"MyInput", "MyCp", false, nil, nil}},
 		},
 		{
 			name:        "Default last",
 			outputField: api.OutputField{Name: "MyCp", Operation: "last"},
-			expected:    &aLast{aggregateBase{"MyCp", "MyCp", false, nil}},
+			expected:    &aLast{aggregateBase{"MyCp", "MyCp", false, nil, nil}},
 		},
 	}
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			agg, err := newAggregator(test.outputField)
+			agg, err := newAggregator(test.outputField, nil)
 			require.NoError(t, err)
 			require.Equal(t, test.expected, agg)
 		})
@@ -134,7 +135,7 @@ func TestAddField_and_Update(t *testing.T) {
 	}
 	var aggs []aggregator
 	for _, of := range ofs {
-		agg, err := newAggregator(of)
+		agg, err := newAggregator(of, nil)
 		require.NoError(t, err)
 		aggs = append(aggs, agg)
 	}
@@ -182,4 +183,36 @@ func TestAddField_and_Update(t *testing.T) {
 			require.Equal(t, test.expected, conn.(*connType).aggFields)
 		})
 	}
+}
+
+func TestMissingFieldError(t *testing.T) {
+	test.ResetPromRegistry()
+	metrics := newMetrics(opMetrics)
+	agg, err := newAggregator(api.OutputField{Name: "Bytes", Operation: "sum", SplitAB: true}, metrics)
+	require.NoError(t, err)
+
+	conn := NewConnBuilder(metrics).Build()
+	agg.addField(conn)
+
+	flowLog := config.GenericMap{}
+	agg.update(conn, flowLog, dirAB, true)
+
+	exposed := test.ReadExposedMetrics(t)
+	require.Contains(t, exposed, `conntrack_aggregator_errors{error="MissingFieldError",field="Bytes"} 1`)
+}
+
+func TestFloat64ConversionError(t *testing.T) {
+	test.ResetPromRegistry()
+	metrics := newMetrics(opMetrics)
+	agg, err := newAggregator(api.OutputField{Name: "Bytes", Operation: "sum", SplitAB: true}, metrics)
+	require.NoError(t, err)
+
+	conn := NewConnBuilder(metrics).Build()
+	agg.addField(conn)
+
+	flowLog := config.GenericMap{"Bytes": "float64 inconvertible value"}
+	agg.update(conn, flowLog, dirAB, true)
+
+	exposed := test.ReadExposedMetrics(t)
+	require.Contains(t, exposed, `conntrack_aggregator_errors{error="Float64ConversionError",field="Bytes"} 1`)
 }

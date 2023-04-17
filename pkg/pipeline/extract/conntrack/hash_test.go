@@ -23,6 +23,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -102,8 +103,8 @@ func TestComputeHash_Unidirectional(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			h1, err1 := ComputeHash(test.flowLog1, keyDefinition, testHasher)
-			h2, err2 := ComputeHash(test.flowLog2, keyDefinition, testHasher)
+			h1, err1 := ComputeHash(test.flowLog1, keyDefinition, testHasher, nil)
+			h2, err2 := ComputeHash(test.flowLog2, keyDefinition, testHasher, nil)
 			require.NoError(t, err1)
 			require.NoError(t, err2)
 			if test.sameHash {
@@ -191,8 +192,8 @@ func TestComputeHash_Bidirectional(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			h1, err1 := ComputeHash(test.flowLog1, keyDefinition, testHasher)
-			h2, err2 := ComputeHash(test.flowLog2, keyDefinition, testHasher)
+			h1, err1 := ComputeHash(test.flowLog1, keyDefinition, testHasher, nil)
+			h2, err2 := ComputeHash(test.flowLog2, keyDefinition, testHasher, nil)
 			require.NoError(t, err1)
 			require.NoError(t, err2)
 			if test.sameHash {
@@ -205,6 +206,7 @@ func TestComputeHash_Bidirectional(t *testing.T) {
 }
 
 func TestComputeHash_MissingField(t *testing.T) {
+	test.ResetPromRegistry()
 	keyDefinition := api.KeyDefinition{
 		FieldGroups: []api.FieldGroup{
 			{
@@ -229,7 +231,10 @@ func TestComputeHash_MissingField(t *testing.T) {
 
 	fl := newMockFlowLog(ipA, portA, ipB, portB, protocolA, flowDir, 111, 22, false)
 
-	h, err := ComputeHash(fl, keyDefinition, testHasher)
+	metrics := newMetrics(opMetrics)
+	h, err := ComputeHash(fl, keyDefinition, testHasher, metrics)
 	require.NoError(t, err)
 	require.NotNil(t, h)
+	exposed := test.ReadExposedMetrics(t)
+	require.Contains(t, exposed, `conntrack_hash_errors{error="MissingFieldError",field="Missing"} 1`)
 }

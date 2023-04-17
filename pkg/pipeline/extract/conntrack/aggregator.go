@@ -41,6 +41,7 @@ type aggregateBase struct {
 	outputField string
 	splitAB     bool
 	initVal     interface{}
+	metrics     *metricsType
 }
 
 type aSum struct{ aggregateBase }
@@ -53,7 +54,7 @@ type aLast struct{ aggregateBase }
 // TODO: think of adding a more complex operation such as Average Packet Size which involves 2 input fields: Bytes/Packets
 
 // newAggregator returns a new aggregator depending on the output field operation
-func newAggregator(of api.OutputField) (aggregator, error) {
+func newAggregator(of api.OutputField, metrics *metricsType) (aggregator, error) {
 	if of.Name == "" {
 		return nil, fmt.Errorf("empty name %v", of)
 	}
@@ -63,7 +64,7 @@ func newAggregator(of api.OutputField) (aggregator, error) {
 	} else {
 		inputField = of.Name
 	}
-	aggBase := aggregateBase{inputField: inputField, outputField: of.Name, splitAB: of.SplitAB}
+	aggBase := aggregateBase{inputField: inputField, outputField: of.Name, splitAB: of.SplitAB, metrics: metrics}
 	var agg aggregator
 	switch of.Operation {
 	case api.ConnTrackOperationName("Sum"):
@@ -108,11 +109,17 @@ func (agg *aggregateBase) getOutputField(d direction) string {
 func (agg *aggregateBase) getInputFieldValue(flowLog config.GenericMap) (float64, error) {
 	rawValue, ok := flowLog[agg.inputField]
 	if !ok {
+		if agg.metrics != nil {
+			agg.metrics.aggregatorErrors.WithLabelValues("MissingFieldError", agg.inputField).Inc()
+		}
 		return 0, fmt.Errorf("missing field %v", agg.inputField)
 	}
 	floatValue, err := utils.ConvertToFloat64(rawValue)
 	if err != nil {
-		return 0, fmt.Errorf("cannot convert %v to float64: %w", rawValue, err)
+		if agg.metrics != nil {
+			agg.metrics.aggregatorErrors.WithLabelValues("Float64ConversionError", agg.inputField).Inc()
+		}
+		return 0, fmt.Errorf("cannot convert %q to float64: %w", rawValue, err)
 	}
 	return floatValue, nil
 }

@@ -38,12 +38,12 @@ type totalHashType struct {
 
 // ComputeHash computes the hash of a flow log according to keyDefinition.
 // Two flow logs will have the same hash if they belong to the same connection.
-func ComputeHash(flowLog config.GenericMap, keyDefinition api.KeyDefinition, hasher hash.Hash64) (totalHashType, error) {
+func ComputeHash(flowLog config.GenericMap, keyDefinition api.KeyDefinition, hasher hash.Hash64, metrics *metricsType) (totalHashType, error) {
 	fieldGroup2hash := make(map[string]uint64)
 
 	// Compute the hash of each field group
 	for _, fg := range keyDefinition.FieldGroups {
-		h, err := computeHashFields(flowLog, fg.Fields, hasher)
+		h, err := computeHashFields(flowLog, fg.Fields, hasher, metrics)
 		if err != nil {
 			return totalHashType{}, fmt.Errorf("compute hash: %w", err)
 		}
@@ -72,12 +72,15 @@ func ComputeHash(flowLog config.GenericMap, keyDefinition api.KeyDefinition, has
 	return th, nil
 }
 
-func computeHashFields(flowLog config.GenericMap, fieldNames []string, hasher hash.Hash64) (uint64, error) {
+func computeHashFields(flowLog config.GenericMap, fieldNames []string, hasher hash.Hash64, metrics *metricsType) (uint64, error) {
 	hasher.Reset()
 	for _, fn := range fieldNames {
 		f, ok := flowLog[fn]
 		if !ok {
 			log.Warningf("Missing field %v", fn)
+			if metrics != nil {
+				metrics.hashErrors.WithLabelValues("MissingFieldError", fn).Inc()
+			}
 			continue
 		}
 		bytes, err := toBytes(f)
