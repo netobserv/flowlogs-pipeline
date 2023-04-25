@@ -899,7 +899,22 @@ The `suppressGoMetrics` parameter may be set to `true` in order to suppress the 
 - Change directory into flowlogs-pipeline into:
   `cd flowlogs-pipeline`
 - Build the code:
-  `make build`
+  ```bash
+  # compile project
+  make build
+
+  # build the default image (quay.io/netobserv/flowlogs-pipeline:latest):
+  make image-build
+
+  # push the default image (quay.io/netobserv/flowlogs-pipeline:latest):
+  make image-push
+
+  # build and push on your own quay.io account (quay.io/myuser/flowlogs-pipeline:dev):
+  IMAGE_ORG=myuser VERSION=dev make images
+
+  # build and push on a different registry
+  IMAGE=dockerhub.io/myuser/plugin:tag make images
+  ```
 
 FLP uses `Makefile` to build, tests and deploy. Following is the output of `make help` :
 
@@ -911,6 +926,7 @@ Usage:
   
 General  
   help                  Display this help.  
+  vendors               Check go vendors  
   
 Develop  
   lint                  Lint the code  
@@ -924,8 +940,13 @@ Develop
   benchmarks            Benchmark  
   run                   Run  
   
-Docker  
-  push-image            Push latest image  
+Images  
+  image-build           Build MULTIARCH_TARGETS images  
+  image-push            Push MULTIARCH_TARGETS images  
+  manifest-build        Build MULTIARCH_TARGETS manifest  
+  manifest-push         Push MULTIARCH_TARGETS manifest  
+  ci-manifest-build     Build CI manifest  
+  ci-manifest-push      Push CI manifest  
   
 kubernetes  
   deploy                Deploy the image  
@@ -953,6 +974,17 @@ End2End
   local-redeploy        Redeploy locally (on current kind)  
   ocp-deploy            Deploy to OCP  
   ocp-cleanup           Undeploy from OCP  
-  dev-local-deploy      Deploy locally with simulated netflows
+  dev-local-deploy      Deploy locally with simulated netflows  
+  
+shortcuts helpers  
+  build-image           Build MULTIARCH_TARGETS images  
+  push-image            Push MULTIARCH_TARGETS images  
+  build-manifest        Build MULTIARCH_TARGETS manifest  
+  push-manifest         Push MULTIARCH_TARGETS manifest  
+  images                Build and push MULTIARCH_TARGETS images and related manifest  
+  build-ci-manifest     Build CI manifest  
+  push-ci-manifest      Push CI manifest  
+  ci-manifest           Build and push CI manifest  
+  ci                    Build and push CI images and manifest
 ```
 <!---END-AUTO-makefile_help--->

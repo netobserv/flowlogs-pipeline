@@ -43,4 +43,4 @@ jobs:
           password: ${{ env.REGISTRY_PASSWORD }}
           registry: quay.io
       - name: build and push images
-        run: OCI_RUNTIME=docker DOCKER_TAG=${{ env.tag }} make push-multiarch-manifest
+        run: OCI_BIN=docker VERSION=${{ env.tag }} make images
