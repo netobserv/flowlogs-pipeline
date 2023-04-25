@@ -59,6 +59,11 @@ func loadSevoneRegistry() error {
 		fmt.Printf("Failed to register sourceNodeName")
 		return err
 	}
+	err = registry.PutInfoElement((*entities.NewInfoElement("destinationNodeName", 7738, 13, SevoneEnterpriseID, 65535)), SevoneEnterpriseID)
+	if err != nil {
+		fmt.Printf("Failed to register destinationNodeName")
+		return err
+	}
 	return nil
 }
 func printIPFIXMessage(msg *entities.Message) {
