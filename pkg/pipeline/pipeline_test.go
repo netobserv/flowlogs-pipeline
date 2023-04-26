@@ -167,7 +167,7 @@ parameters:
 	// yield thread to allow pipe services correctly start
 	time.Sleep(10 * time.Millisecond)
 
-	flowSender, err := grpc.ConnectClient(fmt.Sprintf("127.0.0.1:%d", port))
+	flowSender, err := grpc.ConnectClient("127.0.0.1", port)
 	require.NoError(t, err)
 	defer flowSender.Close()
 
@@ -203,6 +203,10 @@ parameters:
 				IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x0a0b0c0d},
 			},
 			Flags: 0x100,
+			Icmp: &pbflow.Icmp{
+				IcmpType: 10,
+				IcmpCode: 11,
+			},
 		}},
 	})
 	require.NoError(t, err)
@@ -233,6 +237,8 @@ parameters:
 		"Interface":       "eth0",
 		"AgentIP":         "10.11.12.13",
 		"Flags":           float64(0x100),
+		"IcmpType":        float64(10),
+		"IcmpCode":        float64(11),
 	}, capturedRecord)
 }
 
