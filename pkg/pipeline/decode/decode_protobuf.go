@@ -7,6 +7,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -17,6 +18,7 @@ type Protobuf struct {
 }
 
 func NewProtobuf() (*Protobuf, error) {
+	log.Debugf("entering NewProtobuf")
 	return &Protobuf{}, nil
 }
 
