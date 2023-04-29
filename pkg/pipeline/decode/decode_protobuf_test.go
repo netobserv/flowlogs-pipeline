@@ -49,6 +49,11 @@ func TestDecodeProtobuf(t *testing.T) {
 			IcmpType: 8,
 			IcmpCode: 0,
 		},
+		TcpDropBytes:   100,
+		TcpDropPackets: 10,
+		TcpDropFlags:   0x200,
+		TcpDropState:   6,
+		TcpDropCause:   5,
 	}
 	rawPB, err := proto.Marshal(&flow)
 	require.NoError(t, err)
@@ -77,6 +82,11 @@ func TestDecodeProtobuf(t *testing.T) {
 		"Flags":           uint32(0x100),
 		"IcmpType":        uint32(8),
 		"IcmpCode":        uint32(0),
+		"TcpDropBytes":    uint64(100),
+		"TcpDropPackets":  uint64(10),
+		"TcpDropFlags":    uint32(0x200),
+		"TcpDropState":    "TCP_CLOSE",
+		"TcpDropCause":    "SKB_DROP_REASON_TCP_CSUM",
 	}, out)
 }
 
@@ -116,6 +126,11 @@ func TestPBFlowToMap(t *testing.T) {
 			IcmpType: 10,
 			IcmpCode: 11,
 		},
+		TcpDropBytes:   200,
+		TcpDropPackets: 20,
+		TcpDropFlags:   0x100,
+		TcpDropState:   1,
+		TcpDropCause:   4,
 	}
 
 	out := PBFlowToMap(flow)
@@ -141,6 +156,11 @@ func TestPBFlowToMap(t *testing.T) {
 		"Flags":           uint32(0x100),
 		"IcmpType":        uint32(10),
 		"IcmpCode":        uint32(11),
+		"TcpDropBytes":    uint64(200),
+		"TcpDropPackets":  uint64(20),
+		"TcpDropFlags":    uint32(0x100),
+		"TcpDropState":    "TCP_ESTABLISHED",
+		"TcpDropCause":    "SKB_DROP_REASON_PKT_TOO_SMALL",
 	}, out)
 
 }

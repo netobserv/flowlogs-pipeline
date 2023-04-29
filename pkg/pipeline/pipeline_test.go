@@ -207,6 +207,11 @@ parameters:
 				IcmpType: 10,
 				IcmpCode: 11,
 			},
+			TcpDropBytes:   100,
+			TcpDropPackets: 10,
+			TcpDropFlags:   1,
+			TcpDropState:   1,
+			TcpDropCause:   8,
 		}},
 	})
 	require.NoError(t, err)
@@ -239,6 +244,11 @@ parameters:
 		"Flags":           float64(0x100),
 		"IcmpType":        float64(10),
 		"IcmpCode":        float64(11),
+		"TcpDropBytes":    float64(100),
+		"TcpDropPackets":  float64(10),
+		"TcpDropFlags":    float64(1),
+		"TcpDropState":    "TCP_ESTABLISHED",
+		"TcpDropCause":    "SKB_DROP_REASON_NETFILTER_DROP",
 	}, capturedRecord)
 }
 
