@@ -113,19 +113,21 @@ func (k *ingestKafka) isStopped() bool {
 }
 
 func (k *ingestKafka) processRecordDelay(record config.GenericMap) {
-	TimeFlowEndInterface, ok := record["TimeFlowEndMs"]
+	timeFlowEndInterface, ok := record["TimeFlowEndMs"]
 	if !ok {
-		klog.Errorf("TimeFlowEndMs missing in record %v", record)
+		// "trace" level used to minimize performance impact
+		klog.Tracef("TimeFlowEndMs missing in record %v", record)
 		k.metrics.error("TimeFlowEndMs missing")
 		return
 	}
-	TimeFlowEnd, ok := TimeFlowEndInterface.(int64)
+	timeFlowEnd, ok := timeFlowEndInterface.(int64)
 	if !ok {
-		klog.Errorf("Cannot parse TimeFlowEndMs of record %v", record)
+		// "trace" level used to minimize performance impact
+		klog.Tracef("Cannot parse TimeFlowEndMs of record %v", record)
 		k.metrics.error("Cannot parse TimeFlowEndMs")
 		return
 	}
-	delay := time.Since(time.UnixMilli(TimeFlowEnd)).Seconds()
+	delay := time.Since(time.UnixMilli(timeFlowEnd)).Seconds()
 	k.metrics.latency.Observe(delay)
 }
 
