@@ -31,5 +31,5 @@ type AggregateDefinition struct {
 	GroupByKeys   AggregateBy        `yaml:"groupByKeys,omitempty" json:"groupByKeys,omitempty" doc:"list of fields on which to aggregate"`
 	OperationType AggregateOperation `yaml:"operationType,omitempty" json:"operationType,omitempty" doc:"sum, min, max, count, avg or raw_values"`
 	OperationKey  string             `yaml:"operationKey,omitempty" json:"operationKey,omitempty" doc:"internal field on which to perform the operation"`
-	TimeInterval  Duration           `yaml:"timeInterval,omitempty" json:"timeInterval,omitempty" doc:"time interval over which to perform the operation"`
+	ExpiryTime    Duration           `yaml:"expiryTime,omitempty" json:"expiryTime,omitempty" doc:"time interval over which to perform the operation (default: 2 minutes"`
 }

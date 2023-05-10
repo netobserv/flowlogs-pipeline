@@ -59,7 +59,7 @@ func (aggregates *Aggregates) GetMetrics() []config.GenericMap {
 }
 
 func (aggregates *Aggregates) AddAggregate(aggregateDefinition api.AggregateDefinition) []Aggregate {
-	expiryTime := aggregateDefinition.TimeInterval
+	expiryTime := aggregateDefinition.ExpiryTime
 	if expiryTime.Duration == 0 {
 		expiryTime.Duration = defaultExpiryTime
 	}

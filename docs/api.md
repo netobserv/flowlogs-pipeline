@@ -201,7 +201,7 @@ Following is the supported API format for specifying metrics aggregations:
                  groupByKeys: list of fields on which to aggregate
                  operationType: sum, min, max, count, avg or raw_values
                  operationKey: internal field on which to perform the operation
-                 timeInterval: time interval over which to perform the operation
+                 expiryTime: time interval over which to perform the operation (default: 2 minutes
 </pre>
 ## Connection tracking API
 Following is the supported API format for specifying connection tracking:

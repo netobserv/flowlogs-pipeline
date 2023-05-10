@@ -119,7 +119,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 		Name:          "src_as_connection_count",
 		GroupByKeys:   api.AggregateBy{"srcAS"},
 		OperationType: "count",
-		TimeInterval:  timeDuration,
+		ExpiryTime:    timeDuration,
 	}}})
 	var expiryTimeDuration api.Duration
 	expiryTimeDuration.Duration = time.Duration(50 * time.Second)
@@ -162,7 +162,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[3])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"aggregate","extract":{"type":"aggregates","aggregates":{"defaultExpiryTime":"0s","rules":[{"name":"src_as_connection_count","groupByKeys":["srcAS"],"operationType":"count","timeInterval":"30s"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"aggregate","extract":{"type":"aggregates","aggregates":{"defaultExpiryTime":"0s","rules":[{"name":"src_as_connection_count","groupByKeys":["srcAS"],"operationType":"count","expiryTime":"30s"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[4])
 	require.NoError(t, err)
