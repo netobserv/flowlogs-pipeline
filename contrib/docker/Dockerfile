@@ -11,6 +11,7 @@ WORKDIR /app
 COPY go.mod .
 COPY go.sum .
 COPY Makefile .
+COPY .mk/ .mk/
 COPY .bingo/ .bingo/
 COPY vendor/ vendor/
 COPY .git/ .git/

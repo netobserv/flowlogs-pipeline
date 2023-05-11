@@ -56,12 +56,13 @@ func Main(m *testing.M, manifestDeployDefinitions ManifestDeployDefinitions, tes
 	*testEnv = env.New()
 	kindClusterName := "test"
 	namespace := "default"
-	dockerImage := "quay.io/netobserv/flowlogs-pipeline"
-	dockerTag := "e2e"
+	org := "netobserv"
+	version := "e2e"
+	arch := "amd64"
 
 	(*testEnv).Setup(
 		e2eRecreateKindCluster(kindClusterName),
-		e2eBuildAndLoadImageIntoKind(dockerImage, dockerTag, kindClusterName),
+		e2eBuildAndLoadImageIntoKind(org, version, arch, kindClusterName),
 		e2eRecreateNamespace(namespace),
 		e2eDeployEnvironmentResources(manifestDeployDefinitions, namespace),
 	)
@@ -91,12 +92,12 @@ func e2eDeleteKindCluster(clusterName string) env.Func {
 	}
 }
 
-func e2eBuildAndLoadImageIntoKind(dockerImg, dockerTag, clusterName string) env.Func {
+func e2eBuildAndLoadImageIntoKind(org, version, arch, clusterName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		e := gexe.New()
-		fmt.Printf("====> building docker image - %s:%s\n", dockerImg, dockerTag)
-		p := e.RunProc(fmt.Sprintf(`/bin/sh -c "cd $(git rev-parse --show-toplevel); DOCKER_IMG=%s DOCKER_TAG=%s KIND_CLUSTER_NAME=%s make build-image kind-load-image"`,
-			dockerImg, dockerTag, clusterName))
+		fmt.Printf("====> building docker image - %s:%s\n", org, version)
+		p := e.RunProc(fmt.Sprintf(`/bin/sh -c "cd $(git rev-parse --show-toplevel); MULTIARCH_TARGETS=%s IMAGE_ORG=%s VERSION=%s KIND_CLUSTER_NAME=%s make image-build kind-load-image"`,
+			arch, org, version, clusterName))
 		if p.Err() != nil || !p.IsSuccess() || p.ExitCode() != 0 {
 			return nil, fmt.Errorf("failed to build or load docker image err=%v result=%v", p.Err(), p.Result())
 		}
