@@ -105,7 +105,8 @@ func instrumentGRPC(m *metrics) grpc2.UnaryServerInterceptor {
 
 		resp, err = handler(ctx, req)
 		if err != nil {
-			glog.Errorf("Reporting metric error: %v", err)
+			// "trace" level used to minimize performance impact
+			glog.Tracef("Reporting metric error: %v", err)
 			m.error(fmt.Sprint(status.Code(err)))
 		}
 
