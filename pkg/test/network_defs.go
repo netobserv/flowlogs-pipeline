@@ -72,12 +72,14 @@ transform:
       type: add_service
       parameters: proto
 extract:
+  types: aggregates
   aggregates:
-    - name: test_aggregates
-      groupByKeys:
-        - service
-      operationType: sum
-      operationKey: test_operation_key
+    rules:
+      - name: test_aggregates
+        groupByKeys:
+          - service
+        operationType: sum
+        operationKey: test_operation_key
 encode:
   type: prom
   prom:
@@ -109,12 +111,14 @@ tags:
   - test
   - label
 extract:
+  type: aggregates
   aggregates:
-    - name: test_agg_histo
-      groupByKeys:
-        - service
-      operationType: sum
-      operationKey: test_operation_key
+    rules:
+      - name: test_agg_histo
+        groupByKeys:
+          - service
+        operationType: sum
+        operationKey: test_operation_key
 encode:
   type: prom
   prom:

@@ -12,11 +12,12 @@ tags:
 extract:
   type: aggregates
   aggregates:
-    - name: dst_as_connection_count
-      groupByKeys:
-        - dstAS
-        - _RecordType
-      operationType: count
+    rules:
+      - name: dst_as_connection_count
+        groupByKeys:
+          - dstAS
+          - _RecordType
+        operationType: count
 encode:
   type: prom
   prom:

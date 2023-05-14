@@ -17,13 +17,15 @@ transform:
       type: add_subnet
       parameters: /16
 extract:
+  type: aggregates
   aggregates:
-    - name: bandwidth_source_subnet
-      groupByKeys:
-        - srcSubnet
-        - _RecordType
-      operationType: sum
-      operationKey: bytes
+    rules:
+      - name: bandwidth_source_subnet
+        groupByKeys:
+          - srcSubnet
+          - _RecordType
+        operationType: sum
+        operationKey: bytes
 encode:
   type: prom
   prom:

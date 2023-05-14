@@ -27,14 +27,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var defaultExpiryTime = 10 * time.Minute
+var defaultExpiryTime = 2 * time.Minute
+var cleanupLoopTime = 2 * time.Minute
 
 type Aggregates struct {
-	Aggregates []Aggregate
-	expiryTime time.Duration
+	Aggregates        []Aggregate
+	cleanupLoopTime   time.Duration
+	defaultExpiryTime time.Duration
 }
-
-type Definitions []api.AggregateDefinition
 
 func (aggregates *Aggregates) Evaluate(entries []config.GenericMap) error {
 	for _, aggregate := range aggregates.Aggregates {
@@ -59,11 +59,15 @@ func (aggregates *Aggregates) GetMetrics() []config.GenericMap {
 }
 
 func (aggregates *Aggregates) AddAggregate(aggregateDefinition api.AggregateDefinition) []Aggregate {
+	expiryTime := aggregateDefinition.ExpiryTime
+	if expiryTime.Duration == 0 {
+		expiryTime.Duration = defaultExpiryTime
+	}
 	aggregate := Aggregate{
 		Definition: aggregateDefinition,
 		cache:      utils.NewTimedCache(0, nil),
 		mutex:      &sync.Mutex{},
-		expiryTime: aggregates.expiryTime,
+		expiryTime: expiryTime.Duration,
 	}
 
 	appendedAggregates := append(aggregates.Aggregates, aggregate)
@@ -72,7 +76,7 @@ func (aggregates *Aggregates) AddAggregate(aggregateDefinition api.AggregateDefi
 
 func (aggregates *Aggregates) cleanupExpiredEntriesLoop() {
 
-	ticker := time.NewTicker(aggregates.expiryTime)
+	ticker := time.NewTicker(aggregates.cleanupLoopTime)
 	go func() {
 		for {
 			select {
@@ -93,12 +97,16 @@ func (aggregates *Aggregates) cleanupExpiredEntries() {
 	}
 }
 
-func NewAggregatesFromConfig(definitions []api.AggregateDefinition) (Aggregates, error) {
+func NewAggregatesFromConfig(aggConfig *api.Aggregates) (Aggregates, error) {
 	aggregates := Aggregates{
-		expiryTime: defaultExpiryTime,
+		cleanupLoopTime:   cleanupLoopTime,
+		defaultExpiryTime: aggConfig.DefaultExpiryTime.Duration,
+	}
+	if aggregates.defaultExpiryTime == 0 {
+		aggregates.defaultExpiryTime = defaultExpiryTime
 	}
 
-	for _, aggregateDefinition := range definitions {
+	for _, aggregateDefinition := range aggConfig.Rules {
 		aggregates.Aggregates = aggregates.AddAggregate(aggregateDefinition)
 	}
 

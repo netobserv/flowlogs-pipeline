@@ -17,13 +17,15 @@ transform:
       type: add_if
       parameters: ">=0"
 extract:
+  type: aggregates
   aggregates:
-    - name: flows_bytes_hist
-      groupByKeys:
-        - all_Evaluate
-        - _RecordType
-      operationType: raw_values
-      operationKey: bytes
+    rules:
+      - name: flows_bytes_hist
+        groupByKeys:
+          - all_Evaluate
+          - _RecordType
+        operationType: raw_values
+        operationKey: bytes
 encode:
   type: prom
   prom:

@@ -39,41 +39,37 @@ parameters:
     extract:
       type: aggregates
       aggregates:
-        - name: bandwidth_count
-          groupByKeys:
-          - service
-          operationType: count
-          operationKey: ""
-
-        - name: bandwidth_sum
-          groupByKeys:
-          - service
-          operationType: sum
-          operationKey: bytes
-
-        - name: bandwidth_max
-          groupByKeys:
-          - service
-          operationType: max
-          operationKey: bytes
-
-        - name: bandwidth_min
-          groupByKeys:
-          - service
-          operationType: min
-          operationKey: bytes
-
-        - name: bandwidth_avg
-          groupByKeys:
-          - service
-          operationType: avg
-          operationKey: bytes
-
-        - name: bandwidth_raw_values
-          groupByKeys:
-          - service
-          operationType: raw_values
-          operationKey: bytes
+        rules:
+          - name: bandwidth_count
+            groupByKeys:
+            - service
+            operationType: count
+            operationKey: ""
+          - name: bandwidth_sum
+            groupByKeys:
+            - service
+            operationType: sum
+            operationKey: bytes
+          - name: bandwidth_max
+            groupByKeys:
+            - service
+            operationType: max
+            operationKey: bytes
+          - name: bandwidth_min
+            groupByKeys:
+            - service
+            operationType: min
+            operationKey: bytes
+          - name: bandwidth_avg
+            groupByKeys:
+            - service
+            operationType: avg
+            operationKey: bytes
+          - name: bandwidth_raw_values
+            groupByKeys:
+            - service
+            operationType: raw_values
+            operationKey: bytes
 `
 	var err error
 

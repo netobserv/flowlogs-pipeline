@@ -16,14 +16,16 @@ transform:
       type: add_kubernetes
       parameters: srcK8S_labels
 extract:
+  type: aggregates
   aggregates:
-    - name: bandwidth_namespace
-      groupByKeys:
-        - srcK8S_Namespace
-        - srcK8S_Type
-        - _RecordType
-      operationType: sum
-      operationKey: bytes
+    rules:
+      - name: bandwidth_namespace
+        groupByKeys:
+          - srcK8S_Namespace
+          - srcK8S_Type
+          - _RecordType
+        operationType: sum
+        operationKey: bytes
 encode:
   type: prom
   prom:

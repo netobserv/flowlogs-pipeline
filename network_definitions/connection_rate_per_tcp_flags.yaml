@@ -11,11 +11,12 @@ tags:
 extract:
   type: aggregates
   aggregates:
-    - name: TCPFlags_count
-      groupByKeys:
-        - TCPFlags
-        - _RecordType
-      operationType: count
+    rules:
+      - name: TCPFlags_count
+        groupByKeys:
+          - TCPFlags
+          - _RecordType
+        operationType: count
 encode:
   type: prom
   prom:

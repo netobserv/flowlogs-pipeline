@@ -17,13 +17,15 @@ transform:
       type: add_service
       parameters: proto
 extract:
+  type: aggregates
   aggregates:
-    - name: bandwidth_network_service
-      groupByKeys:
-        - service
-        - _RecordType
-      operationType: sum
-      operationKey: bytes
+    rules:
+      - name: bandwidth_network_service
+        groupByKeys:
+          - service
+          - _RecordType
+        operationType: sum
+        operationKey: bytes
 encode:
   type: prom
   prom:

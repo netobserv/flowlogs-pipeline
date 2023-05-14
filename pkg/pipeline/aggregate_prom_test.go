@@ -43,23 +43,22 @@ parameters:
    extract:
      type: aggregates
      aggregates:
-       - name: bandwidth_sum
-         groupByKeys:
-         - service
-         operationType: sum
-         operationKey: bytes
-
-       - name: bandwidth_count
-         groupByKeys:
-         - service
-         operationType: count
-         operationKey:
-
-       - name: bandwidth_raw_values
-         groupByKeys:
-         - service
-         operationType: raw_values
-         operationKey: bytes
+       rules:
+         - name: bandwidth_sum
+           groupByKeys:
+           - service
+           operationType: sum
+           operationKey: bytes
+         - name: bandwidth_count
+           groupByKeys:
+           - service
+           operationType: count
+           operationKey:
+         - name: bandwidth_raw_values
+           groupByKeys:
+           - service
+           operationType: raw_values
+           operationKey: bytes
  - name: encode
    encode:
      type: prom
@@ -73,14 +72,12 @@ parameters:
            valueKey: recent_count
            labels:
              - service
-
          - name: bytes_sum
            type: counter
            filter: {key: name, value: bandwidth_sum}
            valueKey: recent_op_value
            labels:
              - service
-
          - name: bytes_histogram
            type: agg_histogram
            filter: {key: name, value: bandwidth_raw_values}

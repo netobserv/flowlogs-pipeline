@@ -11,22 +11,24 @@ tags:
   - elephant
   - rate
 extract:
+  type: aggregates
   aggregates:
-    - name: connection_bytes_hist
-      groupByKeys:
-        - _RecordType
-      operationType: raw_values
-      operationKey: bytes_total
-    - name: connection_bytes_hist_AB
-      groupByKeys:
-        - _RecordType
-      operationType: raw_values
-      operationKey: bytes_AB
-    - name: connection_bytes_hist_BA
-      groupByKeys:
-        - _RecordType
-      operationType: raw_values
-      operationKey: bytes_BA
+    rules:
+      - name: connection_bytes_hist
+        groupByKeys:
+          - _RecordType
+        operationType: raw_values
+        operationKey: bytes_total
+      - name: connection_bytes_hist_AB
+        groupByKeys:
+          - _RecordType
+        operationType: raw_values
+        operationKey: bytes_AB
+      - name: connection_bytes_hist_BA
+        groupByKeys:
+          - _RecordType
+        operationType: raw_values
+        operationKey: bytes_BA
 encode:
   type: prom
   prom:
