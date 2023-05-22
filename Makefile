@@ -43,7 +43,7 @@ IMAGE_SHA = $(IMAGE_TAG_BASE):$(BUILD_SHA)
 
 # Image building tool (docker / podman)
 OCI_BIN_PATH = $(shell which podman  || which docker)
-OCI_BIN ?= $(shell v='$(OCI_BIN_PATH)'; echo "$${v##*/}")
+OCI_BIN ?= $(shell basename ${OCI_BIN_PATH})
 
 MIN_GO_VERSION := 1.18.0
 FLP_BIN_FILE=flowlogs-pipeline
@@ -67,6 +67,12 @@ endef
 define push_target
 	echo 'pushing image ${IMAGE}-$(1)'; \
 	DOCKER_BUILDKIT=1 $(OCI_BIN) push ${IMAGE}-$(1);
+endef
+
+# manifest create a single arch target provided as argument
+define manifest_create_target
+	echo 'manifest create for arch $(1)'; \
+	DOCKER_BUILDKIT=1 $(OCI_BIN) manifest add ${IMAGE} ${IMAGE}-$(target);
 endef
 
 ##@ General
@@ -168,8 +174,9 @@ image-push: ## Push MULTIARCH_TARGETS images
 
 .PHONY: manifest-build
 manifest-build: ## Build MULTIARCH_TARGETS manifest
-	@echo 'building manifest $(IMAGE)'
-	DOCKER_BUILDKIT=1 $(OCI_BIN) manifest create ${IMAGE} $(foreach target,$(MULTIARCH_TARGETS),--amend ${IMAGE}-$(target));
+	trap 'exit' INT; \
+	DOCKER_BUILDKIT=1 $(OCI_BIN) manifest create ${IMAGE}
+	$(foreach target,$(MULTIARCH_TARGETS),$(call manifest_create_target,$(target)))
 
 .PHONY: manifest-push
 manifest-push: ## Push MULTIARCH_TARGETS manifest
