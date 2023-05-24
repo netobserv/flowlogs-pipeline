@@ -38,7 +38,7 @@ IMAGE_ORG ?= $(USER)
 IMAGE_TAG_BASE ?= quay.io/$(IMAGE_ORG)/flowlogs-pipeline
 
 # Image URL to use all building/pushing image targets
-IMAGE = $(IMAGE_TAG_BASE):$(VERSION)
+IMAGE ?= $(IMAGE_TAG_BASE):$(VERSION)
 OCI_BUILD_OPTS ?=
 
 # Image building tool (docker / podman)
