@@ -81,6 +81,10 @@ func addKubeContextToTemplate(elements *[]entities.InfoElementWithValue, registr
 	if err != nil {
 		return err
 	}
+	err = addElementToTemplate("destinationNodeName", nil, elements, registryID)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -111,6 +115,11 @@ func loadCustomRegistry(EnterpriseID uint32) error {
 		return err
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("sourceNodeName", 7737, 13, EnterpriseID, 65535)), EnterpriseID)
+	if err != nil {
+		ilog.WithError(err).Errorf("Failed to register element")
+		return err
+	}
+	err = registry.PutInfoElement((*entities.NewInfoElement("destinationNodeName", 7738, 13, EnterpriseID, 65535)), EnterpriseID)
 	if err != nil {
 		ilog.WithError(err).Errorf("Failed to register element")
 		return err
@@ -407,30 +416,35 @@ func setKubeIEValue(record config.GenericMap, ieValPtr *entities.InfoElementWith
 			ieVal.SetStringValue("none")
 		}
 	case "sourcePodName":
-		if record["sourcePodName"] != nil {
-			ieVal.SetStringValue(record["sourcePodName"].(string))
+		if record["SrcK8S_Name"] != nil {
+			ieVal.SetStringValue(record["SrcK8S_Name"].(string))
 		} else {
 			ieVal.SetStringValue("none")
 		}
 	case "destinationPodNamespace":
-		if record["destinationPodNamespace"] != nil {
-			ieVal.SetStringValue(record["destinationPodNamespace"].(string))
+		if record["DstK8S_Namespace"] != nil {
+			ieVal.SetStringValue(record["DstK8S_Namespace"].(string))
 		} else {
 			ieVal.SetStringValue("none")
 		}
 	case "destinationPodName":
-		if record["destinationPodName"] != nil {
-			ieVal.SetStringValue(record["destinationPodName"].(string))
+		if record["DstK8S_Name"] != nil {
+			ieVal.SetStringValue(record["DstK8S_Name"].(string))
 		} else {
 			ieVal.SetStringValue("none")
 		}
 	case "sourceNodeName":
-		if record["sourceNodeName"] != nil {
-			ieVal.SetStringValue(record["sourceNodeName"].(string))
+		if record["SrcK8S_HostName"] != nil {
+			ieVal.SetStringValue(record["SrcK8S_HostName"].(string))
 		} else {
 			ieVal.SetStringValue("none")
 		}
-
+	case "destinationNodeName":
+		if record["DstK8S_HostName"] != nil {
+			ieVal.SetStringValue(record["DstK8S_HostName"].(string))
+		} else {
+			ieVal.SetStringValue("none")
+		}
 	}
 }
 func setEntities(record config.GenericMap, enrichEnterpriseID uint32, elements *[]entities.InfoElementWithValue) error {
