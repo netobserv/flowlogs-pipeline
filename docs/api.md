@@ -43,6 +43,9 @@ Following is the supported API format for kafka encode:
              caCertPath: path to the CA certificate
              userCertPath: path to the user certificate
              userKeyPath: path to the user private key
+         sasl: SASL configuration (optional)
+             clientIDPath: path to the client ID / SASL username
+             clientSecretPath: path to the client secret / SASL password
 </pre>
 ## S3 encode API
 Following is the supported API format for S3 encode:
@@ -93,6 +96,9 @@ Following is the supported API format for the kafka ingest:
              caCertPath: path to the CA certificate
              userCertPath: path to the user certificate
              userKeyPath: path to the user private key
+         sasl: SASL configuration (optional)
+             clientIDPath: path to the client ID / SASL username
+             clientSecretPath: path to the client secret / SASL password
 </pre>
 ## Ingest GRPC from Network Observability eBPF Agent
 Following is the supported API format for the Network Observability eBPF ingest:

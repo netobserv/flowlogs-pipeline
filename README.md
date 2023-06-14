@@ -945,8 +945,6 @@ Images
   image-push            Push MULTIARCH_TARGETS images  
   manifest-build        Build MULTIARCH_TARGETS manifest  
   manifest-push         Push MULTIARCH_TARGETS manifest  
-  ci-manifest-build     Build CI manifest  
-  ci-manifest-push      Push CI manifest  
   
 kubernetes  
   deploy                Deploy the image  
@@ -981,10 +979,6 @@ shortcuts helpers
   push-image            Push MULTIARCH_TARGETS images  
   build-manifest        Build MULTIARCH_TARGETS manifest  
   push-manifest         Push MULTIARCH_TARGETS manifest  
-  images                Build and push MULTIARCH_TARGETS images and related manifest  
-  build-ci-manifest     Build CI manifest  
-  push-ci-manifest      Push CI manifest  
-  ci-manifest           Build and push CI manifest  
-  ci                    Build and push CI images and manifest
+  images                Build and push MULTIARCH_TARGETS images and related manifest
 ```
 <!---END-AUTO-makefile_help--->
