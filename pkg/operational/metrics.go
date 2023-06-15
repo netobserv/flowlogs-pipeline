@@ -112,7 +112,7 @@ func (o *Metrics) register(c prometheus.Collector, name string) {
 	err := prometheus.DefaultRegisterer.Register(c)
 	if err != nil {
 		if _, ok := err.(prometheus.AlreadyRegisteredError); ok {
-			logrus.Errorf("metrics registration error [%s]: %v", name, err)
+			logrus.Warningf("metrics registration error [%s]: %v", name, err)
 		} else if o.settings.NoPanic {
 			logrus.Errorf("metrics registration error [%s]: %v", name, err)
 		} else {
