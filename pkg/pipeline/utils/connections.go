@@ -28,25 +28,18 @@ const subnetBatchSize = 254
 // GenerateConnectionFlowEntries generates data with one entry for each of nConnections
 // Create the entries in a predictable manner so that the first K entries in each call
 // to the function reproduce the same connection.
+// avoid using addresses 0 and 255 since these sometimes have special meanings.
 func GenerateConnectionFlowEntries(nConnections int) []config.GenericMap {
 	entries := make([]config.GenericMap, 0)
-	n1 := (nConnections / subnetBatchSize) + 1
-	if n1 > 254 {
-		n1 = 254
-	}
-	n2 := (nConnections / (subnetBatchSize * subnetBatchSize)) + 1
-	if n2 > 254 {
-		n2 = 254
-	}
-	n3 := (nConnections / (subnetBatchSize * subnetBatchSize * subnetBatchSize)) + 1
-	if n3 > 254 {
-		n3 = 254
-	}
+	n1 := subnetBatchSize
+	n2 := subnetBatchSize
+	n3 := subnetBatchSize
+	n4 := subnetBatchSize
 	count := 0
-	for l := 1; l <= n3; l++ {
-		for k := 1; k <= n2; k++ {
-			for j := 1; j <= n1; j++ {
-				for i := 1; i <= subnetBatchSize; i++ {
+	for l := 1; l <= n4; l++ {
+		for k := 1; k <= n3; k++ {
+			for j := 1; j <= n2; j++ {
+				for i := 1; i <= n1; i++ {
 					srcAddr := fmt.Sprintf("%d.%d.%d.%d", l, k, j, i)
 					count++
 					entry := config.GenericMap{

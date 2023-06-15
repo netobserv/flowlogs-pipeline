@@ -963,6 +963,12 @@ func TestMaxConnections(t *testing.T) {
 	require.Equal(t, maxConnections, ct.connStore.len())
 }
 
+func TestGenerateConnectionFlowEntries(t *testing.T) {
+	n := 100000
+	flowLogs := utils.GenerateConnectionFlowEntries(n)
+	require.Equal(t, n, len(flowLogs))
+}
+
 func TestIsLastFlowLogOfConnection(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
