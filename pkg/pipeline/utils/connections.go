@@ -23,37 +23,42 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 )
 
-const subnetBatchSize = 200
+const subnetBatchSize = 254
 
 // GenerateConnectionFlowEntries generates data with one entry for each of nConnections
 // Create the entries in a predictable manner so that the first K entries in each call
 // to the function reproduce the same connection.
+// avoid using addresses 0 and 255 since these sometimes have special meanings.
 func GenerateConnectionFlowEntries(nConnections int) []config.GenericMap {
 	entries := make([]config.GenericMap, 0)
-	nSubnets := (nConnections / subnetBatchSize) + 1
-	if nSubnets > 254 {
-		nSubnets = 254
-	}
+	n1 := subnetBatchSize
+	n2 := subnetBatchSize
+	n3 := subnetBatchSize
+	n4 := subnetBatchSize
 	count := 0
-	for i := 1; i <= nSubnets; i++ {
-		for j := 1; j <= subnetBatchSize; j++ {
-			srcAddr := fmt.Sprintf("10.1.%d.%d", i, j)
-			count++
-			entry := config.GenericMap{
-				"SrcAddr":      srcAddr,
-				"SrcPort":      1234,
-				"DstAddr":      "11.1.1.1",
-				"DstPort":      8000,
-				"Bytes":        100,
-				"Packets":      1,
-				"Proto":        6,
-				"SrcAS":        0,
-				"DstAS":        0,
-				"TimeReceived": 0,
-			}
-			entries = append(entries, entry)
-			if count >= nConnections {
-				return entries
+	for l := 1; l <= n4; l++ {
+		for k := 1; k <= n3; k++ {
+			for j := 1; j <= n2; j++ {
+				for i := 1; i <= n1; i++ {
+					srcAddr := fmt.Sprintf("%d.%d.%d.%d", l, k, j, i)
+					count++
+					entry := config.GenericMap{
+						"SrcAddr":      srcAddr,
+						"SrcPort":      1234,
+						"DstAddr":      "11.1.1.1",
+						"DstPort":      8000,
+						"Bytes":        100,
+						"Packets":      1,
+						"Proto":        6,
+						"SrcAS":        0,
+						"DstAS":        0,
+						"TimeReceived": 0,
+					}
+					entries = append(entries, entry)
+					if count >= nConnections {
+						return entries
+					}
+				}
 			}
 		}
 	}
