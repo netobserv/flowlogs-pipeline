@@ -66,6 +66,7 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 		"DnsResponseTimeMs":      flow.TimeDnsRsp.AsTime().UnixMilli(),
 		"DnsId":                  flow.GetDnsId(),
 		"DnsFlags":               flow.GetDnsFlags(),
+		"TimeFlowRttMs":          flow.TimeFlowRtt.AsDuration().Milliseconds(),
 	}
 	return out
 }

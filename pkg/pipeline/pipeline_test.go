@@ -38,6 +38,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -173,6 +174,7 @@ parameters:
 
 	startTime := time.Now()
 	endTime := startTime.Add(7 * time.Second)
+	someDuration := endTime.Sub(startTime)
 	_, err = flowSender.Client().Send(context.Background(), &pbflow.Records{
 		Entries: []*pbflow.Record{{
 			Interface:     "eth0",
@@ -214,6 +216,7 @@ parameters:
 			TimeDnsRsp:             timestamppb.New(endTime),
 			DnsId:                  1,
 			DnsFlags:               0x80,
+			TimeFlowRtt:            durationpb.New(someDuration),
 		}},
 	})
 	require.NoError(t, err)
@@ -255,6 +258,7 @@ parameters:
 		"DnsResponseTimeMs":      float64(endTime.UnixMilli()),
 		"DnsId":                  float64(1),
 		"DnsFlags":               float64(0x80),
+		"TimeFlowRttMs":          float64(someDuration.Milliseconds()),
 	}, capturedRecord)
 }
 
