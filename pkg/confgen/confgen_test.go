@@ -146,7 +146,7 @@ func Test_RunShortConfGen(t *testing.T) {
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
 			Type:     "gauge",
-			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
+			Filters:  []api.PromMetricsFilter{},
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 			Buckets:  []float64{},
@@ -225,7 +225,7 @@ func Test_RunConfGenNoAgg(t *testing.T) {
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
 			Type:     "counter",
-			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
+			Filters:  []api.PromMetricsFilter{},
 			ValueKey: "Bytes",
 			Labels:   []string{"service"},
 			Buckets:  []float64{},
@@ -327,14 +327,14 @@ func Test_RunLongConfGen(t *testing.T) {
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
 			Type:     "gauge",
-			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
+			Filters:  []api.PromMetricsFilter{},
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 			Buckets:  []float64{},
 		}, {
 			Name:     "test_histo",
 			Type:     "agg_histogram",
-			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
+			Filters:  []api.PromMetricsFilter{},
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 			Buckets:  []float64{},
@@ -379,7 +379,7 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
 			Type:     "gauge",
-			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
+			Filters:  []api.PromMetricsFilter{},
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 		}},
@@ -410,7 +410,7 @@ func Test_GenerateTruncatedNoAgg(t *testing.T) {
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
 			Type:     "counter",
-			Filter:   api.PromMetricsFilter{},
+			Filters:  []api.PromMetricsFilter{},
 			ValueKey: "Bytes",
 			Labels:   []string{"service"},
 		}},

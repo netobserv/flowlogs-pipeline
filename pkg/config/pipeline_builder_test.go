@@ -127,10 +127,10 @@ func TestKafkaPromPipeline(t *testing.T) {
 		Metrics: api.PromMetricsItems{{
 			Name: "connections_per_source_as",
 			Type: "counter",
-			Filter: api.PromMetricsFilter{
+			Filters: []api.PromMetricsFilter{{
 				Key:   "name",
 				Value: "src_as_connection_count",
-			},
+			}},
 			ValueKey: "recent_count",
 			Labels:   []string{"by", "aggregate"},
 			Buckets:  []float64{},

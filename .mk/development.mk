@@ -79,7 +79,7 @@ delete-kind-cluster: $(KIND) ## Delete cluster
 
 .PHONY: kind-load-image
 kind-load-image: ## Load image to kind
-ifeq ($(OCI_BIN),$(shell which docker))
+ifeq ($(OCI_BIN),$(shell which docker 2>/dev/null))
 # This is an optimization for docker provider. "kind load docker-image" can load an image directly from docker's
 # local registry. For other providers (i.e. podman), we must use "kind load image-archive" instead.
 	$(KIND) load --name $(KIND_CLUSTER_NAME) docker-image $(IMAGE)-${GOARCH}

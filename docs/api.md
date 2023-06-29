@@ -11,9 +11,12 @@ Following is the supported API format for prometheus encode:
                      counter: monotonically increasing counter whose value can only increase
                      histogram: counts samples in configurable buckets
                      agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
-                 filter: an optional criterion to filter entries by
+                 filter: an optional criterion to filter entries by. Deprecated: use filters instead.
                      key: the key to match and filter by
                      value: the value to match and filter by
+                 filters: a list of criteria to filter entries by
+                         key: the key to match and filter by
+                         value: the value to match and filter by
                  valueKey: entry key from which to resolve metric value
                  labels: labels to be associated with the metric
                  buckets: histogram buckets
