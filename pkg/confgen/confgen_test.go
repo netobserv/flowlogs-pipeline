@@ -146,7 +146,7 @@ func Test_RunShortConfGen(t *testing.T) {
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
 			Type:     "gauge",
-			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
+			Filters:  []api.PromMetricsFilter{{Key: "K", Value: "V"}},
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 			Buckets:  []float64{},
@@ -225,7 +225,7 @@ func Test_RunConfGenNoAgg(t *testing.T) {
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
 			Type:     "counter",
-			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
+			Filters:  []api.PromMetricsFilter{{Key: "K", Value: "V"}},
 			ValueKey: "Bytes",
 			Labels:   []string{"service"},
 			Buckets:  []float64{},
@@ -327,14 +327,14 @@ func Test_RunLongConfGen(t *testing.T) {
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
 			Type:     "gauge",
-			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
+			Filters:  []api.PromMetricsFilter{{Key: "K", Value: "V"}},
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 			Buckets:  []float64{},
 		}, {
 			Name:     "test_histo",
 			Type:     "agg_histogram",
-			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
+			Filters:  []api.PromMetricsFilter{{Key: "K", Value: "V"}},
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 			Buckets:  []float64{},
@@ -379,9 +379,9 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
 			Type:     "gauge",
-			Filter:   api.PromMetricsFilter{Key: "", Value: ""},
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
+			Filters:  []api.PromMetricsFilter{{Key: "K", Value: "V"}},
 		}},
 	}, params[1].Encode.Prom)
 
@@ -410,9 +410,9 @@ func Test_GenerateTruncatedNoAgg(t *testing.T) {
 		Metrics: api.PromMetricsItems{{
 			Name:     "test_metric",
 			Type:     "counter",
-			Filter:   api.PromMetricsFilter{},
 			ValueKey: "Bytes",
 			Labels:   []string{"service"},
+			Filters:  []api.PromMetricsFilter{{Key: "K", Value: "V"}},
 		}},
 	}, params[0].Encode.Prom)
 }

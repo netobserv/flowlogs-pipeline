@@ -127,10 +127,10 @@ func TestKafkaPromPipeline(t *testing.T) {
 		Metrics: api.PromMetricsItems{{
 			Name: "connections_per_source_as",
 			Type: "counter",
-			Filter: api.PromMetricsFilter{
+			Filters: []api.PromMetricsFilter{{
 				Key:   "name",
 				Value: "src_as_connection_count",
-			},
+			}},
 			ValueKey: "recent_count",
 			Labels:   []string{"by", "aggregate"},
 			Buckets:  []float64{},
@@ -166,7 +166,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[4])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"prom","encode":{"type":"prom","prom":{"expiryTime":"50s", "metrics":[{"name":"connections_per_source_as","type":"counter","filter":{"key":"name","value":"src_as_connection_count"},"valueKey":"recent_count","labels":["by","aggregate"],"buckets":[]}],"prefix":"flp_"}}}`, string(b))
+	require.JSONEq(t, `{"name":"prom","encode":{"type":"prom","prom":{"expiryTime":"50s", "metrics":[{"name":"connections_per_source_as","type":"counter","filter":{"key":"","value":""},"filters":[{"key":"name","value":"src_as_connection_count"}],"valueKey":"recent_count","labels":["by","aggregate"],"buckets":[]}],"prefix":"flp_"}}}`, string(b))
 }
 
 func TestForkPipeline(t *testing.T) {

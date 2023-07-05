@@ -121,36 +121,40 @@ func Test_NewEncodeProm(t *testing.T) {
 }
 
 func Test_CustomMetric(t *testing.T) {
-	metrics := []config.GenericMap{{
-		"srcIP":   "20.0.0.2",
-		"dstIP":   "10.0.0.1",
-		"flags":   "SYN",
-		"dir":     float64(0),
-		"bytes":   7,
-		"packets": 1,
-		"latency": 0.1,
-	}, {
-		"srcIP":   "20.0.0.2",
-		"dstIP":   "10.0.0.1",
-		"flags":   "RST",
-		"dir":     int(0),
-		"bytes":   1,
-		"packets": 1,
-		"latency": 0.05,
-	}, {
-		"srcIP":   "10.0.0.1",
-		"dstIP":   "30.0.0.3",
-		"flags":   "SYN",
-		"dir":     1,
-		"bytes":   12,
-		"packets": 2,
-		"latency": 0.2,
-	}}
-	var expiryTimeDuration api.Duration
-	expiryTimeDuration.Duration = time.Duration(60 * time.Second)
+	metrics := []config.GenericMap{
+		{
+			"srcIP":   "20.0.0.2",
+			"dstIP":   "10.0.0.1",
+			"flags":   "SYN",
+			"dir":     float64(0),
+			"bytes":   7,
+			"packets": 1,
+			"latency": 0.1,
+		},
+		{
+			"srcIP":   "20.0.0.2",
+			"dstIP":   "10.0.0.1",
+			"flags":   "RST",
+			"dir":     int(0),
+			"bytes":   1,
+			"packets": 1,
+			"latency": 0.05,
+		},
+		{
+			"srcIP":   "10.0.0.1",
+			"dstIP":   "30.0.0.3",
+			"flags":   "SYN",
+			"dir":     1,
+			"bytes":   12,
+			"packets": 2,
+			"latency": 0.2,
+		},
+	}
 	params := api.PromEncode{
-		Prefix:     "test_",
-		ExpiryTime: expiryTimeDuration,
+		Prefix: "test_",
+		ExpiryTime: api.Duration{
+			Duration: time.Duration(60 * time.Second),
+		},
 		Metrics: []api.PromMetricsItem{{
 			Name:     "bytes_total",
 			Type:     "counter",
@@ -175,12 +179,17 @@ func Test_CustomMetric(t *testing.T) {
 		}, {
 			Name:     "flows_incoming",
 			Type:     "counter",
-			Filter:   api.PromMetricsFilter{Key: "dir", Value: "0"},
+			Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "0"}},
 			ValueKey: "", // empty valuekey means it's a records counter
 		}, {
 			Name:     "flows_outgoing",
 			Type:     "counter",
-			Filter:   api.PromMetricsFilter{Key: "dir", Value: "1"},
+			Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "1"}},
+			ValueKey: "", // empty valuekey means it's a records counter
+		}, {
+			Name:     "incoming_SYN",
+			Type:     "counter",
+			Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "0"}, {Key: "flags", Value: "SYN"}},
 			ValueKey: "", // empty valuekey means it's a records counter
 		}},
 	}
@@ -213,6 +222,61 @@ func Test_CustomMetric(t *testing.T) {
 	require.Contains(t, exposed, `test_flows_total{dstIP="30.0.0.3",srcIP="10.0.0.1"} 1`)
 	require.Contains(t, exposed, `test_flows_incoming 2`)
 	require.Contains(t, exposed, `test_flows_outgoing 1`)
+	require.Contains(t, exposed, `test_incoming_SYN 1`)
+}
+
+func Test_FilterDuplicates(t *testing.T) {
+	metrics := []config.GenericMap{
+		{
+			"srcIP":     "20.0.0.2",
+			"dstIP":     "10.0.0.1",
+			"bytes":     7,
+			"duplicate": false,
+		},
+		{
+			"srcIP":     "20.0.0.2",
+			"dstIP":     "10.0.0.1",
+			"bytes":     1,
+			"duplicate": false,
+		},
+		{
+			"srcIP":     "20.0.0.2",
+			"dstIP":     "10.0.0.1",
+			"bytes":     7,
+			"duplicate": true,
+		},
+	}
+	params := api.PromEncode{
+		Prefix: "test_",
+		ExpiryTime: api.Duration{
+			Duration: time.Duration(60 * time.Second),
+		},
+		Metrics: []api.PromMetricsItem{
+			{
+				Name:     "bytes_unfiltered",
+				Type:     "counter",
+				ValueKey: "bytes",
+			},
+			{
+				Name:     "bytes_filtered",
+				Type:     "counter",
+				ValueKey: "bytes",
+				Filters:  []api.PromMetricsFilter{{Key: "duplicate", Value: "false"}},
+			},
+		},
+	}
+
+	encodeProm, err := initProm(&params)
+	require.NoError(t, err)
+	for _, metric := range metrics {
+		encodeProm.Encode(metric)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	exposed := test.ReadExposedMetrics(t)
+
+	require.Contains(t, exposed, `bytes_unfiltered 15`)
+	require.Contains(t, exposed, `bytes_filtered 8`)
 }
 
 func Test_MetricTTL(t *testing.T) {

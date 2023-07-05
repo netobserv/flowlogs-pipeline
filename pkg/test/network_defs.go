@@ -90,6 +90,9 @@ encode:
         labels:
           - groupByKeys
           - aggregate
+        filters:
+          - key: K
+            value: V
 visualization:
   type: grafana
   grafana:
@@ -129,6 +132,9 @@ encode:
         labels:
           - groupByKeys
           - aggregate
+        filters:
+          - key: K
+            value: V
 `
 
 const ConfgenNetworkDefNoAgg = `#flp_confgen
@@ -156,6 +162,9 @@ encode:
         valueKey: Bytes
         labels:
           - service
+        filters:
+          - key: K
+            value: V
 visualization:
   type: grafana
   grafana:
