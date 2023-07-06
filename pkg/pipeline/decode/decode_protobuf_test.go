@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -16,6 +17,8 @@ func TestDecodeProtobuf(t *testing.T) {
 	decoder := Protobuf{}
 
 	someTime := time.Now()
+	var someDuration time.Duration = 10000000 // 10ms
+
 	flow := pbflow.Record{
 		Interface:     "eth0",
 		EthProtocol:   2048,
@@ -56,6 +59,7 @@ func TestDecodeProtobuf(t *testing.T) {
 		TimeDnsRsp:             timestamppb.New(someTime),
 		DnsId:                  1,
 		DnsFlags:               0x80,
+		TimeFlowRtt:            durationpb.New(someDuration),
 	}
 	rawPB, err := proto.Marshal(&flow)
 	require.NoError(t, err)
@@ -93,11 +97,13 @@ func TestDecodeProtobuf(t *testing.T) {
 		"DnsResponseTimeMs":      someTime.UnixMilli(),
 		"DnsId":                  uint32(1),
 		"DnsFlags":               uint32(0x80),
+		"TimeFlowRttMs":          someDuration.Milliseconds(),
 	}, out)
 }
 
 func TestPBFlowToMap(t *testing.T) {
 	someTime := time.Now()
+	var someDuration time.Duration = 10000000 // 10ms
 	flow := &pbflow.Record{
 		Interface:     "eth0",
 		EthProtocol:   2048,
@@ -139,6 +145,7 @@ func TestPBFlowToMap(t *testing.T) {
 		TimeDnsRsp:             timestamppb.New(someTime),
 		DnsId:                  1,
 		DnsFlags:               0x80,
+		TimeFlowRtt:            durationpb.New(someDuration),
 	}
 
 	out := PBFlowToMap(flow)
@@ -173,6 +180,7 @@ func TestPBFlowToMap(t *testing.T) {
 		"DnsResponseTimeMs":      someTime.UnixMilli(),
 		"DnsId":                  uint32(1),
 		"DnsFlags":               uint32(0x80),
+		"TimeFlowRttMs":          someDuration.Milliseconds(),
 	}, out)
 
 }

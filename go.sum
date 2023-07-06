@@ -717,8 +717,8 @@ github.com/netobserv/gopipes v0.3.0 h1:IYmPnnAVCdSK7VmHmpFhrVBOEm45qpgbZmJz1sSW+
 github.com/netobserv/gopipes v0.3.0/go.mod h1:N7/Gz05EOF0CQQSKWsv3eof22Cj2PB08Pbttw98YFYU=
 github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500 h1:RmnoJe/ci5q+QdM7upFdxiU+D8F3L3qTd5wXCwwHefw=
 github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500/go.mod h1:LHXpc5tjKvsfZn0pwLKrvlgEhZcCaw3Di9mUEZGAI4E=
-github.com/netobserv/netobserv-ebpf-agent v0.3.2-0.20230624133346-27baf2917e8d h1:teXZcrHysefK1uJXhbOmzZ0Smci8PMVs9XKseD5Kyfo=
-github.com/netobserv/netobserv-ebpf-agent v0.3.2-0.20230624133346-27baf2917e8d/go.mod h1:B0Qlk+QBT3+rf6vf3cF4GNZSPb0PSwQww8kLGkOPdRg=
+github.com/netobserv/netobserv-ebpf-agent v0.3.2-0.20230703082106-1b85351eee43 h1:YRfSJNFjgwSk8Axu7rcbSpY9ZFa61JISHwZu8BqUNqo=
+github.com/netobserv/netobserv-ebpf-agent v0.3.2-0.20230703082106-1b85351eee43/go.mod h1:B0Qlk+QBT3+rf6vf3cF4GNZSPb0PSwQww8kLGkOPdRg=
 github.com/netobserv/prometheus-common v0.31.2-0.20220720134304-43e74fd22881 h1:hx5bi6xBovRjmwUoVJBzhJ3EDo4K4ZUsqqKrJuQ2vMI=
 github.com/netobserv/prometheus-common v0.31.2-0.20220720134304-43e74fd22881/go.mod h1:vu+V0TpY+O6vW9J44gczi3Ap/oXXR10b+M/gUGO4Hls=
 github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785 h1:qhDrIMXlk8YV7BxwA6UR/dQVdUzohjLlmrUXymsBx6g=
