@@ -32,6 +32,7 @@ func getTimebasedRules() []api.TimebasedFilterRule {
 		{
 			Name:          "Top2_sum",
 			IndexKey:      "SrcAddr",
+			IndexKeys:     []string{"SrcAddr"},
 			OperationType: "sum",
 			OperationKey:  "Bytes",
 			TopK:          2,
@@ -40,6 +41,7 @@ func getTimebasedRules() []api.TimebasedFilterRule {
 		{
 			Name:          "Bot2_last",
 			IndexKey:      "SrcAddr",
+			IndexKeys:     []string{"SrcAddr"},
 			OperationType: "last",
 			OperationKey:  "Bytes",
 			Reversed:      true,
@@ -48,6 +50,7 @@ func getTimebasedRules() []api.TimebasedFilterRule {
 		{
 			Name:          "Top4_max",
 			IndexKey:      "DstAddr",
+			IndexKeys:     []string{"DstAddr"},
 			OperationType: "max",
 			OperationKey:  "Bytes",
 			TopK:          4,
@@ -79,6 +82,14 @@ func Test_CreateIndexKeysAndFiltersError(t *testing.T) {
 			IndexKey:      "",
 			OperationType: "sum",
 			OperationKey:  "operationKey1",
+			TopK:          2,
+			TimeInterval:  api.Duration{Duration: 10 * time.Second},
+		},
+		{
+			Name:          "filter2",
+			IndexKeys:     []string{},
+			OperationType: "sum",
+			OperationKey:  "operationKey2",
 			TopK:          2,
 			TimeInterval:  api.Duration{Duration: 10 * time.Second},
 		},
