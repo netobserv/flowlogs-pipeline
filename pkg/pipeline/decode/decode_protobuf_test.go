@@ -58,7 +58,7 @@ func TestDecodeProtobuf(t *testing.T) {
 		TimeDnsReq:             timestamppb.New(someTime),
 		TimeDnsRsp:             timestamppb.New(someTime),
 		DnsId:                  1,
-		DnsFlags:               0x80,
+		DnsFlags:               0x8001,
 		TimeFlowRtt:            durationpb.New(someDuration),
 	}
 	rawPB, err := proto.Marshal(&flow)
@@ -75,8 +75,6 @@ func TestDecodeProtobuf(t *testing.T) {
 		"DstAddr":                "5.6.7.8",
 		"DstMac":                 "11:22:33:44:55:66",
 		"SrcMac":                 "01:02:03:04:05:06",
-		"SrcPort":                uint32(23000),
-		"DstPort":                uint32(443),
 		"Duplicate":              false,
 		"Etype":                  uint32(2048),
 		"Packets":                uint64(123),
@@ -85,7 +83,6 @@ func TestDecodeProtobuf(t *testing.T) {
 		"TimeFlowEndMs":          someTime.UnixMilli(),
 		"Interface":              "eth0",
 		"AgentIP":                "10.9.8.7",
-		"Flags":                  uint32(0x100),
 		"IcmpType":               uint32(8),
 		"IcmpCode":               uint32(0),
 		"TcpDropBytes":           uint64(100),
@@ -96,7 +93,8 @@ func TestDecodeProtobuf(t *testing.T) {
 		"DnsRequestTimeMs":       someTime.UnixMilli(),
 		"DnsResponseTimeMs":      someTime.UnixMilli(),
 		"DnsId":                  uint32(1),
-		"DnsFlags":               uint32(0x80),
+		"DnsFlags":               uint32(0x8001),
+		"DnsFlagsResponseCode":   "FormErr",
 		"TimeFlowRttMs":          someDuration.Milliseconds(),
 	}, out)
 }
@@ -126,7 +124,7 @@ func TestPBFlowToMap(t *testing.T) {
 			SrcMac: 0x010203040506,
 		},
 		Transport: &pbflow.Transport{
-			Protocol: 1,
+			Protocol: 6,
 			SrcPort:  23000,
 			DstPort:  443,
 		},
@@ -134,8 +132,6 @@ func TestPBFlowToMap(t *testing.T) {
 			IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x0a090807},
 		},
 		Flags:                  0x100,
-		IcmpType:               10,
-		IcmpCode:               11,
 		TcpDropBytes:           200,
 		TcpDropPackets:         20,
 		TcpDropLatestFlags:     0x100,
@@ -163,14 +159,12 @@ func TestPBFlowToMap(t *testing.T) {
 		"Duplicate":              true,
 		"Etype":                  uint32(2048),
 		"Packets":                uint64(123),
-		"Proto":                  uint32(1),
+		"Proto":                  uint32(6),
 		"TimeFlowStartMs":        someTime.UnixMilli(),
 		"TimeFlowEndMs":          someTime.UnixMilli(),
 		"Interface":              "eth0",
 		"AgentIP":                "10.9.8.7",
 		"Flags":                  uint32(0x100),
-		"IcmpType":               uint32(10),
-		"IcmpCode":               uint32(11),
 		"TcpDropBytes":           uint64(200),
 		"TcpDropPackets":         uint64(20),
 		"TcpDropLatestFlags":     uint32(0x100),
@@ -180,6 +174,7 @@ func TestPBFlowToMap(t *testing.T) {
 		"DnsResponseTimeMs":      someTime.UnixMilli(),
 		"DnsId":                  uint32(1),
 		"DnsFlags":               uint32(0x80),
+		"DnsFlagsResponseCode":   "NoError",
 		"TimeFlowRttMs":          someDuration.Milliseconds(),
 	}, out)
 
