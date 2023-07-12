@@ -54,7 +54,6 @@ type kubeDataInterface interface {
 }
 
 type KubeData struct {
-	kubeDataInterface
 	// pods, nodes and services cache the different object types as *Info pointers
 	pods     cache.SharedIndexInformer
 	nodes    cache.SharedIndexInformer

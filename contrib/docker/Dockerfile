@@ -1,7 +1,7 @@
 # We do not use --platform feature to auto fill this ARG because of incompatibility between podman and docker
 ARG TARGETPLATFORM=linux/amd64
 ARG BUILDPLATFORM=linux/amd64
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.19 as builder
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.20 as builder
 
 ARG TARGETPLATFORM
 ARG TARGETARCH=amd64
