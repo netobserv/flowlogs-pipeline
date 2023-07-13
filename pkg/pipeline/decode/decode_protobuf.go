@@ -3,10 +3,12 @@ package decode
 import (
 	"fmt"
 	"net"
+	"syscall"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
+
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
@@ -37,36 +39,58 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 		return config.GenericMap{}
 	}
 	out := config.GenericMap{
-		"FlowDirection":          int(flow.Direction.Number()),
-		"Bytes":                  flow.Bytes,
-		"SrcAddr":                ipToStr(flow.Network.GetSrcAddr()),
-		"DstAddr":                ipToStr(flow.Network.GetDstAddr()),
-		"SrcMac":                 macToStr(flow.DataLink.GetSrcMac()),
-		"DstMac":                 macToStr(flow.DataLink.GetDstMac()),
-		"SrcPort":                flow.Transport.GetSrcPort(),
-		"DstPort":                flow.Transport.GetDstPort(),
-		"Etype":                  flow.EthProtocol,
-		"Packets":                flow.Packets,
-		"Duplicate":              flow.Duplicate,
-		"Proto":                  flow.Transport.GetProtocol(),
-		"TimeFlowStartMs":        flow.TimeFlowStart.AsTime().UnixMilli(),
-		"TimeFlowEndMs":          flow.TimeFlowEnd.AsTime().UnixMilli(),
-		"TimeReceived":           time.Now().Unix(),
-		"Interface":              flow.Interface,
-		"AgentIP":                ipToStr(flow.AgentIp),
-		"Flags":                  flow.Flags,
-		"IcmpType":               flow.GetIcmpType(),
-		"IcmpCode":               flow.GetIcmpCode(),
-		"TcpDropBytes":           flow.TcpDropBytes,
-		"TcpDropPackets":         flow.TcpDropPackets,
-		"TcpDropLatestFlags":     flow.GetTcpDropLatestFlags(),
-		"TcpDropLatestState":     tcpStateToStr(flow.GetTcpDropLatestState()),
-		"TcpDropLatestDropCause": tcpDropCauseToStr(flow.GetTcpDropLatestDropCause()),
-		"DnsRequestTimeMs":       flow.TimeDnsReq.AsTime().UnixMilli(),
-		"DnsResponseTimeMs":      flow.TimeDnsRsp.AsTime().UnixMilli(),
-		"DnsId":                  flow.GetDnsId(),
-		"DnsFlags":               flow.GetDnsFlags(),
-		"TimeFlowRttMs":          flow.TimeFlowRtt.AsDuration().Milliseconds(),
+		"FlowDirection":   int(flow.Direction.Number()),
+		"Bytes":           flow.Bytes,
+		"SrcAddr":         ipToStr(flow.Network.GetSrcAddr()),
+		"DstAddr":         ipToStr(flow.Network.GetDstAddr()),
+		"SrcMac":          macToStr(flow.DataLink.GetSrcMac()),
+		"DstMac":          macToStr(flow.DataLink.GetDstMac()),
+		"Etype":           flow.EthProtocol,
+		"Packets":         flow.Packets,
+		"Duplicate":       flow.Duplicate,
+		"Proto":           flow.Transport.GetProtocol(),
+		"TimeFlowStartMs": flow.TimeFlowStart.AsTime().UnixMilli(),
+		"TimeFlowEndMs":   flow.TimeFlowEnd.AsTime().UnixMilli(),
+		"TimeReceived":    time.Now().Unix(),
+		"Interface":       flow.Interface,
+		"AgentIP":         ipToStr(flow.AgentIp),
+	}
+
+	proto := flow.Transport.GetProtocol()
+	if proto == syscall.IPPROTO_ICMP || proto == syscall.IPPROTO_ICMPV6 {
+		out["IcmpType"] = flow.GetIcmpType()
+		out["IcmpCode"] = flow.GetIcmpCode()
+	}
+
+	if proto == syscall.IPPROTO_TCP || proto == syscall.IPPROTO_UDP || proto == syscall.IPPROTO_SCTP {
+		if proto == syscall.IPPROTO_TCP {
+			out["SrcPort"] = flow.Transport.GetSrcPort()
+			out["DstPort"] = flow.Transport.GetDstPort()
+			out["Flags"] = flow.Flags
+		} else {
+			out["SrcPort"] = flow.Transport.GetSrcPort()
+			out["DstPort"] = flow.Transport.GetDstPort()
+		}
+	}
+
+	if flow.GetDnsId() != 0 {
+		out["DnsRequestTimeMs"] = flow.TimeDnsReq.AsTime().UnixMilli()
+		out["DnsResponseTimeMs"] = flow.TimeDnsRsp.AsTime().UnixMilli()
+		out["DnsId"] = flow.GetDnsId()
+		out["DnsFlags"] = flow.GetDnsFlags()
+		out["DnsFlagsResponseCode"] = dnsRcodeToStr(flow.GetDnsFlags() & 0xF)
+	}
+
+	if flow.GetTcpDropLatestDropCause() != 0 {
+		out["TcpDropBytes"] = flow.TcpDropBytes
+		out["TcpDropPackets"] = flow.TcpDropPackets
+		out["TcpDropLatestFlags"] = flow.GetTcpDropLatestFlags()
+		out["TcpDropLatestState"] = tcpStateToStr(flow.GetTcpDropLatestState())
+		out["TcpDropLatestDropCause"] = tcpDropCauseToStr(flow.GetTcpDropLatestDropCause())
+	}
+
+	if flow.TimeFlowRtt.AsDuration().Milliseconds() != 0 {
+		out["TimeFlowRttMs"] = flow.TimeFlowRtt.AsDuration().Milliseconds()
 	}
 	return out
 }
@@ -275,4 +299,46 @@ func tcpDropCauseToStr(dropCause uint32) string {
 		return "SKB_DROP_REASON_IPV6_NDISC_NS_OTHERHOST"
 	}
 	return "SKB_DROP_UNKNOWN_CAUSE"
+}
+
+// dnsRcodeToStr decode DNS flags response code bits and return a string
+// https://datatracker.ietf.org/doc/html/rfc2929#section-2.3
+func dnsRcodeToStr(rcode uint32) string {
+	switch rcode {
+	case 0:
+		return "NoError"
+	case 1:
+		return "FormErr"
+	case 2:
+		return "ServFail"
+	case 3:
+		return "NXDomain"
+	case 4:
+		return "NotImp"
+	case 5:
+		return "Refused"
+	case 6:
+		return "YXDomain"
+	case 7:
+		return "YXRRSet"
+	case 8:
+		return "NXRRSet"
+	case 9:
+		return "NotAuth"
+	case 10:
+		return "NotZone"
+	case 16:
+		return "BADVERS"
+	case 17:
+		return "BADKEY"
+	case 18:
+		return "BADTIME"
+	case 19:
+		return "BADMODE"
+	case 20:
+		return "BADNAME"
+	case 21:
+		return "BADALG"
+	}
+	return "UnDefined"
 }
