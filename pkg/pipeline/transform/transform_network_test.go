@@ -54,18 +54,6 @@ func getMockNetworkTransformRules() api.NetworkTransformRules {
 			Parameters: "/16",
 		},
 		api.NetworkTransformRule{
-			Input:      "value",
-			Output:     "bigger_than_10",
-			Type:       "add_if",
-			Parameters: ">10",
-		},
-		api.NetworkTransformRule{
-			Input:      "value",
-			Output:     "smaller_than_10",
-			Type:       "add_if",
-			Parameters: "<10",
-		},
-		api.NetworkTransformRule{
 			Input:      "dstPort",
 			Output:     "service",
 			Type:       "add_service",
@@ -104,8 +92,6 @@ func getExpectedOutput() config.GenericMap {
 		"subnet24SrcIP":                   "10.0.0.0/24",
 		"emptyIP":                         "",
 		"value":                           7.0,
-		"smaller_than_10":                 7.0,
-		"smaller_than_10_Evaluate":        true,
 		"service":                         "ssh",
 		"service_protocol_num":            "ssh",
 		"srcPort":                         11777,
@@ -216,117 +202,6 @@ func InitNewTransformNetwork(t *testing.T, configFile string) Transformer {
 	newTransform, err := NewTransformNetwork(config)
 	require.NoError(t, err)
 	return newTransform
-}
-
-func Test_TransformNetworkDependentRulesAddRegExIf(t *testing.T) {
-	var yamlConfig = []byte(`
-log-level: debug
-pipeline:
-  - name: transform1
-  - name: write1
-    follows: transform1
-parameters:
-  - name: transform1
-    transform:
-      type: network
-      network:
-        rules:
-        - input: srcIP
-          output: subnetSrcIP
-          type: add_subnet
-          parameters: /24
-        - input: subnetSrcIP
-          output: match-10.0.*
-          type: add_regex_if
-          parameters: 10.0.*
-        - input: subnetSrcIP
-          output: match-11.0.*
-          type: add_regex_if
-          parameters: 11.0.*
-  - name: write1
-    write:
-      type: stdout
-`)
-	newNetworkTransform := InitNewTransformNetwork(t, string(yamlConfig)).(*Network)
-	require.NotNil(t, newNetworkTransform)
-
-	entry := test.GetIngestMockEntry(false)
-	output, ok := newNetworkTransform.Transform(entry)
-	require.True(t, ok)
-
-	require.Equal(t, "10.0.0.1", output["srcIP"])
-	require.Equal(t, "10.0.0.0/24", output["subnetSrcIP"])
-	require.Equal(t, "10.0.0.0/24", output["match-10.0.*"])
-	require.NotEqual(t, "10.0.0.0/24", output["match-11.0.*"])
-}
-
-func Test_Transform_AddIfScientificNotation(t *testing.T) {
-	newNetworkTransform := Network{
-		TransformNetwork: api.TransformNetwork{
-			Rules: api.NetworkTransformRules{
-				api.NetworkTransformRule{
-					Input:      "value",
-					Output:     "bigger_than_10",
-					Type:       "add_if",
-					Parameters: ">10",
-				},
-				api.NetworkTransformRule{
-					Input:      "value",
-					Output:     "smaller_than_10",
-					Type:       "add_if",
-					Parameters: "<10",
-				},
-				api.NetworkTransformRule{
-					Input:      "value",
-					Output:     "dir",
-					Assignee:   "in",
-					Type:       "add_if",
-					Parameters: "==1",
-				},
-				api.NetworkTransformRule{
-					Input:      "value",
-					Output:     "dir",
-					Assignee:   "out",
-					Type:       "add_if",
-					Parameters: "==0",
-				},
-			},
-		},
-		svcNames: getServicesDB(t),
-	}
-
-	var entry config.GenericMap
-	entry = config.GenericMap{
-		"value": 1.2345e67,
-	}
-	output, ok := newNetworkTransform.Transform(entry)
-	require.True(t, ok)
-	require.Equal(t, true, output["bigger_than_10_Evaluate"])
-	require.Equal(t, 1.2345e67, output["bigger_than_10"])
-
-	entry = config.GenericMap{
-		"value": 1.2345e-67,
-	}
-	output, ok = newNetworkTransform.Transform(entry)
-	require.True(t, ok)
-	require.Equal(t, true, output["smaller_than_10_Evaluate"])
-	require.Equal(t, 1.2345e-67, output["smaller_than_10"])
-
-	entry = config.GenericMap{
-		"value": 1,
-	}
-	output, ok = newNetworkTransform.Transform(entry)
-	require.True(t, ok)
-	require.Equal(t, true, output["dir_Evaluate"])
-	require.Equal(t, "in", output["dir"])
-
-	entry = config.GenericMap{
-		"value": 0,
-	}
-	output, ok = newNetworkTransform.Transform(entry)
-	require.True(t, ok)
-	require.Equal(t, true, output["dir_Evaluate"])
-	require.Equal(t, "out", output["dir"])
 }
 
 func TestTransform_K8sEmptyNamespace(t *testing.T) {

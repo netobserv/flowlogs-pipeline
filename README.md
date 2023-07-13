@@ -389,10 +389,8 @@ Using `remove_entry_if_not_equal` will remove the entry if the specified field e
 
 1. Resolve subnet from IP addresses
 1. Resolve known network service names from port numbers and protocols
-1. Perform simple mathematical transformations on field values
 1. Compute geo-location from IP addresses
 1. Resolve kubernetes information from IP addresses
-1. Perform regex operations on field values
 
 Example configuration:
 
@@ -408,15 +406,6 @@ parameters:
             output: srcSubnet
             type: add_subnet
             parameters: /24
-          - input: value
-            output: value_smaller_than10
-            type: add_if
-            parameters: <10
-          - input: value
-            output: dir
-            type: add_if
-            parameters: ==1
-            assignee: in
           - input: dstPort
             output: service
             type: add_service
@@ -427,36 +416,25 @@ parameters:
           - input: srcIP
             output: srcK8S
             type: add_kubernetes
-          - input: srcSubnet
-            output: match-10.0
-            type: add_regex_if
-            parameters: 10.0.*
 ```
 
-The first rule `add_subnet` generates a new field named `srcSubnet` with the 
+The rule `add_subnet` generates a new field named `srcSubnet` with the 
 subnet of `srcIP` calculated based on prefix length from the `parameters` field 
 
-The second `add_if` generates a new field named `value_smaller_than10` that contains 
-the contents of the `value` field for entries that satisfy the condition specified 
-in the `parameters` variable (smaller than 10 in the example above). In addition, the
-field `value_smaller_than10_Evaluate` with value `true` is added to all satisfied
-entries. if `assignee` field is set, then on satified parmater i.e. if parameter evalutes true then
-`output` value will get value of `assignee` key.
-
-The third rule `add_service` generates a new field named `service` with the known network 
+The rule `add_service` generates a new field named `service` with the known network 
 service name of `dstPort` port and `protocol` protocol. Unrecognized ports are ignored 
 > Note: `protocol` can be either network protocol name or number  
 >   
 > Note: optionally supports custom network services resolution by defining configuration parameters 
 > `servicesFile` and `protocolsFile` with paths to custom services/protocols files respectively  
 
-The fourth rule `add_location` generates new fields with the geo-location information retrieved 
+The rule `add_location` generates new fields with the geo-location information retrieved 
 from DB [ip2location](https://lite.ip2location.com/) based on `dstIP` IP. 
 All the geo-location fields will be named by appending `output` value 
 (`dstLocation` in the example above) to their names in the [ip2location](https://lite.ip2location.com/ DB 
 (e.g., `CountryName`, `CountryLongName`, `RegionName`, `CityName` , `Longitude` and `Latitude`)
 
-The fifth rule `add_kubernetes` generates new fields with kubernetes information by
+The rule `add_kubernetes` generates new fields with kubernetes information by
 matching the `input` value (`srcIP` in the example above) with kubernetes `nodes`, `pods` and `services` IPs.
 All the kubernetes fields will be named by appending `output` value
 (`srcK8S` in the example above) to the kubernetes metadata field names
@@ -470,13 +448,7 @@ will be generated, and named by appending `parameters` value to the label keys.
 > 2. using `KUBECONFIG` environment variable
 > 3. using local `~/.kube/config`
 
-The sixth rule `add_regex_if` generates a new field named `match-10.0` that contains
-the contents of the `srcSubnet` field for entries that match regex expression specified 
-in the `parameters` variable. In addition, the field `match-10.0_Matched` with 
-value `true` is added to all matched entries
-
-
-> Note: above example describes all available transform network `Type` options
+> Note: above example describes the most common available transform network `Type` options
 
 > Note: above transform is essential for the `aggregation` phase  
 

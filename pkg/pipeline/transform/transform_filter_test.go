@@ -20,6 +20,7 @@ package transform
 import (
 	"testing"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
@@ -229,4 +230,129 @@ func InitNewTransformFilter(t *testing.T, configFile string) Transformer {
 	newTransform, err := NewTransformFilter(config)
 	require.NoError(t, err)
 	return newTransform
+}
+
+func Test_Transform_AddIfScientificNotation(t *testing.T) {
+	newNetworkFilter := Filter{
+		Rules: []api.TransformFilterRule{
+			{
+				Input:      "value",
+				Output:     "bigger_than_10",
+				Type:       "add_field_if",
+				Parameters: ">10",
+			},
+			{
+				Input:      "value",
+				Output:     "smaller_than_10",
+				Type:       "add_field_if",
+				Parameters: "<10",
+			},
+			{
+				Input:      "value",
+				Output:     "dir",
+				Assignee:   "in",
+				Type:       "add_field_if",
+				Parameters: "==1",
+			},
+			{
+				Input:      "value",
+				Output:     "dir",
+				Assignee:   "out",
+				Type:       "add_field_if",
+				Parameters: "==0",
+			},
+			{
+				Input:      "value",
+				Output:     "not_one",
+				Assignee:   "true",
+				Type:       "add_field_if",
+				Parameters: "!=1",
+			},
+			{
+				Input:      "value",
+				Output:     "not_one",
+				Assignee:   "false",
+				Type:       "add_field_if",
+				Parameters: "==1",
+			},
+		},
+	}
+
+	var entry config.GenericMap
+	entry = config.GenericMap{
+		"value": 1.2345e67,
+	}
+	output, ok := newNetworkFilter.Transform(entry)
+	require.True(t, ok)
+	require.Equal(t, true, output["bigger_than_10_Evaluate"])
+	require.Equal(t, 1.2345e67, output["bigger_than_10"])
+	require.Equal(t, "true", output["not_one"])
+
+	entry = config.GenericMap{
+		"value": 1.2345e-67,
+	}
+	output, ok = newNetworkFilter.Transform(entry)
+	require.True(t, ok)
+	require.Equal(t, true, output["smaller_than_10_Evaluate"])
+	require.Equal(t, 1.2345e-67, output["smaller_than_10"])
+	require.Equal(t, "true", output["not_one"])
+
+	entry = config.GenericMap{
+		"value": 1,
+	}
+	output, ok = newNetworkFilter.Transform(entry)
+	require.True(t, ok)
+	require.Equal(t, true, output["dir_Evaluate"])
+	require.Equal(t, "in", output["dir"])
+	require.Equal(t, "false", output["not_one"])
+
+	entry = config.GenericMap{
+		"value": 0,
+	}
+	output, ok = newNetworkFilter.Transform(entry)
+	require.True(t, ok)
+	require.Equal(t, true, output["dir_Evaluate"])
+	require.Equal(t, "out", output["dir"])
+	require.Equal(t, "true", output["not_one"])
+}
+
+func Test_TransformFilterDependentRulesAddRegExIf(t *testing.T) {
+	var yamlConfig = []byte(`
+log-level: debug
+pipeline:
+  - name: transform1
+  - name: write1
+    follows: transform1
+parameters:
+  - name: transform1
+    transform:
+      type: filter
+      filter:
+        rules:
+        - input: subnetSrcIP
+          type: add_field_if_doesnt_exist
+          value: 10.0.0.0/24
+        - input: subnetSrcIP
+          output: match-10.0.*
+          type: add_regex_if
+          parameters: 10.0.*
+        - input: subnetSrcIP
+          output: match-11.0.*
+          type: add_regex_if
+          parameters: 11.0.*
+  - name: write1
+    write:
+      type: stdout
+`)
+	newNetworkFilter := InitNewTransformFilter(t, string(yamlConfig)).(*Filter)
+	require.NotNil(t, newNetworkFilter)
+
+	entry := test.GetIngestMockEntry(false)
+	output, ok := newNetworkFilter.Transform(entry)
+	require.True(t, ok)
+
+	require.Equal(t, "10.0.0.1", output["srcIP"])
+	require.Equal(t, "10.0.0.0/24", output["subnetSrcIP"])
+	require.Equal(t, "10.0.0.0/24", output["match-10.0.*"])
+	require.NotEqual(t, "10.0.0.0/24", output["match-11.0.*"])
 }

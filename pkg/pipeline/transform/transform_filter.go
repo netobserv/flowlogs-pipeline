@@ -18,6 +18,10 @@
 package transform
 
 import (
+	"fmt"
+	"regexp"
+
+	"github.com/Knetic/govaluate"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/sirupsen/logrus"
@@ -61,6 +65,31 @@ func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 		case api.TransformFilterOperationName("AddFieldIfDoesntExist"):
 			if _, ok := entry[rule.Input]; !ok {
 				outputEntry[rule.Input] = rule.Value
+			}
+		case api.TransformFilterOperationName("AddRegExIf"):
+			matched, err := regexp.MatchString(rule.Parameters, fmt.Sprintf("%s", outputEntry[rule.Input]))
+			if err != nil {
+				continue
+			}
+			if matched {
+				outputEntry[rule.Output] = outputEntry[rule.Input]
+				outputEntry[rule.Output+"_Matched"] = true
+			}
+		case api.TransformFilterOperationName("AddFieldIf"):
+			expressionString := fmt.Sprintf("val %s", rule.Parameters)
+			expression, err := govaluate.NewEvaluableExpression(expressionString)
+			if err != nil {
+				log.Warningf("Can't evaluate AddIf rule: %+v expression: %v. err %v", rule, expressionString, err)
+				continue
+			}
+			result, evaluateErr := expression.Evaluate(map[string]interface{}{"val": outputEntry[rule.Input]})
+			if evaluateErr == nil && result.(bool) {
+				if rule.Assignee != "" {
+					outputEntry[rule.Output] = rule.Assignee
+				} else {
+					outputEntry[rule.Output] = outputEntry[rule.Input]
+				}
+				outputEntry[rule.Output+"_Evaluate"] = true
 			}
 		default:
 			tlog.Panicf("unknown type %s for transform.Filter rule: %v", rule.Type, rule)
