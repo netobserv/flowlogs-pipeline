@@ -74,8 +74,7 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 	}
 
 	if flow.GetDnsId() != 0 {
-		out["DnsRequestTimeMs"] = flow.TimeDnsReq.AsTime().UnixMilli()
-		out["DnsResponseTimeMs"] = flow.TimeDnsRsp.AsTime().UnixMilli()
+		out["DnsLatencyMs"] = flow.DnsLatency.AsDuration().Milliseconds()
 		out["DnsId"] = flow.GetDnsId()
 		out["DnsFlags"] = flow.GetDnsFlags()
 		out["DnsFlagsResponseCode"] = dnsRcodeToStr(flow.GetDnsFlags() & 0xF)
