@@ -15,7 +15,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/netobserv/gopipes v0.3.0
 	github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500
-	github.com/netobserv/netobserv-ebpf-agent v0.3.2-0.20230703082106-1b85351eee43
+	github.com/netobserv/netobserv-ebpf-agent v0.3.2-0.20230717113312-4a182aa9c26e
 	github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.1
@@ -98,7 +98,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/oauth2 v0.4.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/term v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
