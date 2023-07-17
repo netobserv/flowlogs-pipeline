@@ -80,12 +80,12 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 		out["DnsFlagsResponseCode"] = dnsRcodeToStr(flow.GetDnsFlags() & 0xF)
 	}
 
-	if flow.GetTcpDropLatestDropCause() != 0 {
-		out["TcpDropBytes"] = flow.TcpDropBytes
-		out["TcpDropPackets"] = flow.TcpDropPackets
-		out["TcpDropLatestFlags"] = flow.GetTcpDropLatestFlags()
-		out["TcpDropLatestState"] = tcpStateToStr(flow.GetTcpDropLatestState())
-		out["TcpDropLatestDropCause"] = tcpDropCauseToStr(flow.GetTcpDropLatestDropCause())
+	if flow.GetPktDropLatestDropCause() != 0 {
+		out["PktDropBytes"] = flow.PktDropBytes
+		out["PktDropPackets"] = flow.PktDropPackets
+		out["PktDropLatestFlags"] = flow.GetPktDropLatestFlags()
+		out["PktDropLatestState"] = tcpStateToStr(flow.GetPktDropLatestState())
+		out["PktDropLatestDropCause"] = pktDropCauseToStr(flow.GetPktDropLatestDropCause())
 	}
 
 	if flow.TimeFlowRtt.AsDuration().Milliseconds() != 0 {
@@ -144,9 +144,9 @@ func tcpStateToStr(state uint32) string {
 	return "TCP_INVALID_STATE"
 }
 
-// tcpDropCauseToStr is based on kernel drop cause definition
+// pktDropCauseToStr is based on kernel drop cause definition
 // https://elixir.bootlin.com/linux/latest/source/include/net/dropreason.h#L88
-func tcpDropCauseToStr(dropCause uint32) string {
+func pktDropCauseToStr(dropCause uint32) string {
 	switch dropCause {
 	case 2:
 		return "SKB_DROP_REASON_NOT_SPECIFIED"
