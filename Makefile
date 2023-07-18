@@ -45,7 +45,7 @@ OCI_BUILD_OPTS ?=
 OCI_BIN_PATH = $(shell which docker 2>/dev/null || which podman)
 OCI_BIN ?= $(shell basename ${OCI_BIN_PATH})
 
-MIN_GO_VERSION := 1.18.0
+MIN_GO_VERSION := 1.19.0
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
 NETFLOW_GENERATOR=nflow-generator
