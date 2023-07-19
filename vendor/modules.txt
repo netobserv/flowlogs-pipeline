@@ -217,7 +217,7 @@ github.com/netobserv/loki-client-go/pkg/labelutil
 github.com/netobserv/loki-client-go/pkg/logproto
 github.com/netobserv/loki-client-go/pkg/metric
 github.com/netobserv/loki-client-go/pkg/urlutil
-# github.com/netobserv/netobserv-ebpf-agent v0.3.2-0.20230718001900-df09c4e8ad03
+# github.com/netobserv/netobserv-ebpf-agent v0.3.2-0.20230719114816-31526a912a03
 ## explicit; go 1.19
 github.com/netobserv/netobserv-ebpf-agent/pkg/grpc
 github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow
