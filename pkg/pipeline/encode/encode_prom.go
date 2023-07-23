@@ -173,6 +173,10 @@ func (e *EncodeProm) prepareMetric(flow config.GenericMap, info *api.PromMetrics
 	}
 
 	entryLabels, key := e.extractLabelsAndKey(flow, info)
+	if entryLabels == nil {
+		e.metricsDropped.Inc()
+		return nil, 0
+	}
 	// Update entry for expiry mechanism (the entry itself is its own cleanup function)
 	_, ok := e.mCache.UpdateCacheEntry(key, func() { m.Delete(entryLabels) })
 	if !ok {
@@ -234,9 +238,11 @@ func (e *EncodeProm) extractLabelsAndKey(flow config.GenericMap, info *api.PromM
 	key.WriteRune('|')
 	for _, t := range info.Labels {
 		entryLabels[t] = ""
-		if v, ok := flow[t]; ok {
-			entryLabels[t] = fmt.Sprintf("%v", v)
+		v, ok := flow[t]
+		if !ok {
+			return nil, ""
 		}
+		entryLabels[t] = fmt.Sprintf("%v", v)
 		key.WriteString(entryLabels[t])
 		key.WriteRune('|')
 	}

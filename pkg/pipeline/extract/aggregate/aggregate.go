@@ -69,6 +69,7 @@ func (aggregate *Aggregate) LabelsFromEntry(entry config.GenericMap) (Labels, bo
 		value, ok := entry[key]
 		if !ok {
 			allLabelsFound = false
+			continue
 		}
 		labels[key] = fmt.Sprint(value)
 	}
