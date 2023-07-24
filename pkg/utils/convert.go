@@ -264,13 +264,6 @@ func ConvertToString(unk interface{}) (string, error) {
 	case string:
 		return i, nil
 	default:
-		v := reflect.ValueOf(unk)
-		v = reflect.Indirect(v)
-		if v.Type().ConvertibleTo(stringType) {
-			sv := v.Convert(stringType)
-			return sv.String(), nil
-		} else {
-			return "", fmt.Errorf("can't convert %v to string", v.Type())
-		}
+		return fmt.Sprintf("%v", unk), nil
 	}
 }
