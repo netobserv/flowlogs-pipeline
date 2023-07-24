@@ -146,12 +146,9 @@ func (fs *FilterStruct) CreateGenericMap() []config.GenericMap {
 	output := make([]config.GenericMap, 0)
 	for _, result := range fs.Output {
 		t := config.GenericMap{
-			"name":             fs.Rule.Name,
-			"index_key":        fs.Rule.IndexKey,
-			"operation":        fs.Rule.OperationType,
-			"operation_key":    fs.Rule.OperationKey,
-			"key":              result.values,
-			"operation_result": result.operationResult,
+			"name":      fs.Rule.Name,
+			"index_key": fs.Rule.IndexKey,
+			"operation": fs.Rule.OperationType,
 		}
 
 		// append operation key and result as key / value

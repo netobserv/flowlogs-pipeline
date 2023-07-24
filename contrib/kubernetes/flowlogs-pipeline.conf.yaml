@@ -277,7 +277,7 @@ parameters:
         filter:
           key: name
           value: bandwidth_source_subnet
-        valueKey: operation_result
+        valueKey: bytes
         labels:
         - srcSubnet
         buckets: []
