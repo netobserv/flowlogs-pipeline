@@ -192,6 +192,18 @@ func GetExtractMockEntries2() []config.GenericMap {
 	return entries
 }
 
+func GetExtractMockEntries3() []config.GenericMap {
+	entries := []config.GenericMap{
+		{"SrcAddr": "10.0.0.1", "DstAddr": "11.0.0.1", "Direction": 0, "Bytes": 100, "Packets": 1},
+		{"SrcAddr": "10.0.0.1", "DstAddr": "11.0.0.2", "Direction": 0, "Bytes": 100, "Packets": 1},
+		{"SrcAddr": "10.0.0.2", "DstAddr": "11.0.0.1", "Direction": 0, "Bytes": 200, "Packets": 2},
+		{"SrcAddr": "10.0.0.2", "DstAddr": "11.0.0.1", "Direction": 0, "Bytes": 800, "Packets": 8},
+		{"SrcAddr": "10.0.0.3", "DstAddr": "11.0.0.2", "Direction": 0, "Bytes": 100, "Packets": 1},
+		{"SrcAddr": "10.0.0.4", "DstAddr": "11.0.0.2", "Direction": 1, "Bytes": 1000, "Packets": 1},
+	}
+	return entries
+}
+
 // ResetPromRegistry resets the prometheus registry. Invoke this function on tests that may register metrics that were
 // already registered by other tests.
 func ResetPromRegistry() {

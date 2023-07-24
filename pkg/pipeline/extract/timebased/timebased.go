@@ -19,6 +19,7 @@ package timebased
 
 import (
 	"container/list"
+	"strings"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -36,7 +37,7 @@ type FilterStruct struct {
 type filterOperationResults map[string]*filterOperationResult
 
 type filterOperationResult struct {
-	key             string
+	values          string
 	operationResult float64
 }
 
@@ -61,9 +62,14 @@ func CreateIndexKeysAndFilters(rules []api.TimebasedFilterRule) (map[string]*Ind
 	tmpFilters := make([]FilterStruct, 0)
 	for _, filterRule := range rules {
 		log.Debugf("CreateIndexKeysAndFilters: filterRule = %v", filterRule)
-		// verify there is a valid IndexKey
-		if filterRule.IndexKey == "" {
-			log.Errorf("missing IndexKey for filter %s", filterRule.Name)
+		if len(filterRule.IndexKeys) > 0 {
+			// reuse indexKey as table index
+			filterRule.IndexKey = strings.Join(filterRule.IndexKeys, ",")
+		} else if len(filterRule.IndexKey) > 0 {
+			// append indexKey to indexKeys
+			filterRule.IndexKeys = append(filterRule.IndexKeys, filterRule.IndexKey)
+		} else {
+			log.Errorf("missing IndexKey(s) for filter %s", filterRule.Name)
 			continue
 		}
 		rStruct, ok := tmpIndexKeyStructs[filterRule.IndexKey]

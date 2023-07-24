@@ -742,23 +742,27 @@ parameters:
           - name: "Top 3 Sum of bytes per source subnet over last 10 seconds"
             operation: sum
             operationKey: bytes
-            recordKey: srcSubnet
+            recordKeys: srcSubnet
             topK: 3
             reversed: false
             timeInterval: 10s
 ```
 
 The output fields of the aggregates stage are:
-- `name`
-- `operation`
-- `operation_key`
-- `record_key`; the field specified in the rules upon which to perform the operation
-- `key`; the value of the record_key
-- `operation_result`; (computed sum, max, min, etc, as the case may be)
+- `name`; the name of the rule.
+- `index_key`; the fields specified in the rules upon which to index, comma separated. Each of these keys will be append in the output with their corresponding values.
+- `operation`; the operation of the rule. The result value of the operation is append in `operationKey` output field.
 
-In addition there is a field with the
-"$record_key": "$key"
-representing the original map entry in the input flow-log.
+Example output:
+```json
+{
+   "name":"Top 3 Sum of bytes per source subnet over last 10 seconds",
+   "index_key":"srcSubnet",
+   "operation":"sum",
+   "srcSubnet":"10.0.0.0/16",
+   "bytes":1234,
+}
+```
 
 These fields are used by the next stage (for example `prom` encoder).
 

@@ -18,28 +18,52 @@
 package timebased
 
 import (
+	"bytes"
 	"container/list"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 func AddEntryToTables(indexKeyStructs map[string]*IndexKeyTable, entry config.GenericMap, nowInSecs time.Time) {
-	for key, recordTable := range indexKeyStructs {
-		log.Debugf("ExtractTimebased addEntryToTables: key = %s, recordTable = %v", key, recordTable)
-		if val, ok := entry[key]; ok {
+	for tableKey, recordTable := range indexKeyStructs {
+		keys := strings.Split(tableKey, ",")
+
+		validValuesCount := 0
+		var b bytes.Buffer
+		for _, key := range keys {
+			if b.Len() > 0 {
+				b.WriteRune(',')
+			}
+			if val, ok := entry[key]; ok {
+				valStr, err := utils.ConvertToString(val)
+				if err != nil {
+					log.Errorf("Cannot convert value to string %v : %v", val, err)
+				} else if len(valStr) > 0 {
+					b.WriteString(valStr)
+					validValuesCount++
+				}
+			}
+		}
+
+		// add entry to the table only if all values are non empty
+		if len(keys) == validValuesCount {
+			val := b.String()
+			log.Debugf("ExtractTimebased addEntryToTables: key = %s, recordTable = %v", tableKey, recordTable)
 			cEntry := &TableEntry{
 				timeStamp: nowInSecs,
 				entry:     entry,
 			}
 			// allocate list if it does not yet exist
-			if recordTable.dataTableMap[val.(string)] == nil {
-				recordTable.dataTableMap[val.(string)] = list.New()
+			if recordTable.dataTableMap[val] == nil {
+				recordTable.dataTableMap[val] = list.New()
 			}
 			log.Debugf("ExtractTimebased addEntryToTables: adding to table %s", val)
-			AddEntryToTable(cEntry, recordTable.dataTableMap[val.(string)])
+			AddEntryToTable(cEntry, recordTable.dataTableMap[val])
 		}
 	}
 }

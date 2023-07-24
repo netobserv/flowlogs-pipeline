@@ -34,6 +34,7 @@ func GetMockTimebased1() ExtractTimebased {
 			{Rule: api.TimebasedFilterRule{
 				Name:          "TopK_Bytes1",
 				IndexKey:      "SrcAddr",
+				IndexKeys:     []string{"SrcAddr"},
 				OperationType: "last",
 				OperationKey:  "Bytes",
 				TopK:          3,
@@ -42,6 +43,7 @@ func GetMockTimebased1() ExtractTimebased {
 			{Rule: api.TimebasedFilterRule{
 				Name:          "BotK_Bytes1",
 				IndexKey:      "SrcAddr",
+				IndexKeys:     []string{"SrcAddr"},
 				OperationType: "avg",
 				OperationKey:  "Bytes",
 				TopK:          2,
@@ -66,13 +68,13 @@ parameters:
           - name: TopK_Bytes1
             operationType: last
             operationKey: Bytes
-            indexKey: SrcAddr
+            indexKeys: ['SrcAddr']
             topK: 3
             timeInterval: 10s
           - name: BotK_Bytes1
             operationType: avg
             operationKey: Bytes
-            indexKey: SrcAddr
+            indexKeys: ['SrcAddr']
             topK: 2
             reversed: true
             timeInterval: 15s
@@ -90,7 +92,7 @@ parameters:
           - name: TopK_Bytes2
             operationType: sum
             operationKey: Bytes
-            indexKey: SrcAddr
+            indexKeys: ['SrcAddr']
             topK: 1
             timeInterval: 10s
 `
@@ -107,7 +109,7 @@ parameters:
           - name: BotK_Bytes3
             operationType: diff
             operationKey: Bytes
-            indexKey: SrcAddr
+            indexKeys: ['SrcAddr']
             topK: 1
             reversed: true
             timeInterval: 10s
@@ -125,7 +127,7 @@ parameters:
           - name: TopK_Bytes4
             operationType: max
             operationKey: Bytes
-            indexKey: SrcAddr
+            indexKeys: ['SrcAddr']
             topK: 1
             timeInterval: 10s
 `
@@ -142,7 +144,7 @@ parameters:
           - name: BotK_Bytes5
             operationType: min
             operationKey: Bytes
-            indexKey: SrcAddr
+            indexKeys: ['SrcAddr']
             topK: 1
             reversed: true
             timeInterval: 10s
@@ -160,7 +162,7 @@ parameters:
           - name: All_Bytes6
             operationType: sum
             operationKey: Bytes
-            indexKey: SrcAddr
+            indexKeys: ['SrcAddr']
             timeInterval: 10s
 `
 
@@ -176,8 +178,25 @@ parameters:
           - name: Count_Flows
             operationType: count
             operationKey: Bytes
-            indexKey: SrcAddr
+            indexKeys: ['SrcAddr']
             topK: 5
+            timeInterval: 10s
+`
+
+var yamlConfigMultipleKeys = `
+pipeline:
+  - name: extract8
+parameters:
+  - name: extract8
+    extract:
+      type: timebased
+      timebased:
+        rules:
+          - name: BotK_SrcDst_Bytes
+            operationType: avg
+            operationKey: Bytes
+            indexKeys: ['SrcAddr','DstAddr','Direction']
+            topK: 2
             timeInterval: 10s
 `
 
@@ -207,49 +226,39 @@ func Test_ExtractTimebasedTopAvg(t *testing.T) {
 	require.Equal(t, 5, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key":              "10.0.0.4",
-			"name":             "TopK_Bytes1",
-			"operation":        "last",
-			"operation_key":    "Bytes",
-			"operation_result": float64(1000),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.4",
+			"name":      "TopK_Bytes1",
+			"operation": "last",
+			"Bytes":     float64(1000),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.4",
 		},
 		{
-			"key":              "10.0.0.3",
-			"name":             "TopK_Bytes1",
-			"operation":        "last",
-			"operation_key":    "Bytes",
-			"operation_result": float64(900),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.3",
+			"name":      "TopK_Bytes1",
+			"operation": "last",
+			"Bytes":     float64(900),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.3",
 		},
 		{
-			"key":              "10.0.0.2",
-			"name":             "TopK_Bytes1",
-			"operation":        "last",
-			"operation_key":    "Bytes",
-			"operation_result": float64(800),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.2",
+			"name":      "TopK_Bytes1",
+			"operation": "last",
+			"Bytes":     float64(800),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.2",
 		},
 		{
-			"key":              "10.0.0.1",
-			"name":             "BotK_Bytes1",
-			"operation":        "avg",
-			"operation_key":    "Bytes",
-			"operation_result": float64(400),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.1",
+			"name":      "BotK_Bytes1",
+			"operation": "avg",
+			"Bytes":     float64(400),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.1",
 		},
 		{
-			"key":              "10.0.0.2",
-			"name":             "BotK_Bytes1",
-			"operation":        "avg",
-			"operation_key":    "Bytes",
-			"operation_result": float64(500),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.2",
+			"name":      "BotK_Bytes1",
+			"operation": "avg",
+			"Bytes":     float64(500),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.2",
 		},
 	}
 	require.Equal(t, expectedOutput, output)
@@ -263,13 +272,11 @@ func Test_ExtractTimebasedSum(t *testing.T) {
 	require.Equal(t, 1, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key":              "10.0.0.3",
-			"name":             "TopK_Bytes2",
-			"operation":        "sum",
-			"operation_key":    "Bytes",
-			"operation_result": float64(1800),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.3",
+			"name":      "TopK_Bytes2",
+			"operation": "sum",
+			"Bytes":     float64(1800),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.3",
 		},
 	}
 	require.Equal(t, expectedOutput, output)
@@ -283,13 +290,11 @@ func Test_ExtractTimebasedDiff(t *testing.T) {
 	require.Equal(t, 1, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key":              "10.0.0.4",
-			"name":             "BotK_Bytes3",
-			"operation":        "diff",
-			"operation_key":    "Bytes",
-			"operation_result": float64(0),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.4",
+			"name":      "BotK_Bytes3",
+			"operation": "diff",
+			"Bytes":     float64(0),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.4",
 		},
 	}
 	require.Equal(t, expectedOutput, output)
@@ -303,13 +308,11 @@ func Test_ExtractTimebasedMax(t *testing.T) {
 	require.Equal(t, 1, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key":              "10.0.0.4",
-			"name":             "TopK_Bytes4",
-			"operation":        "max",
-			"operation_key":    "Bytes",
-			"operation_result": float64(1000),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.4",
+			"name":      "TopK_Bytes4",
+			"operation": "max",
+			"Bytes":     float64(1000),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.4",
 		},
 	}
 	require.Equal(t, expectedOutput, output)
@@ -323,13 +326,11 @@ func Test_ExtractTimebasedMinReversed(t *testing.T) {
 	require.Equal(t, 1, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key":              "10.0.0.1",
-			"name":             "BotK_Bytes5",
-			"operation":        "min",
-			"operation_key":    "Bytes",
-			"operation_result": float64(100),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.1",
+			"name":      "BotK_Bytes5",
+			"operation": "min",
+			"Bytes":     float64(100),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.1",
 		},
 	}
 	require.Equal(t, expectedOutput, output)
@@ -343,40 +344,32 @@ func Test_ExtractTimebasedAllFlows(t *testing.T) {
 	require.Equal(t, 4, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key":              "10.0.0.1",
-			"name":             "All_Bytes6",
-			"operation":        "sum",
-			"operation_key":    "Bytes",
-			"operation_result": float64(1200),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.1",
+			"name":      "All_Bytes6",
+			"operation": "sum",
+			"Bytes":     float64(1200),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.1",
 		},
 		{
-			"key":              "10.0.0.2",
-			"name":             "All_Bytes6",
-			"operation":        "sum",
-			"operation_key":    "Bytes",
-			"operation_result": float64(1500),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.2",
+			"name":      "All_Bytes6",
+			"operation": "sum",
+			"Bytes":     float64(1500),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.2",
 		},
 		{
-			"key":              "10.0.0.3",
-			"name":             "All_Bytes6",
-			"operation":        "sum",
-			"operation_key":    "Bytes",
-			"operation_result": float64(1800),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.3",
+			"name":      "All_Bytes6",
+			"operation": "sum",
+			"Bytes":     float64(1800),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.3",
 		},
 		{
-			"key":              "10.0.0.4",
-			"name":             "All_Bytes6",
-			"operation":        "sum",
-			"operation_key":    "Bytes",
-			"operation_result": float64(1000),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.4",
+			"name":      "All_Bytes6",
+			"operation": "sum",
+			"Bytes":     float64(1000),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.4",
 		},
 	}
 	for _, configMap := range expectedOutput {
@@ -392,43 +385,64 @@ func Test_ExtractTimebasedCount(t *testing.T) {
 	require.Equal(t, 4, len(output))
 	expectedOutput := []config.GenericMap{
 		{
-			"key":              "10.0.0.1",
-			"name":             "Count_Flows",
-			"operation":        "count",
-			"operation_key":    "Bytes",
-			"operation_result": float64(3),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.1",
+			"name":      "Count_Flows",
+			"operation": "count",
+			"Bytes":     float64(3),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.1",
 		},
 		{
-			"key":              "10.0.0.2",
-			"name":             "Count_Flows",
-			"operation":        "count",
-			"operation_key":    "Bytes",
-			"operation_result": float64(3),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.2",
+			"name":      "Count_Flows",
+			"operation": "count",
+			"Bytes":     float64(3),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.2",
 		},
 		{
-			"key":              "10.0.0.3",
-			"name":             "Count_Flows",
-			"operation":        "count",
-			"operation_key":    "Bytes",
-			"operation_result": float64(3),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.3",
+			"name":      "Count_Flows",
+			"operation": "count",
+			"Bytes":     float64(3),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.3",
 		},
 		{
-			"key":              "10.0.0.4",
-			"name":             "Count_Flows",
-			"operation":        "count",
-			"operation_key":    "Bytes",
-			"operation_result": float64(1),
-			"index_key":        "SrcAddr",
-			"SrcAddr":          "10.0.0.4",
+			"name":      "Count_Flows",
+			"operation": "count",
+			"Bytes":     float64(1),
+			"index_key": "SrcAddr",
+			"SrcAddr":   "10.0.0.4",
 		},
 	}
 	for _, configMap := range expectedOutput {
 		require.Contains(t, output, configMap)
 	}
+}
+
+func Test_ExtractTimebasedMultiple(t *testing.T) {
+	tb := initTimebased(t, yamlConfigMultipleKeys)
+	require.NotNil(t, tb)
+	entries := test.GetExtractMockEntries3()
+	output := tb.Extract(entries)
+	require.Equal(t, 2, len(output))
+	expectedOutput := []config.GenericMap{
+		{
+			"name":      "BotK_SrcDst_Bytes",
+			"operation": "avg",
+			"Bytes":     float64(1000),
+			"index_key": "SrcAddr,DstAddr,Direction",
+			"SrcAddr":   "10.0.0.4",
+			"DstAddr":   "11.0.0.2",
+			"Direction": "1",
+		},
+		{
+			"name":      "BotK_SrcDst_Bytes",
+			"operation": "avg",
+			"Bytes":     float64(500),
+			"index_key": "SrcAddr,DstAddr,Direction",
+			"SrcAddr":   "10.0.0.2",
+			"DstAddr":   "11.0.0.1",
+			"Direction": "0",
+		},
+	}
+	require.Equal(t, expectedOutput, output)
 }

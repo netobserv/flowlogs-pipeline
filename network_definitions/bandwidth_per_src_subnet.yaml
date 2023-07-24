@@ -33,7 +33,7 @@ encode:
       - name: bandwidth_per_source_subnet
         type: gauge
         filter: {key: name, value: bandwidth_source_subnet}
-        valueKey: operation_result
+        valueKey: bytes
         labels:
           - srcSubnet
 visualization:

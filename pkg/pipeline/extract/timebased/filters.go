@@ -20,6 +20,7 @@ package timebased
 import (
 	"container/list"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -31,7 +32,7 @@ import (
 func (fs *FilterStruct) CalculateResults(nowInSecs time.Time) {
 	log.Debugf("CalculateResults nowInSecs = %v", nowInSecs)
 	oldestValidTime := nowInSecs.Add(-fs.Rule.TimeInterval.Duration)
-	for key, l := range fs.IndexKeyDataTable.dataTableMap {
+	for tableKey, l := range fs.IndexKeyDataTable.dataTableMap {
 		var valueFloat64 = float64(0)
 		var err error
 		switch fs.Rule.OperationType {
@@ -65,8 +66,8 @@ func (fs *FilterStruct) CalculateResults(nowInSecs time.Time) {
 		default:
 			valueFloat64 = fs.CalculateValue(l, oldestValidTime)
 		}
-		fs.Results[key] = &filterOperationResult{
-			key:             key,
+		fs.Results[tableKey] = &filterOperationResult{
+			values:          tableKey,
 			operationResult: valueFloat64,
 		}
 	}
@@ -145,14 +146,22 @@ func (fs *FilterStruct) CreateGenericMap() []config.GenericMap {
 	output := make([]config.GenericMap, 0)
 	for _, result := range fs.Output {
 		t := config.GenericMap{
-			"name":             fs.Rule.Name,
-			"index_key":        fs.Rule.IndexKey,
-			"operation":        fs.Rule.OperationType,
-			"operation_key":    fs.Rule.OperationKey,
-			"key":              result.key,
-			"operation_result": result.operationResult,
+			"name":      fs.Rule.Name,
+			"index_key": fs.Rule.IndexKey,
+			"operation": fs.Rule.OperationType,
 		}
-		t[fs.Rule.IndexKey] = result.key
+
+		// append operation key and result as key / value
+		t[fs.Rule.OperationKey] = result.operationResult
+
+		// append index key / value pairs
+		values := strings.Split(result.values, ",")
+		if len(fs.Rule.IndexKeys) == len(values) {
+			for i, k := range fs.Rule.IndexKeys {
+				t[k] = values[i]
+			}
+		}
+
 		log.Debugf("FilterStruct CreateGenericMap: %v", t)
 		output = append(output, t)
 	}
