@@ -7,10 +7,11 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	"github.com/netobserv/netobserv-ebpf-agent/pkg/decode"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/grpc"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
+
 	"github.com/sirupsen/logrus"
 	grpc2 "google.golang.org/grpc"
 	"google.golang.org/grpc/status"

@@ -22,6 +22,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/netobserv-ebpf-agent/pkg/decode"
 )
 
 type Decoder interface {
@@ -33,7 +34,7 @@ func GetDecoder(params api.Decoder) (Decoder, error) {
 	case api.DecoderName("JSON"):
 		return NewDecodeJson()
 	case api.DecoderName("Protobuf"):
-		return NewProtobuf()
+		return decode.NewProtobuf()
 	}
 	panic(fmt.Sprintf("`decode` type %s not defined", params.Type))
 }

@@ -112,11 +112,10 @@ func (c *Client) RemoveBucket(ctx context.Context, bucketName string) error {
 
 // AdvancedRemoveOptions intended for internal use by replication
 type AdvancedRemoveOptions struct {
-	ReplicationDeleteMarker  bool
-	ReplicationStatus        ReplicationStatus
-	ReplicationMTime         time.Time
-	ReplicationRequest       bool
-	ReplicationValidityCheck bool // check permissions
+	ReplicationDeleteMarker bool
+	ReplicationStatus       ReplicationStatus
+	ReplicationMTime        time.Time
+	ReplicationRequest      bool
 }
 
 // RemoveObjectOptions represents options specified by user for RemoveObject call
@@ -168,9 +167,6 @@ func (c *Client) removeObject(ctx context.Context, bucketName, objectName string
 	}
 	if opts.Internal.ReplicationRequest {
 		headers.Set(minIOBucketReplicationRequest, "true")
-	}
-	if opts.Internal.ReplicationValidityCheck {
-		headers.Set(minIOBucketReplicationCheck, "true")
 	}
 	if opts.ForceDelete {
 		headers.Set(minIOForceDelete, "true")
@@ -239,7 +235,7 @@ func generateRemoveMultiObjectsRequest(objects []ObjectInfo) []byte {
 
 // processRemoveMultiObjectsResponse - parse the remove multi objects web service
 // and return the success/failure result status for each object
-func processRemoveMultiObjectsResponse(body io.Reader, resultCh chan<- RemoveObjectResult) {
+func processRemoveMultiObjectsResponse(body io.Reader, objects []ObjectInfo, resultCh chan<- RemoveObjectResult) {
 	// Parse multi delete XML response
 	rmResult := &deleteMultiObjectsResult{}
 	err := xmlDecoder(body, rmResult)
@@ -463,7 +459,7 @@ func (c *Client) removeObjects(ctx context.Context, bucketName string, objectsCh
 		}
 
 		// Process multiobjects remove xml response
-		processRemoveMultiObjectsResponse(resp.Body, resultCh)
+		processRemoveMultiObjectsResponse(resp.Body, batch, resultCh)
 
 		closeResponse(resp)
 	}
