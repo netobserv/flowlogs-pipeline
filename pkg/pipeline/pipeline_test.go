@@ -251,7 +251,7 @@ parameters:
 		"DnsId":                  float64(1),
 		"DnsFlags":               float64(0x80),
 		"DnsFlagsResponseCode":   "NoError",
-		"TimeFlowRttMs":          float64(someDuration.Milliseconds()),
+		"TimeFlowRttNs":          float64(someDuration.Nanoseconds()),
 	}, capturedRecord)
 }
 
