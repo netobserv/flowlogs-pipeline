@@ -82,7 +82,7 @@ func TestGRPCPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"grpc","ingest":{"type":"grpc","grpc":{"port":9050,"bufferLength":50}}}`, string(b))
+	require.JSONEq(t, `{"name":"grpc","ingest":{"type":"grpc","grpc":{"port":9050,"bufferLength":50,"tls":null}}}`, string(b))
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)

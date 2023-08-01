@@ -13,6 +13,7 @@ import (
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 	"github.com/sirupsen/logrus"
 	grpc2 "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
@@ -31,21 +32,32 @@ type GRPCProtobuf struct {
 }
 
 func NewGRPCProtobuf(opMetrics *operational.Metrics, params config.StageParam) (*GRPCProtobuf, error) {
-	netObserv := api.IngestGRPCProto{}
+	cfg := api.IngestGRPCProto{}
 	if params.Ingest != nil && params.Ingest.GRPC != nil {
-		netObserv = *params.Ingest.GRPC
+		cfg = *params.Ingest.GRPC
 	}
-	if netObserv.Port == 0 {
+	if cfg.Port == 0 {
 		return nil, fmt.Errorf("ingest port not specified")
 	}
-	bufLen := netObserv.BufferLen
+	bufLen := cfg.BufferLen
 	if bufLen == 0 {
 		bufLen = defaultBufferLen
 	}
+	tlsConfig, err := cfg.TLS.Build()
+	if err != nil {
+		return nil, fmt.Errorf("error configuring TLS for GRPC ingestion: %w", err)
+	}
 	flowPackets := make(chan *pbflow.Records, bufLen)
 	metrics := newMetrics(opMetrics, params.Name, params.Ingest.Type, func() int { return len(flowPackets) })
-	collector, err := grpc.StartCollector(netObserv.Port, flowPackets,
-		grpc.WithGRPCServerOptions(grpc2.UnaryInterceptor(instrumentGRPC(metrics))))
+	options := []grpc2.ServerOption{grpc2.UnaryInterceptor(instrumentGRPC(metrics))}
+	if tlsConfig != nil {
+		options = append(options, grpc2.Creds(credentials.NewTLS(tlsConfig)))
+	}
+	collector, err := grpc.StartCollector(
+		cfg.Port,
+		flowPackets,
+		grpc.WithGRPCServerOptions(options...),
+	)
 	if err != nil {
 		return nil, err
 	}

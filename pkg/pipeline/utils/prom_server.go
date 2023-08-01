@@ -18,31 +18,43 @@
 package utils
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
-	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 )
 
 // StartPromServer listens for prometheus resource usage requests
-func StartPromServer(tlsConfig *api.PromTLSConf, server *http.Server, panicOnError bool) {
+func StartPromServer(cfg *config.MetricsSettings, server *http.Server) {
 	logrus.Debugf("entering StartPromServer")
+
+	// if value of address is empty, then by default it will take 0.0.0.0
+	server.Addr = fmt.Sprintf("%s:%v", cfg.Address, cfg.Port)
+	log.Infof("Prometheus server: addr = %s", server.Addr)
+	tlsConfig, err := cfg.TLS.Build()
+	if err != nil {
+		logrus.Errorf("error getting TLS configuration: %v", err)
+		if !cfg.NoPanic {
+			os.Exit(1)
+		}
+	}
+	server.TLSConfig = tlsConfig
 
 	// The Handler function provides a default handler to expose metrics
 	// via an HTTP server. "/metrics" is the usual endpoint for that.
 	http.Handle("/metrics", promhttp.Handler())
 
-	var err error
 	if tlsConfig != nil {
-		err = server.ListenAndServeTLS(tlsConfig.CertPath, tlsConfig.KeyPath)
+		err = server.ListenAndServeTLS(cfg.TLS.CertPath, cfg.TLS.KeyPath)
 	} else {
 		err = server.ListenAndServe()
 	}
 	if err != nil && err != http.ErrServerClosed {
 		logrus.Errorf("error in http.ListenAndServe: %v", err)
-		if panicOnError {
+		if !cfg.NoPanic {
 			os.Exit(1)
 		}
 	}

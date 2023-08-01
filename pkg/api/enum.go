@@ -29,6 +29,7 @@ type enums struct {
 	TransformGenericOperationEnum TransformGenericOperationEnum
 	KafkaEncodeBalancerEnum       KafkaEncodeBalancerEnum
 	SASLTypeEnum                  SASLTypeEnum
+	TLSTypeEnum                   TLSTypeEnum
 	ConnTrackOperationEnum        ConnTrackOperationEnum
 	ConnTrackOutputRecordTypeEnum ConnTrackOutputRecordTypeEnum
 	DecoderEnum                   DecoderEnum

@@ -19,7 +19,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -188,18 +187,8 @@ func run() {
 	}
 
 	// create prometheus server for operational metrics
-	// if value of address is empty, then by default it will take 0.0.0.0
-	addr := fmt.Sprintf("%s:%v", cfg.MetricsSettings.Address, cfg.MetricsSettings.Port)
-	log.Infof("startServer: addr = %s", addr)
-	promServer := &http.Server{
-		Addr: addr,
-		// TLS clients must use TLS 1.2 or higher
-		TLSConfig: &tls.Config{
-			MinVersion: tls.VersionTLS12,
-		},
-	}
-	tlsConfig := cfg.MetricsSettings.TLS
-	go utils.StartPromServer(tlsConfig, promServer, !cfg.MetricsSettings.NoPanic)
+	promServer := &http.Server{}
+	go utils.StartPromServer(&cfg.MetricsSettings, promServer)
 
 	// Create new flows pipeline
 	mainPipeline, err = pipeline.NewPipeline(&cfg)
