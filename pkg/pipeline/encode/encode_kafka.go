@@ -98,7 +98,7 @@ func NewEncodeKafka(opMetrics *operational.Metrics, params config.StageParam) (E
 	transport := kafkago.Transport{}
 	if config.TLS != nil {
 		log.Infof("Using TLS configuration: %v", config.TLS)
-		tlsConfig, err := config.TLS.Build()
+		tlsConfig, err := config.TLS.AsClient()
 		if err != nil {
 			return nil, err
 		}

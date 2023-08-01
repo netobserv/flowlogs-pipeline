@@ -34,7 +34,7 @@ func StartPromServer(cfg *config.MetricsSettings, server *http.Server) {
 	// if value of address is empty, then by default it will take 0.0.0.0
 	server.Addr = fmt.Sprintf("%s:%v", cfg.Address, cfg.Port)
 	log.Infof("Prometheus server: addr = %s", server.Addr)
-	tlsConfig, err := cfg.TLS.Build()
+	tlsConfig, err := cfg.TLS.AsServer()
 	if err != nil {
 		logrus.Errorf("error getting TLS configuration: %v", err)
 		if !cfg.NoPanic {

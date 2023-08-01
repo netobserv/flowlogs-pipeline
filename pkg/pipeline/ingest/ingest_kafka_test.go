@@ -230,7 +230,8 @@ func Test_TLSConfigCA(t *testing.T) {
 		Brokers: []string{"any"},
 		Topic:   "topic",
 		Decoder: api.Decoder{Type: "json"},
-		TLS: &api.ClientTLS{
+		TLS: &api.TLSConfig{
+			Type:       "simple",
 			CACertPath: ca,
 		},
 	})
@@ -252,10 +253,11 @@ func Test_MutualTLSConfig(t *testing.T) {
 		Brokers: []string{"any"},
 		Topic:   "topic",
 		Decoder: api.Decoder{Type: "json"},
-		TLS: &api.ClientTLS{
-			CACertPath:   ca,
-			UserCertPath: user,
-			UserKeyPath:  userKey,
+		TLS: &api.TLSConfig{
+			Type:       "mutual",
+			CACertPath: ca,
+			CertPath:   user,
+			KeyPath:    userKey,
 		},
 	})
 	newIngest, err := NewIngestKafka(operational.NewMetrics(&config.MetricsSettings{}), stage.GetStageParams()[0])

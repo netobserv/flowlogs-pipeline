@@ -43,7 +43,7 @@ func NewGRPCProtobuf(opMetrics *operational.Metrics, params config.StageParam) (
 	if bufLen == 0 {
 		bufLen = defaultBufferLen
 	}
-	tlsConfig, err := cfg.TLS.Build()
+	tlsConfig, err := cfg.TLS.AsServer()
 	if err != nil {
 		return nil, fmt.Errorf("error configuring TLS for GRPC ingestion: %w", err)
 	}

@@ -57,7 +57,7 @@ type Profile struct {
 type MetricsSettings struct {
 	Address           string         `yaml:"address,omitempty" json:"address,omitempty" doc:"address to expose \"/metrics\" endpoint"`
 	Port              int            `yaml:"port,omitempty" json:"port,omitempty" doc:"port number to expose \"/metrics\" endpoint"`
-	TLS               *api.ServerTLS `yaml:"tls,omitempty" json:"tls,omitempty" doc:"TLS configuration for the prometheus endpoint"`
+	TLS               *api.TLSConfig `yaml:"tls,omitempty" json:"tls,omitempty" doc:"TLS configuration for the prometheus endpoint"`
 	Prefix            string         `yaml:"prefix,omitempty" json:"prefix,omitempty" doc:"prefix for names of the operational metrics"`
 	NoPanic           bool           `yaml:"noPanic,omitempty" json:"noPanic,omitempty"`
 	SuppressGoMetrics bool           `yaml:"suppressGoMetrics,omitempty" json:"suppressGoMetrics,omitempty" doc:"filter out Go and process metrics"`

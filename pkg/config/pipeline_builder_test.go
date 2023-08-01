@@ -99,7 +99,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 		Topic:   "netflows",
 		GroupId: "my-group",
 		Decoder: api.Decoder{Type: "json"},
-		TLS: &api.ClientTLS{
+		TLS: &api.TLSConfig{
 			InsecureSkipVerify: true,
 			CACertPath:         "/ca.crt",
 		},

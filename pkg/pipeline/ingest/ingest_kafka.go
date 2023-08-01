@@ -225,7 +225,7 @@ func NewIngestKafka(opMetrics *operational.Metrics, params config.StageParam) (I
 	}
 	if jsonIngestKafka.TLS != nil {
 		klog.Infof("Using TLS configuration: %v", jsonIngestKafka.TLS)
-		tlsConfig, err := jsonIngestKafka.TLS.Build()
+		tlsConfig, err := jsonIngestKafka.TLS.AsClient()
 		if err != nil {
 			return nil, err
 		}
