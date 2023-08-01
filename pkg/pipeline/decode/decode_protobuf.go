@@ -88,8 +88,8 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 		out["TcpDropLatestDropCause"] = tcpDropCauseToStr(flow.GetTcpDropLatestDropCause())
 	}
 
-	if flow.TimeFlowRtt.AsDuration().Milliseconds() != 0 {
-		out["TimeFlowRttMs"] = flow.TimeFlowRtt.AsDuration().Milliseconds()
+	if flow.TimeFlowRtt.AsDuration().Nanoseconds() != 0 {
+		out["TimeFlowRttNs"] = flow.TimeFlowRtt.AsDuration().Nanoseconds()
 	}
 	return out
 }

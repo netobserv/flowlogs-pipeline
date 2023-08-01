@@ -93,7 +93,7 @@ func TestDecodeProtobuf(t *testing.T) {
 		"DnsId":                  uint32(1),
 		"DnsFlags":               uint32(0x8001),
 		"DnsFlagsResponseCode":   "FormErr",
-		"TimeFlowRttMs":          someDuration.Milliseconds(),
+		"TimeFlowRttNs":          someDuration.Nanoseconds(),
 	}, out)
 }
 
@@ -171,7 +171,7 @@ func TestPBFlowToMap(t *testing.T) {
 		"DnsId":                  uint32(1),
 		"DnsFlags":               uint32(0x80),
 		"DnsFlagsResponseCode":   "NoError",
-		"TimeFlowRttMs":          someDuration.Milliseconds(),
+		"TimeFlowRttNs":          someDuration.Nanoseconds(),
 	}, out)
 
 }
