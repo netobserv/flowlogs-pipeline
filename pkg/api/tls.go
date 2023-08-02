@@ -57,8 +57,10 @@ func (c *TLSConfig) AsClient() (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: c.InsecureSkipVerify,
 	}
-	if err := c.setCA(tlsConfig); err != nil {
+	if pool, err := c.buildCA(tlsConfig); err != nil {
 		return nil, err
+	} else {
+		tlsConfig.RootCAs = pool
 	}
 
 	if c.Type == TLSTypeName("Mutual") {
@@ -100,22 +102,24 @@ func (c *TLSConfig) AsServer() (*tls.Config, error) {
 			return nil, errors.New("caCertPath must be provided for server mTLS")
 		}
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		if err := c.setCA(tlsConfig); err != nil {
+		if pool, err := c.buildCA(tlsConfig); err != nil {
 			return nil, err
+		} else {
+			tlsConfig.ClientCAs = pool
 		}
 	}
 
 	return tlsConfig, nil
 }
 
-func (c *TLSConfig) setCA(cfg *tls.Config) error {
+func (c *TLSConfig) buildCA(cfg *tls.Config) (*x509.CertPool, error) {
 	caCert, err := os.ReadFile(c.CACertPath)
 	if err != nil {
-		return fmt.Errorf("could not read CA file: %w", err)
+		return nil, fmt.Errorf("could not read CA file: %w", err)
 	}
-	cfg.RootCAs = x509.NewCertPool()
-	cfg.RootCAs.AppendCertsFromPEM(caCert)
-	return nil
+	pool := x509.NewCertPool()
+	pool.AppendCertsFromPEM(caCert)
+	return pool, nil
 }
 
 func (c *TLSConfig) setCerts(cfg *tls.Config) error {

@@ -31,7 +31,7 @@ type GRPCProtobuf struct {
 	metrics     *metrics
 }
 
-func NewGRPCProtobuf(opMetrics *operational.Metrics, params config.StageParam) (*GRPCProtobuf, error) {
+func NewGRPCProtobuf(opMetrics *operational.Metrics, params config.StageParam) (Ingester, error) {
 	cfg := api.IngestGRPCProto{}
 	if params.Ingest != nil && params.Ingest.GRPC != nil {
 		cfg = *params.Ingest.GRPC
