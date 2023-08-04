@@ -37,11 +37,12 @@ type aggregator interface {
 }
 
 type aggregateBase struct {
-	inputField  string
-	outputField string
-	splitAB     bool
-	initVal     interface{}
-	metrics     *metricsType
+	inputField    string
+	outputField   string
+	splitAB       bool
+	initVal       interface{}
+	metrics       *metricsType
+	reportMissing bool
 }
 
 type aSum struct{ aggregateBase }
@@ -64,7 +65,7 @@ func newAggregator(of api.OutputField, metrics *metricsType) (aggregator, error)
 	} else {
 		inputField = of.Name
 	}
-	aggBase := aggregateBase{inputField: inputField, outputField: of.Name, splitAB: of.SplitAB, metrics: metrics}
+	aggBase := aggregateBase{inputField: inputField, outputField: of.Name, splitAB: of.SplitAB, metrics: metrics, reportMissing: of.ReportMissing}
 	var agg aggregator
 	switch of.Operation {
 	case api.ConnTrackOperationName("Sum"):
@@ -109,10 +110,15 @@ func (agg *aggregateBase) getOutputField(d direction) string {
 func (agg *aggregateBase) getInputFieldValue(flowLog config.GenericMap) (float64, error) {
 	rawValue, ok := flowLog[agg.inputField]
 	if !ok {
-		if agg.metrics != nil {
-			agg.metrics.aggregatorErrors.WithLabelValues("MissingFieldError", agg.inputField).Inc()
+		// error only if explicitly specified as FLP skip empty fields by default to reduce storage size
+		if agg.reportMissing {
+			if agg.metrics != nil {
+				agg.metrics.aggregatorErrors.WithLabelValues("MissingFieldError", agg.inputField).Inc()
+			}
+			return 0, fmt.Errorf("missing field %v", agg.inputField)
 		}
-		return 0, fmt.Errorf("missing field %v", agg.inputField)
+		// fallback on 0 without error
+		return 0, nil
 	}
 	floatValue, err := utils.ConvertToFloat64(rawValue)
 	if err != nil {
@@ -179,11 +185,13 @@ func (agg *aMax) update(conn connection, flowLog config.GenericMap, d direction,
 }
 
 func (cp *aFirst) update(conn connection, flowLog config.GenericMap, d direction, isNew bool) {
-	if isNew {
+	if isNew && flowLog[cp.inputField] != nil {
 		conn.updateAggValue(cp.outputField, flowLog[cp.inputField])
 	}
 }
 
 func (cp *aLast) update(conn connection, flowLog config.GenericMap, d direction, isNew bool) {
-	conn.updateAggValue(cp.outputField, flowLog[cp.inputField])
+	if flowLog[cp.inputField] != nil {
+		conn.updateAggValue(cp.outputField, flowLog[cp.inputField])
+	}
 }

@@ -65,52 +65,52 @@ func TestNewAggregator_Valid(t *testing.T) {
 		{
 			name:        "Default SplitAB",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "sum"},
-			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", false, float64(0), nil}},
+			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", false, float64(0), nil, false}},
 		},
 		{
 			name:        "Default input",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "sum", SplitAB: true},
-			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", true, float64(0), nil}},
+			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", true, float64(0), nil, false}},
 		},
 		{
 			name:        "Custom input",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "sum", Input: "MyInput"},
-			expected:    &aSum{aggregateBase{"MyInput", "MyAgg", false, float64(0), nil}},
+			expected:    &aSum{aggregateBase{"MyInput", "MyAgg", false, float64(0), nil, false}},
 		},
 		{
-			name:        "OperationType sum",
-			outputField: api.OutputField{Name: "MyAgg", Operation: "sum"},
-			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", false, float64(0), nil}},
+			name:        "OperationType sum with errors",
+			outputField: api.OutputField{Name: "MyAgg", Operation: "sum", ReportMissing: true},
+			expected:    &aSum{aggregateBase{"MyAgg", "MyAgg", false, float64(0), nil, true}},
 		},
 		{
-			name:        "OperationType count",
-			outputField: api.OutputField{Name: "MyAgg", Operation: "count"},
-			expected:    &aCount{aggregateBase{"MyAgg", "MyAgg", false, float64(0), nil}},
+			name:        "OperationType count with errors",
+			outputField: api.OutputField{Name: "MyAgg", Operation: "count", ReportMissing: true},
+			expected:    &aCount{aggregateBase{"MyAgg", "MyAgg", false, float64(0), nil, true}},
 		},
 		{
 			name:        "OperationType max",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "max"},
-			expected:    &aMax{aggregateBase{"MyAgg", "MyAgg", false, -math.MaxFloat64, nil}},
+			expected:    &aMax{aggregateBase{"MyAgg", "MyAgg", false, -math.MaxFloat64, nil, false}},
 		},
 		{
 			name:        "OperationType min",
 			outputField: api.OutputField{Name: "MyAgg", Operation: "min"},
-			expected:    &aMin{aggregateBase{"MyAgg", "MyAgg", false, math.MaxFloat64, nil}},
+			expected:    &aMin{aggregateBase{"MyAgg", "MyAgg", false, math.MaxFloat64, nil, false}},
 		},
 		{
 			name:        "Default first",
 			outputField: api.OutputField{Name: "MyCp", Operation: "first"},
-			expected:    &aFirst{aggregateBase{"MyCp", "MyCp", false, nil, nil}},
+			expected:    &aFirst{aggregateBase{"MyCp", "MyCp", false, nil, nil, false}},
 		},
 		{
 			name:        "Custom input first",
 			outputField: api.OutputField{Name: "MyCp", Operation: "first", Input: "MyInput"},
-			expected:    &aFirst{aggregateBase{"MyInput", "MyCp", false, nil, nil}},
+			expected:    &aFirst{aggregateBase{"MyInput", "MyCp", false, nil, nil, false}},
 		},
 		{
 			name:        "Default last",
 			outputField: api.OutputField{Name: "MyCp", Operation: "last"},
-			expected:    &aLast{aggregateBase{"MyCp", "MyCp", false, nil, nil}},
+			expected:    &aLast{aggregateBase{"MyCp", "MyCp", false, nil, nil, false}},
 		},
 	}
 
@@ -132,6 +132,7 @@ func TestAddField_and_Update(t *testing.T) {
 		{Name: "maxFlowLogBytes", Operation: "max", Input: "Bytes"},
 		{Name: "FirstFlowDirection", Operation: "first", Input: "FlowDirection"},
 		{Name: "LastFlowDirection", Operation: "last", Input: "FlowDirection"},
+		{Name: "PktDropLatestDropCause", Operation: "last", Input: "PktDropLatestDropCause"},
 	}
 	var aggs []aggregator
 	for _, of := range ofs {
@@ -158,13 +159,49 @@ func TestAddField_and_Update(t *testing.T) {
 			name:      "flowLog 1",
 			flowLog:   newMockFlowLog(ipA, portA, ipB, portB, protocolA, flowDirA, 100, 10, false),
 			direction: dirAB,
-			expected:  map[string]interface{}{"Bytes_AB": float64(100), "Bytes_BA": float64(0), "Packets": float64(10), "maxFlowLogBytes": float64(100), "minFlowLogBytes": float64(100), "numFlowLogs": float64(1), "FirstFlowDirection": 0, "LastFlowDirection": 0},
+			expected: map[string]interface{}{
+				"Bytes_AB":               float64(100),
+				"Bytes_BA":               float64(0),
+				"Packets":                float64(10),
+				"maxFlowLogBytes":        float64(100),
+				"minFlowLogBytes":        float64(100),
+				"numFlowLogs":            float64(1),
+				"FirstFlowDirection":     0,
+				"LastFlowDirection":      0,
+				"PktDropLatestDropCause": nil,
+			},
 		},
 		{
 			name:      "flowLog 2",
-			flowLog:   newMockFlowLog(ipA, portA, ipB, portB, protocolA, flowDirB, 200, 20, false),
+			flowLog:   config.GenericMap{"SrcAddr": ipA, "DstAddr": ipB, "Bytes": 100, "FlowDirection": flowDirA, "PktDropLatestDropCause": "SKB_DROP_REASON_NO_SOCKET"},
+			direction: dirAB,
+			expected: map[string]interface{}{
+				"Bytes_AB":               float64(200), // updated bytes count
+				"Bytes_BA":               float64(0),
+				"Packets":                float64(10),
+				"maxFlowLogBytes":        float64(100),
+				"minFlowLogBytes":        float64(100),
+				"numFlowLogs":            float64(2), // updated flow count
+				"FirstFlowDirection":     0,
+				"LastFlowDirection":      0,
+				"PktDropLatestDropCause": "SKB_DROP_REASON_NO_SOCKET", // added drop cause
+			},
+		},
+		{
+			name:      "flowLog 3",
+			flowLog:   newMockFlowLog(ipA, portA, ipB, portB, protocolA, flowDirB, 300, 20, false),
 			direction: dirBA,
-			expected:  map[string]interface{}{"Bytes_AB": float64(100), "Bytes_BA": float64(200), "Packets": float64(30), "maxFlowLogBytes": float64(200), "minFlowLogBytes": float64(100), "numFlowLogs": float64(2), "FirstFlowDirection": 0, "LastFlowDirection": 1},
+			expected: map[string]interface{}{
+				"Bytes_AB":               float64(200),
+				"Bytes_BA":               float64(300), // updated reverse direction byte count
+				"Packets":                float64(30),
+				"maxFlowLogBytes":        float64(300), // updated max bytes from any direction
+				"minFlowLogBytes":        float64(100),
+				"numFlowLogs":            float64(3), // updated count
+				"FirstFlowDirection":     0,
+				"LastFlowDirection":      1,
+				"PktDropLatestDropCause": "SKB_DROP_REASON_NO_SOCKET", // missing field is kept to its last available value
+			},
 		},
 	}
 
@@ -172,7 +209,17 @@ func TestAddField_and_Update(t *testing.T) {
 	for _, agg := range aggs {
 		agg.addField(conn)
 	}
-	expectedInits := map[string]interface{}{"Bytes_AB": float64(0), "Bytes_BA": float64(0), "Packets": float64(0), "maxFlowLogBytes": float64(-math.MaxFloat64), "minFlowLogBytes": float64(math.MaxFloat64), "numFlowLogs": float64(0), "FirstFlowDirection": nil, "LastFlowDirection": nil}
+	expectedInits := map[string]interface{}{
+		"Bytes_AB":               float64(0),
+		"Bytes_BA":               float64(0),
+		"Packets":                float64(0),
+		"maxFlowLogBytes":        float64(-math.MaxFloat64),
+		"minFlowLogBytes":        float64(math.MaxFloat64),
+		"numFlowLogs":            float64(0),
+		"FirstFlowDirection":     nil,
+		"LastFlowDirection":      nil,
+		"PktDropLatestDropCause": nil,
+	}
 	require.Equal(t, expectedInits, conn.(*connType).aggFields)
 
 	for i, test := range table {
@@ -188,7 +235,7 @@ func TestAddField_and_Update(t *testing.T) {
 func TestMissingFieldError(t *testing.T) {
 	test.ResetPromRegistry()
 	metrics := newMetrics(opMetrics)
-	agg, err := newAggregator(api.OutputField{Name: "Bytes", Operation: "sum", SplitAB: true}, metrics)
+	agg, err := newAggregator(api.OutputField{Name: "Bytes", Operation: "sum", SplitAB: true, ReportMissing: true}, metrics)
 	require.NoError(t, err)
 
 	conn := NewConnBuilder(metrics).Build()
@@ -199,6 +246,22 @@ func TestMissingFieldError(t *testing.T) {
 
 	exposed := test.ReadExposedMetrics(t)
 	require.Contains(t, exposed, `conntrack_aggregator_errors{error="MissingFieldError",field="Bytes"} 1`)
+}
+
+func TestSkipMissingFieldError(t *testing.T) {
+	test.ResetPromRegistry()
+	metrics := newMetrics(opMetrics)
+	agg, err := newAggregator(api.OutputField{Name: "Bytes", Operation: "sum", SplitAB: true}, metrics)
+	require.NoError(t, err)
+
+	conn := NewConnBuilder(metrics).Build()
+	agg.addField(conn)
+
+	flowLog := config.GenericMap{}
+	agg.update(conn, flowLog, dirAB, true)
+
+	exposed := test.ReadExposedMetrics(t)
+	require.NotContains(t, exposed, `conntrack_aggregator_errors{error="MissingFieldError",field="Bytes"}`)
 }
 
 func TestFloat64ConversionError(t *testing.T) {
