@@ -40,13 +40,11 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 	}
 	out := config.GenericMap{
 		"FlowDirection":   int(flow.Direction.Number()),
-		"Bytes":           flow.Bytes,
 		"SrcAddr":         ipToStr(flow.Network.GetSrcAddr()),
 		"DstAddr":         ipToStr(flow.Network.GetDstAddr()),
 		"SrcMac":          macToStr(flow.DataLink.GetSrcMac()),
 		"DstMac":          macToStr(flow.DataLink.GetDstMac()),
 		"Etype":           flow.EthProtocol,
-		"Packets":         flow.Packets,
 		"Duplicate":       flow.Duplicate,
 		"Proto":           flow.Transport.GetProtocol(),
 		"TimeFlowStartMs": flow.TimeFlowStart.AsTime().UnixMilli(),
@@ -54,6 +52,14 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 		"TimeReceived":    time.Now().Unix(),
 		"Interface":       flow.Interface,
 		"AgentIP":         ipToStr(flow.AgentIp),
+	}
+
+	if flow.Bytes != 0 {
+		out["Bytes"] = flow.Bytes
+	}
+
+	if flow.Packets != 0 {
+		out["Packets"] = flow.Packets
 	}
 
 	proto := flow.Transport.GetProtocol()
