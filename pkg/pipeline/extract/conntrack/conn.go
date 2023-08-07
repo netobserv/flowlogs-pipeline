@@ -19,6 +19,7 @@ package conntrack
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
@@ -100,7 +101,9 @@ func (c *connType) getNextHeartbeatTime() time.Time {
 func (c *connType) toGenericMap() config.GenericMap {
 	gm := config.GenericMap{}
 	for k, v := range c.aggFields {
-		gm[k] = v
+		if v != nil && (reflect.TypeOf(v).Kind() != reflect.Float64 || v.(float64) != 0) {
+			gm[k] = v
+		}
 	}
 
 	// In case of a conflict between the keys and the aggFields / cpFields, the keys should prevail.

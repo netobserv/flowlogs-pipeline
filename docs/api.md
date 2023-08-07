@@ -241,6 +241,7 @@ Following is the supported API format for specifying connection tracking:
                      last: last
                  splitAB: When true, 2 output fields will be created. One for A->B and one for B->A flows.
                  input: The input field to base the operation on. When omitted, 'name' is used
+                 reportMissing: When true, missing input will produce MissingFieldError metric and error logs
          scheduling: list of timeouts and intervals to apply per selector
                  selector: key-value map to match against connection fields to apply this scheduling
                  endConnectionTimeout: duration of time to wait from the last flow log to end a connection

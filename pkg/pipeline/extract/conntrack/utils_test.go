@@ -59,13 +59,25 @@ func newMockRecordConnAB(srcIP string, srcPort int, dstIP string, dstPort int, p
 			"DstAddr":            dstIP,
 			"DstPort":            dstPort,
 			"Proto":              protocol,
-			"Bytes_AB":           bytesAB,
-			"Bytes_BA":           bytesBA,
-			"Packets_AB":         packetsAB,
-			"Packets_BA":         packetsBA,
 			"numFlowLogs":        numFlowLogs,
 			api.IsFirstFieldName: false,
 		},
+	}
+
+	if bytesAB != 0 {
+		mock.record["Bytes_AB"] = bytesAB
+	}
+
+	if bytesBA != 0 {
+		mock.record["Bytes_BA"] = bytesBA
+	}
+
+	if bytesAB != 0 {
+		mock.record["Packets_AB"] = packetsAB
+	}
+
+	if bytesBA != 0 {
+		mock.record["Packets_BA"] = packetsBA
 	}
 	return mock
 }

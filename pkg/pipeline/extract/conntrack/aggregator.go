@@ -185,7 +185,7 @@ func (agg *aMax) update(conn connection, flowLog config.GenericMap, d direction,
 }
 
 func (cp *aFirst) update(conn connection, flowLog config.GenericMap, d direction, isNew bool) {
-	if isNew && flowLog[cp.inputField] != nil {
+	if isNew {
 		conn.updateAggValue(cp.outputField, flowLog[cp.inputField])
 	}
 }
