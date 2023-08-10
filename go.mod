@@ -11,6 +11,7 @@ require (
 	github.com/ip2location/ip2location-go/v9 v9.2.0
 	github.com/json-iterator/go v1.1.12
 	github.com/mariomac/guara v0.0.0-20220523124851-5fc279816f1f
+	github.com/mdlayher/ethernet v0.0.0-20220221185849-529eae5b6118
 	github.com/minio/minio-go/v7 v7.0.44
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/netobserv/gopipes v0.3.0
