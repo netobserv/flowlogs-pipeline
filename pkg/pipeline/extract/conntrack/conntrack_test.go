@@ -752,21 +752,21 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 }
 
 // TestScheduling tests scheduling groups. It configures 2 scheduling groups:
-//  1. ICMP connections
+//  1. UDP connections
 //  2. default group (matches TCP connections among other things)
 //
-// Then, it creates 4 flow logs: 2 that belong to an ICMP connection and 2 that belong to a TCP connection.
+// Then, it creates 4 flow logs: 2 that belong to an UDP connection and 2 that belong to a TCP connection.
 // The test verifies that heartbeat and endConnection records are emitted at the right timestamps for each
 // connection according to its scheduling group.
 // The timeline events of the test is as follows ("I" and "O" indicates input and output):
 // 0s:  I flow 			TCP
-// 0s:  I flow 			ICMP
+// 0s:  I flow 			UDP
 // 10s: I flow 			TCP
-// 15s: I flow			ICMP
+// 15s: I flow			UDP
 // 20s: O heartbeat		TCP
 // 25s: O endConn 		TCP
-// 30s: O heartbeat		ICMP
-// 35s: O endConn 		ICMP
+// 30s: O heartbeat		UDP
+// 35s: O endConn 		UDP
 func TestScheduling(t *testing.T) {
 	test.ResetPromRegistry()
 	clk := clock.NewMock()
@@ -781,7 +781,7 @@ func TestScheduling(t *testing.T) {
 	conf.Extract.ConnTrack.Scheduling = append(
 		[]api.ConnTrackSchedulingGroup{
 			{
-				Selector:             map[string]interface{}{"Proto": 1}, // ICMP
+				Selector:             map[string]interface{}{"Proto": 17}, // UDP
 				HeartbeatInterval:    api.Duration{Duration: 30 * time.Second},
 				EndConnectionTimeout: api.Duration{Duration: 20 * time.Second},
 				TerminatingTimeout:   api.Duration{Duration: 10 * time.Second},
@@ -796,14 +796,14 @@ func TestScheduling(t *testing.T) {
 	portA := 9001
 	portB := 9002
 	protocolTCP := 6
-	protocolICMP := 1
+	protocolUDP := 17
 	flowDir := 0
 	hashIdTCP := "705baa5149302fa1"
-	hashIdICMP := "3dccf73fe57ba06f"
+	hashIdUDP := "70fb44d4ad00d2e2"
 	flTCP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolTCP, flowDir, 111, 11, false)
 	flTCP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolTCP, flowDir, 222, 22, false)
-	flICMP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolICMP, flowDir, 333, 33, false)
-	flICMP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolICMP, flowDir, 444, 44, false)
+	flUDP1 := newMockFlowLog(ipA, portA, ipB, portB, protocolUDP, flowDir, 333, 33, false)
+	flUDP2 := newMockFlowLog(ipB, portB, ipA, portA, protocolUDP, flowDir, 444, 44, false)
 	startTime := clk.Now()
 	table := []struct {
 		name          string
@@ -812,9 +812,9 @@ func TestScheduling(t *testing.T) {
 		expected      []config.GenericMap
 	}{
 		{
-			"start: flow TCP, flow ICMP",
+			"start: flow TCP, flow UDP",
 			startTime.Add(0 * time.Second),
-			[]config.GenericMap{flTCP1, flICMP1},
+			[]config.GenericMap{flTCP1, flUDP1},
 			nil,
 		},
 		{
@@ -824,9 +824,9 @@ func TestScheduling(t *testing.T) {
 			nil,
 		},
 		{
-			"15s: flow ICMP",
+			"15s: flow UDP",
 			startTime.Add(15 * time.Second),
-			[]config.GenericMap{flICMP2},
+			[]config.GenericMap{flUDP2},
 			nil,
 		},
 		{
@@ -864,11 +864,11 @@ func TestScheduling(t *testing.T) {
 			nil,
 		},
 		{
-			"31s: heartbeat ICMP conn",
+			"31s: heartbeat UDP conn",
 			startTime.Add(31 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordHeartbeatAB(ipA, portA, ipB, portB, protocolICMP, 333, 444, 33, 44, 2).withHash(hashIdICMP).markFirst().get(),
+				newMockRecordHeartbeatAB(ipA, portA, ipB, portB, protocolUDP, 333, 444, 33, 44, 2).withHash(hashIdUDP).markFirst().get(),
 			},
 		},
 		{
@@ -878,11 +878,11 @@ func TestScheduling(t *testing.T) {
 			nil,
 		},
 		{
-			"36s: end conn ICMP",
+			"36s: end conn UDP",
 			startTime.Add(36 * time.Second),
 			nil,
 			[]config.GenericMap{
-				newMockRecordEndConnAB(ipA, portA, ipB, portB, protocolICMP, 333, 444, 33, 44, 2).withHash(hashIdICMP).get(),
+				newMockRecordEndConnAB(ipA, portA, ipB, portB, protocolUDP, 333, 444, 33, 44, 2).withHash(hashIdUDP).get(),
 			},
 		},
 	}
@@ -899,7 +899,7 @@ func TestScheduling(t *testing.T) {
 		})
 	}
 	exposed := test.ReadExposedMetrics(t)
-	require.Contains(t, exposed, `conntrack_end_connections{group="0: Proto=1, ",reason="timeout"} 1`)
+	require.Contains(t, exposed, `conntrack_end_connections{group="0: Proto=17, ",reason="timeout"} 1`)
 }
 
 func assertStoreConsistency(t *testing.T, extractor extract.Extractor) {

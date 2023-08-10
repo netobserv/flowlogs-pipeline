@@ -56,13 +56,19 @@ type conntrackImpl struct {
 	metrics                          *metricsType
 }
 
+func (ct *conntrackImpl) filterFlowLog(fl config.GenericMap) bool {
+	if !fl.IsValidProtocol() || !fl.IsTransportProtocol() {
+		return true
+	}
+	return false
+}
+
 func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericMap {
 	log.Debugf("entering Extract conntrack, in = %v", flowLogs)
 
 	var outputRecords []config.GenericMap
 	for _, fl := range flowLogs {
-		if !fl.IsValidProtocol() {
-			log.Debugf("skipping layer2 protocols flow log %v", fl)
+		if ct.filterFlowLog(fl) {
 			ct.metrics.inputRecords.WithLabelValues("discarded").Inc()
 			continue
 		}

@@ -351,7 +351,7 @@ func TestDecodeProtobuf(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotZero(t, out["TimeReceived"])
 		delete(out, "TimeReceived")
-		assert.Equal(t, *tt.expected, out)
+		assert.Equalf(t, *tt.expected, out, tt.name)
 	}
 }
 

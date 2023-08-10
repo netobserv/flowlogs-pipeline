@@ -52,13 +52,6 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 		"AgentIP":         ipToStr(flow.AgentIp),
 	}
 
-	ethType := ethernet.EtherType(flow.EthProtocol)
-	if ethType == ethernet.EtherTypeIPv4 || ethType == ethernet.EtherTypeIPv6 {
-		out["SrcAddr"] = ipToStr(flow.Network.GetSrcAddr())
-		out["DstAddr"] = ipToStr(flow.Network.GetDstAddr())
-		out["Proto"] = flow.Transport.GetProtocol()
-	}
-
 	if flow.Bytes != 0 {
 		out["Bytes"] = flow.Bytes
 	}
@@ -67,20 +60,26 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 		out["Packets"] = flow.Packets
 	}
 
-	proto := flow.Transport.GetProtocol()
-	if proto == syscall.IPPROTO_ICMP || proto == syscall.IPPROTO_ICMPV6 {
-		out["IcmpType"] = flow.GetIcmpType()
-		out["IcmpCode"] = flow.GetIcmpCode()
-	}
+	ethType := ethernet.EtherType(flow.EthProtocol)
+	if ethType == ethernet.EtherTypeIPv4 || ethType == ethernet.EtherTypeIPv6 {
+		out["SrcAddr"] = ipToStr(flow.Network.GetSrcAddr())
+		out["DstAddr"] = ipToStr(flow.Network.GetDstAddr())
+		out["Proto"] = flow.Transport.GetProtocol()
+		proto := flow.Transport.GetProtocol()
+		if proto == syscall.IPPROTO_ICMP || proto == syscall.IPPROTO_ICMPV6 {
+			out["IcmpType"] = flow.GetIcmpType()
+			out["IcmpCode"] = flow.GetIcmpCode()
+		}
 
-	if proto == syscall.IPPROTO_TCP || proto == syscall.IPPROTO_UDP || proto == syscall.IPPROTO_SCTP {
-		if proto == syscall.IPPROTO_TCP {
-			out["SrcPort"] = flow.Transport.GetSrcPort()
-			out["DstPort"] = flow.Transport.GetDstPort()
-			out["Flags"] = flow.Flags
-		} else {
-			out["SrcPort"] = flow.Transport.GetSrcPort()
-			out["DstPort"] = flow.Transport.GetDstPort()
+		if proto == syscall.IPPROTO_TCP || proto == syscall.IPPROTO_UDP || proto == syscall.IPPROTO_SCTP {
+			if proto == syscall.IPPROTO_TCP {
+				out["SrcPort"] = flow.Transport.GetSrcPort()
+				out["DstPort"] = flow.Transport.GetDstPort()
+				out["Flags"] = flow.Flags
+			} else {
+				out["SrcPort"] = flow.Transport.GetSrcPort()
+				out["DstPort"] = flow.Transport.GetDstPort()
+			}
 		}
 	}
 

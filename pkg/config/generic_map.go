@@ -17,7 +17,11 @@
 
 package config
 
-import "github.com/netobserv/flowlogs-pipeline/pkg/utils"
+import (
+	"syscall"
+
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
+)
 
 type GenericMap map[string]interface{}
 
@@ -47,8 +51,19 @@ func (m GenericMap) IsDuplicate() bool {
 }
 
 func (m GenericMap) IsValidProtocol() bool {
-	if _, ok := m[protoFieldName]; !ok {
-		return false
+	if _, ok := m[protoFieldName]; ok {
+		return true
 	}
-	return true
+	return false
+}
+
+func (m GenericMap) IsTransportProtocol() bool {
+	if v, ok := m[protoFieldName]; ok {
+		if proto, err := utils.ConvertToFloat64(v); err == nil {
+			if proto == float64(syscall.IPPROTO_TCP) || proto == float64(syscall.IPPROTO_UDP) || proto == float64(syscall.IPPROTO_SCTP) {
+				return true
+			}
+		}
+	}
+	return false
 }
