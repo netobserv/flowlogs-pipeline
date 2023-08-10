@@ -61,6 +61,11 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 
 	var outputRecords []config.GenericMap
 	for _, fl := range flowLogs {
+		if !fl.IsValidProtocol() {
+			log.Debugf("skipping layer2 protocols flow log %v", fl)
+			ct.metrics.inputRecords.WithLabelValues("discarded").Inc()
+			continue
+		}
 		computedHash, err := ComputeHash(fl, ct.config.KeyDefinition, ct.hashProvider(), ct.metrics)
 		if err != nil {
 			log.Warningf("skipping flow log %v: %v", fl, err)

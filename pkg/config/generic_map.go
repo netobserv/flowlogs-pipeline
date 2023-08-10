@@ -21,7 +21,10 @@ import "github.com/netobserv/flowlogs-pipeline/pkg/utils"
 
 type GenericMap map[string]interface{}
 
-const duplicateFieldName = "Duplicate"
+const (
+	duplicateFieldName = "Duplicate"
+	protoFieldName     = "Proto"
+)
 
 // Copy will create a flat copy of GenericMap
 func (m GenericMap) Copy() GenericMap {
@@ -41,4 +44,11 @@ func (m GenericMap) IsDuplicate() bool {
 		}
 	}
 	return false
+}
+
+func (m GenericMap) IsValidProtocol() bool {
+	if _, ok := m[protoFieldName]; !ok {
+		return false
+	}
+	return true
 }
