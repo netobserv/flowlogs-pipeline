@@ -673,6 +673,16 @@ A possible output would look like:
     "TimeReceived": 1661430300
 }
 ```
+#### Connection tracking metrics
+
+The following table shows the possible values of the `classification` label in `conntrack_input_records` operational metric.
+
+| Metric          | Reason                                                                                     |
+|-----------------|--------------------------------------------------------------------------------------------|
+ | `discarded`     | layer2 protocols like ARP, none transport protocols like ICMPv4/6 and too many connections |
+ | `rejected`      | when Error happens calculating connection track hash                                       |
+ | `duplicate`     | for duplicate flows                                                                        |
+ | `newConnection` | when new connection tracking flow is created                                               |
 
 Notice that all output records contain `_RecordType` and `_HashId` fields.
 Output fields that set `splitAB: true` (like in `Bytes`) are split into 2 fields `Bytes_AB` and `Bytes_BA` which 
