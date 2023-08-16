@@ -13,6 +13,12 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+const (
+	skbDropReasonSubsystemShift    = 16
+	skbDropReasonSubSysCore        = (0 << skbDropReasonSubsystemShift)
+	skbDropReasonSubSysOpenVSwitch = (3 << skbDropReasonSubsystemShift)
+)
+
 // Protobuf decodes protobuf flow records definitions, as forwarded by
 // ingest.NetObservAgent, into a Generic Map that follows the same naming conventions
 // as the IPFIX flows from ingest.IngestCollector
@@ -154,154 +160,179 @@ func tcpStateToStr(state uint32) string {
 // https://elixir.bootlin.com/linux/latest/source/include/net/dropreason.h#L88
 func pktDropCauseToStr(dropCause uint32) string {
 	switch dropCause {
-	case 2:
+	case skbDropReasonSubSysCore + 2:
 		return "SKB_DROP_REASON_NOT_SPECIFIED"
-	case 3:
+	case skbDropReasonSubSysCore + 3:
 		return "SKB_DROP_REASON_NO_SOCKET"
-	case 4:
+	case skbDropReasonSubSysCore + 4:
 		return "SKB_DROP_REASON_PKT_TOO_SMALL"
-	case 5:
+	case skbDropReasonSubSysCore + 5:
 		return "SKB_DROP_REASON_TCP_CSUM"
-	case 6:
+	case skbDropReasonSubSysCore + 6:
 		return "SKB_DROP_REASON_SOCKET_FILTER"
-	case 7:
+	case skbDropReasonSubSysCore + 7:
 		return "SKB_DROP_REASON_UDP_CSUM"
-	case 8:
+	case skbDropReasonSubSysCore + 8:
 		return "SKB_DROP_REASON_NETFILTER_DROP"
-	case 9:
+	case skbDropReasonSubSysCore + 9:
 		return "SKB_DROP_REASON_OTHERHOST"
-	case 10:
+	case skbDropReasonSubSysCore + 10:
 		return "SKB_DROP_REASON_IP_CSUM"
-	case 11:
+	case skbDropReasonSubSysCore + 11:
 		return "SKB_DROP_REASON_IP_INHDR"
-	case 12:
+	case skbDropReasonSubSysCore + 12:
 		return "SKB_DROP_REASON_IP_RPFILTER"
-	case 13:
+	case skbDropReasonSubSysCore + 13:
 		return "SKB_DROP_REASON_UNICAST_IN_L2_MULTICAST"
-	case 14:
+	case skbDropReasonSubSysCore + 14:
 		return "SKB_DROP_REASON_XFRM_POLICY"
-	case 15:
+	case skbDropReasonSubSysCore + 15:
 		return "SKB_DROP_REASON_IP_NOPROTO"
-	case 16:
+	case skbDropReasonSubSysCore + 16:
 		return "SKB_DROP_REASON_SOCKET_RCVBUFF"
-	case 17:
+	case skbDropReasonSubSysCore + 17:
 		return "SKB_DROP_REASON_PROTO_MEM"
-	case 18:
+	case skbDropReasonSubSysCore + 18:
 		return "SKB_DROP_REASON_TCP_MD5NOTFOUND"
-	case 19:
+	case skbDropReasonSubSysCore + 19:
 		return "SKB_DROP_REASON_TCP_MD5UNEXPECTED"
-	case 20:
+	case skbDropReasonSubSysCore + 20:
 		return "SKB_DROP_REASON_TCP_MD5FAILURE"
-	case 21:
+	case skbDropReasonSubSysCore + 21:
 		return "SKB_DROP_REASON_SOCKET_BACKLOG"
-	case 22:
+	case skbDropReasonSubSysCore + 22:
 		return "SKB_DROP_REASON_TCP_FLAGS"
-	case 23:
+	case skbDropReasonSubSysCore + 23:
 		return "SKB_DROP_REASON_TCP_ZEROWINDOW"
-	case 24:
+	case skbDropReasonSubSysCore + 24:
 		return "SKB_DROP_REASON_TCP_OLD_DATA"
-	case 25:
+	case skbDropReasonSubSysCore + 25:
 		return "SKB_DROP_REASON_TCP_OVERWINDOW"
-	case 26:
+	case skbDropReasonSubSysCore + 26:
 		return "SKB_DROP_REASON_TCP_OFOMERGE"
-	case 27:
+	case skbDropReasonSubSysCore + 27:
 		return "SKB_DROP_REASON_TCP_RFC7323_PAWS"
-	case 28:
+	case skbDropReasonSubSysCore + 28:
 		return "SKB_DROP_REASON_TCP_INVALID_SEQUENCE"
-	case 29:
+	case skbDropReasonSubSysCore + 29:
 		return "SKB_DROP_REASON_TCP_RESET"
-	case 30:
+	case skbDropReasonSubSysCore + 30:
 		return "SKB_DROP_REASON_TCP_INVALID_SYN"
-	case 31:
+	case skbDropReasonSubSysCore + 31:
 		return "SKB_DROP_REASON_TCP_CLOSE"
-	case 32:
+	case skbDropReasonSubSysCore + 32:
 		return "SKB_DROP_REASON_TCP_FASTOPEN"
-	case 33:
+	case skbDropReasonSubSysCore + 33:
 		return "SKB_DROP_REASON_TCP_OLD_ACK"
-	case 34:
+	case skbDropReasonSubSysCore + 34:
 		return "SKB_DROP_REASON_TCP_TOO_OLD_ACK"
-	case 35:
+	case skbDropReasonSubSysCore + 35:
 		return "SKB_DROP_REASON_TCP_ACK_UNSENT_DATA"
-	case 36:
+	case skbDropReasonSubSysCore + 36:
 		return "SKB_DROP_REASON_TCP_OFO_QUEUE_PRUNE"
-	case 37:
+	case skbDropReasonSubSysCore + 37:
 		return "SKB_DROP_REASON_TCP_OFO_DROP"
-	case 38:
+	case skbDropReasonSubSysCore + 38:
 		return "SKB_DROP_REASON_IP_OUTNOROUTES"
-	case 39:
+	case skbDropReasonSubSysCore + 39:
 		return "SKB_DROP_REASON_BPF_CGROUP_EGRESS"
-	case 40:
+	case skbDropReasonSubSysCore + 40:
 		return "SKB_DROP_REASON_IPV6DISABLED"
-	case 41:
+	case skbDropReasonSubSysCore + 41:
 		return "SKB_DROP_REASON_NEIGH_CREATEFAIL"
-	case 42:
+	case skbDropReasonSubSysCore + 42:
 		return "SKB_DROP_REASON_NEIGH_FAILED"
-	case 43:
+	case skbDropReasonSubSysCore + 43:
 		return "SKB_DROP_REASON_NEIGH_QUEUEFULL"
-	case 44:
+	case skbDropReasonSubSysCore + 44:
 		return "SKB_DROP_REASON_NEIGH_DEAD"
-	case 45:
+	case skbDropReasonSubSysCore + 45:
 		return "SKB_DROP_REASON_TC_EGRESS"
-	case 46:
+	case skbDropReasonSubSysCore + 46:
 		return "SKB_DROP_REASON_QDISC_DROP"
-	case 47:
+	case skbDropReasonSubSysCore + 47:
 		return "SKB_DROP_REASON_CPU_BACKLOG"
-	case 48:
+	case skbDropReasonSubSysCore + 48:
 		return "SKB_DROP_REASON_XDP"
-	case 49:
+	case skbDropReasonSubSysCore + 49:
 		return "SKB_DROP_REASON_TC_INGRESS"
-	case 50:
+	case skbDropReasonSubSysCore + 50:
 		return "SKB_DROP_REASON_UNHANDLED_PROTO"
-	case 51:
+	case skbDropReasonSubSysCore + 51:
 		return "SKB_DROP_REASON_SKB_CSUM"
-	case 52:
+	case skbDropReasonSubSysCore + 52:
 		return "SKB_DROP_REASON_SKB_GSO_SEG"
-	case 53:
+	case skbDropReasonSubSysCore + 53:
 		return "SKB_DROP_REASON_SKB_UCOPY_FAULT"
-	case 54:
+	case skbDropReasonSubSysCore + 54:
 		return "SKB_DROP_REASON_DEV_HDR"
-	case 55:
+	case skbDropReasonSubSysCore + 55:
 		return "SKB_DROP_REASON_DEV_READY"
-	case 56:
+	case skbDropReasonSubSysCore + 56:
 		return "SKB_DROP_REASON_FULL_RING"
-	case 57:
+	case skbDropReasonSubSysCore + 57:
 		return "SKB_DROP_REASON_NOMEM"
-	case 58:
+	case skbDropReasonSubSysCore + 58:
 		return "SKB_DROP_REASON_HDR_TRUNC"
-	case 59:
+	case skbDropReasonSubSysCore + 59:
 		return "SKB_DROP_REASON_TAP_FILTER"
-	case 60:
+	case skbDropReasonSubSysCore + 60:
 		return "SKB_DROP_REASON_TAP_TXFILTER"
-	case 61:
+	case skbDropReasonSubSysCore + 61:
 		return "SKB_DROP_REASON_ICMP_CSUM"
-	case 62:
+	case skbDropReasonSubSysCore + 62:
 		return "SKB_DROP_REASON_INVALID_PROTO"
-	case 63:
+	case skbDropReasonSubSysCore + 63:
 		return "SKB_DROP_REASON_IP_INADDRERRORS"
-	case 64:
+	case skbDropReasonSubSysCore + 64:
 		return "SKB_DROP_REASON_IP_INNOROUTES"
-	case 65:
+	case skbDropReasonSubSysCore + 65:
 		return "SKB_DROP_REASON_PKT_TOO_BIG"
-	case 66:
+	case skbDropReasonSubSysCore + 66:
 		return "SKB_DROP_REASON_DUP_FRAG"
-	case 67:
+	case skbDropReasonSubSysCore + 67:
 		return "SKB_DROP_REASON_FRAG_REASM_TIMEOUT"
-	case 68:
+	case skbDropReasonSubSysCore + 68:
 		return "SKB_DROP_REASON_FRAG_TOO_FAR"
-	case 69:
+	case skbDropReasonSubSysCore + 69:
 		return "SKB_DROP_REASON_TCP_MINTTL"
-	case 70:
+	case skbDropReasonSubSysCore + 70:
 		return "SKB_DROP_REASON_IPV6_BAD_EXTHDR"
-	case 71:
+	case skbDropReasonSubSysCore + 71:
 		return "SKB_DROP_REASON_IPV6_NDISC_FRAG"
-	case 72:
+	case skbDropReasonSubSysCore + 72:
 		return "SKB_DROP_REASON_IPV6_NDISC_HOP_LIMIT"
-	case 73:
+	case skbDropReasonSubSysCore + 73:
 		return "SKB_DROP_REASON_IPV6_NDISC_BAD_CODE"
-	case 74:
+	case skbDropReasonSubSysCore + 74:
 		return "SKB_DROP_REASON_IPV6_NDISC_BAD_OPTIONS"
-	case 75:
+	case skbDropReasonSubSysCore + 75:
 		return "SKB_DROP_REASON_IPV6_NDISC_NS_OTHERHOST"
+
+	// ovs drop causes
+	// https://git.kernel.org/pub/scm/linux/kernel/git/netdev/net-next.git/tree/net/openvswitch/drop.h
+	case skbDropReasonSubSysOpenVSwitch + 1:
+		return "OVS_DROP_LAST_ACTION"
+	case skbDropReasonSubSysOpenVSwitch + 2:
+		return "OVS_DROP_ACTION_ERROR"
+	case skbDropReasonSubSysOpenVSwitch + 3:
+		return "OVS_DROP_EXPLICIT"
+	case skbDropReasonSubSysOpenVSwitch + 4:
+		return "OVS_DROP_EXPLICIT_WITH_ERROR"
+	case skbDropReasonSubSysOpenVSwitch + 5:
+		return "OVS_DROP_METER"
+	case skbDropReasonSubSysOpenVSwitch + 6:
+		return "OVS_DROP_RECURSION_LIMIT"
+	case skbDropReasonSubSysOpenVSwitch + 7:
+		return "OVS_DROP_DEFERRED_LIMIT"
+	case skbDropReasonSubSysOpenVSwitch + 8:
+		return "OVS_DROP_FRAG_L2_TOO_LONG"
+	case skbDropReasonSubSysOpenVSwitch + 9:
+		return "OVS_DROP_FRAG_INVALID_PROTO"
+	case skbDropReasonSubSysOpenVSwitch + 10:
+		return "OVS_DROP_CONNTRACK"
+	case skbDropReasonSubSysOpenVSwitch + 11:
+		return "OVS_DROP_IP_TTL"
 	}
 	return "SKB_DROP_UNKNOWN_CAUSE"
 }
