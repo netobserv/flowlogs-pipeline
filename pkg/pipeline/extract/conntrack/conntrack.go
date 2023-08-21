@@ -56,11 +56,22 @@ type conntrackImpl struct {
 	metrics                          *metricsType
 }
 
+func (ct *conntrackImpl) filterFlowLog(fl config.GenericMap) bool {
+	if !fl.IsValidProtocol() || !fl.IsTransportProtocol() {
+		return true
+	}
+	return false
+}
+
 func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericMap {
 	log.Debugf("entering Extract conntrack, in = %v", flowLogs)
 
 	var outputRecords []config.GenericMap
 	for _, fl := range flowLogs {
+		if ct.filterFlowLog(fl) {
+			ct.metrics.inputRecords.WithLabelValues("discarded").Inc()
+			continue
+		}
 		computedHash, err := ComputeHash(fl, ct.config.KeyDefinition, ct.hashProvider(), ct.metrics)
 		if err != nil {
 			log.Warningf("skipping flow log %v: %v", fl, err)

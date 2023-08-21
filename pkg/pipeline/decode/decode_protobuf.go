@@ -9,6 +9,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 
+	"github.com/mdlayher/ethernet"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
@@ -46,13 +47,10 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 	}
 	out := config.GenericMap{
 		"FlowDirection":   int(flow.Direction.Number()),
-		"SrcAddr":         ipToStr(flow.Network.GetSrcAddr()),
-		"DstAddr":         ipToStr(flow.Network.GetDstAddr()),
 		"SrcMac":          macToStr(flow.DataLink.GetSrcMac()),
 		"DstMac":          macToStr(flow.DataLink.GetDstMac()),
 		"Etype":           flow.EthProtocol,
 		"Duplicate":       flow.Duplicate,
-		"Proto":           flow.Transport.GetProtocol(),
 		"TimeFlowStartMs": flow.TimeFlowStart.AsTime().UnixMilli(),
 		"TimeFlowEndMs":   flow.TimeFlowEnd.AsTime().UnixMilli(),
 		"TimeReceived":    time.Now().Unix(),
@@ -68,20 +66,26 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 		out["Packets"] = flow.Packets
 	}
 
-	proto := flow.Transport.GetProtocol()
-	if proto == syscall.IPPROTO_ICMP || proto == syscall.IPPROTO_ICMPV6 {
-		out["IcmpType"] = flow.GetIcmpType()
-		out["IcmpCode"] = flow.GetIcmpCode()
-	}
+	ethType := ethernet.EtherType(flow.EthProtocol)
+	if ethType == ethernet.EtherTypeIPv4 || ethType == ethernet.EtherTypeIPv6 {
+		out["SrcAddr"] = ipToStr(flow.Network.GetSrcAddr())
+		out["DstAddr"] = ipToStr(flow.Network.GetDstAddr())
+		out["Proto"] = flow.Transport.GetProtocol()
+		proto := flow.Transport.GetProtocol()
+		if proto == syscall.IPPROTO_ICMP || proto == syscall.IPPROTO_ICMPV6 {
+			out["IcmpType"] = flow.GetIcmpType()
+			out["IcmpCode"] = flow.GetIcmpCode()
+		}
 
-	if proto == syscall.IPPROTO_TCP || proto == syscall.IPPROTO_UDP || proto == syscall.IPPROTO_SCTP {
-		if proto == syscall.IPPROTO_TCP {
-			out["SrcPort"] = flow.Transport.GetSrcPort()
-			out["DstPort"] = flow.Transport.GetDstPort()
-			out["Flags"] = flow.Flags
-		} else {
-			out["SrcPort"] = flow.Transport.GetSrcPort()
-			out["DstPort"] = flow.Transport.GetDstPort()
+		if proto == syscall.IPPROTO_TCP || proto == syscall.IPPROTO_UDP || proto == syscall.IPPROTO_SCTP {
+			if proto == syscall.IPPROTO_TCP {
+				out["SrcPort"] = flow.Transport.GetSrcPort()
+				out["DstPort"] = flow.Transport.GetDstPort()
+				out["Flags"] = flow.Flags
+			} else {
+				out["SrcPort"] = flow.Transport.GetSrcPort()
+				out["DstPort"] = flow.Transport.GetDstPort()
+			}
 		}
 	}
 

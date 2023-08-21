@@ -170,6 +170,9 @@ github.com/mariomac/guara/pkg/test
 # github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil
+# github.com/mdlayher/ethernet v0.0.0-20220221185849-529eae5b6118
+## explicit; go 1.12
+github.com/mdlayher/ethernet
 # github.com/minio/md5-simd v1.1.2
 ## explicit; go 1.14
 github.com/minio/md5-simd
