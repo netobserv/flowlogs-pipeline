@@ -85,7 +85,7 @@ kubectl get namespace openshift
 2. Deploy FLP with all dependent components (into `default` namespace)
 ```shell
 kubectl config set-context --current --namespace=default
-make ocp-deploy
+IMAGE_ORG=netobserv make ocp-deploy
 ```
 
 3. Use a web-browser to access grafana dashboards ( end-point address exposed by the script) and observe metrics and logs  
