@@ -23,7 +23,7 @@ encode:
     metrics:
       - name: connections_per_tcp_flags
         type: counter
-        filter: { key: name, value: TCPFlags_count }
+        filters: [{ key: name, value: TCPFlags_count }]
         valueKey: recent_count
         labels:
           - groupByKeys

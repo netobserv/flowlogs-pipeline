@@ -32,7 +32,7 @@ encode:
     metrics:
       - name: flows_length_histogram
         type: histogram
-        filter: { key: name, value: flows_bytes_hist }
+        filters: [{ key: name, value: flows_bytes_hist }]
         valueKey: recent_raw_values
         labels:
           - groupByKeys

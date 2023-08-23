@@ -35,7 +35,7 @@ encode:
     metrics:
       - name: connection_size_histogram
         type: histogram
-        filter: { key: name, value: connection_bytes_hist }
+        filters: [{ key: name, value: connection_bytes_hist }]
         valueKey: recent_raw_values
         labels:
           - groupByKeys
@@ -48,7 +48,7 @@ encode:
           - 1048576 #   1MiB
       - name: connection_size_histogram_ab
         type: histogram
-        filter: { key: name, value: connection_bytes_hist_AB }
+        filters: [{ key: name, value: connection_bytes_hist_AB }]
         valueKey: recent_raw_values
         labels:
           - groupByKeys
@@ -61,7 +61,7 @@ encode:
           - 1048576 #   1MiB
       - name: connection_size_histogram_ba
         type: histogram
-        filter: { key: name, value: connection_bytes_hist_BA }
+        filters: [{ key: name, value: connection_bytes_hist_BA }]
         valueKey: recent_raw_values
         labels:
           - groupByKeys

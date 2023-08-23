@@ -31,7 +31,7 @@ encode:
     metrics:
       - name: service_count
         type: counter
-        filter: { key: name, value: dest_service_count }
+        filters: [{ key: name, value: dest_service_count }]
         valueKey: recent_count
         labels:
           - service

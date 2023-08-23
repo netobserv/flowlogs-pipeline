@@ -24,7 +24,7 @@ encode:
     metrics:
       - name: connections_per_destination_as
         type: counter
-        filter: { key: name, value: dst_as_connection_count }
+        filters: [{ key: name, value: dst_as_connection_count }]
         valueKey: recent_count
         labels:
           - dstAS

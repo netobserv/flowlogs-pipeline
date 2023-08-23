@@ -2,7 +2,7 @@
 log-level: error
 metricsSettings:
   port: 9102
-  prefix: flp_op
+  prefix: flp_op_
 pipeline:
 - name: ingest_collector
 - name: transform_generic
@@ -256,9 +256,11 @@ parameters:
       - name: bandwidth_per_network_service
         type: counter
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: bandwidth_network_service
-        filters: []
         valueKey: recent_op_value
         labels:
         - groupByKeys
@@ -267,9 +269,11 @@ parameters:
       - name: bandwidth_per_source_destination_subnet
         type: counter
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: bandwidth_source_destination_subnet
-        filters: []
         valueKey: recent_op_value
         labels:
         - groupByKeys
@@ -278,9 +282,11 @@ parameters:
       - name: bandwidth_per_source_subnet
         type: gauge
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: bandwidth_source_subnet
-        filters: []
         valueKey: bytes
         labels:
         - srcSubnet
@@ -288,9 +294,11 @@ parameters:
       - name: connection_size_histogram
         type: agg_histogram
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: connection_bytes_hist
-        filters: []
         valueKey: recent_raw_values
         labels:
         - groupByKeys
@@ -304,9 +312,11 @@ parameters:
       - name: connection_size_histogram_ab
         type: agg_histogram
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: connection_bytes_hist_AB
-        filters: []
         valueKey: recent_raw_values
         labels:
         - groupByKeys
@@ -320,9 +330,11 @@ parameters:
       - name: connection_size_histogram_ba
         type: agg_histogram
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: connection_bytes_hist_BA
-        filters: []
         valueKey: recent_raw_values
         labels:
         - groupByKeys
@@ -336,9 +348,11 @@ parameters:
       - name: connections_per_destination_subnet
         type: counter
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: dest_connection_subnet_count
-        filters: []
         valueKey: recent_count
         labels:
         - _RecordType
@@ -347,9 +361,11 @@ parameters:
       - name: connections_per_source_subnet
         type: counter
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: src_connection_count
-        filters: []
         valueKey: recent_count
         labels:
         - srcSubnet
@@ -358,9 +374,11 @@ parameters:
       - name: connections_per_tcp_flags
         type: counter
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: TCPFlags_count
-        filters: []
         valueKey: recent_count
         labels:
         - groupByKeys
@@ -369,9 +387,11 @@ parameters:
       - name: connections_per_destination_as
         type: counter
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: dst_as_connection_count
-        filters: []
         valueKey: recent_count
         labels:
         - dstAS
@@ -380,9 +400,11 @@ parameters:
       - name: connections_per_source_as
         type: counter
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: src_as_connection_count
-        filters: []
         valueKey: recent_count
         labels:
         - srcAS
@@ -391,9 +413,11 @@ parameters:
       - name: count_per_source_destination_subnet
         type: counter
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: count_source_destination_subnet
-        filters: []
         valueKey: recent_count
         labels:
         - dstSubnet24
@@ -403,9 +427,11 @@ parameters:
       - name: egress_per_destination_subnet
         type: counter
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: bandwidth_destination_subnet
-        filters: []
         valueKey: recent_op_value
         labels:
         - groupByKeys
@@ -414,9 +440,11 @@ parameters:
       - name: egress_per_namespace
         type: counter
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: bandwidth_namespace
-        filters: []
         valueKey: recent_op_value
         labels:
         - groupByKeys
@@ -425,9 +453,11 @@ parameters:
       - name: flows_length_histogram
         type: agg_histogram
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: flows_bytes_hist
-        filters: []
         valueKey: recent_raw_values
         labels:
         - groupByKeys
@@ -441,9 +471,11 @@ parameters:
       - name: connections_per_destination_location
         type: counter
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: dest_connection_location_count
-        filters: []
         valueKey: recent_count
         labels:
         - dstLocation_CountryName
@@ -452,9 +484,11 @@ parameters:
       - name: service_count
         type: counter
         filter:
-          key: name
+          key: ""
+          value: ""
+        filters:
+        - key: name
           value: dest_service_count
-        filters: []
         valueKey: recent_count
         labels:
         - service
