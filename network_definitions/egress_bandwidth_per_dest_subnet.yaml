@@ -32,7 +32,7 @@ encode:
     metrics:
       - name: egress_per_destination_subnet
         type: counter
-        filter: { key: name, value: bandwidth_destination_subnet }
+        filters: [{ key: name, value: bandwidth_destination_subnet }]
         valueKey: recent_op_value
         labels:
           - groupByKeys

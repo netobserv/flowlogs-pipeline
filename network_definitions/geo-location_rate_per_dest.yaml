@@ -30,7 +30,7 @@ encode:
     metrics:
       - name: connections_per_destination_location
         type: counter
-        filter: { key: name, value: dest_connection_location_count }
+        filters: [{ key: name, value: dest_connection_location_count }]
         valueKey: recent_count
         labels:
           - dstLocation_CountryName

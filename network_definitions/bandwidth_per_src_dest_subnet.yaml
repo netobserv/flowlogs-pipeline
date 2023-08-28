@@ -37,7 +37,7 @@ encode:
     metrics:
       - name: bandwidth_per_source_destination_subnet
         type: counter
-        filter: {key: name, value: bandwidth_source_destination_subnet}
+        filters: [{key: name, value: bandwidth_source_destination_subnet}]
         valueKey: recent_op_value
         labels:
           - groupByKeys
