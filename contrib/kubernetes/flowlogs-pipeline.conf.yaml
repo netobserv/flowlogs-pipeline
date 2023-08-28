@@ -255,9 +255,6 @@ parameters:
       metrics:
       - name: bandwidth_per_network_service
         type: counter
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: bandwidth_network_service
@@ -268,9 +265,6 @@ parameters:
         buckets: []
       - name: bandwidth_per_source_destination_subnet
         type: counter
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: bandwidth_source_destination_subnet
@@ -281,9 +275,6 @@ parameters:
         buckets: []
       - name: bandwidth_per_source_subnet
         type: gauge
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: bandwidth_source_subnet
@@ -293,9 +284,6 @@ parameters:
         buckets: []
       - name: connection_size_histogram
         type: agg_histogram
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: connection_bytes_hist
@@ -311,9 +299,6 @@ parameters:
         - 1.048576e+06
       - name: connection_size_histogram_ab
         type: agg_histogram
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: connection_bytes_hist_AB
@@ -329,9 +314,6 @@ parameters:
         - 1.048576e+06
       - name: connection_size_histogram_ba
         type: agg_histogram
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: connection_bytes_hist_BA
@@ -347,9 +329,6 @@ parameters:
         - 1.048576e+06
       - name: connections_per_destination_subnet
         type: counter
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: dest_connection_subnet_count
@@ -360,9 +339,6 @@ parameters:
         buckets: []
       - name: connections_per_source_subnet
         type: counter
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: src_connection_count
@@ -373,9 +349,6 @@ parameters:
         buckets: []
       - name: connections_per_tcp_flags
         type: counter
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: TCPFlags_count
@@ -386,9 +359,6 @@ parameters:
         buckets: []
       - name: connections_per_destination_as
         type: counter
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: dst_as_connection_count
@@ -399,9 +369,6 @@ parameters:
         buckets: []
       - name: connections_per_source_as
         type: counter
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: src_as_connection_count
@@ -412,9 +379,6 @@ parameters:
         buckets: []
       - name: count_per_source_destination_subnet
         type: counter
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: count_source_destination_subnet
@@ -426,9 +390,6 @@ parameters:
         buckets: []
       - name: egress_per_destination_subnet
         type: counter
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: bandwidth_destination_subnet
@@ -439,9 +400,6 @@ parameters:
         buckets: []
       - name: egress_per_namespace
         type: counter
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: bandwidth_namespace
@@ -452,9 +410,6 @@ parameters:
         buckets: []
       - name: flows_length_histogram
         type: agg_histogram
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: flows_bytes_hist
@@ -470,9 +425,6 @@ parameters:
         - 1.048576e+06
       - name: connections_per_destination_location
         type: counter
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: dest_connection_location_count
@@ -483,9 +435,6 @@ parameters:
         buckets: []
       - name: service_count
         type: counter
-        filter:
-          key: ""
-          value: ""
         filters:
         - key: name
           value: dest_service_count
