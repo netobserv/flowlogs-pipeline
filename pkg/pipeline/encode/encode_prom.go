@@ -205,13 +205,25 @@ func (e *EncodeProm) prepareAggHisto(flow config.GenericMap, info *api.PromMetri
 
 func (e *EncodeProm) extractGenericValue(flow config.GenericMap, info *api.PromMetricsItem) interface{} {
 	for _, filter := range info.GetFilters() {
-		if val, found := flow[filter.Key]; found {
-			sVal, ok := val.(string)
-			if !ok {
-				sVal = fmt.Sprint(val)
-			}
-			if sVal != filter.Value {
+		val, found := flow[filter.Key]
+		switch filter.Value {
+		case "nil":
+			if found {
 				return nil
+			}
+		case "!nil":
+			if !found {
+				return nil
+			}
+		default:
+			if found {
+				sVal, ok := val.(string)
+				if !ok {
+					sVal = fmt.Sprint(val)
+				}
+				if sVal != filter.Value {
+					return nil
+				}
 			}
 		}
 	}

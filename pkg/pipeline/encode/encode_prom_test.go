@@ -279,6 +279,51 @@ func Test_FilterDuplicates(t *testing.T) {
 	require.Contains(t, exposed, `bytes_filtered 8`)
 }
 
+func Test_FilterNotNil(t *testing.T) {
+	metrics := []config.GenericMap{
+		{
+			"srcIP":   "20.0.0.2",
+			"dstIP":   "10.0.0.1",
+			"latency": 0.1,
+		},
+		{
+			"srcIP":   "20.0.0.2",
+			"dstIP":   "10.0.0.1",
+			"latency": 0.9,
+		},
+		{
+			"srcIP": "20.0.0.2",
+			"dstIP": "10.0.0.1",
+		},
+	}
+	params := api.PromEncode{
+		Prefix: "test_",
+		ExpiryTime: api.Duration{
+			Duration: time.Duration(60 * time.Second),
+		},
+		Metrics: []api.PromMetricsItem{
+			{
+				Name:     "latencies",
+				Type:     "histogram",
+				ValueKey: "latency",
+				Filters:  []api.PromMetricsFilter{{Key: "latency", Value: "!nil"}},
+			},
+		},
+	}
+
+	encodeProm, err := initProm(&params)
+	require.NoError(t, err)
+	for _, metric := range metrics {
+		encodeProm.Encode(metric)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	exposed := test.ReadExposedMetrics(t)
+
+	require.Contains(t, exposed, `test_latencies_sum 1`)
+	require.Contains(t, exposed, `test_latencies_count 2`)
+}
+
 func Test_MetricTTL(t *testing.T) {
 	metrics := []config.GenericMap{{
 		"srcIP": "20.0.0.2",
