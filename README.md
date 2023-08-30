@@ -832,8 +832,7 @@ parameters:
       type: loki
       loki:
         tenantID: theTenant
-        loki:
-          url: http://loki.default.svc.cluster.local:3100
+        url: http://loki.default.svc.cluster.local:3100
         staticLabels:
           job: flowlogs-pipeline
         batchWait: 1m
