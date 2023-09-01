@@ -158,7 +158,7 @@ Following is the supported API format for network transformations:
                      add_location: add output location fields from input
                      add_service: add output network service field from input port and parameters protocol field
                      add_kubernetes: add output kubernetes fields from input
-                     reinterpret_direction: reinterpret flow direction at a higher level than the interface
+                     reinterpret_direction: reinterpret flow direction at the node level (instead of net interface), to ease the deduplication process
                      add_ip_category: categorize IPs based on known subnets configuration
                  parameters: parameters specific to type
                  assignee: value needs to assign to output field
