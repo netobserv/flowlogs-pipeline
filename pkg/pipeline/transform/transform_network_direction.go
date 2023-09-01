@@ -10,6 +10,7 @@ import (
 const (
 	ingress = 0
 	egress  = 1
+	inner   = 2
 )
 
 func validateReinterpretDirectionConfig(info *api.NetworkTransformDirectionInfo) error {
@@ -57,5 +58,7 @@ func reinterpretDirection(output config.GenericMap, info *api.NetworkTransformDi
 		} else if dstNode == reporter {
 			output[info.FlowDirectionField] = ingress
 		}
+	} else if srcNode != "" {
+		output[info.FlowDirectionField] = inner
 	}
 }
