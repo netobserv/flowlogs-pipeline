@@ -20,6 +20,7 @@ package transform
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/Knetic/govaluate"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -37,6 +38,7 @@ type Filter struct {
 func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 	tlog.Tracef("f = %v", f)
 	outputEntry := entry.Copy()
+	labels := make(map[string]string)
 	for _, rule := range f.Rules {
 		tlog.Tracef("rule = %v", rule)
 		switch rule.Type {
@@ -62,6 +64,8 @@ func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 					return nil, false
 				}
 			}
+		case api.TransformFilterOperationName("AddField"):
+			outputEntry[rule.Input] = rule.Value
 		case api.TransformFilterOperationName("AddFieldIfDoesntExist"):
 			if _, ok := entry[rule.Input]; !ok {
 				outputEntry[rule.Input] = rule.Value
@@ -91,9 +95,37 @@ func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 				}
 				outputEntry[rule.Output+"_Evaluate"] = true
 			}
+		case api.TransformFilterOperationName("AddLabel"):
+			labels[rule.Output] = rule.Assignee
+		case api.TransformFilterOperationName("AddLabelIf"):
+			// TODO perhaps add a cache of previously evaluated expressions
+			expressionString := fmt.Sprintf("val %s", rule.Parameters)
+			expression, err := govaluate.NewEvaluableExpression(expressionString)
+			if err != nil {
+				log.Warningf("Can't evaluate AddLabelIf rule: %+v expression: %v. err %v", rule, expressionString, err)
+				continue
+			}
+			result, evaluateErr := expression.Evaluate(map[string]interface{}{"val": outputEntry[rule.Input]})
+			if evaluateErr == nil && result.(bool) {
+				labels[rule.Output] = rule.Assignee
+			}
 		default:
 			tlog.Panicf("unknown type %s for transform.Filter rule: %v", rule.Type, rule)
 		}
+	}
+	// process accumulated labels into comma separated string
+	if len(labels) > 0 {
+		var sb strings.Builder
+		for key, value := range labels {
+			sb.WriteString(key)
+			sb.WriteString("=")
+			sb.WriteString(value)
+			sb.WriteString(",")
+		}
+		// remove trailing comma
+		labelsString := sb.String()
+		labelsString = strings.TrimRight(labelsString, ",")
+		outputEntry["labels"] = labelsString
 	}
 	return outputEntry, true
 }

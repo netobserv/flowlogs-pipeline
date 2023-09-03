@@ -233,7 +233,7 @@ func InitNewTransformFilter(t *testing.T, configFile string) Transformer {
 }
 
 func Test_Transform_AddIfScientificNotation(t *testing.T) {
-	newNetworkFilter := Filter{
+	newFilter := Filter{
 		Rules: []api.TransformFilterRule{
 			{
 				Input:      "value",
@@ -282,7 +282,7 @@ func Test_Transform_AddIfScientificNotation(t *testing.T) {
 	entry = config.GenericMap{
 		"value": 1.2345e67,
 	}
-	output, ok := newNetworkFilter.Transform(entry)
+	output, ok := newFilter.Transform(entry)
 	require.True(t, ok)
 	require.Equal(t, true, output["bigger_than_10_Evaluate"])
 	require.Equal(t, 1.2345e67, output["bigger_than_10"])
@@ -291,7 +291,7 @@ func Test_Transform_AddIfScientificNotation(t *testing.T) {
 	entry = config.GenericMap{
 		"value": 1.2345e-67,
 	}
-	output, ok = newNetworkFilter.Transform(entry)
+	output, ok = newFilter.Transform(entry)
 	require.True(t, ok)
 	require.Equal(t, true, output["smaller_than_10_Evaluate"])
 	require.Equal(t, 1.2345e-67, output["smaller_than_10"])
@@ -300,7 +300,7 @@ func Test_Transform_AddIfScientificNotation(t *testing.T) {
 	entry = config.GenericMap{
 		"value": 1,
 	}
-	output, ok = newNetworkFilter.Transform(entry)
+	output, ok = newFilter.Transform(entry)
 	require.True(t, ok)
 	require.Equal(t, true, output["dir_Evaluate"])
 	require.Equal(t, "in", output["dir"])
@@ -309,7 +309,7 @@ func Test_Transform_AddIfScientificNotation(t *testing.T) {
 	entry = config.GenericMap{
 		"value": 0,
 	}
-	output, ok = newNetworkFilter.Transform(entry)
+	output, ok = newFilter.Transform(entry)
 	require.True(t, ok)
 	require.Equal(t, true, output["dir_Evaluate"])
 	require.Equal(t, "out", output["dir"])
@@ -344,15 +344,160 @@ parameters:
     write:
       type: stdout
 `)
-	newNetworkFilter := InitNewTransformFilter(t, string(yamlConfig)).(*Filter)
-	require.NotNil(t, newNetworkFilter)
+	newFilter := InitNewTransformFilter(t, string(yamlConfig)).(*Filter)
+	require.NotNil(t, newFilter)
 
 	entry := test.GetIngestMockEntry(false)
-	output, ok := newNetworkFilter.Transform(entry)
+	output, ok := newFilter.Transform(entry)
 	require.True(t, ok)
 
 	require.Equal(t, "10.0.0.1", output["srcIP"])
 	require.Equal(t, "10.0.0.0/24", output["subnetSrcIP"])
 	require.Equal(t, "10.0.0.0/24", output["match-10.0.*"])
 	require.NotEqual(t, "10.0.0.0/24", output["match-11.0.*"])
+}
+
+func Test_AddLabelIf(t *testing.T) {
+	entry := config.GenericMap{
+		"param1": 5,
+		"param2": 7,
+		"param3": -1,
+	}
+	cfg := config.StageParam{
+		Transform: &config.Transform{
+			Filter: &api.TransformFilter{
+				Rules: []api.TransformFilterRule{
+					{
+						Type:       "add_label_if",
+						Input:      "param1",
+						Parameters: "<10",
+						Output:     "group1",
+						Assignee:   "LT10",
+					},
+					{
+						Type:       "add_label_if",
+						Input:      "param1",
+						Parameters: ">=10",
+						Output:     "group1",
+						Assignee:   "GE10",
+					},
+					{
+						Type:       "add_label_if",
+						Input:      "param2",
+						Parameters: "<5",
+						Output:     "group2",
+						Assignee:   "LT5",
+					},
+					{
+						Type:       "add_label_if",
+						Input:      "param3",
+						Parameters: "<0",
+						Output:     "group3",
+						Assignee:   "LT0",
+					},
+				},
+			},
+		},
+	}
+
+	tr, err := NewTransformFilter(cfg)
+	require.NoError(t, err)
+
+	output, ok := tr.Transform(entry)
+	require.True(t, ok)
+	require.Contains(t, output, "labels")
+	labelsString := output["labels"]
+	require.Contains(t, labelsString, "group1=LT10")
+	require.Contains(t, labelsString, "group3=LT0")
+	require.NotContains(t, labelsString, "group2")
+	require.NotContains(t, labelsString, "group1=GE10")
+}
+
+func Test_AddLabel(t *testing.T) {
+	entry := config.GenericMap{
+		"param1": 5,
+		"param2": 7,
+		"param3": -1,
+	}
+	cfg := config.StageParam{
+		Transform: &config.Transform{
+			Filter: &api.TransformFilter{
+				Rules: []api.TransformFilterRule{
+					{
+						Type:     "add_label",
+						Output:   "key1",
+						Assignee: "value1",
+					},
+					{
+						Type:     "add_label",
+						Output:   "key2",
+						Assignee: "value2",
+					},
+					{
+						Type:     "add_label",
+						Output:   "key3",
+						Assignee: "value3",
+					},
+				},
+			},
+		},
+	}
+
+	tr, err := NewTransformFilter(cfg)
+	require.NoError(t, err)
+
+	output, ok := tr.Transform(entry)
+	require.True(t, ok)
+	require.Contains(t, output, "labels")
+	labelsString := output["labels"]
+	require.Contains(t, labelsString, "key1=value1")
+	require.Contains(t, labelsString, "key2=value2")
+
+	cfg2 := config.StageParam{
+		Transform: &config.Transform{
+			Filter: &api.TransformFilter{},
+		},
+	}
+
+	tr, err = NewTransformFilter(cfg2)
+	require.NoError(t, err)
+
+	output, ok = tr.Transform(entry)
+	require.True(t, ok)
+	require.NotContains(t, output, "labels")
+}
+
+func Test_AddField(t *testing.T) {
+	entry := config.GenericMap{
+		"param1": 5,
+		"param2": 7,
+		"param3": -1,
+	}
+	cfg := config.StageParam{
+		Transform: &config.Transform{
+			Filter: &api.TransformFilter{
+				Rules: []api.TransformFilterRule{
+					{
+						Type:  "add_field",
+						Input: "field1",
+						Value: "value1",
+					},
+					{
+						Type:  "add_field",
+						Input: "param1",
+						Value: "new_value",
+					},
+				},
+			},
+		},
+	}
+
+	tr, err := NewTransformFilter(cfg)
+	require.NoError(t, err)
+
+	output, ok := tr.Transform(entry)
+	require.True(t, ok)
+	require.Contains(t, output, "field1")
+	require.Equal(t, "value1", output["field1"])
+	require.Equal(t, "new_value", output["param1"])
 }

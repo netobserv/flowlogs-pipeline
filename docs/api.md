@@ -138,9 +138,12 @@ Following is the supported API format for filter transformations:
                      remove_entry_if_doesnt_exist: removes the entry if the field does not exist
                      remove_entry_if_equal: removes the entry if the field value equals specified value
                      remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
+                     add_field: adds (input) field to the entry; overrides previous value if present (key=input, value=value)
                      add_field_if_doesnt_exist: adds a field to the entry if the field does not exist
                      add_field_if: add output field set to assignee if input field satisfies criteria from parameters field
                      add_regex_if: add output field if input field satisfies regex pattern from parameters field
+                     add_label: add output field to list of labels with value taken from Assignee field (key=output, value=assignee)
+                     add_label_if: add output field to list of labels with value taken from Assignee field if input field satisfies criteria from parameters field
                  value: specified value of input field:
                  parameters: parameters specific to type
                  assignee: value needs to assign to output field
