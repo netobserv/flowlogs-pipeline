@@ -124,10 +124,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				}
 			}
 		case api.OpReinterpretDirection:
-			// only reinterpret direction on flowlogs
-			if rt, ok := outputEntry["_RecordType"]; !ok || rt == "flowLog" {
-				reinterpretDirection(outputEntry, &n.DirectionInfo)
-			}
+			reinterpretDirection(outputEntry, &n.DirectionInfo)
 		case api.OpAddIPCategory:
 			if strIP, ok := outputEntry[rule.Input].(string); ok {
 				cat, ok := n.ipCatCache.GetCacheEntry(strIP)
