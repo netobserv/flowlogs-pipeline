@@ -31,8 +31,8 @@ type TransformFilterOperationEnum struct {
 	AddFieldIfDoesntExist    string `yaml:"add_field_if_doesnt_exist" json:"add_field_if_doesnt_exist" doc:"adds a field to the entry if the field does not exist"`
 	AddFieldIf               string `yaml:"add_field_if" json:"add_field_if" doc:"add output field set to assignee if input field satisfies criteria from parameters field"`
 	AddRegExIf               string `yaml:"add_regex_if" json:"add_regex_if" doc:"add output field if input field satisfies regex pattern from parameters field"`
-	AddLabel                 string `yaml:"add_label" json:"add_label" doc:"add output field to list of labels with value taken from Assignee field (key=output, value=assignee)"`
-	AddLabelIf               string `yaml:"add_label_if" json:"add_label_if" doc:"add output field to list of labels with value taken from Assignee field if input field satisfies criteria from parameters field"`
+	AddLabel                 string `yaml:"add_label" json:"add_label" doc:"add (input) field to list of labels with value taken from Value field (key=input, value=value)"`
+	AddLabelIf               string `yaml:"add_label_if" json:"add_label_if" doc:"add output field to list of labels with value taken from assignee field if input field satisfies criteria from parameters field"`
 }
 
 func TransformFilterOperationName(operation string) string {

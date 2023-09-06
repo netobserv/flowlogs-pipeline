@@ -25,6 +25,7 @@ import (
 	"github.com/Knetic/govaluate"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -96,7 +97,7 @@ func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 				outputEntry[rule.Output+"_Evaluate"] = true
 			}
 		case api.TransformFilterOperationName("AddLabel"):
-			labels[rule.Output] = rule.Assignee
+			labels[rule.Input], _ = utils.ConvertToString(rule.Value)
 		case api.TransformFilterOperationName("AddLabelIf"):
 			// TODO perhaps add a cache of previously evaluated expressions
 			expressionString := fmt.Sprintf("val %s", rule.Parameters)

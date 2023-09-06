@@ -142,8 +142,8 @@ Following is the supported API format for filter transformations:
                      add_field_if_doesnt_exist: adds a field to the entry if the field does not exist
                      add_field_if: add output field set to assignee if input field satisfies criteria from parameters field
                      add_regex_if: add output field if input field satisfies regex pattern from parameters field
-                     add_label: add output field to list of labels with value taken from Assignee field (key=output, value=assignee)
-                     add_label_if: add output field to list of labels with value taken from Assignee field if input field satisfies criteria from parameters field
+                     add_label: add (input) field to list of labels with value taken from Value field (key=input, value=value)
+                     add_label_if: add output field to list of labels with value taken from assignee field if input field satisfies criteria from parameters field
                  value: specified value of input field:
                  parameters: parameters specific to type
                  assignee: value needs to assign to output field

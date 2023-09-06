@@ -424,19 +424,19 @@ func Test_AddLabel(t *testing.T) {
 			Filter: &api.TransformFilter{
 				Rules: []api.TransformFilterRule{
 					{
-						Type:     "add_label",
-						Output:   "key1",
-						Assignee: "value1",
+						Type:  "add_label",
+						Input: "key1",
+						Value: "value1",
 					},
 					{
-						Type:     "add_label",
-						Output:   "key2",
-						Assignee: "value2",
+						Type:  "add_label",
+						Input: "key2",
+						Value: "value2",
 					},
 					{
-						Type:     "add_label",
-						Output:   "key3",
-						Assignee: "value3",
+						Type:  "add_label",
+						Input: "key3",
+						Value: "value3",
 					},
 				},
 			},
