@@ -21,11 +21,9 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"regexp"
 	"strconv"
 	"time"
 
-	"github.com/Knetic/govaluate"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
@@ -56,31 +54,6 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 	// TODO: for efficiency and maintainability, maybe each case in the switch below should be an individual implementation of Transformer
 	for _, rule := range n.Rules {
 		switch rule.Type {
-		case api.OpAddRegexIf:
-			matched, err := regexp.MatchString(rule.Parameters, fmt.Sprintf("%s", outputEntry[rule.Input]))
-			if err != nil {
-				continue
-			}
-			if matched {
-				outputEntry[rule.Output] = outputEntry[rule.Input]
-				outputEntry[rule.Output+"_Matched"] = true
-			}
-		case api.OpAddIf:
-			expressionString := fmt.Sprintf("val %s", rule.Parameters)
-			expression, err := govaluate.NewEvaluableExpression(expressionString)
-			if err != nil {
-				log.Warningf("Can't evaluate AddIf rule: %+v expression: %v. err %v", rule, expressionString, err)
-				continue
-			}
-			result, evaluateErr := expression.Evaluate(map[string]interface{}{"val": outputEntry[rule.Input]})
-			if evaluateErr == nil && result.(bool) {
-				if rule.Assignee != "" {
-					outputEntry[rule.Output] = rule.Assignee
-				} else {
-					outputEntry[rule.Output] = outputEntry[rule.Input]
-				}
-				outputEntry[rule.Output+"_Evaluate"] = true
-			}
 		case api.OpAddSubnet:
 			_, ipv4Net, err := net.ParseCIDR(fmt.Sprintf("%v%s", outputEntry[rule.Input], rule.Parameters))
 			if err != nil {

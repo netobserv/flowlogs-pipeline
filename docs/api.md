@@ -131,6 +131,7 @@ Following is the supported API format for filter transformations:
  filter:
          rules: list of filter rules, each includes:
                  input: entry input field
+                 output: entry output field
                  type: (enum) one of the following:
                      remove_field: removes the field from the entry
                      remove_entry_if_exists: removes the entry if the field exists
@@ -138,7 +139,11 @@ Following is the supported API format for filter transformations:
                      remove_entry_if_equal: removes the entry if the field value equals specified value
                      remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
                      add_field_if_doesnt_exist: adds a field to the entry if the field does not exist
+                     add_field_if: add output field set to assignee if input field satisfies criteria from parameters field
+                     add_regex_if: add output field if input field satisfies regex pattern from parameters field
                  value: specified value of input field:
+                 parameters: parameters specific to type
+                 assignee: value needs to assign to output field
 </pre>
 ## Transform Network API
 Following is the supported API format for network transformations:
@@ -149,8 +154,6 @@ Following is the supported API format for network transformations:
                  input: entry input field
                  output: entry output field
                  type: (enum) one of the following:
-                     add_regex_if: add output field if input field satisfies regex pattern from parameters field
-                     add_if: add output field if input field satisfies criteria from parameters field
                      add_subnet: add output subnet field from input field and prefix length from parameters field
                      add_location: add output location fields from input
                      add_service: add output network service field from input port and parameters protocol field
