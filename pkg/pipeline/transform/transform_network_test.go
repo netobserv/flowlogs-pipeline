@@ -371,6 +371,22 @@ func Test_ReinterpretDirection(t *testing.T) {
 	}, output)
 
 	output, ok = tr.Transform(config.GenericMap{
+		"ReporterIP":    "10.1.2.3",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.3",
+		"FlowDirection": "whatever",
+	})
+	require.True(t, ok)
+	// Inner node => inner (2)
+	require.Equal(t, config.GenericMap{
+		"ReporterIP":    "10.1.2.3",
+		"SrcHostIP":     "10.1.2.3",
+		"DstHostIP":     "10.1.2.3",
+		"IfDirection":   "whatever",
+		"FlowDirection": 2,
+	}, output)
+
+	output, ok = tr.Transform(config.GenericMap{
 		"ReporterIP":    "10.1.2.100",
 		"SrcHostIP":     "10.1.2.3",
 		"DstHostIP":     "10.1.2.4",
