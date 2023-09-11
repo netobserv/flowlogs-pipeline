@@ -111,6 +111,16 @@ Following is the supported API format for the Network Observability eBPF ingest:
          port: the port number to listen on
          bufferLength: the length of the ingest channel buffer, in groups of flows, containing each group hundreds of flows (default: 100)
 </pre>
+## Ingest Standard Input
+Following is the supported API format for the standard input ingest:
+
+<pre>
+ stdin:
+         decoder: decoder to use
+             type: (enum) one of the following:
+                 json: JSON decoder
+                 protobuf: Protobuf decoder
+</pre>
 ## Transform Generic API
 Following is the supported API format for generic transformations:
 
