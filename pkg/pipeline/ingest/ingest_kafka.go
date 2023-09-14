@@ -175,8 +175,12 @@ func (k *ingestKafka) reportStats() {
 func NewIngestKafka(opMetrics *operational.Metrics, params config.StageParam) (Ingester, error) {
 	klog.Debugf("entering NewIngestKafka")
 	jsonIngestKafka := api.IngestKafka{}
-	if params.Ingest != nil && params.Ingest.Kafka != nil {
-		jsonIngestKafka = *params.Ingest.Kafka
+	var ingestType string
+	if params.Ingest != nil {
+		ingestType = params.Ingest.Type
+		if params.Ingest.Kafka != nil {
+			jsonIngestKafka = *params.Ingest.Kafka
+		}
 	}
 
 	// connect to the kafka server
@@ -278,7 +282,7 @@ func NewIngestKafka(opMetrics *operational.Metrics, params config.StageParam) (I
 	}
 
 	in := make(chan []byte, 2*bml)
-	metrics := newMetrics(opMetrics, params.Name, params.Ingest.Type, func() int { return len(in) })
+	metrics := newMetrics(opMetrics, params.Name, ingestType, func() int { return len(in) })
 
 	return &ingestKafka{
 		kafkaReader:      kafkaReader,

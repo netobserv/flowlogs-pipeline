@@ -49,11 +49,16 @@ type encodeKafka struct {
 // Encode writes entries to kafka topic
 func (r *encodeKafka) Encode(entry config.GenericMap) {
 	var entryByteArray []byte
-	entryByteArray, _ = json.Marshal(entry)
+	var err error
+	entryByteArray, err = json.Marshal(entry)
+	if err != nil {
+		log.Errorf("encodeKafka error: %v", err)
+		return
+	}
 	msg := kafkago.Message{
 		Value: entryByteArray,
 	}
-	err := r.kafkaWriter.WriteMessages(context.Background(), msg)
+	err = r.kafkaWriter.WriteMessages(context.Background(), msg)
 	if err != nil {
 		log.Errorf("encodeKafka error: %v", err)
 	} else {

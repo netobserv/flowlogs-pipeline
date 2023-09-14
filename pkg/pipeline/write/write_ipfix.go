@@ -537,7 +537,7 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 	// Initialize IPFIX registry and send templates
 	registry.LoadRegistry()
 	var err error
-	if params.Write.Ipfix.EnterpriseID != 0 {
+	if params.Write != nil && params.Write.Ipfix != nil && params.Write.Ipfix.EnterpriseID != 0 {
 		err = loadCustomRegistry(writeIpfix.enrichEnterpriseID)
 		if err != nil {
 			ilog.Fatalf("Failed to load Custom(%d) Registry", writeIpfix.enrichEnterpriseID)

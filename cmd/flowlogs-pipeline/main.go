@@ -106,7 +106,10 @@ func initLogger() {
 }
 
 func dumpConfig(opts config.Options) {
-	configAsJSON, _ := json.MarshalIndent(opts, "", "    ")
+	configAsJSON, err := json.MarshalIndent(opts, "", "    ")
+	if err != nil {
+		panic(fmt.Sprintf("error dumping config: %v", err))
+	}
 	fmt.Printf("Using configuration:\n%s\n", configAsJSON)
 }
 
