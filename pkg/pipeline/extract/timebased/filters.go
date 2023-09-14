@@ -84,15 +84,19 @@ func (fs *FilterStruct) CalculateValue(l *list.List, oldestValidTime time.Time) 
 			// entry is out of time range; ignore it
 			continue
 		}
-		valueFloat64, _ := utils.ConvertToFloat64(cEntry.entry[fs.Rule.OperationKey])
-		nItems++
-		switch fs.Rule.OperationType {
-		case api.FilterOperationName("FilterOperationSum"), api.FilterOperationName("FilterOperationAvg"):
-			currentValue += valueFloat64
-		case api.FilterOperationName("FilterOperationMax"):
-			currentValue = math.Max(currentValue, valueFloat64)
-		case api.FilterOperationName("FilterOperationMin"):
-			currentValue = math.Min(currentValue, valueFloat64)
+		if valueFloat64, err := utils.ConvertToFloat64(cEntry.entry[fs.Rule.OperationKey]); err != nil {
+			// Log as debug to avoid performance impact
+			log.Debugf("CalculateValue error with OperationKey %s: %v", fs.Rule.OperationKey, err)
+		} else {
+			nItems++
+			switch fs.Rule.OperationType {
+			case api.FilterOperationName("FilterOperationSum"), api.FilterOperationName("FilterOperationAvg"):
+				currentValue += valueFloat64
+			case api.FilterOperationName("FilterOperationMax"):
+				currentValue = math.Max(currentValue, valueFloat64)
+			case api.FilterOperationName("FilterOperationMin"):
+				currentValue = math.Min(currentValue, valueFloat64)
+			}
 		}
 	}
 	if fs.Rule.OperationType == api.FilterOperationName("FilterOperationAvg") && nItems > 0 {

@@ -85,7 +85,7 @@ func (ingestS *IngestSynthetic) Ingest(out chan<- config.GenericMap) {
 func NewIngestSynthetic(opMetrics *operational.Metrics, params config.StageParam) (Ingester, error) {
 	log.Debugf("entering NewIngestSynthetic")
 	confIngestSynthetic := api.IngestSynthetic{}
-	if params.Ingest != nil || params.Ingest.Synthetic != nil {
+	if params.Ingest != nil && params.Ingest.Synthetic != nil {
 		confIngestSynthetic = *params.Ingest.Synthetic
 	}
 	if confIngestSynthetic.Connections == 0 {
