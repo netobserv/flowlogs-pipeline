@@ -23,7 +23,7 @@ require (
 	github.com/prometheus/common v0.32.1
 	github.com/segmentio/kafka-go v0.4.38
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.3.0
+	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.8.1
@@ -62,7 +62,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
