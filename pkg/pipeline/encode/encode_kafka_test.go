@@ -107,7 +107,8 @@ func Test_TLSConfigCA(t *testing.T) {
 	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
 		Address: "any",
 		Topic:   "topic",
-		TLS: &api.ClientTLS{
+		TLS: &api.TLSConfig{
+			Type:       "simple",
 			CACertPath: ca,
 		},
 	})
@@ -122,16 +123,17 @@ func Test_TLSConfigCA(t *testing.T) {
 
 func Test_MutualTLSConfig(t *testing.T) {
 	test.ResetPromRegistry()
-	ca, user, userKey, cleanup := test.CreateAllCerts(t)
+	ca, user, userKey, cleanup := test.CreateClientCerts(t)
 	defer cleanup()
 	pipeline := config.NewCollectorPipeline("ingest", api.IngestCollector{})
 	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
 		Address: "any",
 		Topic:   "topic",
-		TLS: &api.ClientTLS{
-			CACertPath:   ca,
-			UserCertPath: user,
-			UserKeyPath:  userKey,
+		TLS: &api.TLSConfig{
+			Type:       "mutual",
+			CACertPath: ca,
+			CertPath:   user,
+			KeyPath:    userKey,
 		},
 	})
 	newEncode, err := NewEncodeKafka(operational.NewMetrics(&config.MetricsSettings{}), pipeline.GetStageParams()[1])

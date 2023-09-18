@@ -29,6 +29,6 @@ type IngestKafka struct {
 	PullQueueCapacity int         `yaml:"pullQueueCapacity,omitempty" json:"pullQueueCapacity,omitempty" doc:"the capacity of the queue use to store pulled flows"`
 	PullMaxBytes      int         `yaml:"pullMaxBytes,omitempty" json:"pullMaxBytes,omitempty" doc:"the maximum number of bytes being pulled from kafka"`
 	CommitInterval    int64       `yaml:"commitInterval,omitempty" json:"commitInterval,omitempty" doc:"the interval (in milliseconds) at which offsets are committed to the broker.  If 0, commits will be handled synchronously."`
-	TLS               *ClientTLS  `yaml:"tls" json:"tls" doc:"TLS client configuration (optional)"`
+	TLS               *TLSConfig  `yaml:"tls" json:"tls" doc:"TLS client configuration (optional)"`
 	SASL              *SASLConfig `yaml:"sasl" json:"sasl" doc:"SASL configuration (optional)"`
 }

@@ -22,21 +22,15 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/stretchr/testify/require"
 )
 
 func TestIngestSynthetic(t *testing.T) {
 	// check default values
-	params := config.StageParam{
-		Ingest: &config.Ingest{
-			Type:      "synthetic",
-			Synthetic: &api.IngestSynthetic{},
-		},
-	}
-	ingest, err := NewIngestSynthetic(operational.NewMetrics(&config.MetricsSettings{}), params)
-	syn := ingest.(*IngestSynthetic)
+	params := &config.Ingest{Synthetic: &api.IngestSynthetic{}}
+	ingest, err := runIngester(NewIngestSynthetic, params, nil)
 	require.NoError(t, err)
+	syn := ingest.(*IngestSynthetic)
 	require.Equal(t, defaultBatchLen, syn.params.BatchMaxLen)
 	require.Equal(t, defaultConnections, syn.params.Connections)
 	require.Equal(t, defaultFlowLogsPerMin, syn.params.FlowLogsPerMin)
@@ -49,22 +43,14 @@ func TestIngestSynthetic(t *testing.T) {
 		Connections:    connections,
 		FlowLogsPerMin: flowLogsPerMin,
 	}
-	params = config.StageParam{
-		Ingest: &config.Ingest{
-			Type:      "synthetic",
-			Synthetic: &synthetic,
-		},
-	}
-	ingest, err = NewIngestSynthetic(operational.NewMetrics(&config.MetricsSettings{}), params)
+	params = &config.Ingest{Synthetic: &synthetic}
+	ingestOutput := make(chan config.GenericMap)
+	ingest, err = runIngester(NewIngestSynthetic, params, ingestOutput)
 	syn = ingest.(*IngestSynthetic)
 	require.NoError(t, err)
 	require.Equal(t, batchMaxLen, syn.params.BatchMaxLen)
 	require.Equal(t, connections, syn.params.Connections)
 	require.Equal(t, flowLogsPerMin, syn.params.FlowLogsPerMin)
-
-	// run the Ingest method in a separate thread
-	ingestOutput := make(chan config.GenericMap)
-	go syn.Ingest(ingestOutput)
 
 	type connection struct {
 		srcAddr  string
