@@ -40,7 +40,6 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
-	"sigs.k8s.io/e2e-framework/support/kind"
 )
 
 type namespaceContextKey string
@@ -78,7 +77,7 @@ func e2eRecreateKindCluster(clusterName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		fmt.Printf("====> Recreating KIND cluster - %s\n", clusterName)
 		gexe.RunProc(fmt.Sprintf(`kind delete cluster --name %s`, clusterName))
-		newCtx, err := envfuncs.CreateCluster(kind.NewProvider(), clusterName)(ctx, cfg)
+		newCtx, err := envfuncs.CreateKindCluster(clusterName)(ctx, cfg)
 		fmt.Printf("====> Done.\n")
 		return newCtx, err
 	}
@@ -87,7 +86,7 @@ func e2eRecreateKindCluster(clusterName string) env.Func {
 func e2eDeleteKindCluster(clusterName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		fmt.Printf("====> Deleting KIND cluster - %s\n", clusterName)
-		newCtx, err := envfuncs.DestroyCluster(clusterName)(ctx, cfg)
+		newCtx, err := envfuncs.DestroyKindCluster(clusterName)(ctx, cfg)
 		fmt.Printf("\n====> Done.\n")
 		return newCtx, err
 	}

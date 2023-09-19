@@ -16,9 +16,9 @@ type Proc struct {
 	err        error
 	state      *os.ProcessState
 	result     *bytes.Buffer
-	outputPipe io.ReadCloser
-	errorPipe  io.ReadCloser
-	inputPipe  io.WriteCloser
+	output     io.Reader
+	stdoutPipe io.ReadCloser
+	stderrPipe io.ReadCloser
 	cmd        *osexec.Cmd
 	process    *os.Process
 }
@@ -34,65 +34,70 @@ func NewProc(cmdStr string) *Proc {
 	command := osexec.Command(words[0], words[1:]...)
 	pipeout, outerr := command.StdoutPipe()
 	pipeerr, errerr := command.StderrPipe()
-	//output := io.MultiReader(pipeout, pipeerr)
+	output := io.MultiReader(pipeout, pipeerr)
 
 	if outerr != nil || errerr != nil {
-		return &Proc{err: fmt.Errorf("combinedOutput pipe: %s; %s", outerr, errerr)}
-	}
-
-	pipein, inerr := command.StdinPipe()
-	if inerr != nil {
-		return &Proc{err: fmt.Errorf("inputPipe err: %w", inerr)}
+		return &Proc{err: fmt.Errorf("%s; %s", outerr, errerr)}
 	}
 
 	return &Proc{
 		cmd:        command,
-		outputPipe: pipeout,
-		errorPipe:  pipeerr,
-		inputPipe:  pipein,
-		result:     new(bytes.Buffer),
+		stdoutPipe: pipeout,
+		stderrPipe: pipeerr,
+		output:     output,
 	}
 }
 
-// StartProc starts an OS process (setup a combined output of stdout, stderr) and does not wait for
-// it to complete. You must follow this with either proc.Wait() to wait for result directly. Otherwise,
-// call proc.Out() or proc.Result() which automatically waits and gather result.
+// StartProc sets up and starts an OS process, but does not wait for
+// it to complete (use proc.Wait for that)
 func StartProc(cmdStr string) *Proc {
 	proc := NewProc(cmdStr)
 	if proc.Err() != nil {
 		return proc
 	}
-	proc.cmd.Stdout = proc.result
-	proc.cmd.Stderr = proc.result
 	return proc.Start()
 }
 
-// RunProc starts a new process and waits for its completion. Use Proc.Out() or Proc.Result()
-// to access the combined result from stdout and stderr.
+// RunProc creates, runs, and waits for a process to complete and
+// return *Proc with result info.  This call must be followed by
+// Proc.Result() to access command result as a string value.
+// NOTE: using proc.Out(), after this call, will be empty.
 func RunProc(cmdStr string) *Proc {
 	proc := StartProc(cmdStr)
 	if proc.Err() != nil {
+		proc.err = fmt.Errorf("proc: runproc: %s", proc.Err())
 		return proc
 	}
-	proc.Out()
+
+	proc.result = new(bytes.Buffer)
+
+	if _, err := proc.result.ReadFrom(proc.output); err != nil {
+		proc.err = err
+		return proc
+	}
+
+	if err := proc.Wait().Err(); err != nil {
+		proc.err = fmt.Errorf("proc: error: %s", proc.Err())
+	}
+
 	return proc
 }
 
-// Run creates and runs a process and waits for its result (combined stdin,stderr) returned as a string value.
-// This is equivalent to calling Proc.RunProc() followed by Proc.Result().
+// Run creates and runs a process and returns the
+// result as a string.
+// Equivalent to: Proc.RunProc() -> Proc.Result()
 func Run(cmdStr string) (result string) {
-	return RunProc(cmdStr).Result()
+	proc := StartProc(cmdStr)
+	if proc.Err() != nil {
+		proc.err = fmt.Errorf("proc: run: %s", proc.Err())
+		return
+	}
+	return proc.Result()
 }
 
-// Start starts the associated command as an OS process and does not wait for its result.
-// Ensure proper access to the process' input/output (stdin,stdout,stderr) has been
-// setup prior to calling p.Start().
-// Use p.Err() to access any error that may have occured during execution.
+// Start starts the associated command as an OS process
+// Errors can be accessed using p.Err()
 func (p *Proc) Start() *Proc {
-	if p.hasStarted() {
-		return p
-	}
-
 	if p.cmd == nil {
 		p.err = fmt.Errorf("cmd is nill")
 		return p
@@ -110,7 +115,7 @@ func (p *Proc) Start() *Proc {
 	return p
 }
 
-// Command returns the os/exec.Cmd that started the process
+// Commands returns the os/exec.Cmd that started the process
 func (p *Proc) Command() *osexec.Cmd {
 	return p.cmd
 }
@@ -121,8 +126,9 @@ func (p *Proc) Peek() *Proc {
 	return p
 }
 
-// Wait waits for a process  to complete (in a separate goroutine).
-// Ensure p.Start() has been called prior to calling p.Wait()
+// Wait waits for a process started with Proc.StartProc to complete (in a separate goroutine).
+// Once process completes, Wait cleans up resources.
+// Must be called after Proc.StartProc()
 func (p *Proc) Wait() *Proc {
 	if p.cmd == nil {
 		p.err = fmt.Errorf("command is nill")
@@ -133,15 +139,6 @@ func (p *Proc) Wait() *Proc {
 		// use return below to get proc info
 	}
 	return p.Peek()
-}
-
-// Run starts and wait for a process to complete.
-// Before calling p.Run(), setup proper access to the process' input/output (i.e. stdin,stdout, stderr)
-func (p *Proc) Run() *Proc {
-	if p.Start().Err() != nil {
-		return p
-	}
-	return p.Wait()
 }
 
 // ID returns process id
@@ -202,81 +199,54 @@ func (p *Proc) Kill() *Proc {
 	return p
 }
 
-// Out waits, after StartProc or Proc.Start has been called, for the cmd to complete
-// and returns the combined result (Stdout and Stderr) as a single reader to be streamed.
+// StdOut is an io.Reader pipe for standard out
+// Must be streamed before Proc.Wait()
+func (p *Proc) StdOut() io.Reader {
+	return p.stdoutPipe
+}
+
+// StdErr is an io.Reader pipe for standard error
+// Must be streamed before Proc.Wait().
+func (p *Proc) StdErr() io.Reader {
+	return p.stdoutPipe
+}
+
+// Out waits for cmd result and surfaces the result from both stdout and stderr
+// in an io.Reader that can be streamed.
+// NOTE: Must be called after Proc.StartProc
 func (p *Proc) Out() io.Reader {
-	if !p.hasStarted() {
-		p.cmd.Stdout = p.result
-		p.cmd.Stderr = p.result
-		if err := p.Start().Err(); err != nil {
-			return strings.NewReader(fmt.Sprintf("proc: out failed: %s", err))
-		}
+	if p.output != nil {
+		return p.output
+	}
+	p.output = io.MultiReader(p.stdoutPipe, p.stderrPipe)
+
+	if err := p.Wait().Err(); err != nil {
+		p.err = fmt.Errorf("proc: out: failed to wait: %s", p.Err())
+		return nil
 	}
 
-	if !p.Exited() {
-		if err := p.Wait().Err(); err != nil {
-			return strings.NewReader(fmt.Sprintf("proc: out: failed to wait: %s", err))
-		}
-	}
-
-	return p.result
+	return p.output
 }
 
-// Result waits, after proc.Start or proc.StartProc has been called, for the cmd to complete
-// and returns the combined stdout and stderr result as a string value.
+// Result waits and copies the result of the combined stdout and stderr
+// and returns its result as a string.
+// NOTE: Must be called after Proc.StartProc, Proc.RunProc() or Proc.Run().
 func (p *Proc) Result() string {
-	p.Out()
-	if p.Err() != nil {
-		return p.Err().Error()
+	if p.result != nil {
+		return strings.TrimSpace(p.result.String())
 	}
+
+	p.result = new(bytes.Buffer)
+
+	if _, err := p.result.ReadFrom(p.output); err != nil {
+		p.err = err
+		return ""
+	}
+
+	if err := p.Wait().Err(); err != nil {
+		p.err = fmt.Errorf("proc: result: %s", p.Err())
+		return ""
+	}
+
 	return strings.TrimSpace(p.result.String())
-}
-
-// Stdin returns the standard input stream for the process
-func (p *Proc) Stdin() io.Reader {
-	return p.cmd.Stdin
-}
-
-// SetStdin sets a stream for the process to read its input from
-func (p *Proc) SetStdin(in io.Reader) {
-	p.cmd.Stdin = in
-}
-
-// GetInputPipe returns a stream where the process input can be written to
-func (p *Proc) GetInputPipe() io.Writer {
-	return p.inputPipe
-}
-
-// Stdout returns the standard output stream for the process
-func (p *Proc) Stdout() io.Writer {
-	return p.cmd.Stdout
-}
-
-// SetStdout sets a stream where the process can write its output to
-func (p *Proc) SetStdout(out io.Writer) {
-	p.cmd.Stdout = out
-}
-
-// GetOutputPipe returns a stream where the process output can be read from
-func (p *Proc) GetOutputPipe() io.Reader {
-	return p.outputPipe
-}
-
-// Stderr returns the standard error stream for the process
-func (p *Proc) Stderr() io.Writer {
-	return p.cmd.Stderr
-}
-
-// SetStderr sets a stream where the process can write its errors to
-func (p *Proc) SetStderr(out io.Writer) {
-	p.cmd.Stderr = out
-}
-
-// GetErrorPipe returns a stream where the process error can be read from
-func (p *Proc) GetErrorPipe() io.Reader {
-	return p.errorPipe
-}
-
-func (p *Proc) hasStarted() bool {
-	return (p.cmd.Process != nil && p.cmd.Process.Pid != 0)
 }

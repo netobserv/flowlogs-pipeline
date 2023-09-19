@@ -23,31 +23,26 @@ import (
 // Table provides a structure for table-driven tests.
 // Each entry in the table represents an executable assessment.
 type Table []struct {
-	Name        string
-	Description string
-	Assessment  Func
+	Name       string
+	Assessment Func
 }
 
 // Build converts the defined test steps in the table
 // into a FeatureBuilder which can be used to add additional attributes
 // to the feature before it's exercised. Build takes an optional feature name
 // if omitted will be generated.
-func (table Table) Build(args ...string) *FeatureBuilder {
+func (table Table) Build(featureName ...string) *FeatureBuilder {
 	var name string
-	var description string
-	if len(args) > 0 {
-		name = args[0]
+	if len(featureName) > 0 {
+		name = featureName[0]
 	}
-	if len(args) > 1 {
-		description = args[1]
-	}
-	f := NewWithDescription(name, description)
+	f := New(name)
 	for i, test := range table {
 		if test.Name == "" {
 			test.Name = fmt.Sprintf("Assessment-%d", i)
 		}
 		if test.Assessment != nil {
-			f.AssessWithDescription(test.Name, test.Description, test.Assessment)
+			f.Assess(test.Name, test.Assessment)
 		}
 	}
 	return f

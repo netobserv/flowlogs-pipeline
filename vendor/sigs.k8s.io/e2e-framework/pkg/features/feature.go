@@ -31,14 +31,13 @@ type (
 )
 
 type defaultFeature struct {
-	name        string
-	description string
-	labels      types.Labels
-	steps       []types.Step
+	name   string
+	labels types.Labels
+	steps  []types.Step
 }
 
-func newDefaultFeature(name, description string) *defaultFeature {
-	return &defaultFeature{name: name, description: description, labels: make(types.Labels), steps: make([]types.Step, 0)}
+func newDefaultFeature(name string) *defaultFeature {
+	return &defaultFeature{name: name, labels: make(types.Labels)}
 }
 
 func (f *defaultFeature) Name() string {
@@ -53,27 +52,17 @@ func (f *defaultFeature) Steps() []types.Step {
 	return f.steps
 }
 
-func (f *defaultFeature) Description() string {
-	return f.description
-}
-
 type testStep struct {
-	name        string
-	description string
-	level       Level
-	fn          Func
+	name  string
+	level Level
+	fn    Func
 }
 
 func newStep(name string, level Level, fn Func) *testStep {
-	return newStepWithDescription(name, "", level, fn)
-}
-
-func newStepWithDescription(name, description string, level Level, fn Func) *testStep {
 	return &testStep{
-		name:        name,
-		description: description,
-		level:       level,
-		fn:          fn,
+		name:  name,
+		level: level,
+		fn:    fn,
 	}
 }
 
@@ -87,10 +76,6 @@ func (s *testStep) Level() Level {
 
 func (s *testStep) Func() Func {
 	return s.fn
-}
-
-func (s *testStep) Description() string {
-	return s.description
 }
 
 func GetStepsByLevel(steps []types.Step, l types.Level) []types.Step {

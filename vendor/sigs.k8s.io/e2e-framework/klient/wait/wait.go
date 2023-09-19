@@ -17,7 +17,6 @@ limitations under the License.
 package wait
 
 import (
-	"context"
 	"time"
 
 	apimachinerywait "k8s.io/apimachinery/pkg/util/wait"
@@ -35,7 +34,7 @@ type Options struct {
 	// to be met.
 	Timeout time.Duration
 	// StopChan is used to setup a wait mechanism using the apimachinerywait.PollUntil method
-	Ctx context.Context
+	StopChan chan struct{}
 	// Immediate is used to indicate if the apimachinerywait's immediate wait method are to be
 	// called instead of the regular one
 	Immediate bool
@@ -60,12 +59,13 @@ func WithInterval(interval time.Duration) Option {
 	}
 }
 
-// WithContext provides a way to configure a context that can be used to cancel the wait condition checks. This will enable
+// WithStopChannel provides a way to configure a Stop channel that can be used to run wait condition checks
+// either until the condition has been successfully met or until the channel has been closed. This will enable
 // end users to write test in cases where the max timeout is not really predictable or is a factor of a different
 // configuration or event.
-func WithContext(ctx context.Context) Option {
+func WithStopChannel(stopChan chan struct{}) Option {
 	return func(options *Options) {
-		options.Ctx = ctx
+		options.StopChan = stopChan
 	}
 }
 
@@ -84,24 +84,28 @@ func WithImmediate() Option {
 // The conditions sub-packages provides a series of pre-defined wait functions that can be used by the developers
 // or a custom wait function can be passed as an argument to get a similar functionality if the check required
 // for your test is not already provided by the helper utility.
-func For(conditionFunc apimachinerywait.ConditionWithContextFunc, opts ...Option) error {
+func For(conditionFunc apimachinerywait.ConditionFunc, opts ...Option) error {
 	options := &Options{
 		Interval:  defaultPollInterval,
 		Timeout:   defaultPollTimeout,
-		Ctx:       nil,
+		StopChan:  nil,
 		Immediate: false,
 	}
-	var cancel context.CancelFunc
+
 	for _, fn := range opts {
 		fn(options)
 	}
 
-	if options.Ctx == nil {
-		options.Ctx, cancel = context.WithTimeout(context.Background(), options.Timeout)
-		defer cancel()
+	// Setting the options.StopChan will force the usage of `PollUntil`
+	if options.StopChan != nil {
+		if options.Immediate {
+			return apimachinerywait.PollImmediateUntil(options.Interval, conditionFunc, options.StopChan)
+		}
+		return apimachinerywait.PollUntil(options.Interval, conditionFunc, options.StopChan)
 	}
+
 	if options.Immediate {
-		return apimachinerywait.PollUntilContextCancel(options.Ctx, options.Interval, true, conditionFunc)
+		return apimachinerywait.PollImmediate(options.Interval, options.Timeout, conditionFunc)
 	}
-	return apimachinerywait.PollUntilContextCancel(options.Ctx, options.Interval, false, conditionFunc)
+	return apimachinerywait.Poll(options.Interval, options.Timeout, conditionFunc)
 }

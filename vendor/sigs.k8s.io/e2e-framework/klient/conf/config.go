@@ -18,7 +18,6 @@ limitations under the License.
 package conf
 
 import (
-	"errors"
 	"flag"
 	"os"
 	"os/user"
@@ -34,32 +33,14 @@ var DefaultClusterContext = ""
 // New returns Kubernetes configuration value of type *rest.Config.
 // filename is kubeconfig file
 func New(fileName string) (*rest.Config, error) {
-	var resolvedKubeConfigFile string
-	kubeContext := ResolveClusterContext()
-
-	// resolve the kubeconfig file
-	resolvedKubeConfigFile = fileName
+	// if filename is not provided assume in-cluster-config
 	if fileName == "" {
-		resolvedKubeConfigFile = ResolveKubeConfigFile()
+		return rest.InClusterConfig()
 	}
 
-	// if resolvedKubeConfigFile is still empty, assume in-cluster config
-	if resolvedKubeConfigFile == "" {
-		if kubeContext == "" {
-			return rest.InClusterConfig()
-		}
-		// if in-cluster can't use the --kubeContext flag
-		return nil, errors.New("cannot use a cluster context without a valid kubeconfig file")
-	}
-
-	// set the desired context if provided
-	if kubeContext != "" {
-		return NewWithContextName(resolvedKubeConfigFile, kubeContext)
-	}
-
-	// create the config object from resolvedKubeConfigFile without a context
+	// create the config object from k8s config path
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: resolvedKubeConfigFile}, &clientcmd.ConfigOverrides{}).ClientConfig()
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: fileName}, &clientcmd.ConfigOverrides{}).ClientConfig()
 }
 
 // NewWithContextName returns k8s config value of type *rest.Config
@@ -129,9 +110,9 @@ func ResolveKubeConfigFile() string {
 
 // ResolveClusterContext returns cluster context name based on --context flag.
 func ResolveClusterContext() string {
-	// If a flag --context is specified use that
+	// If a flag --kube-context is specified use that
 	if flag.Parsed() {
-		f := flag.Lookup("context")
+		f := flag.Lookup("kube-context")
 		if f != nil {
 			return f.Value.String()
 		}
