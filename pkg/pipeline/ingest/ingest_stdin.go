@@ -19,7 +19,6 @@ package ingest
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -95,18 +94,12 @@ func (s *ingestStdin) processRecord(out chan<- config.GenericMap, line string) {
 // NewIngestStdin create a new ingester
 func NewIngestStdin(opMetrics *operational.Metrics, params config.StageParam) (Ingester, error) {
 	slog.Debugf("Entering NewIngestStdin")
-	if params.Ingest == nil || params.Ingest.Stdin == nil || params.Ingest.Stdin.Decoder.Type == "" {
-		return nil, fmt.Errorf("stdin decoder not specified")
-	}
-	decoderType := params.Ingest.Stdin.Decoder.Type
-	if decoderType != api.DecoderName("JSON") {
-		return nil, fmt.Errorf("stdin supports only json decoder. Given decoder type: %v", decoderType)
-	}
 
 	in := make(chan string, channelSize)
 	eof := make(chan struct{})
 	metrics := newMetrics(opMetrics, params.Name, params.Ingest.Type, func() int { return len(in) })
-	decoder, err := decode.GetDecoder(params.Ingest.Stdin.Decoder)
+	decoderParams := api.Decoder{Type: api.DecoderName("JSON")}
+	decoder, err := decode.GetDecoder(decoderParams)
 	if err != nil {
 		return nil, err
 	}

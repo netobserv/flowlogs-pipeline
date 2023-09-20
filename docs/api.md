@@ -116,10 +116,6 @@ Following is the supported API format for the standard input ingest:
 
 <pre>
  stdin:
-         decoder: decoder to use
-             type: (enum) one of the following:
-                 json: JSON decoder
-                 protobuf: Protobuf decoder
 </pre>
 ## Transform Generic API
 Following is the supported API format for generic transformations:

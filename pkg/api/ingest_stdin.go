@@ -18,5 +18,4 @@
 package api
 
 type IngestStdin struct {
-	Decoder Decoder `yaml:"decoder,omitempty" json:"decoder,omitempty" doc:"decoder to use"`
 }
