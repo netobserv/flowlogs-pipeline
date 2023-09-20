@@ -18,7 +18,6 @@
 package kubernetes
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -265,8 +264,12 @@ func (k *KubeData) initServiceInformer(informerFactory informers.SharedInformerF
 		if !ok {
 			return nil, fmt.Errorf("was expecting a Service. Got: %T", i)
 		}
-		if svc.Spec.ClusterIP == v1.ClusterIPNone {
-			return nil, errors.New("not indexing service without ClusterIP")
+		ips := make([]string, 0, len(svc.Spec.ClusterIPs))
+		for _, ip := range svc.Spec.ClusterIPs {
+			// ignoring None IPs
+			if ip != v1.ClusterIPNone {
+				ips = append(ips, ip)
+			}
 		}
 		return &Info{
 			ObjectMeta: metav1.ObjectMeta{
@@ -275,7 +278,7 @@ func (k *KubeData) initServiceInformer(informerFactory informers.SharedInformerF
 				Labels:    svc.Labels,
 			},
 			Type: typeService,
-			ips:  svc.Spec.ClusterIPs,
+			ips:  ips,
 		}, nil
 	}); err != nil {
 		return fmt.Errorf("can't set services transform: %w", err)
