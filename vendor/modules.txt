@@ -228,6 +228,7 @@ github.com/netobserv/netobserv-ebpf-agent/pkg/utils
 github.com/netsampler/goflow2/decoders
 github.com/netsampler/goflow2/decoders/netflow
 github.com/netsampler/goflow2/decoders/netflow/templates
+github.com/netsampler/goflow2/decoders/netflow/templates/memory
 github.com/netsampler/goflow2/decoders/netflowlegacy
 github.com/netsampler/goflow2/decoders/sflow
 github.com/netsampler/goflow2/decoders/utils
