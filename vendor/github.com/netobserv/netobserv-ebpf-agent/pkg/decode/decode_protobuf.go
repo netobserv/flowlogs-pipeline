@@ -82,6 +82,10 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 				out["SrcPort"] = flow.Transport.GetSrcPort()
 				out["DstPort"] = flow.Transport.GetDstPort()
 				out["Flags"] = flow.Flags
+				tcpRetrans := flow.GetTcpRetrans()
+				if tcpRetrans != 0 {
+					out["TcpRetrans"] = tcpRetrans
+				}
 			} else {
 				out["SrcPort"] = flow.Transport.GetSrcPort()
 				out["DstPort"] = flow.Transport.GetDstPort()
