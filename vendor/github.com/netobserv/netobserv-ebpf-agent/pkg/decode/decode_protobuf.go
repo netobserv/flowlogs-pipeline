@@ -113,11 +113,11 @@ func PBFlowToMap(flow *pbflow.Record) config.GenericMap {
 func ipToStr(ip *pbflow.IP) string {
 	if ip.GetIpv6() != nil {
 		return net.IP(ip.GetIpv6()).String()
-	} else {
-		n := ip.GetIpv4()
-		return fmt.Sprintf("%d.%d.%d.%d",
-			byte(n>>24), byte(n>>16), byte(n>>8), byte(n))
 	}
+	n := ip.GetIpv4()
+	return fmt.Sprintf("%d.%d.%d.%d",
+		byte(n>>24), byte(n>>16), byte(n>>8), byte(n))
+
 }
 
 func macToStr(mac uint64) string {
@@ -162,6 +162,7 @@ func tcpStateToStr(state uint32) string {
 
 // pktDropCauseToStr is based on kernel drop cause definition
 // https://elixir.bootlin.com/linux/latest/source/include/net/dropreason.h#L88
+// nolint:cyclop
 func pktDropCauseToStr(dropCause uint32) string {
 	switch dropCause {
 	case skbDropReasonSubSysCore + 2:

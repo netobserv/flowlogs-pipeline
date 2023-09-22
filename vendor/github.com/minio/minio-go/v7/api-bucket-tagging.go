@@ -22,6 +22,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -57,7 +58,7 @@ func (c *Client) GetBucketTagging(ctx context.Context, bucketName string) (*tags
 		return nil, httpRespToErrorResponse(resp, bucketName, "")
 	}
 
-	defer io.Copy(io.Discard, resp.Body)
+	defer io.Copy(ioutil.Discard, resp.Body)
 	return tags.ParseBucketXML(resp.Body)
 }
 

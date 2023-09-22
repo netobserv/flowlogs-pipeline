@@ -166,7 +166,6 @@ func (c *Client) ListenBucketNotification(ctx context.Context, bucketName, prefi
 
 		// Prepare urlValues to pass into the request on every loop
 		urlValues := make(url.Values)
-		urlValues.Set("ping", "10")
 		urlValues.Set("prefix", prefix)
 		urlValues.Set("suffix", suffix)
 		urlValues["events"] = events
@@ -225,12 +224,6 @@ func (c *Client) ListenBucketNotification(ctx context.Context, bucketName, prefi
 					closeResponse(resp)
 					continue
 				}
-
-				// Empty events pinged from the server
-				if len(notificationInfo.Records) == 0 && notificationInfo.Err == nil {
-					continue
-				}
-
 				// Send notificationInfo
 				select {
 				case notificationInfoCh <- notificationInfo:

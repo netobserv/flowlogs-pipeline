@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sort"
@@ -200,9 +201,7 @@ func (c *Client) putObjectMultipartNoStream(ctx context.Context, bucketName, obj
 
 	// Sort all completed parts.
 	sort.Sort(completedParts(complMultipartUpload.Parts))
-	opts = PutObjectOptions{
-		ServerSideEncryption: opts.ServerSideEncryption,
-	}
+	opts = PutObjectOptions{}
 	if len(crcBytes) > 0 {
 		// Add hash of hashes.
 		crc.Reset()
@@ -387,13 +386,6 @@ func (c *Client) completeMultipartUpload(ctx context.Context, bucketName, object
 		return UploadInfo{}, err
 	}
 
-	headers := opts.Header()
-	if s3utils.IsAmazonEndpoint(*c.endpointURL) {
-		headers.Del(encrypt.SseKmsKeyID)          // Remove X-Amz-Server-Side-Encryption-Aws-Kms-Key-Id not supported in CompleteMultipartUpload
-		headers.Del(encrypt.SseGenericHeader)     // Remove X-Amz-Server-Side-Encryption not supported in CompleteMultipartUpload
-		headers.Del(encrypt.SseEncryptionContext) // Remove X-Amz-Server-Side-Encryption-Context not supported in CompleteMultipartUpload
-	}
-
 	// Instantiate all the complete multipart buffer.
 	completeMultipartUploadBuffer := bytes.NewReader(completeMultipartUploadBytes)
 	reqMetadata := requestMetadata{
@@ -403,7 +395,7 @@ func (c *Client) completeMultipartUpload(ctx context.Context, bucketName, object
 		contentBody:      completeMultipartUploadBuffer,
 		contentLength:    int64(len(completeMultipartUploadBytes)),
 		contentSHA256Hex: sum256Hex(completeMultipartUploadBytes),
-		customHeader:     headers,
+		customHeader:     opts.Header(),
 	}
 
 	// Execute POST to complete multipart upload for an objectName.
@@ -420,7 +412,7 @@ func (c *Client) completeMultipartUpload(ctx context.Context, bucketName, object
 
 	// Read resp.Body into a []bytes to parse for Error response inside the body
 	var b []byte
-	b, err = io.ReadAll(resp.Body)
+	b, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return UploadInfo{}, err
 	}

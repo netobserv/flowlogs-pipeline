@@ -41,8 +41,8 @@ type CSVFileHeaderInfo string
 // Constants for file header info.
 const (
 	CSVFileHeaderInfoNone   CSVFileHeaderInfo = "NONE"
-	CSVFileHeaderInfoIgnore CSVFileHeaderInfo = "IGNORE"
-	CSVFileHeaderInfoUse    CSVFileHeaderInfo = "USE"
+	CSVFileHeaderInfoIgnore                   = "IGNORE"
+	CSVFileHeaderInfoUse                      = "USE"
 )
 
 // SelectCompressionType - is the parameter for what type of compression is
@@ -52,15 +52,15 @@ type SelectCompressionType string
 // Constants for compression types under select API.
 const (
 	SelectCompressionNONE SelectCompressionType = "NONE"
-	SelectCompressionGZIP SelectCompressionType = "GZIP"
-	SelectCompressionBZIP SelectCompressionType = "BZIP2"
+	SelectCompressionGZIP                       = "GZIP"
+	SelectCompressionBZIP                       = "BZIP2"
 
 	// Non-standard compression schemes, supported by MinIO hosts:
 
-	SelectCompressionZSTD   SelectCompressionType = "ZSTD"   // Zstandard compression.
-	SelectCompressionLZ4    SelectCompressionType = "LZ4"    // LZ4 Stream
-	SelectCompressionS2     SelectCompressionType = "S2"     // S2 Stream
-	SelectCompressionSNAPPY SelectCompressionType = "SNAPPY" // Snappy stream
+	SelectCompressionZSTD   = "ZSTD"   // Zstandard compression.
+	SelectCompressionLZ4    = "LZ4"    // LZ4 Stream
+	SelectCompressionS2     = "S2"     // S2 Stream
+	SelectCompressionSNAPPY = "SNAPPY" // Snappy stream
 )
 
 // CSVQuoteFields - is the parameter for how CSV fields are quoted.
@@ -69,7 +69,7 @@ type CSVQuoteFields string
 // Constants for csv quote styles.
 const (
 	CSVQuoteFieldsAlways   CSVQuoteFields = "Always"
-	CSVQuoteFieldsAsNeeded CSVQuoteFields = "AsNeeded"
+	CSVQuoteFieldsAsNeeded                = "AsNeeded"
 )
 
 // QueryExpressionType - is of what syntax the expression is, this should only
@@ -87,7 +87,7 @@ type JSONType string
 // Constants for JSONTypes.
 const (
 	JSONDocumentType JSONType = "DOCUMENT"
-	JSONLinesType    JSONType = "LINES"
+	JSONLinesType             = "LINES"
 )
 
 // ParquetInputOptions parquet input specific options
@@ -378,8 +378,8 @@ type SelectObjectType string
 // Constants for input data types.
 const (
 	SelectObjectTypeCSV     SelectObjectType = "CSV"
-	SelectObjectTypeJSON    SelectObjectType = "JSON"
-	SelectObjectTypeParquet SelectObjectType = "Parquet"
+	SelectObjectTypeJSON                     = "JSON"
+	SelectObjectTypeParquet                  = "Parquet"
 )
 
 // preludeInfo is used for keeping track of necessary information from the
@@ -416,7 +416,7 @@ type messageType string
 
 const (
 	errorMsg  messageType = "error"
-	commonMsg messageType = "event"
+	commonMsg             = "event"
 )
 
 // eventType represents the type of event.
@@ -425,9 +425,9 @@ type eventType string
 // list of event-types returned by Select API.
 const (
 	endEvent      eventType = "End"
-	recordsEvent  eventType = "Records"
-	progressEvent eventType = "Progress"
-	statsEvent    eventType = "Stats"
+	recordsEvent            = "Records"
+	progressEvent           = "Progress"
+	statsEvent              = "Stats"
 )
 
 // contentType represents content type of event.
