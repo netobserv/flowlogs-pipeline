@@ -29,6 +29,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	stdinChannelSize = 1000
+)
+
 var slog = logrus.WithField("component", "ingest.Stdin")
 
 type ingestStdin struct {
@@ -95,7 +99,7 @@ func (s *ingestStdin) processRecord(out chan<- config.GenericMap, line string) {
 func NewIngestStdin(opMetrics *operational.Metrics, params config.StageParam) (Ingester, error) {
 	slog.Debugf("Entering NewIngestStdin")
 
-	in := make(chan string, channelSize)
+	in := make(chan string, stdinChannelSize)
 	eof := make(chan struct{})
 	metrics := newMetrics(opMetrics, params.Name, params.Ingest.Type, func() int { return len(in) })
 	decoderParams := api.Decoder{Type: api.DecoderName("JSON")}
