@@ -20,6 +20,7 @@ package minio
 import (
 	"context"
 	"io"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -53,7 +54,7 @@ func (c *Client) CopyObject(ctx context.Context, dst CopyDestOptions, src CopySr
 
 	// Update the progress properly after successful copy.
 	if dst.Progress != nil {
-		io.Copy(io.Discard, io.LimitReader(dst.Progress, dst.Size))
+		io.Copy(ioutil.Discard, io.LimitReader(dst.Progress, dst.Size))
 	}
 
 	cpObjRes := copyObjectResult{}

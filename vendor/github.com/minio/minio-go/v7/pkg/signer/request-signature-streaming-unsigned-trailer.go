@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -131,7 +132,7 @@ func StreamingUnsignedV4(req *http.Request, sessionToken string, dataLen int64, 
 	prepareUSStreamingRequest(req, sessionToken, dataLen, reqTime)
 
 	if req.Body == nil {
-		req.Body = io.NopCloser(bytes.NewReader([]byte("")))
+		req.Body = ioutil.NopCloser(bytes.NewReader([]byte("")))
 	}
 
 	stReader := &StreamingUSReader{

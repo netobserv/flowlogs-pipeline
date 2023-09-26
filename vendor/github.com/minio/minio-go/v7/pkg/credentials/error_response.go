@@ -22,6 +22,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 )
 
 // ErrorResponse - Is the typed error returned.
@@ -87,7 +88,7 @@ func xmlDecoder(body io.Reader, v interface{}) error {
 func xmlDecodeAndBody(bodyReader io.Reader, v interface{}) ([]byte, error) {
 	// read the whole body (up to 1MB)
 	const maxBodyLength = 1 << 20
-	body, err := io.ReadAll(io.LimitReader(bodyReader, maxBodyLength))
+	body, err := ioutil.ReadAll(io.LimitReader(bodyReader, maxBodyLength))
 	if err != nil {
 		return nil, err
 	}

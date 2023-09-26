@@ -21,7 +21,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -156,7 +156,7 @@ func (k *LDAPIdentity) Retrieve() (value Value, err error) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		var errResp ErrorResponse
-		buf, err := io.ReadAll(resp.Body)
+		buf, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return value, err
 		}
