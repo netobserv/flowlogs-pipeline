@@ -28,6 +28,8 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	"github.com/netsampler/goflow2/decoders/netflow/templates"
+	_ "github.com/netsampler/goflow2/decoders/netflow/templates/memory"
 	goflowFormat "github.com/netsampler/goflow2/format"
 	goflowCommonFormat "github.com/netsampler/goflow2/format/common"
 	_ "github.com/netsampler/goflow2/format/protobuf"
@@ -114,13 +116,21 @@ func (c *ingestCollector) initCollectorListener(ctx context.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	if c.port > 0 {
+		// cf https://github.com/netsampler/goflow2/pull/49
+		tpl, err := templates.FindTemplateSystem(ctx, "memory")
+		if err != nil {
+			log.Fatalf("goflow2 error: could not find memory template system: %v", err)
+		}
+		defer tpl.Close(ctx)
+
 		go func() {
-			sNF := &utils.StateNetFlow{
-				Format:    formatter,
-				Transport: transporter,
-				Logger:    log.StandardLogger(),
-			}
+			sNF := utils.NewStateNetFlow()
+			sNF.Format = formatter
+			sNF.Transport = transporter
+			sNF.Logger = log.StandardLogger()
+			sNF.TemplateSystem = tpl
 
 			log.Infof("listening for netflow on host %s, port = %d", c.hostname, c.port)
 			err = sNF.FlowRoutine(1, c.hostname, c.port, false)
@@ -130,11 +140,10 @@ func (c *ingestCollector) initCollectorListener(ctx context.Context) {
 
 	if c.portLegacy > 0 {
 		go func() {
-			sLegacyNF := &utils.StateNFLegacy{
-				Format:    formatter,
-				Transport: transporter,
-				Logger:    log.StandardLogger(),
-			}
+			sLegacyNF := utils.NewStateNFLegacy()
+			sLegacyNF.Format = formatter
+			sLegacyNF.Transport = transporter
+			sLegacyNF.Logger = log.StandardLogger()
 
 			log.Infof("listening for legacy netflow on host %s, port = %d", c.hostname, c.portLegacy)
 			err = sLegacyNF.FlowRoutine(1, c.hostname, c.portLegacy, false)

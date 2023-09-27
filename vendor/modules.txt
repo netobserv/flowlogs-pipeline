@@ -147,8 +147,8 @@ github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/klauspost/cpuid/v2 v2.2.5
 ## explicit; go 1.15
 github.com/klauspost/cpuid/v2
-# github.com/libp2p/go-reuseport v0.1.0
-## explicit; go 1.16
+# github.com/libp2p/go-reuseport v0.3.0
+## explicit; go 1.19
 github.com/libp2p/go-reuseport
 # github.com/magiconair/properties v1.8.5
 ## explicit; go 1.13
@@ -224,10 +224,12 @@ github.com/netobserv/netobserv-ebpf-agent/pkg/decode
 github.com/netobserv/netobserv-ebpf-agent/pkg/grpc
 github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow
 github.com/netobserv/netobserv-ebpf-agent/pkg/utils
-# github.com/netsampler/goflow2 v1.1.1-0.20220509155230-5300494e4785
-## explicit; go 1.17
+# github.com/netsampler/goflow2 v1.3.6
+## explicit; go 1.18
 github.com/netsampler/goflow2/decoders
 github.com/netsampler/goflow2/decoders/netflow
+github.com/netsampler/goflow2/decoders/netflow/templates
+github.com/netsampler/goflow2/decoders/netflow/templates/memory
 github.com/netsampler/goflow2/decoders/netflowlegacy
 github.com/netsampler/goflow2/decoders/sflow
 github.com/netsampler/goflow2/decoders/utils
@@ -241,7 +243,7 @@ github.com/netsampler/goflow2/utils
 # github.com/pelletier/go-toml v1.9.4
 ## explicit; go 1.12
 github.com/pelletier/go-toml
-# github.com/pierrec/lz4/v4 v4.1.15
+# github.com/pierrec/lz4/v4 v4.1.17
 ## explicit; go 1.14
 github.com/pierrec/lz4/v4
 github.com/pierrec/lz4/v4/internal/lz4block
@@ -287,7 +289,7 @@ github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/prometheus/client_golang v1.15.1
+# github.com/prometheus/client_golang v1.16.0
 ## explicit; go 1.17
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
@@ -302,8 +304,8 @@ github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
 github.com/prometheus/common/version
-# github.com/prometheus/procfs v0.9.0
-## explicit; go 1.18
+# github.com/prometheus/procfs v0.10.1
+## explicit; go 1.19
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util

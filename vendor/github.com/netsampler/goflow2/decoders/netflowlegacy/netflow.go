@@ -7,6 +7,10 @@ import (
 	"github.com/netsampler/goflow2/decoders/utils"
 )
 
+const (
+	MAX_COUNT = 1536
+)
+
 type ErrorVersion struct {
 	version uint16
 }
@@ -42,10 +46,37 @@ func DecodeMessage(payload *bytes.Buffer) (interface{}, error) {
 			&(packet.SamplingInterval),
 		)
 
+		packet.SamplingInterval = packet.SamplingInterval & 0x3FFF
+
+		if packet.Count > MAX_COUNT {
+			return nil, fmt.Errorf("Too many samples (%d > %d) in packet", packet.Count, MAX_COUNT)
+		}
+
 		packet.Records = make([]RecordsNetFlowV5, int(packet.Count))
 		for i := 0; i < int(packet.Count) && payload.Len() >= 48; i++ {
 			record := RecordsNetFlowV5{}
-			err := utils.BinaryDecoder(payload, &record)
+			err := utils.BinaryDecoder(payload,
+				&record.SrcAddr,
+				&record.DstAddr,
+				&record.NextHop,
+				&record.Input,
+				&record.Output,
+				&record.DPkts,
+				&record.DOctets,
+				&record.First,
+				&record.Last,
+				&record.SrcPort,
+				&record.DstPort,
+				&record.Pad1,
+				&record.TCPFlags,
+				&record.Proto,
+				&record.Tos,
+				&record.SrcAS,
+				&record.DstAS,
+				&record.SrcMask,
+				&record.DstMask,
+				&record.Pad2,
+			)
 			if err != nil {
 				return packet, err
 			}
