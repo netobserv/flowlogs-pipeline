@@ -117,7 +117,7 @@ require (
 
 require (
 	github.com/go-logr/logr v1.2.4 // indirect
-	github.com/google/go-jsonnet v0.19.1
+	github.com/google/go-jsonnet v0.20.0
 	gopkg.in/DATA-DOG/go-sqlmock.v1 v1.3.0 // indirect
 )
 

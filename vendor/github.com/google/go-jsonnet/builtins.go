@@ -517,7 +517,8 @@ func builtinLstripChars(i *interpreter, str, chars value) (value, error) {
 				return nil, err
 			}
 			if member {
-				s := strType.getGoString()[1:]
+				runes := strType.getRunes()
+				s := string(runes[1:])
 				return builtinLstripChars(i, makeValueString(s), chars)
 			} else {
 				return str, nil
@@ -542,7 +543,8 @@ func builtinRstripChars(i *interpreter, str, chars value) (value, error) {
 				return nil, err
 			}
 			if member {
-				s := strType.getGoString()[:strType.length()-1]
+				runes := strType.getRunes()
+				s := string(runes[:len(runes)-1])
 				return builtinRstripChars(i, makeValueString(s), chars)
 			} else {
 				return str, nil
@@ -573,12 +575,13 @@ func rawMember(i *interpreter, arrv, value value) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		for _, char := range arrType.getRunes() {
-			if string(char) == valString.getGoString() {
-				return true, nil
-			}
+
+		arrString, err := i.getString(arrv)
+		if err != nil {
+			return false, err
 		}
-		return false, nil
+
+		return strings.Contains(arrString.getGoString(), valString.getGoString()), nil
 	case *valueArray:
 		for _, elem := range arrType.elements {
 			cachedThunkValue, err := elem.getValue(i)
@@ -699,6 +702,30 @@ func builtinNegation(i *interpreter, x value) (value, error) {
 		return nil, err
 	}
 	return makeValueBoolean(!b.value), nil
+}
+
+func builtinXnor(i *interpreter, xv, yv value) (value, error) {
+	p, err := i.getBoolean(xv)
+	if err != nil {
+		return nil, err
+	}
+	q, err := i.getBoolean(yv)
+	if err != nil {
+		return nil, err
+	}
+	return makeValueBoolean(p.value == q.value), nil
+}
+
+func builtinXor(i *interpreter, xv, yv value) (value, error) {
+	p, err := i.getBoolean(xv)
+	if err != nil {
+		return nil, err
+	}
+	q, err := i.getBoolean(yv)
+	if err != nil {
+		return nil, err
+	}
+	return makeValueBoolean(p.value != q.value), nil
 }
 
 func builtinBitNeg(i *interpreter, x value) (value, error) {
@@ -1057,6 +1084,7 @@ var builtinExponent = liftNumeric(func(f float64) float64 {
 	_, exponent := math.Frexp(f)
 	return float64(exponent)
 })
+var builtinRound = liftNumeric(math.Round)
 
 func liftBitwise(f func(int64, int64) int64, positiveRightArg bool) func(*interpreter, value, value) (value, error) {
 	return func(i *interpreter, xv, yv value) (value, error) {
@@ -1250,6 +1278,15 @@ func builtinStrReplace(i *interpreter, strv, fromv, tov value) (value, error) {
 		return nil, i.Error("'from' string must not be zero length.")
 	}
 	return makeValueString(strings.Replace(sStr, sFrom, sTo, -1)), nil
+}
+
+func builtinIsEmpty(i *interpreter, strv value) (value, error) {
+	str, err := i.getString(strv)
+	if err != nil {
+		return nil, err
+	}
+	sStr := str.getGoString()
+	return makeValueBoolean(len(sStr) == 0), nil
 }
 
 func base64DecodeGoBytes(i *interpreter, str string) ([]byte, error) {
@@ -1468,7 +1505,7 @@ func tomlEncodeString(s string) string {
 }
 
 // tomlEncodeKey encodes a key - returning same string if it does not need quoting,
-// otherwise return it quoted; returns empty key as ''
+// otherwise return it quoted; returns empty key as ”
 func tomlEncodeKey(s string) string {
 	bareAllowed := true
 
@@ -1882,6 +1919,22 @@ func builtinNative(i *interpreter, name value) (value, error) {
 	return &valueNull{}, nil
 }
 
+func builtinSum(i *interpreter, arrv value) (value, error) {
+	arr, err := i.getArray(arrv)
+	if err != nil {
+		return nil, err
+	}
+	sum := 0.0
+	for _, elem := range arr.elements {
+		elemValue, err := i.evaluateNumber(elem)
+		if err != nil {
+			return nil, err
+		}
+		sum += elemValue.value
+	}
+	return makeValueNumber(sum), nil
+}
+
 // Utils for builtins - TODO(sbarzowski) move to a separate file in another commit
 
 type builtin interface {
@@ -2164,15 +2217,19 @@ var funcBuiltins = buildBuiltinMap([]builtin{
 	&unaryBuiltin{name: "exp", function: builtinExp, params: ast.Identifiers{"x"}},
 	&unaryBuiltin{name: "mantissa", function: builtinMantissa, params: ast.Identifiers{"x"}},
 	&unaryBuiltin{name: "exponent", function: builtinExponent, params: ast.Identifiers{"x"}},
+	&unaryBuiltin{name: "round", function: builtinRound, params: ast.Identifiers{"x"}},
 	&binaryBuiltin{name: "pow", function: builtinPow, params: ast.Identifiers{"x", "n"}},
 	&binaryBuiltin{name: "modulo", function: builtinModulo, params: ast.Identifiers{"x", "y"}},
 	&unaryBuiltin{name: "md5", function: builtinMd5, params: ast.Identifiers{"s"}},
+	&binaryBuiltin{name: "xnor", function: builtinXnor, params: ast.Identifiers{"x", "y"}},
+	&binaryBuiltin{name: "xor", function: builtinXor, params: ast.Identifiers{"x", "y"}},
 	&binaryBuiltin{name: "lstripChars", function: builtinLstripChars, params: ast.Identifiers{"str", "chars"}},
 	&binaryBuiltin{name: "rstripChars", function: builtinRstripChars, params: ast.Identifiers{"str", "chars"}},
 	&binaryBuiltin{name: "stripChars", function: builtinStripChars, params: ast.Identifiers{"str", "chars"}},
 	&ternaryBuiltin{name: "substr", function: builtinSubstr, params: ast.Identifiers{"str", "from", "len"}},
 	&ternaryBuiltin{name: "splitLimit", function: builtinSplitLimit, params: ast.Identifiers{"str", "c", "maxsplits"}},
 	&ternaryBuiltin{name: "strReplace", function: builtinStrReplace, params: ast.Identifiers{"str", "from", "to"}},
+	&unaryBuiltin{name: "isEmpty", function: builtinIsEmpty, params: ast.Identifiers{"str"}},
 	&unaryBuiltin{name: "base64Decode", function: builtinBase64Decode, params: ast.Identifiers{"str"}},
 	&unaryBuiltin{name: "base64DecodeBytes", function: builtinBase64DecodeBytes, params: ast.Identifiers{"str"}},
 	&unaryBuiltin{name: "parseInt", function: builtinParseInt, params: ast.Identifiers{"str"}},
@@ -2187,6 +2244,7 @@ var funcBuiltins = buildBuiltinMap([]builtin{
 	&unaryBuiltin{name: "decodeUTF8", function: builtinDecodeUTF8, params: ast.Identifiers{"arr"}},
 	&generalBuiltin{name: "sort", function: builtinSort, params: []generalBuiltinParameter{{name: "arr"}, {name: "keyF", defaultValue: functionID}}},
 	&unaryBuiltin{name: "native", function: builtinNative, params: ast.Identifiers{"x"}},
+	&unaryBuiltin{name: "sum", function: builtinSum, params: ast.Identifiers{"arr"}},
 
 	// internal
 	&unaryBuiltin{name: "$objectFlatMerge", function: builtinUglyObjectFlatMerge, params: ast.Identifiers{"x"}},
