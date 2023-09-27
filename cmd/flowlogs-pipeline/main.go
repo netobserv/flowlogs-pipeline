@@ -207,7 +207,7 @@ func run() {
 	// Create new flows pipeline
 	mainPipeline, err = pipeline.NewPipeline(&cfg)
 	if err != nil {
-		log.Fatalf("failed to initialize pipeline %s", err)
+		log.Fatalf("failed to initialize pipeline: %s", err)
 		os.Exit(1)
 	}
 

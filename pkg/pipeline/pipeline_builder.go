@@ -334,6 +334,8 @@ func getIngester(opMetrics *operational.Metrics, params config.StageParam) (inge
 		ingester, err = ingest.NewIngestSynthetic(opMetrics, params)
 	case api.CollectorType:
 		ingester, err = ingest.NewIngestCollector(opMetrics, params)
+	case api.StdinType:
+		ingester, err = ingest.NewIngestStdin(opMetrics, params)
 	case api.KafkaType:
 		ingester, err = ingest.NewIngestKafka(opMetrics, params)
 	case api.GRPCType:
