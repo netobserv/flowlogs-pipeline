@@ -1,6 +1,7 @@
 // This ip2location package provides a fast lookup of country, region, city, latitude, longitude, ZIP code, time zone,
 // ISP, domain name, connection type, IDD code, area code, weather station code, station name, MCC, MNC,
-// mobile brand, elevation, usage type, address type and IAB category from IP address by using IP2Location database.
+// mobile brand, elevation, usage type, address type, IAB category, district, autonomous system number (ASN) and
+// autonomous system (AS) from IP address by using IP2Location database.
 package ip2location
 
 import (
@@ -9,11 +10,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"lukechampine.com/uint128"
 	"math"
 	"math/big"
 	"net"
 	"os"
 	"strconv"
+	"unsafe"
 )
 
 type DBReader interface {
@@ -31,6 +34,8 @@ type ip2locationmeta struct {
 	ipv4databaseaddr  uint32
 	ipv6databasecount uint32
 	ipv6databaseaddr  uint32
+	ipv4indexed       bool
+	ipv6indexed       bool
 	ipv4indexbaseaddr uint32
 	ipv6indexbaseaddr uint32
 	ipv4columnsize    uint32
@@ -65,6 +70,9 @@ type IP2Locationrecord struct {
 	Usagetype          string
 	Addresstype        string
 	Category           string
+	District           string
+	Asn                string
+	As                 string
 }
 
 type DB struct {
@@ -92,6 +100,9 @@ type DB struct {
 	usagetype_position_offset          uint32
 	addresstype_position_offset        uint32
 	category_position_offset           uint32
+	district_position_offset           uint32
+	asn_position_offset                uint32
+	as_position_offset                 uint32
 
 	country_enabled            bool
 	region_enabled             bool
@@ -114,81 +125,96 @@ type DB struct {
 	usagetype_enabled          bool
 	addresstype_enabled        bool
 	category_enabled           bool
+	district_enabled           bool
+	asn_enabled                bool
+	as_enabled                 bool
 
 	metaok bool
 }
 
 var defaultDB = &DB{}
 
-var country_position = [26]uint8{0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}
-var region_position = [26]uint8{0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
-var city_position = [26]uint8{0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}
-var isp_position = [26]uint8{0, 0, 3, 0, 5, 0, 7, 5, 7, 0, 8, 0, 9, 0, 9, 0, 9, 0, 9, 7, 9, 0, 9, 7, 9, 9}
-var latitude_position = [26]uint8{0, 0, 0, 0, 0, 5, 5, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5}
-var longitude_position = [26]uint8{0, 0, 0, 0, 0, 6, 6, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6}
-var domain_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 6, 8, 0, 9, 0, 10, 0, 10, 0, 10, 0, 10, 8, 10, 0, 10, 8, 10, 10}
-var zipcode_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 0, 7, 7, 7, 0, 7, 0, 7, 7, 7, 0, 7, 7}
-var timezone_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 7, 8, 8, 8, 7, 8, 0, 8, 8, 8, 0, 8, 8}
-var netspeed_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 11, 0, 11, 8, 11, 0, 11, 0, 11, 0, 11, 11}
-var iddcode_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 12, 0, 12, 0, 12, 9, 12, 0, 12, 12}
-var areacode_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 13, 0, 13, 0, 13, 10, 13, 0, 13, 13}
-var weatherstationcode_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 14, 0, 14, 0, 14, 0, 14, 14}
-var weatherstationname_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 15, 0, 15, 0, 15, 0, 15, 15}
-var mcc_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 16, 0, 16, 9, 16, 16}
-var mnc_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 17, 0, 17, 10, 17, 17}
-var mobilebrand_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 18, 0, 18, 11, 18, 18}
-var elevation_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 19, 0, 19, 19}
-var usagetype_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 20, 20}
-var addresstype_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21}
-var category_position = [26]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22}
+var country_position = [27]uint8{0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}
+var region_position = [27]uint8{0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
+var city_position = [27]uint8{0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}
+var isp_position = [27]uint8{0, 0, 3, 0, 5, 0, 7, 5, 7, 0, 8, 0, 9, 0, 9, 0, 9, 0, 9, 7, 9, 0, 9, 7, 9, 9, 9}
+var latitude_position = [27]uint8{0, 0, 0, 0, 0, 5, 5, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5}
+var longitude_position = [27]uint8{0, 0, 0, 0, 0, 6, 6, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6}
+var domain_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 6, 8, 0, 9, 0, 10, 0, 10, 0, 10, 0, 10, 8, 10, 0, 10, 8, 10, 10, 10}
+var zipcode_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 0, 7, 7, 7, 0, 7, 0, 7, 7, 7, 0, 7, 7, 7}
+var timezone_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 7, 8, 8, 8, 7, 8, 0, 8, 8, 8, 0, 8, 8, 8}
+var netspeed_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 11, 0, 11, 8, 11, 0, 11, 0, 11, 0, 11, 11, 11}
+var iddcode_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 12, 0, 12, 0, 12, 9, 12, 0, 12, 12, 12}
+var areacode_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 13, 0, 13, 0, 13, 10, 13, 0, 13, 13, 13}
+var weatherstationcode_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 14, 0, 14, 0, 14, 0, 14, 14, 14}
+var weatherstationname_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 15, 0, 15, 0, 15, 0, 15, 15, 15}
+var mcc_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 16, 0, 16, 9, 16, 16, 16}
+var mnc_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 17, 0, 17, 10, 17, 17, 17}
+var mobilebrand_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 18, 0, 18, 11, 18, 18, 18}
+var elevation_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 19, 0, 19, 19, 19}
+var usagetype_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 20, 20, 20}
+var addresstype_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 21}
+var category_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22, 22}
+var district_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23}
+var asn_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24}
+var as_position = [27]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25}
 
-const api_version string = "9.2.0"
+const api_version string = "9.6.0"
 
-var max_ipv4_range = big.NewInt(4294967295)
-var max_ipv6_range = big.NewInt(0)
-var from_v4mapped = big.NewInt(281470681743360)
-var to_v4mapped = big.NewInt(281474976710655)
-var from_6to4 = big.NewInt(0)
-var to_6to4 = big.NewInt(0)
-var from_teredo = big.NewInt(0)
-var to_teredo = big.NewInt(0)
-var last_32bits = big.NewInt(4294967295)
+var max_ipv4_range = uint128.From64(4294967295)
+var max_ipv6_range = uint128.From64(0)
+var from_v4mapped = uint128.From64(281470681743360)
+var to_v4mapped = uint128.From64(281474976710655)
+var from_6to4 = uint128.From64(0)
+var to_6to4 = uint128.From64(0)
+var from_teredo = uint128.From64(0)
+var to_teredo = uint128.From64(0)
+var last_32bits = uint128.From64(4294967295)
 
-const countryshort uint32 = 0x000001
-const countrylong uint32 = 0x000002
-const region uint32 = 0x000004
-const city uint32 = 0x000008
-const isp uint32 = 0x000010
-const latitude uint32 = 0x000020
-const longitude uint32 = 0x000040
-const domain uint32 = 0x000080
-const zipcode uint32 = 0x000100
-const timezone uint32 = 0x000200
-const netspeed uint32 = 0x000400
-const iddcode uint32 = 0x000800
-const areacode uint32 = 0x001000
-const weatherstationcode uint32 = 0x002000
-const weatherstationname uint32 = 0x004000
-const mcc uint32 = 0x008000
-const mnc uint32 = 0x010000
-const mobilebrand uint32 = 0x020000
-const elevation uint32 = 0x040000
-const usagetype uint32 = 0x080000
-const addresstype uint32 = 0x100000
-const category uint32 = 0x200000
+const countryshort uint32 = 0x0000001
+const countrylong uint32 = 0x0000002
+const region uint32 = 0x0000004
+const city uint32 = 0x0000008
+const isp uint32 = 0x0000010
+const latitude uint32 = 0x0000020
+const longitude uint32 = 0x0000040
+const domain uint32 = 0x0000080
+const zipcode uint32 = 0x0000100
+const timezone uint32 = 0x0000200
+const netspeed uint32 = 0x0000400
+const iddcode uint32 = 0x0000800
+const areacode uint32 = 0x0001000
+const weatherstationcode uint32 = 0x0002000
+const weatherstationname uint32 = 0x0004000
+const mcc uint32 = 0x0008000
+const mnc uint32 = 0x0010000
+const mobilebrand uint32 = 0x0020000
+const elevation uint32 = 0x0040000
+const usagetype uint32 = 0x0080000
+const addresstype uint32 = 0x0100000
+const category uint32 = 0x0200000
+const district uint32 = 0x0400000
+const asn uint32 = 0x0800000
+const as uint32 = 0x1000000
 
-const all uint32 = countryshort | countrylong | region | city | isp | latitude | longitude | domain | zipcode | timezone | netspeed | iddcode | areacode | weatherstationcode | weatherstationname | mcc | mnc | mobilebrand | elevation | usagetype | addresstype | category
+const all uint32 = countryshort | countrylong | region | city | isp | latitude | longitude | domain | zipcode | timezone | netspeed | iddcode | areacode | weatherstationcode | weatherstationname | mcc | mnc | mobilebrand | elevation | usagetype | addresstype | category | district | asn | as
 
 const invalid_address string = "Invalid IP address."
 const missing_file string = "Invalid database file."
 const not_supported string = "This parameter is unavailable for selected data file. Please upgrade the data file."
 const invalid_bin string = "Incorrect IP2Location BIN file format. Please make sure that you are using the latest IP2Location BIN file."
 
+func reverseBytes(s []byte) {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
+}
+
 // get IP type and calculate IP number; calculates index too if exists
-func (d *DB) checkip(ip string) (iptype uint32, ipnum *big.Int, ipindex uint32) {
+func (d *DB) checkip(ip string) (iptype uint32, ipnum uint128.Uint128, ipindex uint32) {
 	iptype = 0
-	ipnum = big.NewInt(0)
-	ipnumtmp := big.NewInt(0)
+	ipnum = uint128.From64(0)
+	ipnumtmp := uint128.From64(0)
 	ipindex = 0
 	ipaddress := net.ParseIP(ip)
 
@@ -197,43 +223,44 @@ func (d *DB) checkip(ip string) (iptype uint32, ipnum *big.Int, ipindex uint32) 
 
 		if v4 != nil {
 			iptype = 4
-			ipnum.SetBytes(v4)
+			ipnum = uint128.From64(uint64(binary.BigEndian.Uint32(v4)))
 		} else {
 			v6 := ipaddress.To16()
 
 			if v6 != nil {
 				iptype = 6
-				ipnum.SetBytes(v6)
+				reverseBytes(v6)
+				ipnum = uint128.FromBytes(v6)
 
 				if ipnum.Cmp(from_v4mapped) >= 0 && ipnum.Cmp(to_v4mapped) <= 0 {
 					// ipv4-mapped ipv6 should treat as ipv4 and read ipv4 data section
 					iptype = 4
-					ipnum.Sub(ipnum, from_v4mapped)
+					ipnum = ipnum.Sub(from_v4mapped)
 				} else if ipnum.Cmp(from_6to4) >= 0 && ipnum.Cmp(to_6to4) <= 0 {
 					// 6to4 so need to remap to ipv4
 					iptype = 4
-					ipnum.Rsh(ipnum, 80)
-					ipnum.And(ipnum, last_32bits)
+					ipnum = ipnum.Rsh(80)
+					ipnum = ipnum.And(last_32bits)
 				} else if ipnum.Cmp(from_teredo) >= 0 && ipnum.Cmp(to_teredo) <= 0 {
 					// Teredo so need to remap to ipv4
 					iptype = 4
-					ipnum.Not(ipnum)
-					ipnum.And(ipnum, last_32bits)
+					ipnum = uint128.Uint128{^ipnum.Lo, ^ipnum.Hi}
+					ipnum = ipnum.And(last_32bits)
 				}
 			}
 		}
 	}
 	if iptype == 4 {
-		if d.meta.ipv4indexbaseaddr > 0 {
-			ipnumtmp.Rsh(ipnum, 16)
-			ipnumtmp.Lsh(ipnumtmp, 3)
-			ipindex = uint32(ipnumtmp.Add(ipnumtmp, big.NewInt(int64(d.meta.ipv4indexbaseaddr))).Uint64())
+		if d.meta.ipv4indexed {
+			ipnumtmp = ipnum.Rsh(16)
+			ipnumtmp = ipnumtmp.Lsh(3)
+			ipindex = uint32(ipnumtmp.Add(uint128.From64(uint64(d.meta.ipv4indexbaseaddr))).Lo)
 		}
 	} else if iptype == 6 {
-		if d.meta.ipv6indexbaseaddr > 0 {
-			ipnumtmp.Rsh(ipnum, 112)
-			ipnumtmp.Lsh(ipnumtmp, 3)
-			ipindex = uint32(ipnumtmp.Add(ipnumtmp, big.NewInt(int64(d.meta.ipv6indexbaseaddr))).Uint64())
+		if d.meta.ipv6indexed {
+			ipnumtmp = ipnum.Rsh(112)
+			ipnumtmp = ipnumtmp.Lsh(3)
+			ipindex = uint32(ipnumtmp.Add(uint128.From64(uint64(d.meta.ipv6indexbaseaddr))).Lo)
 		}
 	}
 	return
@@ -249,6 +276,17 @@ func (d *DB) readuint8(pos int64) (uint8, error) {
 	}
 	retval = data[0]
 	return retval, nil
+}
+
+// read row
+func (d *DB) read_row(pos uint32, size uint32) ([]byte, error) {
+	pos2 := int64(pos)
+	data := make([]byte, size)
+	_, err := d.f.ReadAt(data, pos2-1)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 // read unsigned 32-bit integer from slices
@@ -276,40 +314,49 @@ func (d *DB) readuint32(pos uint32) (uint32, error) {
 	return retval, nil
 }
 
+// read unsigned 128-bit integer from slices
+func (d *DB) readuint128_row(row []byte, pos uint32) uint128.Uint128 {
+	retval := uint128.From64(0)
+	data := row[pos : pos+16]
+
+	// little endian to big endian
+	// for i, j := 0, len(data)-1; i < j; i, j = i+1, j-1 {
+	// data[i], data[j] = data[j], data[i]
+	// }
+	retval = uint128.FromBytes(data)
+	return retval
+}
+
 // read unsigned 128-bit integer
-func (d *DB) readuint128(pos uint32) (*big.Int, error) {
+func (d *DB) readuint128(pos uint32) (uint128.Uint128, error) {
 	pos2 := int64(pos)
-	retval := big.NewInt(0)
+	retval := uint128.From64(0)
 	data := make([]byte, 16)
 	_, err := d.f.ReadAt(data, pos2-1)
 	if err != nil {
-		return nil, err
+		return uint128.From64(0), err
 	}
 
 	// little endian to big endian
-	for i, j := 0, len(data)-1; i < j; i, j = i+1, j-1 {
-		data[i], data[j] = data[j], data[i]
-	}
-	retval.SetBytes(data)
+	// for i, j := 0, len(data)-1; i < j; i, j = i+1, j-1 {
+	// data[i], data[j] = data[j], data[i]
+	// }
+	retval = uint128.FromBytes(data)
 	return retval, nil
 }
 
 // read string
 func (d *DB) readstr(pos uint32) (string, error) {
 	pos2 := int64(pos)
+	readlen := 256 // max size of string field + 1 byte for the length
 	var retval string
-	lenbyte := make([]byte, 1)
-	_, err := d.f.ReadAt(lenbyte, pos2)
-	if err != nil {
+	data := make([]byte, readlen)
+	_, err := d.f.ReadAt(data, pos2)
+	if err != nil && err.Error() != "EOF" { // bypass EOF error coz we are reading 256 which may hit EOF
 		return "", err
 	}
-	strlen := lenbyte[0]
-	data := make([]byte, strlen)
-	_, err = d.f.ReadAt(data, pos2+1)
-	if err != nil {
-		return "", err
-	}
-	retval = string(data[:strlen])
+	strlen := data[0]
+	retval = convertBytesToString(data[1:(strlen + 1)])
 	return retval, nil
 }
 
@@ -343,75 +390,64 @@ func OpenDB(dbpath string) (*DB, error) {
 func OpenDBWithReader(reader DBReader) (*DB, error) {
 	var db = &DB{}
 
-	max_ipv6_range.SetString("340282366920938463463374607431768211455", 10)
-	from_6to4.SetString("42545680458834377588178886921629466624", 10)
-	to_6to4.SetString("42550872755692912415807417417958686719", 10)
-	from_teredo.SetString("42540488161975842760550356425300246528", 10)
-	to_teredo.SetString("42540488241204005274814694018844196863", 10)
+	_max_ipv6_range := big.NewInt(0)
+	_max_ipv6_range.SetString("340282366920938463463374607431768211455", 10)
+	max_ipv6_range = uint128.FromBig(_max_ipv6_range)
+
+	_from_6to4 := big.NewInt(0)
+	_from_6to4.SetString("42545680458834377588178886921629466624", 10)
+	from_6to4 = uint128.FromBig(_from_6to4)
+
+	_to_6to4 := big.NewInt(0)
+	_to_6to4.SetString("42550872755692912415807417417958686719", 10)
+	to_6to4 = uint128.FromBig(_to_6to4)
+
+	_from_teredo := big.NewInt(0)
+	_from_teredo.SetString("42540488161975842760550356425300246528", 10)
+	from_teredo = uint128.FromBig(_from_teredo)
+
+	_to_teredo := big.NewInt(0)
+	_to_teredo.SetString("42540488241204005274814694018844196863", 10)
+	to_teredo = uint128.FromBig(_to_teredo)
 
 	db.f = reader
 
+	var row []byte
 	var err error
-	db.meta.databasetype, err = db.readuint8(1)
+	readlen := uint32(64) // 64-byte header
+
+	row, err = db.read_row(1, readlen)
 	if err != nil {
 		return fatal(db, err)
 	}
-	db.meta.databasecolumn, err = db.readuint8(2)
-	if err != nil {
-		return fatal(db, err)
-	}
-	db.meta.databaseyear, err = db.readuint8(3)
-	if err != nil {
-		return fatal(db, err)
-	}
-	db.meta.databasemonth, err = db.readuint8(4)
-	if err != nil {
-		return fatal(db, err)
-	}
-	db.meta.databaseday, err = db.readuint8(5)
-	if err != nil {
-		return fatal(db, err)
-	}
-	db.meta.ipv4databasecount, err = db.readuint32(6)
-	if err != nil {
-		return fatal(db, err)
-	}
-	db.meta.ipv4databaseaddr, err = db.readuint32(10)
-	if err != nil {
-		return fatal(db, err)
-	}
-	db.meta.ipv6databasecount, err = db.readuint32(14)
-	if err != nil {
-		return fatal(db, err)
-	}
-	db.meta.ipv6databaseaddr, err = db.readuint32(18)
-	if err != nil {
-		return fatal(db, err)
-	}
-	db.meta.ipv4indexbaseaddr, err = db.readuint32(22)
-	if err != nil {
-		return fatal(db, err)
-	}
-	db.meta.ipv6indexbaseaddr, err = db.readuint32(26)
-	if err != nil {
-		return fatal(db, err)
-	}
-	db.meta.productcode, err = db.readuint8(30)
-	if err != nil {
-		return fatal(db, err)
-	}
-	db.meta.producttype, err = db.readuint8(31)
-	if err != nil {
-		return fatal(db, err)
-	}
-	db.meta.filesize, err = db.readuint32(32)
-	if err != nil {
-		return fatal(db, err)
-	}
+	db.meta.databasetype = row[0]
+	db.meta.databasecolumn = row[1]
+	db.meta.databaseyear = row[2]
+	db.meta.databasemonth = row[3]
+	db.meta.databaseday = row[4]
+	db.meta.ipv4databasecount = db.readuint32_row(row, 5)
+	db.meta.ipv4databaseaddr = db.readuint32_row(row, 9)
+	db.meta.ipv6databasecount = db.readuint32_row(row, 13)
+	db.meta.ipv6databaseaddr = db.readuint32_row(row, 17)
+	db.meta.ipv4indexbaseaddr = db.readuint32_row(row, 21)
+	db.meta.ipv6indexbaseaddr = db.readuint32_row(row, 25)
+	db.meta.productcode = row[29]
+	db.meta.producttype = row[30]
+	db.meta.filesize = db.readuint32_row(row, 31)
+
 	// check if is correct BIN (should be 1 for IP2Location BIN file), also checking for zipped file (PK being the first 2 chars)
 	if (db.meta.productcode != 1 && db.meta.databaseyear >= 21) || (db.meta.databasetype == 80 && db.meta.databasecolumn == 75) { // only BINs from Jan 2021 onwards have this byte set
 		return fatal(db, errors.New(invalid_bin))
 	}
+
+	if db.meta.ipv4indexbaseaddr > 0 {
+		db.meta.ipv4indexed = true
+	}
+
+	if db.meta.ipv6databasecount > 0 && db.meta.ipv6indexbaseaddr > 0 {
+		db.meta.ipv6indexed = true
+	}
+
 	db.meta.ipv4columnsize = uint32(db.meta.databasecolumn << 2)              // 4 bytes each column
 	db.meta.ipv6columnsize = uint32(16 + ((db.meta.databasecolumn - 1) << 2)) // 4 bytes each column, except IPFrom column which is 16 bytes
 
@@ -501,6 +537,18 @@ func OpenDBWithReader(reader DBReader) (*DB, error) {
 		db.category_position_offset = uint32(category_position[dbt]-2) << 2
 		db.category_enabled = true
 	}
+	if district_position[dbt] != 0 {
+		db.district_position_offset = uint32(district_position[dbt]-2) << 2
+		db.district_enabled = true
+	}
+	if asn_position[dbt] != 0 {
+		db.asn_position_offset = uint32(asn_position[dbt]-2) << 2
+		db.asn_enabled = true
+	}
+	if as_position[dbt] != 0 {
+		db.as_position_offset = uint32(as_position[dbt]-2) << 2
+		db.as_enabled = true
+	}
 
 	db.metaok = true
 
@@ -555,6 +603,9 @@ func loadmessage(mesg string) IP2Locationrecord {
 	x.Usagetype = mesg
 	x.Addresstype = mesg
 	x.Category = mesg
+	x.District = mesg
+	x.Asn = mesg
+	x.As = mesg
 
 	return x
 }
@@ -564,6 +615,13 @@ func handleError(rec IP2Locationrecord, err error) IP2Locationrecord {
 		fmt.Print(err)
 	}
 	return rec
+}
+
+// convertBytesToString provides a no-copy []byte to string conversion.
+// This implementation is adopted by official strings.Builder.
+// Reference: https://github.com/golang/go/issues/25484
+func convertBytesToString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
 }
 
 // Get_all will return all geolocation fields based on the queried IP address.
@@ -828,6 +886,21 @@ func (d *DB) Get_category(ipaddress string) (IP2Locationrecord, error) {
 	return d.query(ipaddress, category)
 }
 
+// Get_district will return the district name based on the queried IP address.
+func (d *DB) Get_district(ipaddress string) (IP2Locationrecord, error) {
+	return d.query(ipaddress, district)
+}
+
+// Get_asn will return the autonomous system number (ASN) based on the queried IP address.
+func (d *DB) Get_asn(ipaddress string) (IP2Locationrecord, error) {
+	return d.query(ipaddress, asn)
+}
+
+// Get_as will return the autonomous system (AS) based on the queried IP address.
+func (d *DB) Get_as(ipaddress string) (IP2Locationrecord, error) {
+	return d.query(ipaddress, as)
+}
+
 // main query
 func (d *DB) query(ipaddress string, mode uint32) (IP2Locationrecord, error) {
 	x := loadmessage(not_supported) // default message
@@ -853,10 +926,13 @@ func (d *DB) query(ipaddress string, mode uint32) (IP2Locationrecord, error) {
 	var high uint32
 	var mid uint32
 	var rowoffset uint32
-	var rowoffset2 uint32
-	ipfrom := big.NewInt(0)
-	ipto := big.NewInt(0)
-	maxip := big.NewInt(0)
+	var firstcol uint32 = 4 // 4 bytes for ip from
+	var row []byte
+	var fullrow []byte
+	var readlen uint32
+	ipfrom := uint128.From64(0)
+	ipto := uint128.From64(0)
+	maxip := uint128.From64(0)
 
 	if iptype == 4 {
 		baseaddr = d.meta.ipv4databaseaddr
@@ -864,6 +940,7 @@ func (d *DB) query(ipaddress string, mode uint32) (IP2Locationrecord, error) {
 		maxip = max_ipv4_range
 		colsize = d.meta.ipv4columnsize
 	} else {
+		firstcol = 16 // 16 bytes for ip from
 		baseaddr = d.meta.ipv6databaseaddr
 		high = d.meta.ipv6databasecount
 		maxip = max_ipv6_range
@@ -872,61 +949,44 @@ func (d *DB) query(ipaddress string, mode uint32) (IP2Locationrecord, error) {
 
 	// reading index
 	if ipindex > 0 {
-		low, err = d.readuint32(ipindex)
+		row, err = d.read_row(ipindex, 8) // 4 bytes each for IP From and IP To
 		if err != nil {
 			return x, err
 		}
-		high, err = d.readuint32(ipindex + 4)
-		if err != nil {
-			return x, err
-		}
+		low = d.readuint32_row(row, 0)
+		high = d.readuint32_row(row, 4)
 	}
 
 	if ipno.Cmp(maxip) >= 0 {
-		ipno.Sub(ipno, big.NewInt(1))
+		ipno = ipno.Sub(uint128.From64(1))
 	}
 
 	for low <= high {
 		mid = ((low + high) >> 1)
 		rowoffset = baseaddr + (mid * colsize)
-		rowoffset2 = rowoffset + colsize
+
+		// reading IP From + whole row + next IP From
+		readlen = colsize + firstcol
+		fullrow, err = d.read_row(rowoffset, readlen)
+		if err != nil {
+			return x, err
+		}
 
 		if iptype == 4 {
-			ipfrom32, err := d.readuint32(rowoffset)
-			if err != nil {
-				return x, err
-			}
-			ipfrom = big.NewInt(int64(ipfrom32))
+			ipfrom32 := d.readuint32_row(fullrow, 0)
+			ipfrom = uint128.From64(uint64(ipfrom32))
 
-			ipto32, err := d.readuint32(rowoffset2)
-			if err != nil {
-				return x, err
-			}
-			ipto = big.NewInt(int64(ipto32))
-
+			ipto32 := d.readuint32_row(fullrow, colsize)
+			ipto = uint128.From64(uint64(ipto32))
 		} else {
-			ipfrom, err = d.readuint128(rowoffset)
-			if err != nil {
-				return x, err
-			}
+			ipfrom = d.readuint128_row(fullrow, 0)
 
-			ipto, err = d.readuint128(rowoffset2)
-			if err != nil {
-				return x, err
-			}
+			ipto = d.readuint128_row(fullrow, colsize)
 		}
 
 		if ipno.Cmp(ipfrom) >= 0 && ipno.Cmp(ipto) < 0 {
-			var firstcol uint32 = 4 // 4 bytes for ip from
-			if iptype == 6 {
-				firstcol = 16 // 16 bytes for ipv6
-			}
-
-			row := make([]byte, colsize-firstcol) // exclude the ip from field
-			_, err := d.f.ReadAt(row, int64(rowoffset+firstcol-1))
-			if err != nil {
-				return x, err
-			}
+			rowlen := colsize - firstcol
+			row = fullrow[firstcol:(firstcol + rowlen)] // extract the actual row data
 
 			if mode&countryshort == 1 && d.country_enabled {
 				if x.Country_short, err = d.readstr(d.readuint32_row(row, d.country_position_offset)); err != nil {
@@ -1060,6 +1120,24 @@ func (d *DB) query(ipaddress string, mode uint32) (IP2Locationrecord, error) {
 				}
 			}
 
+			if mode&district != 0 && d.district_enabled {
+				if x.District, err = d.readstr(d.readuint32_row(row, d.district_position_offset)); err != nil {
+					return x, err
+				}
+			}
+
+			if mode&asn != 0 && d.asn_enabled {
+				if x.Asn, err = d.readstr(d.readuint32_row(row, d.asn_position_offset)); err != nil {
+					return x, err
+				}
+			}
+
+			if mode&as != 0 && d.as_enabled {
+				if x.As, err = d.readstr(d.readuint32_row(row, d.as_position_offset)); err != nil {
+					return x, err
+				}
+			}
+
 			return x, nil
 		} else {
 			if ipno.Cmp(ipfrom) < 0 {
@@ -1100,4 +1178,7 @@ func Printrecord(x IP2Locationrecord) {
 	fmt.Printf("usagetype: %s\n", x.Usagetype)
 	fmt.Printf("addresstype: %s\n", x.Addresstype)
 	fmt.Printf("category: %s\n", x.Category)
+	fmt.Printf("district: %s\n", x.District)
+	fmt.Printf("asn: %s\n", x.Asn)
+	fmt.Printf("as: %s\n", x.As)
 }
