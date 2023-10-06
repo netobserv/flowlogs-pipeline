@@ -324,6 +324,62 @@ func Test_FilterNotNil(t *testing.T) {
 	require.Contains(t, exposed, `test_latencies_count 2`)
 }
 
+func Test_FilterDirection(t *testing.T) {
+	metrics := []config.GenericMap{
+		{
+			"dir":     0, // ingress
+			"packets": 10,
+		},
+		{
+			"dir":     1, // egress
+			"packets": 100,
+		},
+		{
+			"dir":     2, // inner
+			"packets": 1000,
+		},
+	}
+	params := api.PromEncode{
+		Prefix: "test_",
+		ExpiryTime: api.Duration{
+			Duration: time.Duration(60 * time.Second),
+		},
+		Metrics: []api.PromMetricsItem{
+			{
+				Name:     "ingress_packets_total",
+				Type:     "counter",
+				ValueKey: "packets",
+				Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "0"}},
+			},
+			{
+				Name:     "egress_packets_total",
+				Type:     "counter",
+				ValueKey: "packets",
+				Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "1"}},
+			},
+			{
+				Name:     "ingress_or_inner_packets_total",
+				Type:     "counter",
+				ValueKey: "packets",
+				Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "0|2"}},
+			},
+		},
+	}
+
+	encodeProm, err := initProm(&params)
+	require.NoError(t, err)
+	for _, metric := range metrics {
+		encodeProm.Encode(metric)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	exposed := test.ReadExposedMetrics(t)
+
+	require.Contains(t, exposed, `test_ingress_packets_total 10`)
+	require.Contains(t, exposed, `test_egress_packets_total 100`)
+	require.Contains(t, exposed, `test_ingress_or_inner_packets_total 1010`)
+}
+
 func Test_MetricTTL(t *testing.T) {
 	metrics := []config.GenericMap{{
 		"srcIP": "20.0.0.2",

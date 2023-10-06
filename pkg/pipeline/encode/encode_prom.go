@@ -27,6 +27,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	putils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
+	"k8s.io/utils/strings/slices"
 
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
@@ -221,7 +222,7 @@ func (e *EncodeProm) extractGenericValue(flow config.GenericMap, info *api.PromM
 				if !ok {
 					sVal = fmt.Sprint(val)
 				}
-				if sVal != filter.Value {
+				if !slices.Contains(strings.Split(filter.Value, "|"), sVal) {
 					return nil
 				}
 			}
