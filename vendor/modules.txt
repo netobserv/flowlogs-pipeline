@@ -119,7 +119,7 @@ github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
-# github.com/ip2location/ip2location-go/v9 v9.2.0
+# github.com/ip2location/ip2location-go/v9 v9.6.0
 ## explicit; go 1.14
 github.com/ip2location/ip2location-go/v9
 # github.com/josharian/intern v1.0.0
@@ -989,6 +989,9 @@ k8s.io/utils/net
 k8s.io/utils/pointer
 k8s.io/utils/strings/slices
 k8s.io/utils/trace
+# lukechampine.com/uint128 v1.2.0
+## explicit; go 1.12
+lukechampine.com/uint128
 # sigs.k8s.io/controller-runtime v0.15.1
 ## explicit; go 1.20
 sigs.k8s.io/controller-runtime/pkg/client
