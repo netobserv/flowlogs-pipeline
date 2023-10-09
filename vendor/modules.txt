@@ -334,7 +334,7 @@ github.com/sagikazarmark/locafero
 # github.com/sagikazarmark/slog-shim v0.1.0
 ## explicit; go 1.20
 github.com/sagikazarmark/slog-shim
-# github.com/segmentio/kafka-go v0.4.38
+# github.com/segmentio/kafka-go v0.4.43
 ## explicit; go 1.15
 github.com/segmentio/kafka-go
 github.com/segmentio/kafka-go/compress
@@ -345,16 +345,23 @@ github.com/segmentio/kafka-go/compress/zstd
 github.com/segmentio/kafka-go/protocol
 github.com/segmentio/kafka-go/protocol/addoffsetstotxn
 github.com/segmentio/kafka-go/protocol/addpartitionstotxn
+github.com/segmentio/kafka-go/protocol/alterclientquotas
 github.com/segmentio/kafka-go/protocol/alterconfigs
 github.com/segmentio/kafka-go/protocol/alterpartitionreassignments
+github.com/segmentio/kafka-go/protocol/alteruserscramcredentials
 github.com/segmentio/kafka-go/protocol/apiversions
 github.com/segmentio/kafka-go/protocol/consumer
 github.com/segmentio/kafka-go/protocol/createacls
 github.com/segmentio/kafka-go/protocol/createpartitions
 github.com/segmentio/kafka-go/protocol/createtopics
+github.com/segmentio/kafka-go/protocol/deleteacls
+github.com/segmentio/kafka-go/protocol/deletegroups
 github.com/segmentio/kafka-go/protocol/deletetopics
+github.com/segmentio/kafka-go/protocol/describeacls
+github.com/segmentio/kafka-go/protocol/describeclientquotas
 github.com/segmentio/kafka-go/protocol/describeconfigs
 github.com/segmentio/kafka-go/protocol/describegroups
+github.com/segmentio/kafka-go/protocol/describeuserscramcredentials
 github.com/segmentio/kafka-go/protocol/electleaders
 github.com/segmentio/kafka-go/protocol/endtxn
 github.com/segmentio/kafka-go/protocol/fetch
@@ -438,12 +445,15 @@ github.com/vmware/go-ipfix/pkg/entities
 github.com/vmware/go-ipfix/pkg/exporter
 github.com/vmware/go-ipfix/pkg/registry
 github.com/vmware/go-ipfix/pkg/util
-# github.com/xdg/scram v1.0.5
-## explicit
-github.com/xdg/scram
-# github.com/xdg/stringprep v1.0.3
-## explicit
-github.com/xdg/stringprep
+# github.com/xdg-go/pbkdf2 v1.0.0
+## explicit; go 1.9
+github.com/xdg-go/pbkdf2
+# github.com/xdg-go/scram v1.1.2
+## explicit; go 1.11
+github.com/xdg-go/scram
+# github.com/xdg-go/stringprep v1.0.4
+## explicit; go 1.11
+github.com/xdg-go/stringprep
 # go.uber.org/atomic v1.9.0
 ## explicit; go 1.13
 go.uber.org/atomic
@@ -458,7 +468,6 @@ golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/curve25519/internal/field
-golang.org/x/crypto/pbkdf2
 # golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 ## explicit; go 1.20
 golang.org/x/exp/constraints
