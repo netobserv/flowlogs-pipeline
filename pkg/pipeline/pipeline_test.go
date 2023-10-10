@@ -191,6 +191,7 @@ parameters:
 				DstAddr: &pbflow.IP{
 					IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x05060708},
 				},
+				Dscp: 1,
 			},
 			DataLink: &pbflow.DataLink{
 				DstMac: 0x112233445566,
@@ -230,6 +231,7 @@ parameters:
 		"Bytes":                  float64(456),
 		"SrcAddr":                "1.2.3.4",
 		"DstAddr":                "5.6.7.8",
+		"Dscp":                   float64(1),
 		"DstMac":                 "11:22:33:44:55:66",
 		"SrcMac":                 "01:02:03:04:05:06",
 		"SrcPort":                float64(23000),
