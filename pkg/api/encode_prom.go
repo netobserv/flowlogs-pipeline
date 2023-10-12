@@ -61,5 +61,5 @@ type PromMetricsItems []PromMetricsItem
 
 type PromMetricsFilter struct {
 	Key   string `yaml:"key" json:"key" doc:"the key to match and filter by"`
-	Value string `yaml:"value" json:"value" doc:"the value to match and filter by"`
+	Value string `yaml:"value" json:"value" doc:"the value to match and filter by. Use !nil / nil to match presence / absence. Add multiple matching values using '|' rune such as 'a|b' to match either 'a' or 'b'."`
 }
