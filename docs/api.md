@@ -13,13 +13,24 @@ Following is the supported API format for prometheus encode:
                      agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
                  filter: an optional criterion to filter entries by. Deprecated: use filters instead.
                      key: the key to match and filter by
-                     value: the value to match and filter by. Use !nil / nil to match presence / absence. Add multiple matching values using '|' rune such as 'a|b' to match either 'a' or 'b'.
+                     value: the value to match and filter by
+                     type: (enum) the type of filter match: exact (default), presence, absence or regex
+                         exact: match exactly the provided fitler value
+                         presence: filter key must be present (filter value is ignored)
+                         absence: filter key must be absent (filter value is ignored)
+                         regex: match filter value as a regular expression
                  filters: a list of criteria to filter entries by
                          key: the key to match and filter by
-                         value: the value to match and filter by. Use !nil / nil to match presence / absence. Add multiple matching values using '|' rune such as 'a|b' to match either 'a' or 'b'.
+                         value: the value to match and filter by
+                         type: (enum) the type of filter match: exact (default), presence, absence or regex
+                             exact: match exactly the provided fitler value
+                             presence: filter key must be present (filter value is ignored)
+                             absence: filter key must be absent (filter value is ignored)
+                             regex: match filter value as a regular expression
                  valueKey: entry key from which to resolve metric value
                  labels: labels to be associated with the metric
                  buckets: histogram buckets
+                 valueScale: scale factor of the value (MetricVal := FlowVal / Scale)
          prefix: prefix added to each metric name
          expiryTime: time duration of no-flow to wait before deleting prometheus data item
          maxMetrics: maximum number of metrics to report (default: unlimited)
