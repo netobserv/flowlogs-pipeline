@@ -19,7 +19,6 @@ package kubernetes
 
 import (
 	"fmt"
-	appsv1 "k8s.io/api/apps/v1"
 	"net"
 	"os"
 	"path"
@@ -150,7 +149,7 @@ func (k *KubeData) getOwner(info *Info) Owner {
 			log.WithError(err).WithField("key", info.Namespace+"/"+ownerReference.Name).
 				Debug("can't get ReplicaSet info from informer. Ignoring")
 		} else if ok {
-			rsInfo := item.(*metav1.PartialObjectMetadata)
+			rsInfo := item.(*metav1.ObjectMeta)
 			if len(rsInfo.OwnerReferences) > 0 {
 				return Owner{
 					Name: rsInfo.OwnerReferences[0].Name,
@@ -306,16 +305,14 @@ func (k *KubeData) initReplicaSetInformer(informerFactory metadatainformer.Share
 	// To save space, instead of storing a complete *metav1.ObjectMeta instance, the
 	// informer's cache will store only the minimal required fields
 	if err := k.replicaSets.SetTransform(func(i interface{}) (interface{}, error) {
-		rs, ok := i.(*appsv1.ReplicaSet)
+		rs, ok := i.(*metav1.PartialObjectMetadata)
 		if !ok {
 			return nil, fmt.Errorf("was expecting a ReplicaSet. Got: %T", i)
 		}
-		return &metav1.PartialObjectMetadata{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:            rs.Name,
-				Namespace:       rs.Namespace,
-				OwnerReferences: rs.OwnerReferences,
-			},
+		return &metav1.ObjectMeta{
+			Name:            rs.Name,
+			Namespace:       rs.Namespace,
+			OwnerReferences: rs.OwnerReferences,
 		}, nil
 	}); err != nil {
 		return fmt.Errorf("can't set ReplicaSets transform: %w", err)
