@@ -100,8 +100,8 @@ func getExpectedOutput() config.GenericMap {
 		"8888IP_location_CountryLongName": "United States of America",
 		"8888IP_location_RegionName":      "California",
 		"8888IP_location_CityName":        "Mountain View",
-		"8888IP_location_Longitude":       "-122.078514",
-		"8888IP_location_Latitude":        "37.405991",
+		"8888IP_location_Longitude":       "-122.083847",
+		"8888IP_location_Latitude":        "37.386051",
 	}
 }
 
