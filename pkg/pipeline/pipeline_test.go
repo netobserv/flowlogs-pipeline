@@ -213,6 +213,7 @@ parameters:
 			DnsLatency:             durationpb.New(someDuration),
 			DnsId:                  1,
 			DnsFlags:               0x80,
+			DnsErrno:               0,
 			TimeFlowRtt:            durationpb.New(someDuration),
 		}},
 	})
@@ -252,6 +253,7 @@ parameters:
 		"DnsLatencyMs":           float64(someDuration.Milliseconds()),
 		"DnsId":                  float64(1),
 		"DnsFlags":               float64(0x80),
+		"DnsErrno":               float64(0),
 		"DnsFlagsResponseCode":   "NoError",
 		"TimeFlowRttNs":          float64(someDuration.Nanoseconds()),
 	}, capturedRecord)
