@@ -46,6 +46,10 @@ const (
 	AddServiceRuleType           = "add_service"
 	AddKubernetesRuleType        = "add_kubernetes"
 	ReinterpretDirectionRuleType = "reinterpret_direction"
+	PromFilterExact              = "exact"
+	PromFilterPresence           = "presence"
+	PromFilterAbsence            = "absence"
+	PromFilterRegex              = "regex"
 
 	TagYaml = "yaml"
 	TagDoc  = "doc"

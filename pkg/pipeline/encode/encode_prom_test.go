@@ -306,7 +306,7 @@ func Test_FilterNotNil(t *testing.T) {
 				Name:     "latencies",
 				Type:     "histogram",
 				ValueKey: "latency",
-				Filters:  []api.PromMetricsFilter{{Key: "latency", Value: "!nil"}},
+				Filters:  []api.PromMetricsFilter{{Key: "latency", Type: "presence"}},
 			},
 		},
 	}
@@ -361,7 +361,7 @@ func Test_FilterDirection(t *testing.T) {
 				Name:     "ingress_or_inner_packets_total",
 				Type:     "counter",
 				ValueKey: "packets",
-				Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "0|2"}},
+				Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "0|2", Type: "regex"}},
 			},
 		},
 	}
@@ -378,6 +378,45 @@ func Test_FilterDirection(t *testing.T) {
 	require.Contains(t, exposed, `test_ingress_packets_total 10`)
 	require.Contains(t, exposed, `test_egress_packets_total 100`)
 	require.Contains(t, exposed, `test_ingress_or_inner_packets_total 1010`)
+}
+
+func Test_ValueScale(t *testing.T) {
+	metrics := []config.GenericMap{{"rtt": 15_000_000} /*15ms*/, {"rtt": 110_000_000} /*110ms*/}
+	params := api.PromEncode{
+		Prefix:     "test_",
+		ExpiryTime: api.Duration{Duration: time.Duration(60 * time.Second)},
+		Metrics: []api.PromMetricsItem{
+			{
+				Name:       "rtt_seconds",
+				Type:       "histogram",
+				ValueKey:   "rtt",
+				ValueScale: 1_000_000_000,
+			},
+		},
+	}
+
+	encodeProm, err := initProm(&params)
+	require.NoError(t, err)
+	for _, metric := range metrics {
+		encodeProm.Encode(metric)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	exposed := test.ReadExposedMetrics(t)
+
+	// One is less than 25ms, Two are less than 250ms
+	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="0.005"} 0`)
+	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="0.01"} 0`)
+	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="0.025"} 1`)
+	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="0.05"} 1`)
+	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="0.1"} 1`)
+	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="0.25"} 2`)
+	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="0.5"} 2`)
+	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="1"} 2`)
+	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="2.5"} 2`)
+	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="5"} 2`)
+	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="10"} 2`)
+	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="+Inf"} 2`)
 }
 
 func Test_MetricTTL(t *testing.T) {
@@ -484,9 +523,9 @@ func buildFlow() config.GenericMap {
 	}
 }
 
-func hundredFlows() []config.GenericMap {
-	flows := make([]config.GenericMap, 100)
-	for i := 0; i < 100; i++ {
+func thousandsFlows() []config.GenericMap {
+	flows := make([]config.GenericMap, 1000)
+	for i := 0; i < 1000; i++ {
 		flows[i] = buildFlow()
 	}
 	return flows
@@ -503,11 +542,24 @@ func BenchmarkPromEncode(b *testing.B) {
 			Type:     "counter",
 			ValueKey: "bytes",
 			Labels:   []string{"srcIP", "dstIP"},
+			Filters: []api.PromMetricsFilter{
+				{
+					Key:   "srcIP",
+					Value: "10.0.0.10|10.0.0.11|10.0.0.12",
+					Type:  "regex",
+				},
+			},
 		}, {
 			Name:     "packets_total",
 			Type:     "counter",
 			ValueKey: "packets",
 			Labels:   []string{"srcIP", "dstIP"},
+			Filters: []api.PromMetricsFilter{
+				{
+					Key:   "srcIP",
+					Value: "10.0.0.10",
+				},
+			},
 		}, {
 			Name:     "latency_seconds",
 			Type:     "histogram",
@@ -521,7 +573,7 @@ func BenchmarkPromEncode(b *testing.B) {
 	require.NoError(b, err)
 
 	for i := 0; i < b.N; i++ {
-		for _, metric := range hundredFlows() {
+		for _, metric := range thousandsFlows() {
 			prom.Encode(metric)
 		}
 	}
