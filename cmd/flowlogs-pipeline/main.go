@@ -202,7 +202,7 @@ func run() {
 		},
 	}
 	tlsConfig := cfg.MetricsSettings.TLS
-	go utils.StartPromServer(tlsConfig, promServer, !cfg.MetricsSettings.NoPanic)
+	go utils.StartPromServer(tlsConfig, promServer, !cfg.MetricsSettings.NoPanic, prometheus.DefaultGatherer.(*prometheus.Registry))
 
 	// Create new flows pipeline
 	mainPipeline, err = pipeline.NewPipeline(&cfg)

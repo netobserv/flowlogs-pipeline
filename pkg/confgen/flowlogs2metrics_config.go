@@ -68,8 +68,8 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.ConfigFileStruct {
 		Pipeline:   pipeline.GetStages(),
 		Parameters: pipeline.GetStageParams(),
 		MetricsSettings: config.MetricsSettings{
-			Port:   9102,
-			Prefix: "flp_op_",
+			PromConnectionInfo: &api.PromConnectionInfo{Port: 9102},
+			Prefix:             "flp_op_",
 		},
 	}
 }

@@ -23,6 +23,7 @@ type PromTLSConf struct {
 }
 
 type PromEncode struct {
+	*PromConnectionInfo
 	Metrics    PromMetricsItems `yaml:"metrics,omitempty" json:"metrics,omitempty" doc:"list of prometheus metric definitions, each includes:"`
 	Prefix     string           `yaml:"prefix,omitempty" json:"prefix,omitempty" doc:"prefix added to each metric name"`
 	ExpiryTime Duration         `yaml:"expiryTime,omitempty" json:"expiryTime,omitempty" doc:"time duration of no-flow to wait before deleting prometheus data item"`
@@ -38,6 +39,12 @@ type PromEncodeOperationEnum struct {
 
 func PromEncodeOperationName(operation string) string {
 	return GetEnumName(PromEncodeOperationEnum{}, operation)
+}
+
+type PromConnectionInfo struct {
+	Address string       `yaml:"address,omitempty" json:"address,omitempty" doc:"endpoint address to expose"`
+	Port    int          `yaml:"port,omitempty" json:"port,omitempty" doc:"endpoint port number to expose"`
+	TLS     *PromTLSConf `yaml:"tls,omitempty" json:"tls,omitempty" doc:"TLS configuration for the endpoint"`
 }
 
 type PromMetricsItem struct {
