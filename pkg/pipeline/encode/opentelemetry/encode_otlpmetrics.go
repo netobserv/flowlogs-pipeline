@@ -341,9 +341,8 @@ func (f *Float64Gauge) Callback(ctx context.Context, o metric.Float64Observer) e
 }
 
 func (f *Float64Gauge) Set(key string, val float64, attrs []attribute.KeyValue) {
-	fEntry := Float64GaugeEntry{
+	f.observations[key] = Float64GaugeEntry{
 		value:      val,
 		attributes: attrs,
 	}
-	f.observations[key] = fEntry
 }
