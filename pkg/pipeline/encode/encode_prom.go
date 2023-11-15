@@ -179,7 +179,7 @@ func (e *EncodeProm) prepareMetric(flow config.GenericMap, info *metricInfo, m *
 		floatVal = floatVal / info.ValueScale
 	}
 
-	entryLabels, key := e.extractLabelsAndKey(flow, &info.PromMetricsItem)
+	entryLabels, key := ExtractLabelsAndKey(flow, &info.PromMetricsItem)
 	// Update entry for expiry mechanism (the entry itself is its own cleanup function)
 	_, ok := e.mCache.UpdateCacheEntry(key, func() { m.Delete(entryLabels) })
 	if !ok {
@@ -200,7 +200,7 @@ func (e *EncodeProm) prepareAggHisto(flow config.GenericMap, info *metricInfo, m
 		return nil, nil
 	}
 
-	entryLabels, key := e.extractLabelsAndKey(flow, &info.PromMetricsItem)
+	entryLabels, key := ExtractLabelsAndKey(flow, &info.PromMetricsItem)
 	// Update entry for expiry mechanism (the entry itself is its own cleanup function)
 	_, ok = e.mCache.UpdateCacheEntry(key, func() { m.Delete(entryLabels) })
 	if !ok {
@@ -228,7 +228,7 @@ func (e *EncodeProm) extractGenericValue(flow config.GenericMap, info *metricInf
 	return val
 }
 
-func (e *EncodeProm) extractLabelsAndKey(flow config.GenericMap, info *api.PromMetricsItem) (map[string]string, string) {
+func ExtractLabelsAndKey(flow config.GenericMap, info *api.PromMetricsItem) (map[string]string, string) {
 	entryLabels := make(map[string]string, len(info.Labels))
 	key := strings.Builder{}
 	key.WriteString(info.Name)
