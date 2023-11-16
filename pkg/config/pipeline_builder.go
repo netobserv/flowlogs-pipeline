@@ -48,6 +48,8 @@ type PipelineBuilderStage struct {
 	pipeline  *pipeline
 }
 
+const PresetIngesterStage = "preset-ingester"
+
 // NewPipeline creates a new pipeline from an existing ingest
 func NewPipeline(name string, ingest *Ingest) (PipelineBuilderStage, error) {
 	if ingest.Collector != nil {
@@ -87,6 +89,15 @@ func NewKafkaPipeline(name string, ingest api.IngestKafka) PipelineBuilderStage 
 		config: []StageParam{NewKafkaParams(name, ingest)},
 	}
 	return PipelineBuilderStage{pipeline: &p, lastStage: name}
+}
+
+// NewPresetIngesterPipeline creates a new partial pipeline without ingest stage
+func NewPresetIngesterPipeline() PipelineBuilderStage {
+	p := pipeline{
+		stages: []Stage{},
+		config: []StageParam{},
+	}
+	return PipelineBuilderStage{pipeline: &p, lastStage: PresetIngesterStage}
 }
 
 func (b *PipelineBuilderStage) next(name string, param StageParam) PipelineBuilderStage {
