@@ -22,17 +22,20 @@ import (
 	"os"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 )
 
 // StartPromServer listens for prometheus resource usage requests
-func StartPromServer(tlsConfig *api.PromTLSConf, server *http.Server, panicOnError bool) {
+func StartPromServer(tlsConfig *api.PromTLSConf, server *http.Server, panicOnError bool, reg *prometheus.Registry) {
 	logrus.Debugf("entering StartPromServer")
 
 	// The Handler function provides a default handler to expose metrics
 	// via an HTTP server. "/metrics" is the usual endpoint for that.
-	http.Handle("/metrics", promhttp.Handler())
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+	server.Handler = mux
 
 	var err error
 	if tlsConfig != nil {

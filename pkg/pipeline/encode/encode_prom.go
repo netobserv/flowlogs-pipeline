@@ -18,7 +18,9 @@
 package encode
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -50,6 +52,8 @@ type histoInfo struct {
 }
 
 type EncodeProm struct {
+	cfg              *api.PromEncode
+	registerer       prometheus.Registerer
 	gauges           []gaugeInfo
 	counters         []counterInfo
 	histos           []histoInfo
@@ -270,6 +274,26 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	}
 	log.Debugf("expiryTime = %v", expiryTime)
 
+	var registerer prometheus.Registerer
+
+	if cfg.PromConnectionInfo != nil {
+		registry := prometheus.NewRegistry()
+		registerer = registry
+		addr := fmt.Sprintf("%s:%v", cfg.PromConnectionInfo.Address, cfg.PromConnectionInfo.Port)
+		log.Infof("startServer: addr = %s", addr)
+		promServer := &http.Server{
+			Addr: addr,
+			// TLS clients must use TLS 1.2 or higher
+			TLSConfig: &tls.Config{
+				MinVersion: tls.VersionTLS12,
+			},
+		}
+		tlsConfig := cfg.PromConnectionInfo.TLS
+		go putils.StartPromServer(tlsConfig, promServer, true, registry)
+	} else {
+		registerer = prometheus.DefaultRegisterer
+	}
+
 	counters := []counterInfo{}
 	gauges := []gaugeInfo{}
 	histos := []histoInfo{}
@@ -284,7 +308,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		switch mCfg.Type {
 		case api.PromEncodeOperationName("Counter"):
 			counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: ""}, labels)
-			err := prometheus.Register(counter)
+			err := registerer.Register(counter)
 			if err != nil {
 				log.Errorf("error during prometheus.Register: %v", err)
 				return nil, err
@@ -295,7 +319,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 			})
 		case api.PromEncodeOperationName("Gauge"):
 			gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: ""}, labels)
-			err := prometheus.Register(gauge)
+			err := registerer.Register(gauge)
 			if err != nil {
 				log.Errorf("error during prometheus.Register: %v", err)
 				return nil, err
@@ -307,7 +331,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		case api.PromEncodeOperationName("Histogram"):
 			log.Debugf("buckets = %v", mCfg.Buckets)
 			hist := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: "", Buckets: mCfg.Buckets}, labels)
-			err := prometheus.Register(hist)
+			err := registerer.Register(hist)
 			if err != nil {
 				log.Errorf("error during prometheus.Register: %v", err)
 				return nil, err
@@ -319,7 +343,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		case api.PromEncodeOperationName("AggHistogram"):
 			log.Debugf("buckets = %v", mCfg.Buckets)
 			hist := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: "", Buckets: mCfg.Buckets}, labels)
-			err := prometheus.Register(hist)
+			err := registerer.Register(hist)
 			if err != nil {
 				log.Errorf("error during prometheus.Register: %v", err)
 				return nil, err
@@ -342,6 +366,8 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	mChacheLenMetric := opMetrics.NewGauge(&mChacheLen, params.Name)
 
 	w := &EncodeProm{
+		cfg:              params.Encode.Prom,
+		registerer:       registerer,
 		counters:         counters,
 		gauges:           gauges,
 		histos:           histos,

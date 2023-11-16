@@ -578,3 +578,75 @@ func BenchmarkPromEncode(b *testing.B) {
 		}
 	}
 }
+
+const testConfigMultiple = `---
+log-level: debug
+pipeline:
+  - name: encode1
+  - name: encode2
+  - name: encode3
+parameters:
+  - name: encode1
+    encode:
+      type: prom
+      prom:
+        prefix: test1_
+        metrics:
+          - name: Bytes
+            type: gauge
+            valueKey: bytes
+            labels:
+              - srcAddr
+  - name: encode2
+    encode:
+      type: prom
+      prom:
+        prefix: test2_
+        metrics:
+          - name: Packets
+            type: counter
+            valueKey: packets
+            labels:
+              - dstAddr
+              - dstPort
+  - name: encode3
+    encode:
+      type: prom
+      prom:
+        prefix: test3_
+        metrics:
+          - name: subnetHistogram
+            type: histogram
+            valueKey: aggregate
+            labels:
+`
+
+func Test_MultipleProm(t *testing.T) {
+	v, cfg := test.InitConfig(t, testConfigMultiple)
+	require.NotNil(t, v)
+	encodeProm1, err := initProm(cfg.Parameters[0].Encode.Prom)
+	require.NoError(t, err)
+	encodeProm2, err := initProm(cfg.Parameters[1].Encode.Prom)
+	require.NoError(t, err)
+	encodeProm3, err := initProm(cfg.Parameters[2].Encode.Prom)
+	require.NoError(t, err)
+
+	require.Equal(t, 0, len(encodeProm1.counters))
+	require.Equal(t, 1, len(encodeProm1.gauges))
+	require.Equal(t, 0, len(encodeProm1.histos))
+	require.Equal(t, 0, len(encodeProm1.aggHistos))
+	require.Equal(t, 1, len(encodeProm2.counters))
+	require.Equal(t, 0, len(encodeProm2.gauges))
+	require.Equal(t, 0, len(encodeProm2.histos))
+	require.Equal(t, 0, len(encodeProm2.aggHistos))
+	require.Equal(t, 0, len(encodeProm3.counters))
+	require.Equal(t, 0, len(encodeProm3.gauges))
+	require.Equal(t, 1, len(encodeProm3.histos))
+	require.Equal(t, 0, len(encodeProm3.aggHistos))
+
+	require.Equal(t, "test1_", encodeProm1.cfg.Prefix)
+	require.Equal(t, "test2_", encodeProm2.cfg.Prefix)
+	require.Equal(t, "test3_", encodeProm3.cfg.Prefix)
+
+	// TODO: Add test for different addresses, but need to deal with StartPromServer (ListenAndServe)
+}
