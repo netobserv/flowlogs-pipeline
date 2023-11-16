@@ -55,7 +55,7 @@ type Profile struct {
 // Also, currently FLP doesn't support defining more than one PromEncode stage. If this feature is added later, these global settings
 // will help configuring common setting for all PromEncode stages - PromEncode settings would then act as overrides.
 type MetricsSettings struct {
-	*api.PromConnectionInfo
+	api.PromConnectionInfo
 	Prefix            string `yaml:"prefix,omitempty" json:"prefix,omitempty" doc:"prefix for names of the operational metrics"`
 	NoPanic           bool   `yaml:"noPanic,omitempty" json:"noPanic,omitempty"`
 	SuppressGoMetrics bool   `yaml:"suppressGoMetrics,omitempty" json:"suppressGoMetrics,omitempty" doc:"filter out Go and process metrics"`
@@ -154,7 +154,7 @@ func ParseConfig(opts Options) (ConfigFileStruct, error) {
 		}
 		logrus.Debugf("metrics settings = %v ", out.MetricsSettings)
 	} else {
-		logrus.Errorf("metrics settings missing")
+		logrus.Infof("using default metrics settings")
 	}
 
 	return out, nil
