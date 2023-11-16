@@ -19,11 +19,7 @@ import (
 func TestInProcessFLP(t *testing.T) {
 	pipeline := config.NewPresetIngesterPipeline()
 	pipeline = pipeline.WriteStdout("writer", api.WriteStdout{Format: "json"})
-	cfs := config.ConfigFileStruct{
-		Pipeline:   pipeline.GetStages(),
-		Parameters: pipeline.GetStageParams(),
-	}
-	ingester, err := StartFLPInProcess(cfs)
+	ingester, err := StartFLPInProcess(pipeline.ToConfigFileStruct())
 	require.NoError(t, err)
 	defer ingester.Close()
 

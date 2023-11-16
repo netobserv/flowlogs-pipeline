@@ -63,15 +63,13 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.ConfigFileStruct {
 	if cg.config.Write.Loki != nil {
 		forkedNode.WriteLoki("write_loki", *cg.config.Write.Loki)
 	}
-	return &config.ConfigFileStruct{
-		LogLevel:   "error",
-		Pipeline:   pipeline.GetStages(),
-		Parameters: pipeline.GetStageParams(),
+	return pipeline.IntoConfigFileStruct(&config.ConfigFileStruct{
+		LogLevel: "error",
 		MetricsSettings: config.MetricsSettings{
 			PromConnectionInfo: api.PromConnectionInfo{Port: 9102},
 			Prefix:             "flp_op_",
 		},
-	}
+	})
 }
 
 func (cg *ConfGen) GenerateTruncatedConfig() []config.StageParam {

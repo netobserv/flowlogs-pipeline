@@ -11,13 +11,13 @@ import (
 )
 
 // StartFLPInProcess is an entry point to start the whole FLP / pipeline processing from imported code
-func StartFLPInProcess(cfg config.ConfigFileStruct) (*ingest.InProcess, error) {
+func StartFLPInProcess(cfg *config.ConfigFileStruct) (*ingest.InProcess, error) {
 	prometheus.SetGlobalMetricsSettings(&cfg.MetricsSettings)
 	promServer := prometheus.StartServerAsync(&cfg.MetricsSettings.PromConnectionInfo, nil)
 
 	// Create new flows pipeline
 	ingester := ingest.NewInProcess(make(chan *pbflow.Records, 100))
-	flp, err := newPipelineFromIngester(&cfg, ingester)
+	flp, err := newPipelineFromIngester(cfg, ingester)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize pipeline %w", err)
 	}

@@ -11,7 +11,8 @@ import (
 
 var ilog = logrus.WithField("component", "ingest.InProcess")
 
-// InProcess ingester, meant to be imported and used from another program via
+// InProcess ingester is meant to be imported and used from another program
+// via pipeline.StartFLPInProcess
 type InProcess struct {
 	flowPackets chan *pbflow.Records
 }
