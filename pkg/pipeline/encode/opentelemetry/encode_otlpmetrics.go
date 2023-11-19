@@ -39,6 +39,7 @@ import (
 	"k8s.io/utils/strings/slices"
 )
 
+// TODO: Refactor the code that is common with encode_prom
 const (
 	defaultExpiryTime = time.Duration(2 * time.Minute)
 	flpMeterName      = "flp_meter"
@@ -55,12 +56,12 @@ type gaugeInfo struct {
 	obs   Float64Gauge
 }
 
+// TBD: Handle histograms
 /*
 type histoInfo struct {
 	histo *metric.Float64Histogram
 	info  api.PromMetricsItem
 }
-
 */
 
 type EncodeOtlpMetrics struct {
@@ -75,10 +76,9 @@ type EncodeOtlpMetrics struct {
 	expiryTime       time.Duration
 	mCache           *putils.TimedCache
 	exitChan         <-chan struct{}
-	metricsProcessed prometheus.Counter
 	meter            metric.Meter
+	metricsProcessed prometheus.Counter
 	metricsDropped   prometheus.Counter
-	//errorsCounter    *prometheus.CounterVec
 }
 
 var (
@@ -123,42 +123,7 @@ func (e *EncodeOtlpMetrics) Encode(metricRecord config.GenericMap) {
 		mInfo.obs.Set(key, value, attributes)
 		e.metricsProcessed.Inc()
 	}
-	/*
-		// Process histograms
-		for _, mInfo := range e.histos {
-			labels, value := e.prepareMetric(metricRecord, &mInfo.info)
-			if labels == nil {
-				continue
-			}
-			m, err := mInfo.histo.GetMetricWith(labels)
-			if err != nil {
-				log.Errorf("labels registering error on %s: %v", mInfo.info.Name, err)
-				e.errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
-				continue
-			}
-			m.Observe(value)
-			e.metricsProcessed.Inc()
-		}
-
-		// Process pre-aggregated histograms
-		for _, mInfo := range e.aggHistos {
-			labels, values := e.prepareAggHisto(metricRecord, &mInfo.info)
-			if labels == nil {
-				continue
-			}
-			m, err := mInfo.histo.GetMetricWith(labels)
-			if err != nil {
-				log.Errorf("labels registering error on %s: %v", mInfo.info.Name, err)
-				e.errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
-				continue
-			}
-			for _, v := range values {
-				m.Observe(v)
-			}
-			e.metricsProcessed.Inc()
-		}
-
-	*/
+	// TBD: Process histograms
 }
 
 func (e *EncodeOtlpMetrics) prepareMetric(flow config.GenericMap, info *api.PromMetricsItem) (map[string]string, float64, string) {
@@ -243,6 +208,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 	meterFactory := otel.Meter(flpMeterName)
 	counters := []counterInfo{}
 	gauges := []gaugeInfo{}
+
 	for _, mInfo := range cfg.Metrics {
 		fullMetricName := cfg.Prefix + mInfo.Name
 		labels := mInfo.Labels
@@ -276,6 +242,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 				gauge: &gauge,
 			}
 			gauges = append(gauges, gInfo)
+		// TBD: handle histograms
 		case "default":
 			log.Errorf("invalid metric type = %v, skipping", mInfo.Type)
 			continue
