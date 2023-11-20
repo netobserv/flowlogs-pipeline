@@ -482,8 +482,8 @@ github.com/influxdata/promql/v2 v2.12.0/go.mod h1:fxOPu+DY0bqCTCECchSRtWfc+0X19y
 github.com/influxdata/roaring v0.4.13-0.20180809181101-fc520f41fab6/go.mod h1:bSgUQ7q5ZLSO+bKBGqJiCBGAl+9DxyW63zLTujjUlOE=
 github.com/influxdata/tdigest v0.0.0-20181121200506-bf2b5ad3c0a9/go.mod h1:Js0mqiSBE6Ffsg94weZZ2c+v/ciT8QRHFOap7EKDrR0=
 github.com/influxdata/usage-client v0.0.0-20160829180054-6d3895376368/go.mod h1:Wbbw6tYNvwa5dlB6304Sd+82Z3f7PmVZHVKU637d4po=
-github.com/ip2location/ip2location-go/v9 v9.6.0 h1:do+hKM2wbVG3lXMavZzWuy0znXxJBvGc7mv0wzRVoYc=
-github.com/ip2location/ip2location-go/v9 v9.6.0/go.mod h1:MPLnsKxwQlvd2lBNcQCsLoyzJLDBFizuO67wXXdzoyI=
+github.com/ip2location/ip2location-go/v9 v9.6.1 h1:4tYtSoRNpUwbbgf3NUmF7c5vV0QVCKEeRPSbMCXiQfE=
+github.com/ip2location/ip2location-go/v9 v9.6.1/go.mod h1:MPLnsKxwQlvd2lBNcQCsLoyzJLDBFizuO67wXXdzoyI=
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
 github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHWvzYPziyZiYoo=
