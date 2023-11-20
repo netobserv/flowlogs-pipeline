@@ -181,8 +181,7 @@ func run() {
 
 	// Setup (threads) exit manager
 	utils.SetupElegantExit()
-	prometheus.SetGlobalMetricsSettings(&cfg.MetricsSettings)
-	promServer := prometheus.StartServerAsync(&cfg.MetricsSettings.PromConnectionInfo, nil)
+	promServer := prometheus.InitializePrometheus(&cfg.MetricsSettings)
 
 	// Create new flows pipeline
 	mainPipeline, err = pipeline.NewPipeline(&cfg)
@@ -205,7 +204,9 @@ func run() {
 	// Starts the flows pipeline
 	mainPipeline.Run()
 
-	_ = promServer.Shutdown(context.Background())
+	if promServer != nil {
+		_ = promServer.Shutdown(context.Background())
+	}
 
 	// Give all threads a chance to exit and then exit the process
 	time.Sleep(time.Second)

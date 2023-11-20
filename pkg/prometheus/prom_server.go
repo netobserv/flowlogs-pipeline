@@ -34,17 +34,21 @@ var (
 	maybePanic = plog.Fatalf
 )
 
-// SetGlobalMetricsSettings initializes some global settings used later when starting server(s)
-func SetGlobalMetricsSettings(settings *config.MetricsSettings) {
+// InitializePrometheus starts the global Prometheus server, used for operational metrics and prom-encode stages if they don't override the server settings
+func InitializePrometheus(settings *config.MetricsSettings) *http.Server {
+	if settings.NoPanic {
+		maybePanic = plog.Errorf
+	}
+	if settings.DisableGlobalServer {
+		return nil
+	}
 	if settings.SuppressGoMetrics {
 		// set up private prometheus registry
 		r := prom.NewRegistry()
 		prom.DefaultRegisterer = r
 		prom.DefaultGatherer = r
 	}
-	if settings.NoPanic {
-		maybePanic = plog.Errorf
-	}
+	return StartServerAsync(&settings.PromConnectionInfo, nil)
 }
 
 // StartServerAsync listens for prometheus resource usage requests
