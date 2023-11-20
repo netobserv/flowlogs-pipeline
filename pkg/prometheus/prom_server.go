@@ -40,6 +40,7 @@ func InitializePrometheus(settings *config.MetricsSettings) *http.Server {
 		maybePanic = plog.Errorf
 	}
 	if settings.DisableGlobalServer {
+		plog.Info("Disabled global Prometheus server - no operational metrics will be available")
 		return nil
 	}
 	if settings.SuppressGoMetrics {
