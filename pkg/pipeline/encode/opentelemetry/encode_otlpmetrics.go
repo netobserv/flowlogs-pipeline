@@ -81,21 +81,6 @@ type EncodeOtlpMetrics struct {
 	metricsDropped   prometheus.Counter
 }
 
-var (
-	metricsProcessed = operational.DefineMetric(
-		"metrics_processed",
-		"Number of metrics processed",
-		operational.TypeCounter,
-		"stage",
-	)
-	metricsDropped = operational.DefineMetric(
-		"metrics_dropped",
-		"Number of metrics dropped",
-		operational.TypeCounter,
-		"stage",
-	)
-)
-
 // Encode encodes a metric to be exported
 func (e *EncodeOtlpMetrics) Encode(metricRecord config.GenericMap) {
 	log.Tracef("entering EncodeOtlpMetrics. entry = %v", metricRecord)
@@ -260,8 +245,8 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 		expiryTime:       expiryTime.Duration,
 		mCache:           putils.NewTimedCache(0, nil),
 		exitChan:         putils.ExitChannel(),
-		metricsProcessed: opMetrics.NewCounter(&metricsProcessed, params.Name),
-		metricsDropped:   opMetrics.NewCounter(&metricsDropped, params.Name),
+		metricsProcessed: opMetrics.NewCounter(&encode.MetricsProcessed, params.Name),
+		metricsDropped:   opMetrics.NewCounter(&encode.MetricsDropped, params.Name),
 	}
 	go w.cleanupExpiredEntriesLoop()
 	return w, nil

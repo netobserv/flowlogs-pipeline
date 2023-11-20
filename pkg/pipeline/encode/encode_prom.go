@@ -68,13 +68,13 @@ type EncodeProm struct {
 }
 
 var (
-	metricsProcessed = operational.DefineMetric(
+	MetricsProcessed = operational.DefineMetric(
 		"metrics_processed",
 		"Number of metrics processed",
 		operational.TypeCounter,
 		"stage",
 	)
-	metricsDropped = operational.DefineMetric(
+	MetricsDropped = operational.DefineMetric(
 		"metrics_dropped",
 		"Number of metrics dropped",
 		operational.TypeCounter,
@@ -376,8 +376,8 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		mCache:           putils.NewTimedCache(cfg.MaxMetrics, mChacheLenMetric),
 		mChacheLenMetric: mChacheLenMetric,
 		exitChan:         putils.ExitChannel(),
-		metricsProcessed: opMetrics.NewCounter(&metricsProcessed, params.Name),
-		metricsDropped:   opMetrics.NewCounter(&metricsDropped, params.Name),
+		metricsProcessed: opMetrics.NewCounter(&MetricsProcessed, params.Name),
+		metricsDropped:   opMetrics.NewCounter(&MetricsDropped, params.Name),
 		errorsCounter:    opMetrics.NewCounterVec(&encodePromErrors),
 	}
 	go w.cleanupExpiredEntriesLoop()
