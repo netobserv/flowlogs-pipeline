@@ -443,6 +443,8 @@ All the kubernetes fields will be named by appending `output` value
 In addition, if the `parameters` value is not empty, fields with kubernetes labels 
 will be generated, and named by appending `parameters` value to the label keys.   
 
+If `assignee` is set to `otel` then the output fields of `add_kubernetes` will be produced in opentelemetry format.
+
 > Note: kubernetes connection is done using the first available method: 
 > 1. configuration parameter `KubeConfigPath` (in the example above `/tmp/config`) or
 > 2. using `KUBECONFIG` environment variable

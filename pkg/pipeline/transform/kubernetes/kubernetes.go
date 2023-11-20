@@ -45,9 +45,9 @@ const (
 	kubeConfigEnvVariable = "KUBECONFIG"
 	syncTime              = 10 * time.Minute
 	IndexIP               = "byIP"
-	typeNode              = "Node"
-	typePod               = "Pod"
-	typeService           = "Service"
+	TypeNode              = "Node"
+	TypePod               = "Pod"
+	TypeService           = "Service"
 )
 
 type kubeDataInterface interface {
@@ -204,7 +204,7 @@ func (k *KubeData) initNodeInformer(informerFactory informers.SharedInformerFact
 				Labels:    node.Labels,
 			},
 			ips:  ips,
-			Type: typeNode,
+			Type: TypeNode,
 			// We duplicate HostIP and HostName information to simplify later filtering e.g. by
 			// Host IP, where we want to get all the Pod flows by src/dst host, but also the actual
 			// host-to-host flows by the same field.
@@ -244,7 +244,7 @@ func (k *KubeData) initPodInformer(informerFactory informers.SharedInformerFacto
 				Labels:          pod.Labels,
 				OwnerReferences: pod.OwnerReferences,
 			},
-			Type:   typePod,
+			Type:   TypePod,
 			HostIP: pod.Status.HostIP,
 			ips:    ips,
 		}, nil
@@ -281,7 +281,7 @@ func (k *KubeData) initServiceInformer(informerFactory informers.SharedInformerF
 				Namespace: svc.Namespace,
 				Labels:    svc.Labels,
 			},
-			Type: typeService,
+			Type: TypeService,
 			ips:  ips,
 		}, nil
 	}); err != nil {
