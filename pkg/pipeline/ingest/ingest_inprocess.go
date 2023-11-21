@@ -3,22 +3,16 @@ package ingest
 import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
-	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
-
-	"github.com/netobserv/netobserv-ebpf-agent/pkg/decode"
-	"github.com/sirupsen/logrus"
 )
-
-var ilog = logrus.WithField("component", "ingest.InProcess")
 
 // InProcess ingester is meant to be imported and used from another program
 // via pipeline.StartFLPInProcess
 type InProcess struct {
-	flowPackets chan *pbflow.Records
+	in chan config.GenericMap
 }
 
-func NewInProcess(flowPackets chan *pbflow.Records) *InProcess {
-	return &InProcess{flowPackets: flowPackets}
+func NewInProcess(in chan config.GenericMap) *InProcess {
+	return &InProcess{in: in}
 }
 
 func (d *InProcess) Ingest(out chan<- config.GenericMap) {
@@ -26,18 +20,10 @@ func (d *InProcess) Ingest(out chan<- config.GenericMap) {
 		<-utils.ExitChannel()
 		d.Close()
 	}()
-	for fp := range d.flowPackets {
-		ilog.Debugf("Ingested %v records", len(fp.Entries))
-		for _, entry := range fp.Entries {
-			out <- decode.PBFlowToMap(entry)
-		}
+	for rec := range d.in {
+		out <- rec
 	}
 }
 
-func (d *InProcess) Write(record *pbflow.Records) {
-	d.flowPackets <- record
-}
-
 func (d *InProcess) Close() {
-	close(d.flowPackets)
 }
