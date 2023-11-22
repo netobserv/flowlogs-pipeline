@@ -23,6 +23,7 @@ type EncodeOtlpLogs struct {
 
 type EncodeOtlpTraces struct {
 	*OtlpConnectionInfo
+	SpanSplitter []string `yaml:"spanSplitter,omitempty" json:"spanSplitter,omitempty" doc:"separate span for each prefix listed"`
 }
 
 type EncodeOtlpMetrics struct {
