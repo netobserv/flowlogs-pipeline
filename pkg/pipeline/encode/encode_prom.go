@@ -38,17 +38,17 @@ const defaultExpiryTime = time.Duration(2 * time.Minute)
 
 type gaugeInfo struct {
 	gauge *prometheus.GaugeVec
-	info  *metricInfo
+	info  *MetricInfo
 }
 
 type counterInfo struct {
 	counter *prometheus.CounterVec
-	info    *metricInfo
+	info    *MetricInfo
 }
 
 type histoInfo struct {
 	histo *prometheus.HistogramVec
-	info  *metricInfo
+	info  *MetricInfo
 }
 
 type EncodeProm struct {
@@ -165,7 +165,7 @@ func (e *EncodeProm) Encode(metricRecord config.GenericMap) {
 	}
 }
 
-func (e *EncodeProm) prepareMetric(flow config.GenericMap, info *metricInfo, m *prometheus.MetricVec) (map[string]string, float64) {
+func (e *EncodeProm) prepareMetric(flow config.GenericMap, info *MetricInfo, m *prometheus.MetricVec) (map[string]string, float64) {
 	val := e.extractGenericValue(flow, info)
 	if val == nil {
 		return nil, 0
@@ -189,7 +189,7 @@ func (e *EncodeProm) prepareMetric(flow config.GenericMap, info *metricInfo, m *
 	return entryLabels, floatVal
 }
 
-func (e *EncodeProm) prepareAggHisto(flow config.GenericMap, info *metricInfo, m *prometheus.MetricVec) (map[string]string, []float64) {
+func (e *EncodeProm) prepareAggHisto(flow config.GenericMap, info *MetricInfo, m *prometheus.MetricVec) (map[string]string, []float64) {
 	val := e.extractGenericValue(flow, info)
 	if val == nil {
 		return nil, nil
@@ -210,8 +210,8 @@ func (e *EncodeProm) prepareAggHisto(flow config.GenericMap, info *metricInfo, m
 	return entryLabels, values
 }
 
-func (e *EncodeProm) extractGenericValue(flow config.GenericMap, info *metricInfo) interface{} {
-	for _, pred := range info.filterPredicates {
+func (e *EncodeProm) extractGenericValue(flow config.GenericMap, info *MetricInfo) interface{} {
+	for _, pred := range info.FilterPredicates {
 		if !pred(flow) {
 			return nil
 		}

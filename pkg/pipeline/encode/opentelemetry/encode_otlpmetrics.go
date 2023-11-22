@@ -19,8 +19,6 @@ package opentelemetry
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -36,7 +34,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
-	"k8s.io/utils/strings/slices"
 )
 
 // TODO: Refactor the code that is common with encode_prom
@@ -47,12 +44,12 @@ const (
 
 type counterInfo struct {
 	counter *metric.Float64Counter
-	info    api.PromMetricsItem
+	info    *encode.MetricInfo
 }
 
 type gaugeInfo struct {
 	gauge *metric.Float64ObservableGauge
-	info  api.PromMetricsItem
+	info  *encode.MetricInfo
 	obs   Float64Gauge
 }
 
@@ -60,7 +57,7 @@ type gaugeInfo struct {
 /*
 type histoInfo struct {
 	histo *metric.Float64Histogram
-	info  api.PromMetricsItem
+	info  *encode.MetricInfo
 }
 */
 
@@ -87,7 +84,7 @@ func (e *EncodeOtlpMetrics) Encode(metricRecord config.GenericMap) {
 
 	// Process counters
 	for _, mInfo := range e.counters {
-		labels, value, _ := e.prepareMetric(metricRecord, &mInfo.info)
+		labels, value, _ := e.prepareMetric(metricRecord, mInfo.info)
 		if labels == nil {
 			continue
 		}
@@ -99,7 +96,7 @@ func (e *EncodeOtlpMetrics) Encode(metricRecord config.GenericMap) {
 
 	// Process gauges
 	for _, mInfo := range e.gauges {
-		labels, value, key := e.prepareMetric(metricRecord, &mInfo.info)
+		labels, value, key := e.prepareMetric(metricRecord, mInfo.info)
 		if labels == nil {
 			continue
 		}
@@ -111,7 +108,7 @@ func (e *EncodeOtlpMetrics) Encode(metricRecord config.GenericMap) {
 	// TBD: Process histograms
 }
 
-func (e *EncodeOtlpMetrics) prepareMetric(flow config.GenericMap, info *api.PromMetricsItem) (map[string]string, float64, string) {
+func (e *EncodeOtlpMetrics) prepareMetric(flow config.GenericMap, info *encode.MetricInfo) (map[string]string, float64, string) {
 	val := e.extractGenericValue(flow, info)
 	if val == nil {
 		return nil, 0, ""
@@ -121,7 +118,7 @@ func (e *EncodeOtlpMetrics) prepareMetric(flow config.GenericMap, info *api.Prom
 		return nil, 0, ""
 	}
 
-	entryLabels, key := encode.ExtractLabelsAndKey(flow, info)
+	entryLabels, key := encode.ExtractLabelsAndKey(flow, &info.PromMetricsItem)
 	// Update entry for expiry mechanism (the entry itself is its own cleanup function)
 	_, ok := e.mCache.UpdateCacheEntry(key, entryLabels)
 	if !ok {
@@ -131,28 +128,10 @@ func (e *EncodeOtlpMetrics) prepareMetric(flow config.GenericMap, info *api.Prom
 	return entryLabels, floatVal, key
 }
 
-func (e *EncodeOtlpMetrics) extractGenericValue(flow config.GenericMap, info *api.PromMetricsItem) interface{} {
-	for _, filter := range info.GetFilters() {
-		val, found := flow[filter.Key]
-		switch filter.Value {
-		case "nil":
-			if found {
-				return nil
-			}
-		case "!nil":
-			if !found {
-				return nil
-			}
-		default:
-			if found {
-				sVal, ok := val.(string)
-				if !ok {
-					sVal = fmt.Sprint(val)
-				}
-				if !slices.Contains(strings.Split(filter.Value, "|"), sVal) {
-					return nil
-				}
-			}
+func (e *EncodeOtlpMetrics) extractGenericValue(flow config.GenericMap, info *encode.MetricInfo) interface{} {
+	for _, pred := range info.FilterPredicates {
+		if !pred(flow) {
+			return nil
 		}
 	}
 	if info.ValueKey == "" {
@@ -194,12 +173,13 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 	counters := []counterInfo{}
 	gauges := []gaugeInfo{}
 
-	for _, mInfo := range cfg.Metrics {
-		fullMetricName := cfg.Prefix + mInfo.Name
-		labels := mInfo.Labels
+	for _, mCfg := range cfg.Metrics {
+		fullMetricName := cfg.Prefix + mCfg.Name
+		labels := mCfg.Labels
 		log.Debugf("fullMetricName = %v", fullMetricName)
 		log.Debugf("Labels = %v", labels)
-		switch mInfo.Type {
+		mInfo := encode.CreateMetricInfo(mCfg)
+		switch mCfg.Type {
 		case api.PromEncodeOperationName("Counter"):
 			counter, err := meter.Float64Counter(fullMetricName)
 			if err != nil {
@@ -229,7 +209,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 			gauges = append(gauges, gInfo)
 		// TBD: handle histograms
 		case "default":
-			log.Errorf("invalid metric type = %v, skipping", mInfo.Type)
+			log.Errorf("invalid metric type = %v, skipping", mCfg.Type)
 			continue
 		}
 	}
