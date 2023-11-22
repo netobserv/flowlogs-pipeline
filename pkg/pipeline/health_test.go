@@ -58,7 +58,7 @@ func TestNewHealthServer(t *testing.T) {
 			expectedAddr := fmt.Sprintf("%s:%s", opts.Health.Address, opts.Health.Port)
 			server := operational.NewHealthServer(&opts, tt.args.pipeline.IsAlive, tt.args.pipeline.IsReady)
 			require.NotNil(t, server)
-			require.Equal(t, expectedAddr, server.Address)
+			require.Equal(t, expectedAddr, server.Addr)
 
 			client := &http.Client{}
 

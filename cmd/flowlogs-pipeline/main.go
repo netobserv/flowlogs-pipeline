@@ -199,7 +199,7 @@ func run() {
 	}
 
 	// Start health report server
-	operational.NewHealthServer(&opts, mainPipeline.IsAlive, mainPipeline.IsReady)
+	healthServer := operational.NewHealthServer(&opts, mainPipeline.IsAlive, mainPipeline.IsReady)
 
 	// Starts the flows pipeline
 	mainPipeline.Run()
@@ -207,6 +207,7 @@ func run() {
 	if promServer != nil {
 		_ = promServer.Shutdown(context.Background())
 	}
+	_ = healthServer.Shutdown(context.Background())
 
 	// Give all threads a chance to exit and then exit the process
 	time.Sleep(time.Second)
