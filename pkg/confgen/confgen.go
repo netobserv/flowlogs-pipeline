@@ -54,7 +54,7 @@ type ConfGen struct {
 	transformRules api.NetworkTransformRules
 	aggregates     api.Aggregates
 	timebasedTopKs api.ExtractTimebased
-	promMetrics    api.PromMetricsItems
+	promMetrics    api.MetricsItems
 	visualizations Visualizations
 	definitions    Definitions
 }

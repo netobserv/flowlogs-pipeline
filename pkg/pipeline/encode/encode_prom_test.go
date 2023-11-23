@@ -155,7 +155,7 @@ func Test_CustomMetric(t *testing.T) {
 		ExpiryTime: api.Duration{
 			Duration: time.Duration(60 * time.Second),
 		},
-		Metrics: []api.PromMetricsItem{{
+		Metrics: []api.MetricsItem{{
 			Name:     "bytes_total",
 			Type:     "counter",
 			ValueKey: "bytes",
@@ -179,17 +179,17 @@ func Test_CustomMetric(t *testing.T) {
 		}, {
 			Name:     "flows_incoming",
 			Type:     "counter",
-			Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "0"}},
+			Filters:  []api.MetricsFilter{{Key: "dir", Value: "0"}},
 			ValueKey: "", // empty valuekey means it's a records counter
 		}, {
 			Name:     "flows_outgoing",
 			Type:     "counter",
-			Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "1"}},
+			Filters:  []api.MetricsFilter{{Key: "dir", Value: "1"}},
 			ValueKey: "", // empty valuekey means it's a records counter
 		}, {
 			Name:     "incoming_SYN",
 			Type:     "counter",
-			Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "0"}, {Key: "flags", Value: "SYN"}},
+			Filters:  []api.MetricsFilter{{Key: "dir", Value: "0"}, {Key: "flags", Value: "SYN"}},
 			ValueKey: "", // empty valuekey means it's a records counter
 		}},
 	}
@@ -251,7 +251,7 @@ func Test_FilterDuplicates(t *testing.T) {
 		ExpiryTime: api.Duration{
 			Duration: time.Duration(60 * time.Second),
 		},
-		Metrics: []api.PromMetricsItem{
+		Metrics: []api.MetricsItem{
 			{
 				Name:     "bytes_unfiltered",
 				Type:     "counter",
@@ -261,7 +261,7 @@ func Test_FilterDuplicates(t *testing.T) {
 				Name:     "bytes_filtered",
 				Type:     "counter",
 				ValueKey: "bytes",
-				Filters:  []api.PromMetricsFilter{{Key: "duplicate", Value: "false"}},
+				Filters:  []api.MetricsFilter{{Key: "duplicate", Value: "false"}},
 			},
 		},
 	}
@@ -301,12 +301,12 @@ func Test_FilterNotNil(t *testing.T) {
 		ExpiryTime: api.Duration{
 			Duration: time.Duration(60 * time.Second),
 		},
-		Metrics: []api.PromMetricsItem{
+		Metrics: []api.MetricsItem{
 			{
 				Name:     "latencies",
 				Type:     "histogram",
 				ValueKey: "latency",
-				Filters:  []api.PromMetricsFilter{{Key: "latency", Type: "presence"}},
+				Filters:  []api.MetricsFilter{{Key: "latency", Type: "presence"}},
 			},
 		},
 	}
@@ -344,24 +344,24 @@ func Test_FilterDirection(t *testing.T) {
 		ExpiryTime: api.Duration{
 			Duration: time.Duration(60 * time.Second),
 		},
-		Metrics: []api.PromMetricsItem{
+		Metrics: []api.MetricsItem{
 			{
 				Name:     "ingress_packets_total",
 				Type:     "counter",
 				ValueKey: "packets",
-				Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "0"}},
+				Filters:  []api.MetricsFilter{{Key: "dir", Value: "0"}},
 			},
 			{
 				Name:     "egress_packets_total",
 				Type:     "counter",
 				ValueKey: "packets",
-				Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "1"}},
+				Filters:  []api.MetricsFilter{{Key: "dir", Value: "1"}},
 			},
 			{
 				Name:     "ingress_or_inner_packets_total",
 				Type:     "counter",
 				ValueKey: "packets",
-				Filters:  []api.PromMetricsFilter{{Key: "dir", Value: "0|2", Type: "regex"}},
+				Filters:  []api.MetricsFilter{{Key: "dir", Value: "0|2", Type: "regex"}},
 			},
 		},
 	}
@@ -385,7 +385,7 @@ func Test_ValueScale(t *testing.T) {
 	params := api.PromEncode{
 		Prefix:     "test_",
 		ExpiryTime: api.Duration{Duration: time.Duration(60 * time.Second)},
-		Metrics: []api.PromMetricsItem{
+		Metrics: []api.MetricsItem{
 			{
 				Name:       "rtt_seconds",
 				Type:       "histogram",
@@ -439,7 +439,7 @@ func Test_MetricTTL(t *testing.T) {
 	params := api.PromEncode{
 		Prefix:     "test_",
 		ExpiryTime: expiryTimeDuration,
-		Metrics: []api.PromMetricsItem{{
+		Metrics: []api.MetricsItem{{
 			Name:     "bytes_total",
 			Type:     "counter",
 			ValueKey: "bytes",
@@ -489,7 +489,7 @@ func Test_MissingLabels(t *testing.T) {
 		ExpiryTime: api.Duration{
 			Duration: time.Duration(60 * time.Second),
 		},
-		Metrics: []api.PromMetricsItem{
+		Metrics: []api.MetricsItem{
 			{
 				Name:     "my_counter",
 				Type:     "counter",
@@ -537,12 +537,12 @@ func BenchmarkPromEncode(b *testing.B) {
 	params := api.PromEncode{
 		Prefix:     "test_",
 		ExpiryTime: expiryTimeDuration,
-		Metrics: []api.PromMetricsItem{{
+		Metrics: []api.MetricsItem{{
 			Name:     "bytes_total",
 			Type:     "counter",
 			ValueKey: "bytes",
 			Labels:   []string{"srcIP", "dstIP"},
-			Filters: []api.PromMetricsFilter{
+			Filters: []api.MetricsFilter{
 				{
 					Key:   "srcIP",
 					Value: "10.0.0.10|10.0.0.11|10.0.0.12",
@@ -554,7 +554,7 @@ func BenchmarkPromEncode(b *testing.B) {
 			Type:     "counter",
 			ValueKey: "packets",
 			Labels:   []string{"srcIP", "dstIP"},
-			Filters: []api.PromMetricsFilter{
+			Filters: []api.MetricsFilter{
 				{
 					Key:   "srcIP",
 					Value: "10.0.0.10",

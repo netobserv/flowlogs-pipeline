@@ -120,7 +120,7 @@ func (e *EncodeOtlpMetrics) prepareMetric(flow config.GenericMap, info *encode.M
 		return nil, 0, ""
 	}
 
-	entryLabels, key := encode.ExtractLabelsAndKey(flow, &info.PromMetricsItem)
+	entryLabels, key := encode.ExtractLabelsAndKey(flow, &info.MetricsItem)
 	// Update entry for expiry mechanism (the entry itself is its own cleanup function)
 	_, ok := e.mCache.UpdateCacheEntry(key, entryLabels)
 	if !ok {
@@ -183,7 +183,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 		log.Debugf("Labels = %v", labels)
 		mInfo := encode.CreateMetricInfo(mCfg)
 		switch mCfg.Type {
-		case api.PromEncodeOperationName("Counter"):
+		case api.MetricEncodeOperationName("Counter"):
 			counter, err := meter.Float64Counter(fullMetricName)
 			if err != nil {
 				log.Errorf("error during counter creation: %v", err)
@@ -193,7 +193,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 				counter: &counter,
 				info:    mInfo,
 			})
-		case api.PromEncodeOperationName("Gauge"):
+		case api.MetricEncodeOperationName("Gauge"):
 			// at implementation time, only asynchronous gauges are supported by otel in golang
 			obs := Float64Gauge{observations: make(map[string]Float64GaugeEntry)}
 			gauge, err := meterFactory.Float64ObservableGauge(

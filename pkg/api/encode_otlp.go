@@ -28,10 +28,10 @@ type EncodeOtlpTraces struct {
 
 type EncodeOtlpMetrics struct {
 	*OtlpConnectionInfo
-	Prefix           string           `yaml:"prefix,omitempty" json:"prefix,omitempty" doc:"prefix added to each metric name"`
-	Metrics          PromMetricsItems `yaml:"metrics,omitempty" json:"metrics,omitempty" doc:"list of metric definitions, each includes:"`
-	PushTimeInterval Duration         `yaml:"pushTimeInterval,omitempty" json:"pushTimeInterval,omitempty" doc:"how often should metrics be sent to collector:"`
-	ExpiryTime       Duration         `yaml:"expiryTime,omitempty" json:"expiryTime,omitempty" doc:"time duration of no-flow to wait before deleting data item"`
+	Prefix           string       `yaml:"prefix,omitempty" json:"prefix,omitempty" doc:"prefix added to each metric name"`
+	Metrics          MetricsItems `yaml:"metrics,omitempty" json:"metrics,omitempty" doc:"list of metric definitions, each includes:"`
+	PushTimeInterval Duration     `yaml:"pushTimeInterval,omitempty" json:"pushTimeInterval,omitempty" doc:"how often should metrics be sent to collector:"`
+	ExpiryTime       Duration     `yaml:"expiryTime,omitempty" json:"expiryTime,omitempty" doc:"time duration of no-flow to wait before deleting data item"`
 }
 
 type OtlpConnectionInfo struct {

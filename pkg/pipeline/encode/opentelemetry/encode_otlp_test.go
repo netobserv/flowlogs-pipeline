@@ -183,7 +183,7 @@ func Test_EncodeOtlpMetrics(t *testing.T) {
 					Headers:        nil,
 				},
 				Prefix: "flp_test",
-				Metrics: []api.PromMetricsItem{
+				Metrics: []api.MetricsItem{
 					{Name: "metric1", Type: "counter", Labels: []string{"label11", "label12"}},
 					{Name: "metric2", Type: "gauge", Labels: []string{"label21", "label22"}},
 					{Name: "metric3", Type: "counter", Labels: []string{"label31", "label32"}},

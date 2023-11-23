@@ -37,7 +37,7 @@ func (cg *ConfGen) generateVisualizeText(vgs []VisualizationGrafana) string {
 	return section
 }
 
-func (cg *ConfGen) generatePromEncodeText(metrics api.PromMetricsItems) string {
+func (cg *ConfGen) generatePromEncodeText(metrics api.MetricsItems) string {
 	section := ""
 	for _, metric := range metrics {
 		mType := metric.Type

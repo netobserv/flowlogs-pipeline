@@ -11,25 +11,25 @@ import (
 type Predicate func(flow config.GenericMap) bool
 
 type MetricInfo struct {
-	api.PromMetricsItem
+	api.MetricsItem
 	FilterPredicates []Predicate
 }
 
-func Presence(filter api.PromMetricsFilter) Predicate {
+func Presence(filter api.MetricsFilter) Predicate {
 	return func(flow config.GenericMap) bool {
 		_, found := flow[filter.Key]
 		return found
 	}
 }
 
-func Absence(filter api.PromMetricsFilter) Predicate {
+func Absence(filter api.MetricsFilter) Predicate {
 	return func(flow config.GenericMap) bool {
 		_, found := flow[filter.Key]
 		return !found
 	}
 }
 
-func Exact(filter api.PromMetricsFilter) Predicate {
+func Exact(filter api.MetricsFilter) Predicate {
 	return func(flow config.GenericMap) bool {
 		if val, found := flow[filter.Key]; found {
 			sVal, ok := val.(string)
@@ -42,7 +42,7 @@ func Exact(filter api.PromMetricsFilter) Predicate {
 	}
 }
 
-func regex(filter api.PromMetricsFilter) Predicate {
+func regex(filter api.MetricsFilter) Predicate {
 	r, _ := regexp.Compile(filter.Value)
 	return func(flow config.GenericMap) bool {
 		if val, found := flow[filter.Key]; found {
@@ -56,7 +56,7 @@ func regex(filter api.PromMetricsFilter) Predicate {
 	}
 }
 
-func filterToPredicate(filter api.PromMetricsFilter) Predicate {
+func filterToPredicate(filter api.MetricsFilter) Predicate {
 	switch filter.Type {
 	case api.PromFilterExact:
 		return Exact(filter)
@@ -71,9 +71,9 @@ func filterToPredicate(filter api.PromMetricsFilter) Predicate {
 	return Exact(filter)
 }
 
-func CreateMetricInfo(def api.PromMetricsItem) *MetricInfo {
+func CreateMetricInfo(def api.MetricsItem) *MetricInfo {
 	mi := MetricInfo{
-		PromMetricsItem: def,
+		MetricsItem: def,
 	}
 	for _, f := range def.GetFilters() {
 		mi.FilterPredicates = append(mi.FilterPredicates, filterToPredicate(f))
