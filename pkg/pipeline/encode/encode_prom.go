@@ -80,7 +80,7 @@ var (
 		operational.TypeCounter,
 		"stage",
 	)
-	encodePromErrors = operational.DefineMetric(
+	EncodePromErrors = operational.DefineMetric(
 		"encode_prom_errors",
 		"Total errors during metrics generation",
 		operational.TypeCounter,
@@ -378,7 +378,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		exitChan:         putils.ExitChannel(),
 		metricsProcessed: opMetrics.NewCounter(&MetricsProcessed, params.Name),
 		metricsDropped:   opMetrics.NewCounter(&MetricsDropped, params.Name),
-		errorsCounter:    opMetrics.NewCounterVec(&encodePromErrors),
+		errorsCounter:    opMetrics.NewCounterVec(&EncodePromErrors),
 	}
 	go w.cleanupExpiredEntriesLoop()
 	return w, nil

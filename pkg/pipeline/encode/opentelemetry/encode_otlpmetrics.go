@@ -76,6 +76,7 @@ type EncodeOtlpMetrics struct {
 	meter            metric.Meter
 	metricsProcessed prometheus.Counter
 	metricsDropped   prometheus.Counter
+	errorsCounter    *prometheus.CounterVec
 }
 
 // Encode encodes a metric to be exported
@@ -115,6 +116,7 @@ func (e *EncodeOtlpMetrics) prepareMetric(flow config.GenericMap, info *encode.M
 	}
 	floatVal, err := utils.ConvertToFloat64(val)
 	if err != nil {
+		e.errorsCounter.WithLabelValues("ValueConversionError", info.Name, info.ValueKey).Inc()
 		return nil, 0, ""
 	}
 
@@ -140,6 +142,7 @@ func (e *EncodeOtlpMetrics) extractGenericValue(flow config.GenericMap, info *en
 	}
 	val, found := flow[info.ValueKey]
 	if !found {
+		e.errorsCounter.WithLabelValues("RecordKeyMissing", info.Name, info.ValueKey).Inc()
 		return nil
 	}
 	return val
@@ -227,6 +230,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 		exitChan:         putils.ExitChannel(),
 		metricsProcessed: opMetrics.NewCounter(&encode.MetricsProcessed, params.Name),
 		metricsDropped:   opMetrics.NewCounter(&encode.MetricsDropped, params.Name),
+		errorsCounter:    opMetrics.NewCounterVec(&encode.EncodePromErrors),
 	}
 	go w.cleanupExpiredEntriesLoop()
 	return w, nil
