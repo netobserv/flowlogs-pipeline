@@ -47,6 +47,8 @@ func (e *EncodeOtlpTrace) Encode(entry config.GenericMap) {
 	log.Tracef("entering EncodeOtlpTrace. entry = %v", entry)
 	tr := e.tp.Tracer(flpTracerName)
 	ll := len(e.cfg.SpanSplitter)
+
+	// create patent span
 	newCtx, span0 := tr.Start(e.ctx, flpEncodeSpanName)
 	attributes := obtainAttributesFromEntry(entry)
 	span0.SetAttributes(*attributes...)
@@ -58,6 +60,7 @@ func (e *EncodeOtlpTrace) Encode(entry config.GenericMap) {
 	// do not include fields that belong exclusively to other items
 	ss := e.cfg.SpanSplitter
 	records := make([]config.GenericMap, ll)
+	keepItem := make([]bool, ll)
 	for i := 0; i < ll; i++ {
 		records[i] = make(config.GenericMap)
 	}
@@ -67,6 +70,7 @@ OUTER:
 			if strings.HasPrefix(key, ss[i]) {
 				trimmed := strings.TrimPrefix(key, ss[i])
 				records[i][trimmed] = value
+				keepItem[i] = true
 				continue OUTER
 			}
 		}
@@ -76,11 +80,14 @@ OUTER:
 			records[i][key] = value
 		}
 	}
+	// only create child spans for records that have a field directly related to their item
 	for i := 0; i < ll; i++ {
-		_, span := tr.Start(newCtx, ss[i])
-		attributes := obtainAttributesFromEntry(records[i])
-		span.SetAttributes(*attributes...)
-		span.End()
+		if keepItem[i] {
+			_, span := tr.Start(newCtx, ss[i])
+			attributes := obtainAttributesFromEntry(records[i])
+			span.SetAttributes(*attributes...)
+			span.End()
+		}
 	}
 }
 
