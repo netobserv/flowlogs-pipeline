@@ -98,6 +98,17 @@ func newBuilder(cfg *config.ConfigFileStruct) *builder {
 	}
 }
 
+// use a preset ingester
+func (b *builder) presetIngester(ing ingest.Ingester) {
+	name := config.PresetIngesterStage
+	log.Debugf("stage = %v", name)
+	b.appendEntry(pipelineEntry{
+		stageName: name,
+		stageType: StageIngest,
+		Ingester:  ing,
+	})
+}
+
 // read the configuration stages definition and instantiate the corresponding native Go objects
 func (b *builder) readStages() error {
 	for _, param := range b.configParams {
@@ -124,12 +135,16 @@ func (b *builder) readStages() error {
 		if err != nil {
 			return err
 		}
-		b.pipelineEntryMap[param.Name] = &pEntry
-		b.pipelineStages = append(b.pipelineStages, &pEntry)
-		log.Debugf("pipeline = %v", b.pipelineStages)
+		b.appendEntry(pEntry)
 	}
 	log.Debugf("pipeline = %v", b.pipelineStages)
 	return nil
+}
+
+func (b *builder) appendEntry(pEntry pipelineEntry) {
+	b.pipelineEntryMap[pEntry.stageName] = &pEntry
+	b.pipelineStages = append(b.pipelineStages, &pEntry)
+	log.Debugf("pipeline = %v", b.pipelineStages)
 }
 
 // reads the configured Go stages and connects between them

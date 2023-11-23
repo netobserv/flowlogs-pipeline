@@ -19,7 +19,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -35,7 +34,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/netobserv/flowlogs-pipeline/pkg/prometheus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -182,27 +181,7 @@ func run() {
 
 	// Setup (threads) exit manager
 	utils.SetupElegantExit()
-
-	// set up private prometheus registry
-	if cfg.MetricsSettings.SuppressGoMetrics {
-		reg := prometheus.NewRegistry()
-		prometheus.DefaultRegisterer = reg
-		prometheus.DefaultGatherer = reg
-	}
-
-	// create prometheus server for operational metrics
-	// if value of address is empty, then by default it will take 0.0.0.0
-	addr := fmt.Sprintf("%s:%v", cfg.MetricsSettings.Address, cfg.MetricsSettings.Port)
-	log.Infof("startServer: addr = %s", addr)
-	promServer := &http.Server{
-		Addr: addr,
-		// TLS clients must use TLS 1.2 or higher
-		TLSConfig: &tls.Config{
-			MinVersion: tls.VersionTLS12,
-		},
-	}
-	tlsConfig := cfg.MetricsSettings.TLS
-	go utils.StartPromServer(tlsConfig, promServer, !cfg.MetricsSettings.NoPanic, prometheus.DefaultGatherer.(*prometheus.Registry))
+	promServer := prometheus.InitializePrometheus(&cfg.MetricsSettings)
 
 	// Create new flows pipeline
 	mainPipeline, err = pipeline.NewPipeline(&cfg)
@@ -225,7 +204,9 @@ func run() {
 	// Starts the flows pipeline
 	mainPipeline.Run()
 
-	_ = promServer.Shutdown(context.Background())
+	if promServer != nil {
+		_ = promServer.Shutdown(context.Background())
+	}
 
 	// Give all threads a chance to exit and then exit the process
 	time.Sleep(time.Second)

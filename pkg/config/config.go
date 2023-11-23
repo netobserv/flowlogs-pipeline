@@ -56,9 +56,10 @@ type Profile struct {
 // will help configuring common setting for all PromEncode stages - PromEncode settings would then act as overrides.
 type MetricsSettings struct {
 	api.PromConnectionInfo
-	Prefix            string `yaml:"prefix,omitempty" json:"prefix,omitempty" doc:"prefix for names of the operational metrics"`
-	NoPanic           bool   `yaml:"noPanic,omitempty" json:"noPanic,omitempty"`
-	SuppressGoMetrics bool   `yaml:"suppressGoMetrics,omitempty" json:"suppressGoMetrics,omitempty" doc:"filter out Go and process metrics"`
+	DisableGlobalServer bool   `yaml:"disableGlobalServer,omitempty" json:"disableGlobalServer,omitempty" doc:"disabling the global metrics server makes operational metrics unavailable. If prometheus-encoding stages are defined, they need to contain their own metrics server parameters."`
+	Prefix              string `yaml:"prefix,omitempty" json:"prefix,omitempty" doc:"prefix for names of the operational metrics"`
+	NoPanic             bool   `yaml:"noPanic,omitempty" json:"noPanic,omitempty"`
+	SuppressGoMetrics   bool   `yaml:"suppressGoMetrics,omitempty" json:"suppressGoMetrics,omitempty" doc:"filter out Go and process metrics"`
 }
 
 // PerfSettings allows setting some internal configuration parameters

@@ -18,9 +18,7 @@
 package encode
 
 import (
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -28,6 +26,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	putils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	promserver "github.com/netobserv/flowlogs-pipeline/pkg/prometheus"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -279,17 +278,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	if cfg.PromConnectionInfo != nil {
 		registry := prometheus.NewRegistry()
 		registerer = registry
-		addr := fmt.Sprintf("%s:%v", cfg.PromConnectionInfo.Address, cfg.PromConnectionInfo.Port)
-		log.Infof("startServer: addr = %s", addr)
-		promServer := &http.Server{
-			Addr: addr,
-			// TLS clients must use TLS 1.2 or higher
-			TLSConfig: &tls.Config{
-				MinVersion: tls.VersionTLS12,
-			},
-		}
-		tlsConfig := cfg.PromConnectionInfo.TLS
-		go putils.StartPromServer(tlsConfig, promServer, true, registry)
+		promserver.StartServerAsync(cfg.PromConnectionInfo, nil)
 	} else {
 		registerer = prometheus.DefaultRegisterer
 	}

@@ -22,6 +22,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
 	"github.com/netobserv/gopipes/pkg/node"
 	log "github.com/sirupsen/logrus"
 )
@@ -48,18 +49,24 @@ type Pipeline struct {
 
 // NewPipeline defines the pipeline elements
 func NewPipeline(cfg *config.ConfigFileStruct) (*Pipeline, error) {
-	log.Debugf("entering NewPipeline")
+	return newPipelineFromIngester(cfg, nil)
+}
 
-	stages := cfg.Pipeline
-	log.Debugf("stages = %v ", stages)
-	configParams := cfg.Parameters
-	log.Debugf("configParams = %v ", configParams)
+// newPipelineFromIngester defines the pipeline elements from a preset ingester (e.g. for in-process receiver)
+func newPipelineFromIngester(cfg *config.ConfigFileStruct, ing ingest.Ingester) (*Pipeline, error) {
+	log.Debugf("entering newPipelineFromIngester")
 
-	build := newBuilder(cfg)
-	if err := build.readStages(); err != nil {
+	log.Debugf("stages = %v ", cfg.Pipeline)
+	log.Debugf("configParams = %v ", cfg.Parameters)
+
+	builder := newBuilder(cfg)
+	if ing != nil {
+		builder.presetIngester(ing)
+	}
+	if err := builder.readStages(); err != nil {
 		return nil, err
 	}
-	return build.build()
+	return builder.build()
 }
 
 func (p *Pipeline) Run() {
