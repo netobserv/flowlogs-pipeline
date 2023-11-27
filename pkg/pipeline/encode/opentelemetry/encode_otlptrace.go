@@ -19,6 +19,7 @@ package opentelemetry
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -48,11 +49,11 @@ func (e *EncodeOtlpTrace) Encode(entry config.GenericMap) {
 	tr := e.tp.Tracer(flpTracerName)
 	ll := len(e.cfg.SpanSplitter)
 
-	// create patent span
+	// create parent span
 	newCtx, span0 := tr.Start(e.ctx, flpEncodeSpanName)
 	attributes := obtainAttributesFromEntry(entry)
 	span0.SetAttributes(*attributes...)
-	span0.End()
+	defer span0.End()
 	if ll == 0 {
 		return
 	}
