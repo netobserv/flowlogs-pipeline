@@ -19,7 +19,6 @@ package opentelemetry
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
