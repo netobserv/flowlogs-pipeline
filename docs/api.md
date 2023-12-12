@@ -178,10 +178,15 @@ Following is the supported API format for network transformations:
                      add_location: add output location fields from input
                      add_service: add output network service field from input port and parameters protocol field
                      add_kubernetes: add output kubernetes fields from input
+                     add_kubernetes_infra: add output kubernetes isInfra field from input
                      reinterpret_direction: reinterpret flow direction at the node level (instead of net interface), to ease the deduplication process
                      add_ip_category: categorize IPs based on known subnets configuration
                  parameters: parameters specific to type
                  assignee: value needs to assign to output field
+                 kubernetes_infra: Kubernetes infra rule specific configuration
+                     inputs: entry inputs fields
+                     output: entry output field
+                     infra_prefixes: Namespace prefixes that will be tagged as infra
          kubeConfigPath: path to kubeconfig file (optional)
          servicesFile: path to services file (optional, default: /etc/services)
          protocolsFile: path to protocols file (optional, default: /etc/protocols)
