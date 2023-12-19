@@ -11,7 +11,7 @@ require (
 	github.com/ip2location/ip2location-go/v9 v9.6.1
 	github.com/json-iterator/go v1.1.12
 	github.com/mariomac/guara v0.0.0-20220523124851-5fc279816f1f
-	github.com/minio/minio-go/v7 v7.0.63
+	github.com/minio/minio-go/v7 v7.0.66
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/netobserv/gopipes v0.3.0
 	github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500
@@ -56,15 +56,15 @@ require (
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/uuid v1.4.0 // indirect
+	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.15 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
-	github.com/klauspost/compress v1.17.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
+	github.com/klauspost/compress v1.17.4 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/libp2p/go-reuseport v0.3.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
