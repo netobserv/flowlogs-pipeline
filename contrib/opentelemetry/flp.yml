@@ -1,0 +1,203 @@
+# Example deployment for manual testing with flp
+# It requires loki to be installed
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: netobserv-ebpf-agent
+  namespace: netobserv
+  labels:
+    k8s-app: netobserv-ebpf-agent
+spec:
+  selector:
+    matchLabels:
+      k8s-app: netobserv-ebpf-agent
+  template:
+    metadata:
+      labels:
+        k8s-app: netobserv-ebpf-agent
+    spec:
+      serviceAccountName: netobserv
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: netobserv-ebpf-agent
+        image: quay.io/netobserv/netobserv-ebpf-agent:main
+        #      imagePullPolicy: Always
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        env:
+          - name: FLOWS_TARGET_HOST
+            value: "flp"
+          - name: FLOWS_TARGET_PORT
+            value: "9999"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flp
+  namespace: netobserv
+  labels:
+    k8s-app: flp
+spec:
+  ports:
+    - port: 9999
+      protocol: TCP
+      targetPort: 9999
+      name: flp
+  selector:
+    k8s-app: flp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flp
+  namespace: netobserv
+  labels:
+    k8s-app: flp
+spec:
+  selector:
+    matchLabels:
+      k8s-app: flp
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        k8s-app: flp
+    spec:
+      serviceAccountName: netobserv
+      containers:
+        - name: packet-counter
+          image: quay.io/kalmanmeth/flowlogs-pipeline:otlp-amd64
+          ports:
+            - containerPort: 9999
+              hostPort: 9999
+          args:
+            - --config=/etc/flp/config.yaml
+          volumeMounts:
+            - mountPath: /etc/flp
+              name: config-volume
+      volumes:
+        - name: config-volume
+          configMap:
+            name: flp-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flp-config
+  namespace: netobserv
+data:
+  config.yaml: |
+    log-level: debug
+    pipeline:
+      - name: ingest
+      - name: otlp_transform
+        follows: ingest
+      - name: enrich
+        follows: otlp_transform
+      - name: otel
+        follows: enrich
+    parameters:
+      - name: ingest
+        ingest:
+          type: grpc
+          grpc:
+            port: 9999
+      - name: otlp_transform
+        transform:
+          type: generic
+          generic:
+            policy: replace_keys
+            rules:
+              - input: Bytes
+                output: bytes
+                multiplier: 1
+              - input: Packets
+                output: packets
+              - input: DstAddr
+                output: destination.address
+              - input: DstMac
+                output: destination.mac
+              - input: DstHostIP
+                output: destination.host.address
+              - input: DstPort
+                output: destination.port
+              - input: SrcAddr
+                output: source.address
+              - input: SrcMac
+                output: source.mac
+              - input: SrcHostIP
+                output: source.host.address
+              - input: SrcPort
+                output: source.port
+              - input: TimeReceived
+                output: timereceived
+              - input: Proto
+                output: protocol
+      - name: enrich
+        transform:
+          type: network
+          network:
+            rules:
+              - input: source.address
+                output: source.
+                type: add_kubernetes
+                assignee: otel
+              - input: destination.address
+                output: destination.
+                type: add_kubernetes
+                assignee: otel
+      - name: otel
+        encode:
+          type: otlptraces
+          otlptraces:
+            address: my-otelcol-collector-headless.otlp.svc
+            port: 4317
+            connectionType: grpc
+            spanSplitter:
+              - source.
+              - destination.
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: netobserv
+  namespace: netobserv
+rules:
+  - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+      - deployments
+      - replicasets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - namespaces
+      - services
+      - nodes
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: netobserv
+  namespace: netobserv
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: netobserv
+subjects:
+  - kind: ServiceAccount
+    name: netobserv
+    namespace: netobserv
