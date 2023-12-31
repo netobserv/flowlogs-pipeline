@@ -55,7 +55,7 @@ const (
 	flpOtlpLoggerName      = "flp-otlp-logger"
 	defaultTimeInterval    = time.Duration(20 * time.Second)
 	flpOtlpResourceVersion = "v0.1.0"
-	flpOtlpResourceName    = "flp-otlp"
+	flpOtlpResourceName    = "netobserv-otlp"
 	grpcType               = "grpc"
 	httpType               = "http"
 )
@@ -66,7 +66,7 @@ func NewOtlpTracerProvider(ctx context.Context, params config.StageParam, res *r
 		cfg = *params.Encode.OtlpTraces
 	}
 	if cfg.OtlpConnectionInfo == nil {
-		return nil, fmt.Errorf("otlptraces missing connection ino")
+		return nil, fmt.Errorf("otlptraces missing connection info")
 	}
 	addr := fmt.Sprintf("%s:%v", cfg.OtlpConnectionInfo.Address, cfg.OtlpConnectionInfo.Port)
 	var err error
@@ -132,7 +132,7 @@ func NewOtlpMetricsProvider(ctx context.Context, params config.StageParam, res *
 		timeInterval.Duration = defaultTimeInterval
 	}
 	if cfg.OtlpConnectionInfo == nil {
-		return nil, fmt.Errorf("otlptraces missing connection ino")
+		return nil, fmt.Errorf("otlpmetrics missing connection info")
 	}
 	addr := fmt.Sprintf("%s:%v", cfg.OtlpConnectionInfo.Address, cfg.OtlpConnectionInfo.Port)
 	var err error
@@ -195,7 +195,7 @@ func NewOtlpLoggerProvider(ctx context.Context, params config.StageParam, res *r
 		cfg = *params.Encode.OtlpLogs
 	}
 	if cfg.OtlpConnectionInfo == nil {
-		return nil, fmt.Errorf("otlptraces missing connection ino")
+		return nil, fmt.Errorf("otlplogs missing connection info")
 	}
 	addr := fmt.Sprintf("%s:%v", cfg.OtlpConnectionInfo.Address, cfg.OtlpConnectionInfo.Port)
 	var expOption otlplogs.ExporterOption
