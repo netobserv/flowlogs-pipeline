@@ -27,7 +27,7 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
 	github.com/vladimirvivien/gexe v0.2.0
-	github.com/vmware/go-ipfix v0.8.1
+	github.com/vmware/go-ipfix v0.8.2
 	golang.org/x/net v0.19.0
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.32.0
