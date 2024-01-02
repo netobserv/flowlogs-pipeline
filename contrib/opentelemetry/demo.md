@@ -52,8 +52,7 @@ In directory githum.com/netobserv/flowlogs-pipeline/contrib/opentelemetry:
 
 ```
 kubectl create namespace netobserv
-kubectl apply -f ./perms.yml
-(ignore the warnings)
+kubectl apply -f ./perms.yml # (ignore the warnings)
 kubectl apply -f ./flp.yml -n netobserv
 ```
 
@@ -69,12 +68,21 @@ On Openshift, connect to jaeger UI at:
 
 ```
 oc get route my-jaeger -o jsonpath='{.spec.host}' -n jaeger
+```
+
+Then:
+```
 https://<my-jaeger host address>
 ```
 
 On Minikube:
+
 ```
 kubectl port-forward --address 0.0.0.0 svc/my-jaeger-query -n jaeger 16686:16686 2>&1 >/dev/null &
+```
+
+Then:
+```
 http://<localhost>:16686
 ```
 
