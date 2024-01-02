@@ -1,6 +1,8 @@
 
+# Demo of flowlogs-pipeline with Opentelemetry traces and Jaeger
+
 We provide here instructions how to bring up a simple demo that uses the flowlogs-pipeline opentelemetry capability.
-We send trace data to the opentelemetry collector, which is then forwarded to jaeger to presented in its UI.
+We send trace data to the opentelemetry collector, which is then forwarded to jaeger to be presented in its UI.
 
 We assume we have a kubernetes cluster environment.
 This may be a real cluster such as Openshift cluster or a simulated cluster such as minikube.
@@ -21,7 +23,7 @@ kubectl create namespace observability
 kubectl create -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.52.0/jaeger-operator.yaml -n observability
 ```
 
-Wait for the operator to be Ready
+Wait for operator to be ready
 
 Install jaeger instance.
 In directory githum.com/netobserv/flowlogs-pipeline/contrib/opentelemetry:
@@ -34,7 +36,6 @@ kubectl apply -f ./jaeger.yaml -n jaeger
 Install opentelemetry operator: See https://opentelemetry.io/docs/kubernetes/operator/
 
 ```
-kubectl create namespace otlp
 kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
 ```
 
@@ -44,6 +45,7 @@ Install opentelemetry collector instance.
 In directory githum.com/netobserv/flowlogs-pipeline/contrib/opentelemetry:
 
 ```
+kubectl create namespace otlp
 kubectl apply -f ./collector.yaml -n otlp
 ```
 
@@ -63,7 +65,7 @@ kubectl create namespace mesh-arena
 kubectl apply -f ./mesh-arena.yml -n mesh-arena
 ```
 
-Access the Jaeger UI
+Access the jaeger UI.
 On Openshift, connect to jaeger UI at:
 
 ```
