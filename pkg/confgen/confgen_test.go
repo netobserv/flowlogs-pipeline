@@ -143,10 +143,10 @@ func Test_RunShortConfGen(t *testing.T) {
 	require.Len(t, out.Parameters[3].Encode.Prom.Metrics, 1)
 	require.Equal(t, &api.PromEncode{
 		Prefix: "flp_",
-		Metrics: api.PromMetricsItems{{
+		Metrics: api.MetricsItems{{
 			Name:     "test_metric",
 			Type:     "gauge",
-			Filters:  []api.PromMetricsFilter{{Key: "K", Value: "V"}},
+			Filters:  []api.MetricsFilter{{Key: "K", Value: "V"}},
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 			Buckets:  []float64{},
@@ -222,10 +222,10 @@ func Test_RunConfGenNoAgg(t *testing.T) {
 	require.Len(t, out.Parameters[2].Encode.Prom.Metrics, 1)
 	require.Equal(t, &api.PromEncode{
 		Prefix: "flp_",
-		Metrics: api.PromMetricsItems{{
+		Metrics: api.MetricsItems{{
 			Name:     "test_metric",
 			Type:     "counter",
-			Filters:  []api.PromMetricsFilter{{Key: "K", Value: "V"}},
+			Filters:  []api.MetricsFilter{{Key: "K", Value: "V"}},
 			ValueKey: "Bytes",
 			Labels:   []string{"service"},
 			Buckets:  []float64{},
@@ -324,17 +324,17 @@ func Test_RunLongConfGen(t *testing.T) {
 	require.Len(t, out.Parameters[4].Encode.Prom.Metrics, 2)
 	require.Equal(t, &api.PromEncode{
 		Prefix: "flp_",
-		Metrics: api.PromMetricsItems{{
+		Metrics: api.MetricsItems{{
 			Name:     "test_metric",
 			Type:     "gauge",
-			Filters:  []api.PromMetricsFilter{{Key: "K", Value: "V"}},
+			Filters:  []api.MetricsFilter{{Key: "K", Value: "V"}},
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 			Buckets:  []float64{},
 		}, {
 			Name:     "test_histo",
 			Type:     "agg_histogram",
-			Filters:  []api.PromMetricsFilter{{Key: "K", Value: "V"}},
+			Filters:  []api.MetricsFilter{{Key: "K", Value: "V"}},
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 			Buckets:  []float64{},
@@ -376,12 +376,12 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 	// Expects prom encode
 	require.Len(t, params[1].Encode.Prom.Metrics, 1)
 	require.Equal(t, &api.PromEncode{
-		Metrics: api.PromMetricsItems{{
+		Metrics: api.MetricsItems{{
 			Name:     "test_metric",
 			Type:     "gauge",
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
-			Filters:  []api.PromMetricsFilter{{Key: "K", Value: "V"}},
+			Filters:  []api.MetricsFilter{{Key: "K", Value: "V"}},
 		}},
 	}, params[1].Encode.Prom)
 
@@ -407,12 +407,12 @@ func Test_GenerateTruncatedNoAgg(t *testing.T) {
 	// Expects prom encode
 	require.Len(t, params[0].Encode.Prom.Metrics, 1)
 	require.Equal(t, &api.PromEncode{
-		Metrics: api.PromMetricsItems{{
+		Metrics: api.MetricsItems{{
 			Name:     "test_metric",
 			Type:     "counter",
 			ValueKey: "Bytes",
 			Labels:   []string{"service"},
-			Filters:  []api.PromMetricsFilter{{Key: "K", Value: "V"}},
+			Filters:  []api.MetricsFilter{{Key: "K", Value: "V"}},
 		}},
 	}, params[0].Encode.Prom)
 }

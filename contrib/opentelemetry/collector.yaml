@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+  name: my-otelcol-cabundle
+---
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: my-otelcol
+spec:
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+    processors:
+      batch:
+
+    exporters:
+      logging:
+        loglevel: info
+
+      otlp/jaeger:
+        endpoint: my-jaeger-collector-headless.jaeger.svc:4317
+        tls:
+          insecure: true
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [logging,otlp/jaeger]
+  mode: deployment
+  resources: {}
+  targetAllocator: {}
+  volumeMounts:
+  - mountPath: /etc/pki/ca-trust/source/service-ca
+    name: cabundle-volume
+  volumes:
+  - configMap:
+      name: my-otelcol-cabundle
+    name: cabundle-volume

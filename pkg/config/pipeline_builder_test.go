@@ -124,10 +124,10 @@ func TestKafkaPromPipeline(t *testing.T) {
 	var expiryTimeDuration api.Duration
 	expiryTimeDuration.Duration = time.Duration(50 * time.Second)
 	pl = pl.EncodePrometheus("prom", api.PromEncode{
-		Metrics: api.PromMetricsItems{{
+		Metrics: api.MetricsItems{{
 			Name: "connections_per_source_as",
 			Type: "counter",
-			Filters: []api.PromMetricsFilter{{
+			Filters: []api.MetricsFilter{{
 				Key:   "name",
 				Value: "src_as_connection_count",
 			}},

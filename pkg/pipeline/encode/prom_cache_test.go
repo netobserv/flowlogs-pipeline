@@ -35,7 +35,7 @@ parameters:
      type: prom
      prom:
        prefix: test_
-       expiryTime: 1
+       expiryTime: 1s
        maxMetrics: 30
        metrics:
          - name: bytes_count
@@ -54,7 +54,7 @@ parameters:
      type: prom
      prom:
        prefix: test_
-       expiryTime: 1
+       expiryTime: 1s
        maxMetrics: 30
        metrics:
          - name: bytes_count
@@ -78,7 +78,7 @@ parameters:
      type: prom
      prom:
        prefix: test_
-       expiryTime: 1
+       expiryTime: 1s
        metrics:
          - name: bytes_count
            type: counter

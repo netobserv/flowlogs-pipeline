@@ -98,31 +98,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			}
 			outputEntry[rule.Output] = serviceName
 		case api.OpAddKubernetes:
-			kubeInfo, err := kubernetes.Data.GetInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
-			if err != nil {
-				logrus.WithError(err).Tracef("can't find kubernetes info for IP %v", outputEntry[rule.Input])
-				continue
-			}
-			// NETOBSERV-666: avoid putting empty namespaces or Loki aggregation queries will
-			// differentiate between empty and nil namespaces.
-			if kubeInfo.Namespace != "" {
-				outputEntry[rule.Output+"_Namespace"] = kubeInfo.Namespace
-			}
-			outputEntry[rule.Output+"_Name"] = kubeInfo.Name
-			outputEntry[rule.Output+"_Type"] = kubeInfo.Type
-			outputEntry[rule.Output+"_OwnerName"] = kubeInfo.Owner.Name
-			outputEntry[rule.Output+"_OwnerType"] = kubeInfo.Owner.Type
-			if rule.Parameters != "" {
-				for labelKey, labelValue := range kubeInfo.Labels {
-					outputEntry[rule.Parameters+"_"+labelKey] = labelValue
-				}
-			}
-			if kubeInfo.HostIP != "" {
-				outputEntry[rule.Output+"_HostIP"] = kubeInfo.HostIP
-				if kubeInfo.HostName != "" {
-					outputEntry[rule.Output+"_HostName"] = kubeInfo.HostName
-				}
-			}
+			fillInK8s(outputEntry, rule)
 		case api.OpReinterpretDirection:
 			reinterpretDirection(outputEntry, &n.DirectionInfo)
 		case api.OpAddIPCategory:
@@ -141,6 +117,69 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 	}
 
 	return outputEntry, true
+}
+
+func fillInK8s(outputEntry config.GenericMap, rule api.NetworkTransformRule) {
+	kubeInfo, err := kubernetes.Data.GetInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
+	if err != nil {
+		logrus.WithError(err).Tracef("can't find kubernetes info for IP %v", outputEntry[rule.Input])
+		return
+	}
+	if rule.Assignee != "otel" {
+		// NETOBSERV-666: avoid putting empty namespaces or Loki aggregation queries will
+		// differentiate between empty and nil namespaces.
+		if kubeInfo.Namespace != "" {
+			outputEntry[rule.Output+"_Namespace"] = kubeInfo.Namespace
+		}
+		outputEntry[rule.Output+"_Name"] = kubeInfo.Name
+		outputEntry[rule.Output+"_Type"] = kubeInfo.Type
+		outputEntry[rule.Output+"_OwnerName"] = kubeInfo.Owner.Name
+		outputEntry[rule.Output+"_OwnerType"] = kubeInfo.Owner.Type
+		if rule.Parameters != "" {
+			for labelKey, labelValue := range kubeInfo.Labels {
+				outputEntry[rule.Parameters+"_"+labelKey] = labelValue
+			}
+		}
+		if kubeInfo.HostIP != "" {
+			outputEntry[rule.Output+"_HostIP"] = kubeInfo.HostIP
+			if kubeInfo.HostName != "" {
+				outputEntry[rule.Output+"_HostName"] = kubeInfo.HostName
+			}
+		}
+	} else {
+		// NOTE: Some of these fields are taken from opentelemetry specs.
+		// See https://opentelemetry.io/docs/specs/semconv/resource/k8s/
+		// Other fields (not specified in the specs) are named similarly
+		if kubeInfo.Namespace != "" {
+			outputEntry[rule.Output+"k8s.namespace.name"] = kubeInfo.Namespace
+		}
+		switch kubeInfo.Type {
+		case kubernetes.TypeNode:
+			outputEntry[rule.Output+"k8s.node.name"] = kubeInfo.Name
+			outputEntry[rule.Output+"k8s.node.uid"] = kubeInfo.UID
+		case kubernetes.TypePod:
+			outputEntry[rule.Output+"k8s.pod.name"] = kubeInfo.Name
+			outputEntry[rule.Output+"k8s.pod.uid"] = kubeInfo.UID
+		case kubernetes.TypeService:
+			outputEntry[rule.Output+"k8s.service.name"] = kubeInfo.Name
+			outputEntry[rule.Output+"k8s.service.uid"] = kubeInfo.UID
+		}
+		outputEntry[rule.Output+"k8s.name"] = kubeInfo.Name
+		outputEntry[rule.Output+"k8s.type"] = kubeInfo.Type
+		outputEntry[rule.Output+"k8s.owner.name"] = kubeInfo.Owner.Name
+		outputEntry[rule.Output+"k8s.owner.type"] = kubeInfo.Owner.Type
+		if rule.Parameters != "" {
+			for labelKey, labelValue := range kubeInfo.Labels {
+				outputEntry[rule.Parameters+"."+labelKey] = labelValue
+			}
+		}
+		if kubeInfo.HostIP != "" {
+			outputEntry[rule.Output+"k8s.host.ip"] = kubeInfo.HostIP
+			if kubeInfo.HostName != "" {
+				outputEntry[rule.Output+"k8s.host.name"] = kubeInfo.HostName
+			}
+		}
+	}
 }
 
 func (n *Network) categorizeIP(ip net.IP) string {
