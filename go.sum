@@ -625,8 +625,8 @@ github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500 h1:RmnoJe
 github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500/go.mod h1:LHXpc5tjKvsfZn0pwLKrvlgEhZcCaw3Di9mUEZGAI4E=
 github.com/netobserv/netobserv-ebpf-agent v0.3.3-0.20231106225450-d69703f59313 h1:hZ9y256aldpdqPs9cK7zPKbFuMc5f/ps9r42jXfzR2g=
 github.com/netobserv/netobserv-ebpf-agent v0.3.3-0.20231106225450-d69703f59313/go.mod h1:lJX+FW46Lh7k31fyQjBErA1T85HHV6B9/GEP0WrNsqg=
-github.com/netsampler/goflow2 v1.3.6 h1:fZbHDcWPcG+nkg2wGHCv4VJ9MrG8iA16YmuYhrSAEdQ=
-github.com/netsampler/goflow2 v1.3.6/go.mod h1:4UZsVGVAs//iMCptUHn3WNScztJeUhZH7kDW2+/vDdQ=
+github.com/netsampler/goflow2 v1.3.7 h1:XZaTy8kkMnGXpJ9hS3KbO1McyrFTpVNhVFEx9rNhMmc=
+github.com/netsampler/goflow2 v1.3.7/go.mod h1:4UZsVGVAs//iMCptUHn3WNScztJeUhZH7kDW2+/vDdQ=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/run v1.1.0/go.mod h1:sVPdnTZT1zYwAJeCMu2Th4T21pA3FPOQRfWjQlk7DVU=
