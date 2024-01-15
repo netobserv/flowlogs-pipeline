@@ -126,11 +126,13 @@ type batchLogRecordProcessor struct {
 	stopWait   sync.WaitGroup
 	stopOnce   sync.Once
 	stopCh     chan struct{}
+	stopped    atomic.Bool
 }
 
 func (lrp *batchLogRecordProcessor) Shutdown(ctx context.Context) error {
 	var err error
 	lrp.stopOnce.Do(func() {
+		lrp.stopped.Store(true)
 		wait := make(chan struct{})
 		go func() {
 			close(lrp.stopCh)
@@ -199,7 +201,12 @@ func NewBatchLogRecordProcessor(exporter LogRecordExporter, options ...BatchLogR
 	return blp
 }
 
-func (lrp batchLogRecordProcessor) OnEmit(rol ReadableLogRecord) {
+func (lrp *batchLogRecordProcessor) OnEmit(rol ReadableLogRecord) {
+
+	// Do not enqueue spans after Shutdown.
+	if lrp.stopped.Load() {
+		return
+	}
 	// Do not enqueue logs if we are just going to drop them.
 	if lrp.e == nil {
 		return
@@ -322,6 +329,17 @@ func (lrp *batchLogRecordProcessor) enqueue(sd ReadableLogRecord) {
 
 // ForceFlush exports all ended logs that have not yet been exported.
 func (lrp *batchLogRecordProcessor) ForceFlush(ctx context.Context) error {
+
+	// Interrupt if context is already canceled.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	// Do nothing after Shutdown.
+	// Do not enqueue spans after Shutdown.
+	if lrp.stopped.Load() {
+		return nil
+	}
+
 	var err error
 	if lrp.e != nil {
 		flushCh := make(chan struct{})
