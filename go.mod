@@ -4,11 +4,12 @@ go 1.19
 
 require (
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
+	github.com/agoda-com/opentelemetry-logs-go v0.4.3
 	github.com/benbjohnson/clock v1.3.5
 	github.com/go-kit/kit v0.13.0
 	github.com/golang/snappy v0.0.4
 	github.com/heptiolabs/healthcheck v0.0.0-20211123025425-613501dd5deb
-	github.com/ip2location/ip2location-go/v9 v9.6.1
+	github.com/ip2location/ip2location-go/v9 v9.7.0
 	github.com/json-iterator/go v1.1.12
 	github.com/mariomac/guara v0.0.0-20220523124851-5fc279816f1f
 	github.com/minio/minio-go/v7 v7.0.66
@@ -28,6 +29,15 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/vladimirvivien/gexe v0.2.0
 	github.com/vmware/go-ipfix v0.8.2
+	go.opentelemetry.io/otel v1.21.0
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.44.0
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v0.44.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.21.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.21.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.21.0
+	go.opentelemetry.io/otel/metric v1.21.0
+	go.opentelemetry.io/otel/sdk v1.21.0
+	go.opentelemetry.io/otel/sdk/metric v1.21.0
 	golang.org/x/net v0.19.0
 	google.golang.org/grpc v1.60.1
 	google.golang.org/protobuf v1.32.0
@@ -39,7 +49,6 @@ require (
 )
 
 require (
-	github.com/agoda-com/opentelemetry-logs-go v0.4.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -103,15 +112,6 @@ require (
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
-	go.opentelemetry.io/otel v1.21.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.44.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v0.44.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.21.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.21.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.21.0 // indirect
-	go.opentelemetry.io/otel/metric v1.21.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.21.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
