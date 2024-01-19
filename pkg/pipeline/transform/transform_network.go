@@ -99,6 +99,8 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			outputEntry[rule.Output] = serviceName
 		case api.OpAddKubernetes:
 			fillInK8s(outputEntry, rule)
+		case api.OpAddKubernetesInfra:
+			fillInK8sInfra(outputEntry, rule)
 		case api.OpReinterpretDirection:
 			reinterpretDirection(outputEntry, &n.DirectionInfo)
 		case api.OpAddIPCategory:
@@ -182,6 +184,47 @@ func fillInK8s(outputEntry config.GenericMap, rule api.NetworkTransformRule) {
 	}
 }
 
+func fillInK8sInfra(outputEntry config.GenericMap, rule api.NetworkTransformRule) {
+	if rule.KubernetesInfra == nil {
+		logrus.Error("transformation rule: Missing Kubernetes Infra configuration ")
+		return
+	}
+	outputEntry[rule.KubernetesInfra.Output] = "infra"
+	for _, input := range rule.KubernetesInfra.Inputs {
+		if objectIsApp(fmt.Sprintf("%s", outputEntry[input]), rule.KubernetesInfra.InfraPrefix) {
+			outputEntry[rule.KubernetesInfra.Output] = "app"
+			return
+		}
+	}
+}
+
+const openshiftNamespacePrefix = "openshift-"
+const openshiftPrefixLen = len(openshiftNamespacePrefix)
+
+func objectIsApp(addr string, additionalInfraPrefix string) bool {
+	obj, err := kubernetes.Data.GetInfo(addr)
+	if err != nil {
+		logrus.WithError(err).Tracef("can't find kubernetes info for IP %s", addr)
+		return false
+	}
+	nsLen := len(obj.Namespace)
+	additionalPrefixLen := len(additionalInfraPrefix)
+	if nsLen == 0 {
+		return false
+	}
+	if nsLen >= openshiftPrefixLen && obj.Namespace[:openshiftPrefixLen] == openshiftNamespacePrefix {
+		return false
+	}
+	if nsLen >= additionalPrefixLen && obj.Namespace[:additionalPrefixLen] == additionalInfraPrefix {
+		return false
+	}
+	//Special case with openshift and kubernetes service in default namespace
+	if obj.Namespace == "default" && (obj.Name == "kubernetes" || obj.Name == "openshift") {
+		return false
+	}
+	return true
+}
+
 func (n *Network) categorizeIP(ip net.IP) string {
 	if ip != nil {
 		for _, subnetCat := range n.categories {
@@ -210,6 +253,8 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		case api.OpAddLocation:
 			needToInitLocationDB = true
 		case api.OpAddKubernetes:
+			needToInitKubeData = true
+		case api.OpAddKubernetesInfra:
 			needToInitKubeData = true
 		case api.OpAddService:
 			needToInitNetworkServices = true
