@@ -99,10 +99,8 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			outputEntry[rule.Output] = serviceName
 		case api.OpAddKubernetes:
 			fillInK8s(outputEntry, rule)
-
 		case api.OpAddKubernetesInfra:
 			fillInK8sInfra(outputEntry, rule)
-
 		case api.OpReinterpretDirection:
 			reinterpretDirection(outputEntry, &n.DirectionInfo)
 		case api.OpAddIPCategory:
