@@ -144,4 +144,4 @@ require (
 	gopkg.in/DATA-DOG/go-sqlmock.v1 v1.3.0 // indirect
 )
 
-replace github.com/prometheus/common v0.44.0 => github.com/netobserv/prometheus-common v0.44.0-netobserv
+replace github.com/prometheus/common v0.46.0 => github.com/netobserv/prometheus-common v0.46.0-netobserv
