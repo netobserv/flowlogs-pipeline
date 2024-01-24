@@ -148,6 +148,7 @@ func fillInK8s(outputEntry config.GenericMap, rule api.NetworkTransformRule) {
 				outputEntry[rule.Output+"_HostName"] = kubeInfo.HostName
 			}
 		}
+		fillInK8sZone(outputEntry, rule, *kubeInfo)
 	} else {
 		// NOTE: Some of these fields are taken from opentelemetry specs.
 		// See https://opentelemetry.io/docs/specs/semconv/resource/k8s/
@@ -181,6 +182,40 @@ func fillInK8s(outputEntry config.GenericMap, rule api.NetworkTransformRule) {
 				outputEntry[rule.Output+"k8s.host.name"] = kubeInfo.HostName
 			}
 		}
+	}
+}
+
+const nodeZoneLabelName = "topology.kubernetes.io/zone"
+
+func fillInK8sZone(outputEntry config.GenericMap, rule api.NetworkTransformRule, kubeInfo kubernetes.Info) {
+	if rule.Kubernetes == nil || !rule.Kubernetes.AddZone {
+		//Nothing to do
+		return
+	}
+	switch kubeInfo.Type {
+	case kubernetes.TypeNode:
+		zone, ok := kubeInfo.Labels[nodeZoneLabelName]
+		if ok {
+			outputEntry[rule.Output+"_Zone"] = zone
+		}
+		return
+	case kubernetes.TypePod:
+		nodeInfo, err := kubernetes.Data.GetNodeInfo(kubeInfo.HostName)
+		if err != nil {
+			logrus.WithError(err).Tracef("can't find nodes info for node %v", kubeInfo.HostName)
+			return
+		}
+		if nodeInfo != nil {
+			zone, ok := nodeInfo.Labels[nodeZoneLabelName]
+			if ok {
+				outputEntry[rule.Output+"_Zone"] = zone
+			}
+		}
+		return
+
+	case kubernetes.TypeService:
+		//A service is not assigned to a dedicated zone, skipping
+		return
 	}
 }
 

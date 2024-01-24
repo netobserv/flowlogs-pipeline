@@ -52,6 +52,7 @@ const (
 
 type kubeDataInterface interface {
 	GetInfo(string) (*Info, error)
+	GetNodeInfo(string) (*Info, error)
 	InitFromConfig(string) error
 }
 
@@ -132,6 +133,16 @@ func infoForIP(idx cache.Indexer, ip string) (*Info, bool) {
 		return nil, false
 	}
 	return objs[0].(*Info), true
+}
+
+func (k *KubeData) GetNodeInfo(name string) (*Info, error) {
+	item, ok, err := k.nodes.GetIndexer().GetByKey(name)
+	if err != nil {
+		return nil, err
+	} else if ok {
+		return item.(*Info), nil
+	}
+	return nil, nil
 }
 
 func (k *KubeData) getOwner(info *Info) Owner {
@@ -244,9 +255,10 @@ func (k *KubeData) initPodInformer(informerFactory informers.SharedInformerFacto
 				Labels:          pod.Labels,
 				OwnerReferences: pod.OwnerReferences,
 			},
-			Type:   TypePod,
-			HostIP: pod.Status.HostIP,
-			ips:    ips,
+			Type:     TypePod,
+			HostIP:   pod.Status.HostIP,
+			HostName: pod.Spec.NodeName,
+			ips:      ips,
 		}, nil
 	}); err != nil {
 		return fmt.Errorf("can't set pods transform: %w", err)
