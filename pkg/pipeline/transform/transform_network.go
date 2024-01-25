@@ -148,7 +148,7 @@ func fillInK8s(outputEntry config.GenericMap, rule api.NetworkTransformRule) {
 				outputEntry[rule.Output+"_HostName"] = kubeInfo.HostName
 			}
 		}
-		fillInK8sZone(outputEntry, rule, *kubeInfo)
+		fillInK8sZone(outputEntry, rule, *kubeInfo, "_Zone")
 	} else {
 		// NOTE: Some of these fields are taken from opentelemetry specs.
 		// See https://opentelemetry.io/docs/specs/semconv/resource/k8s/
@@ -182,12 +182,13 @@ func fillInK8s(outputEntry config.GenericMap, rule api.NetworkTransformRule) {
 				outputEntry[rule.Output+"k8s.host.name"] = kubeInfo.HostName
 			}
 		}
+		fillInK8sZone(outputEntry, rule, *kubeInfo, "k8s.zone")
 	}
 }
 
 const nodeZoneLabelName = "topology.kubernetes.io/zone"
 
-func fillInK8sZone(outputEntry config.GenericMap, rule api.NetworkTransformRule, kubeInfo kubernetes.Info) {
+func fillInK8sZone(outputEntry config.GenericMap, rule api.NetworkTransformRule, kubeInfo kubernetes.Info, zonePrefix string) {
 	if rule.Kubernetes == nil || !rule.Kubernetes.AddZone {
 		//Nothing to do
 		return
@@ -196,7 +197,7 @@ func fillInK8sZone(outputEntry config.GenericMap, rule api.NetworkTransformRule,
 	case kubernetes.TypeNode:
 		zone, ok := kubeInfo.Labels[nodeZoneLabelName]
 		if ok {
-			outputEntry[rule.Output+"_Zone"] = zone
+			outputEntry[rule.Output+zonePrefix] = zone
 		}
 		return
 	case kubernetes.TypePod:
@@ -208,7 +209,7 @@ func fillInK8sZone(outputEntry config.GenericMap, rule api.NetworkTransformRule,
 		if nodeInfo != nil {
 			zone, ok := nodeInfo.Labels[nodeZoneLabelName]
 			if ok {
-				outputEntry[rule.Output+"_Zone"] = zone
+				outputEntry[rule.Output+zonePrefix] = zone
 			}
 		}
 		return
