@@ -242,6 +242,10 @@ func (*fakeKubeData) GetInfo(n string) (*kubernetes.Info, error) {
 	return nil, errors.New("notFound")
 }
 
+func (*fakeKubeData) GetNodeInfo(n string) (*kubernetes.Info, error) {
+	return nil, nil
+}
+
 func Test_Categorize(t *testing.T) {
 	entry := config.GenericMap{
 		"addr1": "10.1.2.3",
