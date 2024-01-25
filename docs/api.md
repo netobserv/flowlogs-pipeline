@@ -4,6 +4,12 @@ Following is the supported API format for prometheus encode:
 
 <pre>
  prom:
+         promConnectionInfo: Prometheus connection info; includes:
+             address: endpoint address to expose
+             port: endpoint port number to expose
+             tls: TLS configuration for the endpoint
+                 certPath: path to the certificate file
+                 keyPath: path to the key file
          metrics: list of prometheus metric definitions, each includes:
                  name: the metric name
                  type: (enum) one of the following:
@@ -302,4 +308,83 @@ Following is the supported API format for specifying metrics time-based filters:
                  topK: number of highest incidence to report (default - report all)
                  reversed: report lowest incidence instead of highest (default - false)
                  timeInterval: time duration of data to use to compute the metric
+</pre>
+## OpenTelemetry Logs API
+Following is the supported API format for writing logs to an OpenTelemetry collector:
+
+<pre>
+ otlplogs:
+         otlpConnectionInfo: OpenTelemetry connection info; includes:
+             address: endpoint address to expose
+             port: endpoint port number to expose
+             connectionType: interface mechanism: either http or grpc
+             tls: TLS configuration for the endpoint
+                 insecureSkipVerify: skip client verifying the server's certificate chain and host name
+                 caCertPath: path to the CA certificate
+                 userCertPath: path to the user certificate
+                 userKeyPath: path to the user private key
+             headers: headers to add to messages (optional)
+</pre>
+## OpenTelemetry Metrics API
+Following is the supported API format for writing metrics to an OpenTelemetry collector:
+
+<pre>
+ otlpmetrics:
+         otlpConnectionInfo: OpenTelemetry connection info; includes:
+             address: endpoint address to expose
+             port: endpoint port number to expose
+             connectionType: interface mechanism: either http or grpc
+             tls: TLS configuration for the endpoint
+                 insecureSkipVerify: skip client verifying the server's certificate chain and host name
+                 caCertPath: path to the CA certificate
+                 userCertPath: path to the user certificate
+                 userKeyPath: path to the user private key
+             headers: headers to add to messages (optional)
+         prefix: prefix added to each metric name
+         metrics: list of metric definitions, each includes:
+                 name: the metric name
+                 type: (enum) one of the following:
+                     gauge: single numerical value that can arbitrarily go up and down
+                     counter: monotonically increasing counter whose value can only increase
+                     histogram: counts samples in configurable buckets
+                     agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
+                 filter: an optional criterion to filter entries by. Deprecated: use filters instead.
+                     key: the key to match and filter by
+                     value: the value to match and filter by
+                     type: (enum) the type of filter match: exact (default), presence, absence or regex
+                         exact: match exactly the provided fitler value
+                         presence: filter key must be present (filter value is ignored)
+                         absence: filter key must be absent (filter value is ignored)
+                         regex: match filter value as a regular expression
+                 filters: a list of criteria to filter entries by
+                         key: the key to match and filter by
+                         value: the value to match and filter by
+                         type: (enum) the type of filter match: exact (default), presence, absence or regex
+                             exact: match exactly the provided fitler value
+                             presence: filter key must be present (filter value is ignored)
+                             absence: filter key must be absent (filter value is ignored)
+                             regex: match filter value as a regular expression
+                 valueKey: entry key from which to resolve metric value
+                 labels: labels to be associated with the metric
+                 buckets: histogram buckets
+                 valueScale: scale factor of the value (MetricVal := FlowVal / Scale)
+         pushTimeInterval: how often should metrics be sent to collector:
+         expiryTime: time duration of no-flow to wait before deleting data item
+</pre>
+## OpenTelemetry Traces API
+Following is the supported API format for writing traces to an OpenTelemetry collector:
+
+<pre>
+ otlptraces:
+         otlpConnectionInfo: OpenTelemetry connection info; includes:
+             address: endpoint address to expose
+             port: endpoint port number to expose
+             connectionType: interface mechanism: either http or grpc
+             tls: TLS configuration for the endpoint
+                 insecureSkipVerify: skip client verifying the server's certificate chain and host name
+                 caCertPath: path to the CA certificate
+                 userCertPath: path to the user certificate
+                 userKeyPath: path to the user private key
+             headers: headers to add to messages (optional)
+         spanSplitter: separate span for each prefix listed
 </pre>
