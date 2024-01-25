@@ -26,11 +26,10 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/cni"
 
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/informers"
+	inf "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/metadata/metadatainformer"
@@ -39,7 +38,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var Data kubeDataInterface = &KubeData{}
+var informers informersInterface = &Informers{}
 
 const (
 	kubeConfigEnvVariable = "KUBECONFIG"
@@ -50,13 +49,13 @@ const (
 	TypeService           = "Service"
 )
 
-type kubeDataInterface interface {
-	GetInfo(string) (*Info, error)
-	GetNodeInfo(string) (*Info, error)
-	InitFromConfig(string) error
+type informersInterface interface {
+	getInfo(string) (*Info, error)
+	getNodeInfo(string) (*Info, error)
+	initFromConfig(string) error
 }
 
-type KubeData struct {
+type Informers struct {
 	// pods, nodes and services cache the different object types as *Info pointers
 	pods     cache.SharedIndexInformer
 	nodes    cache.SharedIndexInformer
@@ -93,7 +92,7 @@ var commonIndexers = map[string]cache.IndexFunc{
 	},
 }
 
-func (k *KubeData) GetInfo(ip string) (*Info, error) {
+func (k *Informers) getInfo(ip string) (*Info, error) {
 	if info, ok := k.fetchInformers(ip); ok {
 		// Owner data might be discovered after the owned, so we fetch it
 		// at the last moment
@@ -106,7 +105,7 @@ func (k *KubeData) GetInfo(ip string) (*Info, error) {
 	return nil, fmt.Errorf("informers can't find IP %s", ip)
 }
 
-func (k *KubeData) fetchInformers(ip string) (*Info, bool) {
+func (k *Informers) fetchInformers(ip string) (*Info, bool) {
 	if info, ok := infoForIP(k.pods.GetIndexer(), ip); ok {
 		// it might happen that the Host is discovered after the Pod
 		if info.HostName == "" {
@@ -135,7 +134,7 @@ func infoForIP(idx cache.Indexer, ip string) (*Info, bool) {
 	return objs[0].(*Info), true
 }
 
-func (k *KubeData) GetNodeInfo(name string) (*Info, error) {
+func (k *Informers) getNodeInfo(name string) (*Info, error) {
 	item, ok, err := k.nodes.GetIndexer().GetByKey(name)
 	if err != nil {
 		return nil, err
@@ -145,7 +144,7 @@ func (k *KubeData) GetNodeInfo(name string) (*Info, error) {
 	return nil, nil
 }
 
-func (k *KubeData) getOwner(info *Info) Owner {
+func (k *Informers) getOwner(info *Info) Owner {
 	if len(info.OwnerReferences) != 0 {
 		ownerReference := info.OwnerReferences[0]
 		if ownerReference.Kind != "ReplicaSet" {
@@ -176,7 +175,7 @@ func (k *KubeData) getOwner(info *Info) Owner {
 	}
 }
 
-func (k *KubeData) getHostName(hostIP string) string {
+func (k *Informers) getHostName(hostIP string) string {
 	if hostIP != "" {
 		if info, ok := infoForIP(k.nodes.GetIndexer(), hostIP); ok {
 			return info.Name
@@ -185,7 +184,7 @@ func (k *KubeData) getHostName(hostIP string) string {
 	return ""
 }
 
-func (k *KubeData) initNodeInformer(informerFactory informers.SharedInformerFactory) error {
+func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory) error {
 	nodes := informerFactory.Core().V1().Nodes().Informer()
 	// Transform any *v1.Node instance into a *Info instance to save space
 	// in the informer's cache
@@ -232,7 +231,7 @@ func (k *KubeData) initNodeInformer(informerFactory informers.SharedInformerFact
 	return nil
 }
 
-func (k *KubeData) initPodInformer(informerFactory informers.SharedInformerFactory) error {
+func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory) error {
 	pods := informerFactory.Core().V1().Pods().Informer()
 	// Transform any *v1.Pod instance into a *Info instance to save space
 	// in the informer's cache
@@ -271,7 +270,7 @@ func (k *KubeData) initPodInformer(informerFactory informers.SharedInformerFacto
 	return nil
 }
 
-func (k *KubeData) initServiceInformer(informerFactory informers.SharedInformerFactory) error {
+func (k *Informers) initServiceInformer(informerFactory inf.SharedInformerFactory) error {
 	services := informerFactory.Core().V1().Services().Informer()
 	// Transform any *v1.Service instance into a *Info instance to save space
 	// in the informer's cache
@@ -307,7 +306,7 @@ func (k *KubeData) initServiceInformer(informerFactory informers.SharedInformerF
 	return nil
 }
 
-func (k *KubeData) initReplicaSetInformer(informerFactory metadatainformer.SharedInformerFactory) error {
+func (k *Informers) initReplicaSetInformer(informerFactory metadatainformer.SharedInformerFactory) error {
 	k.replicaSets = informerFactory.ForResource(
 		schema.GroupVersionResource{
 			Group:    "apps",
@@ -332,12 +331,12 @@ func (k *KubeData) initReplicaSetInformer(informerFactory metadatainformer.Share
 	return nil
 }
 
-func (k *KubeData) InitFromConfig(kubeConfigPath string) error {
+func (k *Informers) initFromConfig(kubeConfigPath string) error {
 	// Initialization variables
 	k.stopChan = make(chan struct{})
 	k.mdStopChan = make(chan struct{})
 
-	config, err := LoadConfig(kubeConfigPath)
+	config, err := loadConfig(kubeConfigPath)
 	if err != nil {
 		return err
 	}
@@ -360,7 +359,7 @@ func (k *KubeData) InitFromConfig(kubeConfigPath string) error {
 	return nil
 }
 
-func LoadConfig(kubeConfigPath string) (*rest.Config, error) {
+func loadConfig(kubeConfigPath string) (*rest.Config, error) {
 	// if no config path is provided, load it from the env variable
 	if kubeConfigPath == "" {
 		kubeConfigPath = os.Getenv(kubeConfigEnvVariable)
@@ -387,8 +386,8 @@ func LoadConfig(kubeConfigPath string) (*rest.Config, error) {
 	return config, nil
 }
 
-func (k *KubeData) initInformers(client kubernetes.Interface, metaClient metadata.Interface) error {
-	informerFactory := informers.NewSharedInformerFactory(client, syncTime)
+func (k *Informers) initInformers(client kubernetes.Interface, metaClient metadata.Interface) error {
+	informerFactory := inf.NewSharedInformerFactory(client, syncTime)
 	metadataInformerFactory := metadatainformer.NewSharedInformerFactory(metaClient, syncTime)
 	err := k.initNodeInformer(informerFactory)
 	if err != nil {

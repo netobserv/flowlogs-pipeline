@@ -18,18 +18,15 @@
 package transform
 
 import (
-	"errors"
 	"os"
 	"path"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -202,48 +199,6 @@ func InitNewTransformNetwork(t *testing.T, configFile string) Transformer {
 	newTransform, err := NewTransformNetwork(config)
 	require.NoError(t, err)
 	return newTransform
-}
-
-func TestTransform_K8sEmptyNamespace(t *testing.T) {
-	kubernetes.Data = &fakeKubeData{}
-	nt := Network{
-		TransformNetwork: api.TransformNetwork{
-			Rules: api.NetworkTransformRules{{
-				Type:   api.OpAddKubernetes,
-				Input:  "SrcAddr",
-				Output: "SrcK8s",
-			}, {
-				Type:   api.OpAddKubernetes,
-				Input:  "DstAddr",
-				Output: "DstK8s",
-			}},
-		},
-	}
-	// We need to check that, whether it returns NotFound or just an empty namespace,
-	// there is no map entry for that namespace (an empty-valued map entry is not valid)
-	out, _ := nt.Transform(config.GenericMap{
-		"SrcAddr": "1.2.3.4", // would return an empty namespace
-		"DstAddr": "3.2.1.0", // would return NotFound
-	})
-	assert.NotContains(t, out, "SrcK8s_Namespace")
-	assert.NotContains(t, out, "DstK8s_Namespace")
-}
-
-type fakeKubeData struct{}
-
-func (d *fakeKubeData) InitFromConfig(_ string) error {
-	return nil
-}
-func (*fakeKubeData) GetInfo(n string) (*kubernetes.Info, error) {
-	// If found, returns an empty info (empty namespace)
-	if n == "1.2.3.4" {
-		return &kubernetes.Info{}, nil
-	}
-	return nil, errors.New("notFound")
-}
-
-func (*fakeKubeData) GetNodeInfo(n string) (*kubernetes.Info, error) {
-	return nil, nil
 }
 
 func Test_Categorize(t *testing.T) {

@@ -6,12 +6,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-type KubeDataMock struct {
+type InformersMock struct {
 	mock.Mock
-	kubeDataInterface
+	informersInterface
 }
 
-func (o *KubeDataMock) InitFromConfig(kubeConfigPath string) error {
+func (o *InformersMock) InitFromConfig(kubeConfigPath string) error {
 	args := o.Called(kubeConfigPath)
 	return args.Error(0)
 }
@@ -94,7 +94,7 @@ func (m *IndexerMock) FallbackNotFound() {
 	m.On("ByIndex", IndexIP, mock.Anything).Return([]interface{}{}, nil)
 }
 
-func SetupIndexerMocks(kd *KubeData) (pods, nodes, svc, rs *IndexerMock) {
+func SetupIndexerMocks(kd *Informers) (pods, nodes, svc, rs *IndexerMock) {
 	// pods informer
 	pods = &IndexerMock{}
 	pim := InformerMock{}
