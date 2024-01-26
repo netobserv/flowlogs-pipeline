@@ -14,11 +14,6 @@ func InitFromConfig(kubeConfigPath string) error {
 	return informers.initFromConfig(kubeConfigPath)
 }
 
-// For testing
-func MockInformers(m *InformersMock) {
-	informers = m
-}
-
 func Enrich(outputEntry config.GenericMap, rule api.NetworkTransformRule) {
 	kubeInfo, err := informers.getInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
 	if err != nil {

@@ -11,7 +11,13 @@ type InformersMock struct {
 	informersInterface
 }
 
-func (o *InformersMock) InitFromConfig(kubeConfigPath string) error {
+func MockInformers() {
+	inf := new(InformersMock)
+	inf.On("initFromConfig", mock.Anything).Return(nil)
+	informers = inf
+}
+
+func (o *InformersMock) initFromConfig(kubeConfigPath string) error {
 	args := o.Called(kubeConfigPath)
 	return args.Error(0)
 }
