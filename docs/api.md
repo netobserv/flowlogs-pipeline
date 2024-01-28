@@ -4,7 +4,7 @@ Following is the supported API format for prometheus encode:
 
 <pre>
  prom:
-         promConnectionInfo: Prometheus connection info; includes:
+         : Prometheus connection info; includes:
              address: endpoint address to expose
              port: endpoint port number to expose
              tls: TLS configuration for the endpoint
@@ -314,7 +314,7 @@ Following is the supported API format for writing logs to an OpenTelemetry colle
 
 <pre>
  otlplogs:
-         otlpConnectionInfo: OpenTelemetry connection info; includes:
+         : OpenTelemetry connection info; includes:
              address: endpoint address to expose
              port: endpoint port number to expose
              connectionType: interface mechanism: either http or grpc
@@ -330,7 +330,7 @@ Following is the supported API format for writing metrics to an OpenTelemetry co
 
 <pre>
  otlpmetrics:
-         otlpConnectionInfo: OpenTelemetry connection info; includes:
+         : OpenTelemetry connection info; includes:
              address: endpoint address to expose
              port: endpoint port number to expose
              connectionType: interface mechanism: either http or grpc
@@ -376,7 +376,7 @@ Following is the supported API format for writing traces to an OpenTelemetry col
 
 <pre>
  otlptraces:
-         otlpConnectionInfo: OpenTelemetry connection info; includes:
+         : OpenTelemetry connection info; includes:
              address: endpoint address to expose
              port: endpoint port number to expose
              connectionType: interface mechanism: either http or grpc

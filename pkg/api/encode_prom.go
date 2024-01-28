@@ -23,7 +23,7 @@ type PromTLSConf struct {
 }
 
 type PromEncode struct {
-	*PromConnectionInfo `yaml:"promConnectionInfo,omitempty" json:"promConnectionInfo,omitempty" doc:"Prometheus connection info; includes:"`
+	*PromConnectionInfo `json:",inline,omitempty" doc:"Prometheus connection info; includes:"`
 	Metrics             MetricsItems `yaml:"metrics,omitempty" json:"metrics,omitempty" doc:"list of prometheus metric definitions, each includes:"`
 	Prefix              string       `yaml:"prefix,omitempty" json:"prefix,omitempty" doc:"prefix added to each metric name"`
 	ExpiryTime          Duration     `yaml:"expiryTime,omitempty" json:"expiryTime,omitempty" doc:"time duration of no-flow to wait before deleting prometheus data item"`

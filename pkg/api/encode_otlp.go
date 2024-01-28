@@ -18,16 +18,16 @@
 package api
 
 type EncodeOtlpLogs struct {
-	*OtlpConnectionInfo `yaml:"otlpConnectionInfo,omitempty" json:"otlpConnectionInfo,omitempty" doc:"OpenTelemetry connection info; includes:"`
+	*OtlpConnectionInfo `json:",inline" doc:"OpenTelemetry connection info; includes:"`
 }
 
 type EncodeOtlpTraces struct {
-	*OtlpConnectionInfo `yaml:"otlpConnectionInfo,omitempty" json:"otlpConnectionInfo,omitempty" doc:"OpenTelemetry connection info; includes:"`
+	*OtlpConnectionInfo `json:",inline" doc:"OpenTelemetry connection info; includes:"`
 	SpanSplitter        []string `yaml:"spanSplitter,omitempty" json:"spanSplitter,omitempty" doc:"separate span for each prefix listed"`
 }
 
 type EncodeOtlpMetrics struct {
-	*OtlpConnectionInfo `yaml:"otlpConnectionInfo,omitempty" json:"otlpConnectionInfo,omitempty" doc:"OpenTelemetry connection info; includes:"`
+	*OtlpConnectionInfo `json:",inline" doc:"OpenTelemetry connection info; includes:"`
 	Prefix              string       `yaml:"prefix,omitempty" json:"prefix,omitempty" doc:"prefix added to each metric name"`
 	Metrics             MetricsItems `yaml:"metrics,omitempty" json:"metrics,omitempty" doc:"list of metric definitions, each includes:"`
 	PushTimeInterval    Duration     `yaml:"pushTimeInterval,omitempty" json:"pushTimeInterval,omitempty" doc:"how often should metrics be sent to collector:"`
@@ -35,9 +35,9 @@ type EncodeOtlpMetrics struct {
 }
 
 type OtlpConnectionInfo struct {
-	Address        string            `yaml:"address,omitempty" json:"address,omitempty" doc:"endpoint address to expose"`
-	Port           int               `yaml:"port,omitempty" json:"port,omitempty" doc:"endpoint port number to expose"`
-	ConnectionType string            `yaml:"connectionType,omitempty" json:"connectionType,omitempty" doc:"interface mechanism: either http or grpc"`
+	Address        string            `yaml:"address" json:"address" doc:"endpoint address to expose"`
+	Port           int               `yaml:"port" json:"port" doc:"endpoint port number to expose"`
+	ConnectionType string            `yaml:"connectionType" json:"connectionType" doc:"interface mechanism: either http or grpc"`
 	TLS            *ClientTLS        `yaml:"tls,omitempty" json:"tls,omitempty" doc:"TLS configuration for the endpoint"`
 	Headers        map[string]string `yaml:"headers,omitempty" json:"headers,omitempty" doc:"headers to add to messages (optional)"`
 }
