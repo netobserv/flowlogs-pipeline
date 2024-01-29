@@ -1,17 +1,25 @@
-package kubernetes
+package informers
 
 import (
+	"errors"
+
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
-type KubeDataMock struct {
+type InformersMock struct {
 	mock.Mock
-	kubeDataInterface
+	InformersInterface
 }
 
-func (o *KubeDataMock) InitFromConfig(kubeConfigPath string) error {
+func NewInformersMock() *InformersMock {
+	inf := new(InformersMock)
+	inf.On("InitFromConfig", mock.Anything).Return(nil)
+	return inf
+}
+
+func (o *InformersMock) InitFromConfig(kubeConfigPath string) error {
 	args := o.Called(kubeConfigPath)
 	return args.Error(0)
 }
@@ -94,7 +102,7 @@ func (m *IndexerMock) FallbackNotFound() {
 	m.On("ByIndex", IndexIP, mock.Anything).Return([]interface{}{}, nil)
 }
 
-func SetupIndexerMocks(kd *KubeData) (pods, nodes, svc, rs *IndexerMock) {
+func SetupIndexerMocks(kd *Informers) (pods, nodes, svc, rs *IndexerMock) {
 	// pods informer
 	pods = &IndexerMock{}
 	pim := InformerMock{}
@@ -116,4 +124,37 @@ func SetupIndexerMocks(kd *KubeData) (pods, nodes, svc, rs *IndexerMock) {
 	rim.On("GetIndexer").Return(rs)
 	kd.replicaSets = &rim
 	return
+}
+
+type FakeInformers struct {
+	InformersInterface
+	info  map[string]*Info
+	nodes map[string]*Info
+}
+
+func SetupStubs(info map[string]*Info, nodes map[string]*Info) *FakeInformers {
+	return &FakeInformers{
+		info:  info,
+		nodes: nodes,
+	}
+}
+
+func (f *FakeInformers) InitFromConfig(_ string) error {
+	return nil
+}
+
+func (f *FakeInformers) GetInfo(n string) (*Info, error) {
+	i := f.info[n]
+	if i != nil {
+		return i, nil
+	}
+	return nil, errors.New("notFound")
+}
+
+func (f *FakeInformers) GetNodeInfo(n string) (*Info, error) {
+	i := f.nodes[n]
+	if i != nil {
+		return i, nil
+	}
+	return nil, errors.New("notFound")
 }

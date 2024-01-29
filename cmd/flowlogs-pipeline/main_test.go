@@ -46,9 +46,7 @@ func TestTheMain(t *testing.T) {
 
 func TestPipelineConfigSetup(t *testing.T) {
 	// Kube init mock
-	kdata := new(kubernetes.KubeDataMock)
-	kdata.On("InitFromConfig", "").Return(nil)
-	kubernetes.Data = kdata
+	kubernetes.MockInformers()
 
 	js := `{
     "PipeLine": "[{\"name\":\"grpc\"},{\"follows\":\"grpc\",\"name\":\"enrich\"},{\"follows\":\"enrich\",\"name\":\"loki\"},{\"follows\":\"enrich\",\"name\":\"prometheus\"}]",

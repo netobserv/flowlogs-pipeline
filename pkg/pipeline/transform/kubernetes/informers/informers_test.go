@@ -15,7 +15,7 @@
  *
  */
 
-package kubernetes
+package informers
 
 import (
 	"testing"
@@ -25,7 +25,7 @@ import (
 )
 
 func TestGetInfo(t *testing.T) {
-	kubeData := KubeData{}
+	kubeData := Informers{}
 	pidx, hidx, sidx, ridx := SetupIndexerMocks(&kubeData)
 	pidx.MockPod("1.2.3.4", "pod1", "podNamespace", "10.0.0.1", nil)
 	pidx.MockPod("1.2.3.5", "pod2", "podNamespace", "10.0.0.1", &Owner{Name: "rs1", Type: "ReplicaSet"})

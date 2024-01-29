@@ -187,6 +187,8 @@ Following is the supported API format for network transformations:
                      inputs: entry inputs fields
                      output: entry output field
                      infra_prefixes: Namespace prefixes that will be tagged as infra
+                 kubernetes: Kubernetes rule specific configuration
+                     add_zone: If true the rule will add the zone
          kubeConfigPath: path to kubeconfig file (optional)
          servicesFile: path to services file (optional, default: /etc/services)
          protocolsFile: path to protocols file (optional, default: /etc/protocols)
