@@ -15,7 +15,7 @@
  *
  */
 
-package kubernetes
+package informers
 
 import (
 	"testing"
@@ -38,7 +38,7 @@ func TestGetInfo(t *testing.T) {
 	hidx.FallbackNotFound()
 
 	// Test get orphan pod
-	info, err := kubeData.getInfo("1.2.3.4")
+	info, err := kubeData.GetInfo("1.2.3.4")
 	require.NoError(t, err)
 
 	require.Equal(t, *info, Info{
@@ -53,7 +53,7 @@ func TestGetInfo(t *testing.T) {
 	})
 
 	// Test get pod owned
-	info, err = kubeData.getInfo("1.2.3.5")
+	info, err = kubeData.GetInfo("1.2.3.5")
 	require.NoError(t, err)
 
 	require.Equal(t, *info, Info{
@@ -72,7 +72,7 @@ func TestGetInfo(t *testing.T) {
 	})
 
 	// Test get node
-	info, err = kubeData.getInfo("10.0.0.1")
+	info, err = kubeData.GetInfo("10.0.0.1")
 	require.NoError(t, err)
 
 	require.Equal(t, *info, Info{
@@ -84,7 +84,7 @@ func TestGetInfo(t *testing.T) {
 	})
 
 	// Test get service
-	info, err = kubeData.getInfo("1.2.3.100")
+	info, err = kubeData.GetInfo("1.2.3.100")
 	require.NoError(t, err)
 
 	require.Equal(t, *info, Info{
@@ -97,7 +97,7 @@ func TestGetInfo(t *testing.T) {
 	})
 
 	// Test no match
-	info, err = kubeData.getInfo("1.2.3.200")
+	info, err = kubeData.GetInfo("1.2.3.200")
 	require.NotNil(t, err)
 	require.Nil(t, info)
 }

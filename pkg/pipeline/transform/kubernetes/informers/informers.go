@@ -15,7 +15,7 @@
  *
  */
 
-package kubernetes
+package informers
 
 import (
 	"fmt"
@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/cni"
+	"github.com/sirupsen/logrus"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,8 +39,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var informers informersInterface = &Informers{}
-
 const (
 	kubeConfigEnvVariable = "KUBECONFIG"
 	syncTime              = 10 * time.Minute
@@ -49,13 +48,16 @@ const (
 	TypeService           = "Service"
 )
 
-type informersInterface interface {
-	getInfo(string) (*Info, error)
-	getNodeInfo(string) (*Info, error)
-	initFromConfig(string) error
+var log = logrus.WithField("component", "transform.Network.Kubernetes")
+
+type InformersInterface interface {
+	GetInfo(string) (*Info, error)
+	GetNodeInfo(string) (*Info, error)
+	InitFromConfig(string) error
 }
 
 type Informers struct {
+	InformersInterface
 	// pods, nodes and services cache the different object types as *Info pointers
 	pods     cache.SharedIndexInformer
 	nodes    cache.SharedIndexInformer
@@ -92,7 +94,7 @@ var commonIndexers = map[string]cache.IndexFunc{
 	},
 }
 
-func (k *Informers) getInfo(ip string) (*Info, error) {
+func (k *Informers) GetInfo(ip string) (*Info, error) {
 	if info, ok := k.fetchInformers(ip); ok {
 		// Owner data might be discovered after the owned, so we fetch it
 		// at the last moment
@@ -134,7 +136,7 @@ func infoForIP(idx cache.Indexer, ip string) (*Info, bool) {
 	return objs[0].(*Info), true
 }
 
-func (k *Informers) getNodeInfo(name string) (*Info, error) {
+func (k *Informers) GetNodeInfo(name string) (*Info, error) {
 	item, ok, err := k.nodes.GetIndexer().GetByKey(name)
 	if err != nil {
 		return nil, err
@@ -331,7 +333,7 @@ func (k *Informers) initReplicaSetInformer(informerFactory metadatainformer.Shar
 	return nil
 }
 
-func (k *Informers) initFromConfig(kubeConfigPath string) error {
+func (k *Informers) InitFromConfig(kubeConfigPath string) error {
 	// Initialization variables
 	k.stopChan = make(chan struct{})
 	k.mdStopChan = make(chan struct{})

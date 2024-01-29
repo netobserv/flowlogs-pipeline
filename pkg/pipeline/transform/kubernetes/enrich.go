@@ -5,17 +5,23 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	inf "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
 	"github.com/sirupsen/logrus"
 )
 
-var log = logrus.WithField("component", "transform.Network.Kubernetes")
+var informers inf.InformersInterface = &inf.Informers{}
+
+// For testing
+func MockInformers() {
+	informers = inf.NewInformersMock()
+}
 
 func InitFromConfig(kubeConfigPath string) error {
-	return informers.initFromConfig(kubeConfigPath)
+	return informers.InitFromConfig(kubeConfigPath)
 }
 
 func Enrich(outputEntry config.GenericMap, rule api.NetworkTransformRule) {
-	kubeInfo, err := informers.getInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
+	kubeInfo, err := informers.GetInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
 	if err != nil {
 		logrus.WithError(err).Tracef("can't find kubernetes info for IP %v", outputEntry[rule.Input])
 		return
@@ -50,13 +56,13 @@ func Enrich(outputEntry config.GenericMap, rule api.NetworkTransformRule) {
 			outputEntry[rule.Output+"k8s.namespace.name"] = kubeInfo.Namespace
 		}
 		switch kubeInfo.Type {
-		case TypeNode:
+		case inf.TypeNode:
 			outputEntry[rule.Output+"k8s.node.name"] = kubeInfo.Name
 			outputEntry[rule.Output+"k8s.node.uid"] = kubeInfo.UID
-		case TypePod:
+		case inf.TypePod:
 			outputEntry[rule.Output+"k8s.pod.name"] = kubeInfo.Name
 			outputEntry[rule.Output+"k8s.pod.uid"] = kubeInfo.UID
-		case TypeService:
+		case inf.TypeService:
 			outputEntry[rule.Output+"k8s.service.name"] = kubeInfo.Name
 			outputEntry[rule.Output+"k8s.service.uid"] = kubeInfo.UID
 		}
@@ -81,20 +87,20 @@ func Enrich(outputEntry config.GenericMap, rule api.NetworkTransformRule) {
 
 const nodeZoneLabelName = "topology.kubernetes.io/zone"
 
-func fillInK8sZone(outputEntry config.GenericMap, rule api.NetworkTransformRule, kubeInfo Info, zonePrefix string) {
+func fillInK8sZone(outputEntry config.GenericMap, rule api.NetworkTransformRule, kubeInfo inf.Info, zonePrefix string) {
 	if rule.Kubernetes == nil || !rule.Kubernetes.AddZone {
 		//Nothing to do
 		return
 	}
 	switch kubeInfo.Type {
-	case TypeNode:
+	case inf.TypeNode:
 		zone, ok := kubeInfo.Labels[nodeZoneLabelName]
 		if ok {
 			outputEntry[rule.Output+zonePrefix] = zone
 		}
 		return
-	case TypePod:
-		nodeInfo, err := informers.getNodeInfo(kubeInfo.HostName)
+	case inf.TypePod:
+		nodeInfo, err := informers.GetNodeInfo(kubeInfo.HostName)
 		if err != nil {
 			logrus.WithError(err).Tracef("can't find nodes info for node %v", kubeInfo.HostName)
 			return
@@ -107,7 +113,7 @@ func fillInK8sZone(outputEntry config.GenericMap, rule api.NetworkTransformRule,
 		}
 		return
 
-	case TypeService:
+	case inf.TypeService:
 		//A service is not assigned to a dedicated zone, skipping
 		return
 	}
@@ -131,7 +137,7 @@ const openshiftNamespacePrefix = "openshift-"
 const openshiftPrefixLen = len(openshiftNamespacePrefix)
 
 func objectIsApp(addr string, additionalInfraPrefix string) bool {
-	obj, err := informers.getInfo(addr)
+	obj, err := informers.GetInfo(addr)
 	if err != nil {
 		logrus.WithError(err).Tracef("can't find kubernetes info for IP %s", addr)
 		return false

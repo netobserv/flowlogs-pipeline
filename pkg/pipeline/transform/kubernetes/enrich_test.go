@@ -1,20 +1,19 @@
 package kubernetes
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	inf "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var info = map[string]*Info{
+var info = map[string]*inf.Info{
 	"1.2.3.4": nil,
 	"10.0.0.1": {
-		ips: []string{"10.0.0.1"},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "pod-1",
 			Namespace: "ns-1",
@@ -24,7 +23,6 @@ var info = map[string]*Info{
 		HostIP:   "100.0.0.1",
 	},
 	"10.0.0.2": {
-		ips: []string{"10.0.0.2"},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "pod-2",
 			Namespace: "ns-2",
@@ -34,7 +32,6 @@ var info = map[string]*Info{
 		HostIP:   "100.0.0.2",
 	},
 	"20.0.0.1": {
-		ips: []string{"20.0.0.1"},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "service-1",
 			Namespace: "ns-1",
@@ -43,9 +40,8 @@ var info = map[string]*Info{
 	},
 }
 
-var nodes = map[string]*Info{
+var nodes = map[string]*inf.Info{
 	"host-1": {
-		ips: []string{"100.0.0.1"},
 		ObjectMeta: v1.ObjectMeta{
 			Name: "host-1",
 			Labels: map[string]string{
@@ -55,7 +51,6 @@ var nodes = map[string]*Info{
 		Type: "Node",
 	},
 	"host-2": {
-		ips: []string{"100.0.0.2"},
 		ObjectMeta: v1.ObjectMeta{
 			Name: "host-2",
 			Labels: map[string]string{
@@ -86,7 +81,7 @@ var rules = api.NetworkTransformRules{
 }
 
 func TestEnrich(t *testing.T) {
-	informers = &fakeInformers{}
+	informers = inf.SetupStubs(info, nodes)
 
 	// Pod to unknown
 	entry := config.GenericMap{
@@ -187,7 +182,7 @@ var otelRules = api.NetworkTransformRules{
 }
 
 func TestEnrich_Otel(t *testing.T) {
-	informers = &fakeInformers{}
+	informers = inf.SetupStubs(info, nodes)
 
 	// Pod to unknown
 	entry := config.GenericMap{
@@ -277,7 +272,8 @@ func TestEnrich_Otel(t *testing.T) {
 }
 
 func TestEnrich_EmptyNamespace(t *testing.T) {
-	informers = &fakeInformers{}
+	informers = inf.SetupStubs(info, nodes)
+
 	// We need to check that, whether it returns NotFound or just an empty namespace,
 	// there is no map entry for that namespace (an empty-valued map entry is not valid)
 	entry := config.GenericMap{
@@ -291,26 +287,4 @@ func TestEnrich_EmptyNamespace(t *testing.T) {
 
 	assert.NotContains(t, entry, "SrcK8s_Namespace")
 	assert.NotContains(t, entry, "DstK8s_Namespace")
-}
-
-type fakeInformers struct{}
-
-func (d *fakeInformers) initFromConfig(_ string) error {
-	return nil
-}
-
-func (*fakeInformers) getInfo(n string) (*Info, error) {
-	i := info[n]
-	if i != nil {
-		return i, nil
-	}
-	return nil, errors.New("notFound")
-}
-
-func (*fakeInformers) getNodeInfo(n string) (*Info, error) {
-	i := nodes[n]
-	if i != nil {
-		return i, nil
-	}
-	return nil, errors.New("notFound")
 }
