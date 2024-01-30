@@ -4,7 +4,7 @@ Following is the supported API format for prometheus encode:
 
 <pre>
  prom:
-         : Prometheus connection info; includes:
+         : Prometheus connection info (optional); includes:
              address: endpoint address to expose
              port: endpoint port number to expose
              tls: TLS configuration for the endpoint
