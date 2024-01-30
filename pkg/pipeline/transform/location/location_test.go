@@ -46,7 +46,7 @@ func Test_InitLocationDB(t *testing.T) {
 	_dbURL = "test_fake"
 	err = InitLocationDB()
 	require.Contains(t, err.Error(), "http.Get")
-	_dbURL = DbUrl
+	_dbURL = dbUrl
 	_osio.Stat = os.Stat
 	_osio.Create = os.Create
 
@@ -60,11 +60,11 @@ func Test_InitLocationDB(t *testing.T) {
 	err = InitLocationDB()
 	require.Contains(t, err.Error(), "io.Copy")
 	testServer.Close()
-	_dbURL = DbUrl
+	_dbURL = dbUrl
 	_osio.Stat = os.Stat
 	_osio.Create = os.Create
 
-	// fail in out.Close
+	// fail again in io.Copy
 	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
 	_osio.Create = func(name string) (*os.File, error) { return nil, nil }
 	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
@@ -72,9 +72,9 @@ func Test_InitLocationDB(t *testing.T) {
 	}))
 	_dbURL = testServer.URL
 	err = InitLocationDB()
-	require.Contains(t, err.Error(), "out.Close")
+	require.Contains(t, err.Error(), "io.Copy")
 	testServer.Close()
-	_dbURL = DbUrl
+	_dbURL = dbUrl
 	_osio.Stat = os.Stat
 	_osio.Create = os.Create
 
@@ -88,14 +88,14 @@ func Test_InitLocationDB(t *testing.T) {
 	err = InitLocationDB()
 	require.Contains(t, err.Error(), "failed unzip")
 	testServer.Close()
-	_dbURL = DbUrl
+	_dbURL = dbUrl
 	_osio.Stat = os.Stat
 
 	// fail in OpenDB
 	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
 	buf := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(buf)
-	_, _ = zipWriter.Create(DBFilename)
+	_, _ = zipWriter.Create(dbFilename)
 	zipWriter.Close()
 	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		_, _ = res.Write(buf.Bytes())
@@ -105,12 +105,12 @@ func Test_InitLocationDB(t *testing.T) {
 	err = InitLocationDB()
 	require.Error(t, err)
 	testServer.Close()
-	_dbURL = DbUrl
+	_dbURL = dbUrl
 	_osio.Stat = os.Stat
 	// success
 	// NOTE:: Downloading the DB is a long operation, about 30 seconds, and this delays the tests
 	// TODO: Consider remove this test
-	os.RemoveAll(DBFileLocation)
+	os.RemoveAll(dbFileLocation)
 	initLocationDBErr := InitLocationDB()
 	require.Nil(t, initLocationDBErr)
 }
