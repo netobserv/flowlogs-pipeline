@@ -68,7 +68,7 @@ spec:
       serviceAccountName: netobserv
       containers:
         - name: packet-counter
-          image: quay.io/kalmanmeth/flowlogs-pipeline:otlp-amd64
+          image: quay.io/netobserv/flowlogs-pipeline:latest
           ports:
             - containerPort: 9999
               hostPort: 9999
@@ -89,7 +89,7 @@ metadata:
   namespace: netobserv
 data:
   config.yaml: |
-    log-level: debug
+    log-level: info
     pipeline:
       - name: ingest
       - name: otlp_transform
