@@ -187,6 +187,9 @@ Following is the supported API format for network transformations:
                      inputs: entry inputs fields
                      output: entry output field
                      infra_prefixes: Namespace prefixes that will be tagged as infra
+                     infra_refs: Additional object references to be tagged as infra
+                             name: name of the object
+                             namespace: namespace of the object
                  kubernetes: Kubernetes rule specific configuration
                      add_zone: If true the rule will add the zone
          kubeConfigPath: path to kubeconfig file (optional)

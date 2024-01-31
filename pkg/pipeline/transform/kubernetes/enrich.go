@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -126,36 +127,31 @@ func EnrichLayer(outputEntry config.GenericMap, rule api.NetworkTransformRule) {
 	}
 	outputEntry[rule.KubernetesInfra.Output] = "infra"
 	for _, input := range rule.KubernetesInfra.Inputs {
-		if objectIsApp(fmt.Sprintf("%s", outputEntry[input]), rule.KubernetesInfra.InfraPrefix) {
+		if objectIsApp(fmt.Sprintf("%s", outputEntry[input]), rule.KubernetesInfra) {
 			outputEntry[rule.KubernetesInfra.Output] = "app"
 			return
 		}
 	}
 }
 
-const openshiftNamespacePrefix = "openshift-"
-const openshiftPrefixLen = len(openshiftNamespacePrefix)
-
-func objectIsApp(addr string, additionalInfraPrefix string) bool {
+func objectIsApp(addr string, rule *api.K8sInfraRule) bool {
 	obj, err := informers.GetInfo(addr)
 	if err != nil {
 		logrus.WithError(err).Tracef("can't find kubernetes info for IP %s", addr)
 		return false
 	}
-	nsLen := len(obj.Namespace)
-	additionalPrefixLen := len(additionalInfraPrefix)
-	if nsLen == 0 {
+	if len(obj.Namespace) == 0 {
 		return false
 	}
-	if nsLen >= openshiftPrefixLen && obj.Namespace[:openshiftPrefixLen] == openshiftNamespacePrefix {
-		return false
+	for _, prefix := range rule.InfraPrefixes {
+		if strings.HasPrefix(obj.Namespace, prefix) {
+			return false
+		}
 	}
-	if nsLen >= additionalPrefixLen && obj.Namespace[:additionalPrefixLen] == additionalInfraPrefix {
-		return false
-	}
-	//Special case with openshift and kubernetes service in default namespace
-	if obj.Namespace == "default" && (obj.Name == "kubernetes" || obj.Name == "openshift") {
-		return false
+	for _, ref := range rule.InfraRefs {
+		if obj.Namespace == ref.Namespace && obj.Name == ref.Name {
+			return false
+		}
 	}
 	return true
 }

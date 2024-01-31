@@ -73,9 +73,15 @@ type NetworkTransformRule struct {
 }
 
 type K8sInfraRule struct {
-	Inputs      []string `yaml:"inputs,omitempty" json:"inputs,omitempty" doc:"entry inputs fields"`
-	Output      string   `yaml:"output,omitempty" json:"output,omitempty" doc:"entry output field"`
-	InfraPrefix string   `yaml:"infra_prefixes,omitempty" json:"infra_prefixes,omitempty" doc:"Namespace prefixes that will be tagged as infra"`
+	Inputs        []string       `yaml:"inputs,omitempty" json:"inputs,omitempty" doc:"entry inputs fields"`
+	Output        string         `yaml:"output,omitempty" json:"output,omitempty" doc:"entry output field"`
+	InfraPrefixes []string       `yaml:"infra_prefixes,omitempty" json:"infra_prefixes,omitempty" doc:"Namespace prefixes that will be tagged as infra"`
+	InfraRefs     []K8sReference `yaml:"infra_refs,omitempty" json:"infra_refs,omitempty" doc:"Additional object references to be tagged as infra"`
+}
+
+type K8sReference struct {
+	Name      string `yaml:"name,omitempty" json:"name,omitempty" doc:"name of the object"`
+	Namespace string `yaml:"namespace,omitempty" json:"namespace,omitempty" doc:"namespace of the object"`
 }
 
 type K8sRule struct {
