@@ -67,10 +67,11 @@ tags:
   - label
 transform:
   rules:
-    - input: testInput
-      output: testOutput
-      type: add_service
-      parameters: proto
+    - type: add_service
+      add_service:
+        input: testInput
+        output: testOutput
+        protocol: proto
 extract:
   types: aggregates
   aggregates:
@@ -149,10 +150,11 @@ tags:
   - label
 transform:
   rules:
-    - input: testInput
-      output: testOutput
-      type: add_service
-      parameters: proto
+    - type: add_service
+      add_service:
+        input: testInput
+        output: testOutput
+        protocol: proto
 encode:
   type: prom
   prom:

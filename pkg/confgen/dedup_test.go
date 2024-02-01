@@ -26,15 +26,15 @@ import (
 
 func Test_dedupeNetworkTransformRules(t *testing.T) {
 	slice := api.NetworkTransformRules{
-		api.NetworkTransformRule{Input: "i1", Output: "o1"},
-		api.NetworkTransformRule{Input: "i2", Output: "o2"},
-		api.NetworkTransformRule{Input: "i3", Output: "o3"},
-		api.NetworkTransformRule{Input: "i2", Output: "o2"},
+		api.NetworkTransformRule{Type: "add_kubernetes", Kubernetes: &api.K8sRule{Input: "i1", Output: "o1"}},
+		api.NetworkTransformRule{Type: "add_kubernetes", Kubernetes: &api.K8sRule{Input: "i2", Output: "o2"}},
+		api.NetworkTransformRule{Type: "add_kubernetes", Kubernetes: &api.K8sRule{Input: "i3", Output: "o3"}},
+		api.NetworkTransformRule{Type: "add_kubernetes", Kubernetes: &api.K8sRule{Input: "i2", Output: "o2"}},
 	}
 	expected := api.NetworkTransformRules{
-		api.NetworkTransformRule{Input: "i1", Output: "o1"},
-		api.NetworkTransformRule{Input: "i2", Output: "o2"},
-		api.NetworkTransformRule{Input: "i3", Output: "o3"},
+		api.NetworkTransformRule{Type: "add_kubernetes", Kubernetes: &api.K8sRule{Input: "i1", Output: "o1"}},
+		api.NetworkTransformRule{Type: "add_kubernetes", Kubernetes: &api.K8sRule{Input: "i2", Output: "o2"}},
+		api.NetworkTransformRule{Type: "add_kubernetes", Kubernetes: &api.K8sRule{Input: "i3", Output: "o3"}},
 	}
 	actual := dedupeNetworkTransformRules(slice)
 

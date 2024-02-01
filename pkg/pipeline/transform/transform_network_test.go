@@ -33,45 +33,59 @@ import (
 func getMockNetworkTransformRules() api.NetworkTransformRules {
 	return api.NetworkTransformRules{
 		api.NetworkTransformRule{
-			Input:      "srcIP",
-			Output:     "subnet16SrcIP",
-			Type:       "add_subnet",
-			Parameters: "/16",
+			Type: "add_subnet",
+			AddSubnet: &api.NetworkAddSubnetRule{
+				Input:      "srcIP",
+				Output:     "subnet16SrcIP",
+				SubnetMask: "/16",
+			},
 		},
 		api.NetworkTransformRule{
-			Input:      "srcIP",
-			Output:     "subnet24SrcIP",
-			Type:       "add_subnet",
-			Parameters: "/24",
+			Type: "add_subnet",
+			AddSubnet: &api.NetworkAddSubnetRule{
+				Input:      "srcIP",
+				Output:     "subnet24SrcIP",
+				SubnetMask: "/24",
+			},
 		},
 		api.NetworkTransformRule{
-			Input:      "emptyIP",
-			Output:     "cidr_fail_skip",
-			Type:       "add_subnet",
-			Parameters: "/16",
+			Type: "add_subnet",
+			AddSubnet: &api.NetworkAddSubnetRule{
+				Input:      "emptyIP",
+				Output:     "cidr_fail_skip",
+				SubnetMask: "/16",
+			},
 		},
 		api.NetworkTransformRule{
-			Input:      "dstPort",
-			Output:     "service",
-			Type:       "add_service",
-			Parameters: "protocol",
+			Type: "add_service",
+			AddService: &api.NetworkAddServiceRule{
+				Input:    "dstPort",
+				Output:   "service",
+				Protocol: "protocol",
+			},
 		},
 		api.NetworkTransformRule{
-			Input:      "dstPort",
-			Output:     "service_protocol_num",
-			Type:       "add_service",
-			Parameters: "protocol_num",
+			Type: "add_service",
+			AddService: &api.NetworkAddServiceRule{
+				Input:    "dstPort",
+				Output:   "service_protocol_num",
+				Protocol: "protocol_num",
+			},
 		},
 		api.NetworkTransformRule{
-			Input:      "srcPort",
-			Output:     "unknown_service",
-			Type:       "add_service",
-			Parameters: "protocol",
+			Type: "add_service",
+			AddService: &api.NetworkAddServiceRule{
+				Input:    "srcPort",
+				Output:   "unknown_service",
+				Protocol: "protocol",
+			},
 		},
 		api.NetworkTransformRule{
-			Input:  "8888IP",
-			Output: "8888IP_location",
-			Type:   "add_location",
+			Type: "add_location",
+			AddLocation: &api.NetworkGenericRule{
+				Input:  "8888IP",
+				Output: "8888IP_location",
+			},
 		},
 	}
 }
@@ -173,10 +187,11 @@ parameters:
       type: network
       network:
         rules:
-        - input: srcIP
-          output: subnetSrcIP
-          type: add_subnet
-          parameters: /24
+        - type: add_subnet
+          add_subnet:
+            input: srcIP
+            output: subnetSrcIP
+            subnet_mask: /24
   - name: write1
     write:
       type: stdout
@@ -212,10 +227,10 @@ func Test_Categorize(t *testing.T) {
 		Transform: &config.Transform{
 			Network: &api.TransformNetwork{
 				Rules: []api.NetworkTransformRule{
-					{Type: api.OpAddIPCategory, Input: "addr1", Output: "cat1"},
-					{Type: api.OpAddIPCategory, Input: "addr2", Output: "cat2"},
-					{Type: api.OpAddIPCategory, Input: "addr3", Output: "cat3"},
-					{Type: api.OpAddIPCategory, Input: "addr4", Output: "cat4"},
+					{Type: api.OpAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr1", Output: "cat1"}},
+					{Type: api.OpAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr2", Output: "cat2"}},
+					{Type: api.OpAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr3", Output: "cat3"}},
+					{Type: api.OpAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr4", Output: "cat4"}},
 				},
 				IPCategories: []api.NetworkTransformIPCategory{{
 					Name:  "Pods overlay",

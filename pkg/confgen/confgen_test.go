@@ -124,10 +124,12 @@ func Test_RunShortConfGen(t *testing.T) {
 	// Expects transform network
 	require.Len(t, out.Parameters[1].Transform.Network.Rules, 1)
 	require.Equal(t, api.NetworkTransformRule{
-		Input:      "testInput",
-		Output:     "testOutput",
-		Type:       "add_service",
-		Parameters: "proto",
+		Type: "add_service",
+		AddService: &api.NetworkAddServiceRule{
+			Input:    "testInput",
+			Output:   "testOutput",
+			Protocol: "proto",
+		},
 	}, out.Parameters[1].Transform.Network.Rules[0])
 
 	// Expects aggregates
@@ -212,10 +214,12 @@ func Test_RunConfGenNoAgg(t *testing.T) {
 	// Expects transform network
 	require.Len(t, out.Parameters[1].Transform.Network.Rules, 1)
 	require.Equal(t, api.NetworkTransformRule{
-		Input:      "testInput",
-		Output:     "testOutput",
-		Type:       "add_service",
-		Parameters: "proto",
+		Type: "add_service",
+		AddService: &api.NetworkAddServiceRule{
+			Input:    "testInput",
+			Output:   "testOutput",
+			Protocol: "proto",
+		},
 	}, out.Parameters[1].Transform.Network.Rules[0])
 
 	// Expects prom encode
@@ -299,10 +303,12 @@ func Test_RunLongConfGen(t *testing.T) {
 	// Expects transform network
 	require.Len(t, out.Parameters[2].Transform.Network.Rules, 1)
 	require.Equal(t, api.NetworkTransformRule{
-		Input:      "testInput",
-		Output:     "testOutput",
-		Type:       "add_service",
-		Parameters: "proto",
+		Type: "add_service",
+		AddService: &api.NetworkAddServiceRule{
+			Input:    "testInput",
+			Output:   "testOutput",
+			Protocol: "proto",
+		},
 	}, out.Parameters[2].Transform.Network.Rules[0])
 
 	// Expects aggregates

@@ -35,6 +35,29 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
+func printLogsFromPods(t *testing.T, cfg *envconf.Config) {
+	client, err := cfg.NewClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// coreV1Client from current context in kubeconfig
+	coreV1Client, err := e2e.GetCoreV1Client(cfg.KubeconfigFile())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var pods corev1.PodList
+	err = client.Resources(cfg.Namespace()).List(context.TODO(), &pods)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logs := e2e.LogsFromPods(pods, coreV1Client, cfg.Namespace())
+	fmt.Print(logs)
+
+}
+
 func TestPipeline_Basic(t *testing.T) {
 	pipelineFeature := features.New("FLP/pipeline").WithLabel("env", "dev").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
@@ -51,6 +74,7 @@ func TestPipeline_Basic(t *testing.T) {
 			// wait for the deployment to finish becoming available
 			err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&dep, appsv1.DeploymentAvailable, v1.ConditionTrue), wait.WithTimeout(time.Minute*3))
 			if err != nil {
+				printLogsFromPods(t, cfg)
 				t.Fatal(err)
 			}
 

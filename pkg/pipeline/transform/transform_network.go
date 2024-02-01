@@ -87,7 +87,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				log.Errorf("Missing add service configuration")
 				continue
 			}
-			protocol := fmt.Sprintf("%v", outputEntry[rule.Parameters])
+			protocol := fmt.Sprintf("%v", outputEntry[rule.AddService.Protocol])
 			portNumber, err := strconv.Atoi(fmt.Sprintf("%v", outputEntry[rule.AddService.Input]))
 			if err != nil {
 				log.Errorf("Can't convert port to int: Port %v - err %v", outputEntry[rule.AddService.Input], err)
@@ -110,19 +110,27 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			}
 			outputEntry[rule.AddService.Output] = serviceName
 		case api.OpAddKubernetes:
-			kubernetes.Enrich(outputEntry, rule)
+			kubernetes.Enrich(outputEntry, *rule.Kubernetes)
 		case api.OpAddKubernetesInfra:
-			kubernetes.EnrichLayer(outputEntry, rule)
+			if rule.KubernetesInfra == nil {
+				logrus.Error("transformation rule: Missing configuration ")
+				continue
+			}
+			kubernetes.EnrichLayer(outputEntry, *rule.KubernetesInfra)
 		case api.OpReinterpretDirection:
 			reinterpretDirection(outputEntry, &n.DirectionInfo)
 		case api.OpAddIPCategory:
-			if strIP, ok := outputEntry[rule.Input].(string); ok {
+			if rule.AddIPCategory == nil {
+				logrus.Error("AddIPCategory rule: Missing configuration ")
+				continue
+			}
+			if strIP, ok := outputEntry[rule.AddIPCategory.Input].(string); ok {
 				cat, ok := n.ipCatCache.GetCacheEntry(strIP)
 				if !ok {
 					cat = n.categorizeIP(net.ParseIP(strIP))
 					n.ipCatCache.UpdateCacheEntry(strIP, cat)
 				}
-				outputEntry[rule.Output] = cat
+				outputEntry[rule.AddIPCategory.Output] = cat
 			}
 
 		default:

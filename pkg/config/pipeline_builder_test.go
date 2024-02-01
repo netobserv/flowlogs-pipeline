@@ -29,13 +29,17 @@ import (
 func TestLokiPipeline(t *testing.T) {
 	pl := NewCollectorPipeline("ingest", api.IngestCollector{HostName: "127.0.0.1", Port: 9999})
 	pl = pl.TransformNetwork("enrich", api.TransformNetwork{Rules: api.NetworkTransformRules{{
-		Type:   api.AddKubernetesRuleType,
-		Input:  "SrcAddr",
-		Output: "SrcK8S",
+		Type: api.AddKubernetesRuleType,
+		Kubernetes: &api.K8sRule{
+			Input:  "SrcAddr",
+			Output: "SrcK8S",
+		},
 	}, {
-		Type:   api.AddKubernetesRuleType,
-		Input:  "DstAddr",
-		Output: "DstK8S",
+		Type: api.AddKubernetesRuleType,
+		Kubernetes: &api.K8sRule{
+			Input:  "DstAddr",
+			Output: "DstK8S",
+		},
 	}}})
 	pl = pl.WriteLoki("loki", api.WriteLoki{URL: "http://loki:3100/"})
 	stages := pl.GetStages()
@@ -54,7 +58,7 @@ func TestLokiPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"enrich","transform":{"type":"network","network":{"directionInfo":{},"rules":[{"input":"SrcAddr","output":"SrcK8S","type":"add_kubernetes"},{"input":"DstAddr","output":"DstK8S","type":"add_kubernetes"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"enrich","transform":{"type":"network","network":{"directionInfo":{},"rules":[{"kubernetes":{"input":"SrcAddr","output":"SrcK8S"},"type":"add_kubernetes"},{"kubernetes":{"input":"DstAddr","output":"DstK8S"},"type":"add_kubernetes"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
@@ -199,13 +203,17 @@ func TestForkPipeline(t *testing.T) {
 func TestIPFIXPipeline(t *testing.T) {
 	pl := NewCollectorPipeline("ingest", api.IngestCollector{HostName: "127.0.0.1", Port: 9999})
 	pl = pl.TransformNetwork("enrich", api.TransformNetwork{Rules: api.NetworkTransformRules{{
-		Type:   api.AddKubernetesRuleType,
-		Input:  "SrcAddr",
-		Output: "SrcK8S",
+		Type: api.AddKubernetesRuleType,
+		Kubernetes: &api.K8sRule{
+			Input:  "SrcAddr",
+			Output: "SrcK8S",
+		},
 	}, {
-		Type:   api.AddKubernetesRuleType,
-		Input:  "DstAddr",
-		Output: "DstK8S",
+		Type: api.AddKubernetesRuleType,
+		Kubernetes: &api.K8sRule{
+			Input:  "DstAddr",
+			Output: "DstK8S",
+		},
 	}}})
 	pl = pl.WriteIpfix("ipfix", api.WriteIpfix{
 		TargetHost:   "ipfix-receiver-test",
@@ -229,7 +237,7 @@ func TestIPFIXPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"enrich","transform":{"type":"network","network":{"directionInfo":{},"rules":[{"input":"SrcAddr","output":"SrcK8S","type":"add_kubernetes"},{"input":"DstAddr","output":"DstK8S","type":"add_kubernetes"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"enrich","transform":{"type":"network","network":{"directionInfo":{},"rules":[{"kubernetes":{"input":"SrcAddr","output":"SrcK8S"},"type":"add_kubernetes"},{"kubernetes":{"input":"DstAddr","output":"DstK8S"},"type":"add_kubernetes"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
