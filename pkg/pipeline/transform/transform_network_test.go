@@ -227,12 +227,12 @@ func Test_Categorize(t *testing.T) {
 		Transform: &config.Transform{
 			Network: &api.TransformNetwork{
 				Rules: []api.NetworkTransformRule{
-					{Type: api.NetworkAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr1", Output: "cat1"}},
-					{Type: api.NetworkAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr2", Output: "cat2"}},
-					{Type: api.NetworkAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr3", Output: "cat3"}},
-					{Type: api.NetworkAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr4", Output: "cat4"}},
+					{Type: api.NetworkAddSubnetLabel, AddSubnetLabel: &api.NetworkAddSubnetLabelRule{Input: "addr1", Output: "cat1"}},
+					{Type: api.NetworkAddSubnetLabel, AddSubnetLabel: &api.NetworkAddSubnetLabelRule{Input: "addr2", Output: "cat2"}},
+					{Type: api.NetworkAddSubnetLabel, AddSubnetLabel: &api.NetworkAddSubnetLabelRule{Input: "addr3", Output: "cat3"}},
+					{Type: api.NetworkAddSubnetLabel, AddSubnetLabel: &api.NetworkAddSubnetLabelRule{Input: "addr4", Output: "cat4"}},
 				},
-				IPCategories: []api.NetworkTransformIPCategory{{
+				SubnetLabels: []api.NetworkTransformSubnetLabel{{
 					Name:  "Pods overlay",
 					CIDRs: []string{"10.0.0.0/8"},
 				}, {
@@ -257,7 +257,6 @@ func Test_Categorize(t *testing.T) {
 		"addr2": "100.1.2.3",
 		"cat2":  "MySite.com",
 		"addr3": "100.2.3.4",
-		"cat3":  "",
 		"addr4": "101.1.0.0",
 		"cat4":  "MySite.com",
 	}, output)
