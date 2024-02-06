@@ -15,7 +15,7 @@
  *
  */
 
-package opentelemetry
+package encode
 
 import (
 	"encoding/json"
@@ -26,7 +26,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
@@ -50,18 +49,18 @@ type fakeOltpLoggerProvider struct {
 type fakeOltpLogger struct {
 }
 
-var receivedData []logs.LogRecord
+var otlpReceivedData []logs.LogRecord
 
 func (f *fakeOltpLogger) Emit(msg logs.LogRecord) {
-	receivedData = append(receivedData, msg)
+	otlpReceivedData = append(otlpReceivedData, msg)
 }
 
 func (f *fakeOltpLoggerProvider) Logger(name string, options ...logs.LoggerOption) logs.Logger {
 	return &fakeOltpLogger{}
 }
 
-func initNewEncodeOtlpLogs(t *testing.T) encode.Encoder {
-	receivedData = []logs.LogRecord{}
+func initNewEncodeOtlpLogs(t *testing.T) Encoder {
+	otlpReceivedData = []logs.LogRecord{}
 	v, cfg := test.InitConfig(t, testOtlpConfig)
 	require.NotNil(t, v)
 
@@ -88,14 +87,14 @@ func Test_EncodeOtlpLogs(t *testing.T) {
 	newEncode.Encode(entry1)
 	newEncode.Encode(entry2)
 	// verify contents of the output
-	require.Len(t, receivedData, 2)
+	require.Len(t, otlpReceivedData, 2)
 	expected1, _ := json.Marshal(entry1)
 	expected2, _ := json.Marshal(entry2)
-	require.Equal(t, string(expected1), *receivedData[0].Body())
-	require.Equal(t, string(expected2), *receivedData[1].Body())
+	require.Equal(t, string(expected1), *otlpReceivedData[0].Body())
+	require.Equal(t, string(expected2), *otlpReceivedData[1].Body())
 }
 
-func Test_TLSConfigEmpty(t *testing.T) {
+func Test_EncodeOtlpTLSConfigEmpty(t *testing.T) {
 	cfg := config.StageParam{
 		Encode: &config.Encode{
 			OtlpLogs: &api.EncodeOtlpLogs{OtlpConnectionInfo: &api.OtlpConnectionInfo{
@@ -111,7 +110,7 @@ func Test_TLSConfigEmpty(t *testing.T) {
 	require.NotNil(t, newEncode)
 }
 
-func Test_TLSConfigNotEmpty(t *testing.T) {
+func Test_EncodeOtlpTLSConfigNotEmpty(t *testing.T) {
 	cfg := config.StageParam{
 		Encode: &config.Encode{
 			OtlpLogs: &api.EncodeOtlpLogs{OtlpConnectionInfo: &api.OtlpConnectionInfo{
@@ -194,8 +193,8 @@ func Test_EncodeOtlpMetrics(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, newEncode)
 	em := newEncode.(*EncodeOtlpMetrics)
-	require.Equal(t, 2, len(em.counters))
-	require.Equal(t, 1, len(em.gauges))
-	require.Equal(t, "metric3", em.counters[1].info.Name)
-	require.Equal(t, []string{"label21", "label22"}, em.gauges[0].info.Labels)
+	require.Equal(t, 2, len(em.metricCommon.counters))
+	require.Equal(t, 1, len(em.metricCommon.gauges))
+	require.Equal(t, "metric3", em.metricCommon.counters[1].info.Name)
+	require.Equal(t, []string{"label21", "label22"}, em.metricCommon.gauges[0].info.Labels)
 }

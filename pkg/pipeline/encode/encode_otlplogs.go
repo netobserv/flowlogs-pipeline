@@ -15,7 +15,7 @@
  *
  */
 
-package opentelemetry
+package encode
 
 import (
 	"context"
@@ -24,7 +24,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	log "github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/sdk/resource"
 )
@@ -42,7 +41,7 @@ func (e *EncodeOtlpLogs) Encode(entry config.GenericMap) {
 	e.LogWrite(entry)
 }
 
-func NewEncodeOtlpLogs(opMetrics *operational.Metrics, params config.StageParam) (encode.Encoder, error) {
+func NewEncodeOtlpLogs(opMetrics *operational.Metrics, params config.StageParam) (Encoder, error) {
 	log.Tracef("entering NewEncodeOtlpLogs \n")
 	cfg := api.EncodeOtlpLogs{}
 	if params.Encode != nil && params.Encode.OtlpLogs != nil {
