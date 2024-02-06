@@ -19,7 +19,6 @@ package encode
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -66,11 +65,21 @@ func (e *EncodeOtlpMetrics) ProcessGauge(m interface{}, labels map[string]string
 }
 
 func (e *EncodeOtlpMetrics) ProcessHist(m interface{}, labels map[string]string, value float64) error {
-	return fmt.Errorf("histogram not yet implemented")
+	histo := m.(metric.Float64Histogram)
+	// set attributes using the labels
+	attributes := obtainAttributesFromLabels(labels)
+	histo.Record(e.ctx, value, metric.WithAttributes(attributes...))
+	return nil
 }
 
 func (e *EncodeOtlpMetrics) ProcessAggHist(m interface{}, labels map[string]string, values []float64) error {
-	return fmt.Errorf("agg histogram not yet implemented")
+	histo := m.(metric.Float64Histogram)
+	// set attributes using the labels
+	attributes := obtainAttributesFromLabels(labels)
+	for _, v := range values {
+		histo.Record(e.ctx, v, metric.WithAttributes(attributes...))
+	}
+	return nil
 }
 
 func (e *EncodeOtlpMetrics) GetChacheEntry(entryLabels map[string]string, m interface{}) interface{} {
@@ -140,7 +149,21 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 				return nil, err
 			}
 			metricCommon.AddGauge(gauge, mInfo)
-		// TBD: handle histograms
+		case api.MetricEncodeOperationName("Histogram"):
+			var histo metric.Float64Histogram
+			if len(mCfg.Buckets) == 0 {
+				histo, err = meter.Float64Histogram(fullMetricName)
+			} else {
+				histo, err = meter.Float64Histogram(fullMetricName,
+					metric.WithExplicitBucketBoundaries(mCfg.Buckets...),
+				)
+
+			}
+			if err != nil {
+				log.Errorf("error during counter creation: %v", err)
+				return nil, err
+			}
+			metricCommon.AddHist(histo, mInfo)
 		case "default":
 			log.Errorf("invalid metric type = %v, skipping", mCfg.Type)
 			continue
