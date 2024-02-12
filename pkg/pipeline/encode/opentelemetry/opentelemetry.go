@@ -15,7 +15,7 @@
  *
  */
 
-package encode
+package opentelemetry
 
 import (
 	"context"

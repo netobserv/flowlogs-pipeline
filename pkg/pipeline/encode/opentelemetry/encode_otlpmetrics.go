@@ -15,14 +15,16 @@
  *
  */
 
-package encode
+package opentelemetry
 
 import (
 	"context"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/encode"
 	log "github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -31,6 +33,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 )
 
+const defaultExpiryTime = time.Duration(2 * time.Minute)
 const flpMeterName = "flp_meter"
 
 type EncodeOtlpMetrics struct {
@@ -39,7 +42,7 @@ type EncodeOtlpMetrics struct {
 	res          *resource.Resource
 	mp           *sdkmetric.MeterProvider
 	meter        metric.Meter
-	metricCommon *MetricsCommonStruct
+	metricCommon *encode.MetricsCommonStruct
 }
 
 // Encode encodes a metric to be exported
@@ -86,7 +89,7 @@ func (e *EncodeOtlpMetrics) GetChacheEntry(entryLabels map[string]string, m inte
 	return entryLabels
 }
 
-func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StageParam) (Encoder, error) {
+func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StageParam) (encode.Encoder, error) {
 	log.Tracef("entering NewEncodeOtlpMetrics \n")
 	cfg := api.EncodeOtlpMetrics{}
 	if params.Encode != nil && params.Encode.OtlpMetrics != nil {
@@ -120,7 +123,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 		meter: meterFactory,
 	}
 
-	metricCommon := NewMetricsCommonStruct(opMetrics, 0, params.Name, expiryTime, nil)
+	metricCommon := encode.NewMetricsCommonStruct(opMetrics, 0, params.Name, expiryTime, nil)
 	w.metricCommon = metricCommon
 
 	for _, mCfg := range cfg.Metrics {
@@ -128,7 +131,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 		labels := mCfg.Labels
 		log.Debugf("fullMetricName = %v", fullMetricName)
 		log.Debugf("Labels = %v", labels)
-		mInfo := CreateMetricInfo(mCfg)
+		mInfo := encode.CreateMetricInfo(mCfg)
 		switch mCfg.Type {
 		case api.MetricEncodeOperationName("Counter"):
 			counter, err := meter.Float64Counter(fullMetricName)
