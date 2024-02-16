@@ -18,9 +18,11 @@
 package config
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
 func TestJsonUnmarshalStrict(t *testing.T) {
@@ -38,4 +40,18 @@ func TestJsonUnmarshalStrict(t *testing.T) {
 	msg = `{"F":1, "B":"bbb", "NewField":0}`
 	err = JsonUnmarshalStrict([]byte(msg), &actualMsg)
 	require.Error(t, err)
+}
+
+func TestUnmarshalInline(t *testing.T) {
+	cfg := `{"metricsSettings":{"port":9102,"prefix":"netobserv_"}}`
+	var cfs ConfigFileStruct
+	err := yaml.Unmarshal([]byte(cfg), &cfs)
+	require.NoError(t, err)
+	require.Equal(t, "netobserv_", cfs.MetricsSettings.Prefix)
+	require.Equal(t, 9102, cfs.MetricsSettings.PromConnectionInfo.Port)
+
+	err = json.Unmarshal([]byte(cfg), &cfs)
+	require.NoError(t, err)
+	require.Equal(t, "netobserv_", cfs.MetricsSettings.Prefix)
+	require.Equal(t, 9102, cfs.MetricsSettings.PromConnectionInfo.Port)
 }
