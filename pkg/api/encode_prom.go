@@ -70,14 +70,16 @@ type MetricsItems []MetricsItem
 type MetricsFilter struct {
 	Key   string `yaml:"key" json:"key" doc:"the key to match and filter by"`
 	Value string `yaml:"value" json:"value" doc:"the value to match and filter by"`
-	Type  string `yaml:"type" json:"type" enum:"MetricEncodeFilterTypeEnum" doc:"the type of filter match: exact (default), presence, absence or regex"`
+	Type  string `yaml:"type" json:"type" enum:"MetricEncodeFilterTypeEnum" doc:"the type of filter match: exact (default), exact_not, presence, absence, regex or regex_not"`
 }
 
 type MetricEncodeFilterTypeEnum struct {
-	Exact    string `yaml:"exact" json:"exact" doc:"match exactly the provided fitler value"`
+	Exact    string `yaml:"exact" json:"exact" doc:"match exactly the provided filter value"`
+	ExactNot string `yaml:"exact_not" json:"exact_not" doc:"the value must be different from the provided filter"`
 	Presence string `yaml:"presence" json:"presence" doc:"filter key must be present (filter value is ignored)"`
 	Absence  string `yaml:"absence" json:"absence" doc:"filter key must be absent (filter value is ignored)"`
 	Regex    string `yaml:"regex" json:"regex" doc:"match filter value as a regular expression"`
+	RegexNot string `yaml:"regex_not" json:"regex_not" doc:"the filter value must not match the provided regular expression"`
 }
 
 func MetricEncodeFilterTypeName(t string) string {
