@@ -111,6 +111,10 @@ func addKubeContextToTemplate(elements *[]entities.InfoElementWithValue, registr
 			return err
 		}
 	}
+	err = addElementToTemplate("timeFlowRttNs", nil, elements, registryID)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -146,6 +150,11 @@ func loadCustomRegistry(EnterpriseID uint32) error {
 		return err
 	}
 	err = registry.PutInfoElement((*entities.NewInfoElement("destinationNodeName", 7738, entities.String, EnterpriseID, 65535)), EnterpriseID)
+	if err != nil {
+		ilog.WithError(err).Errorf("Failed to register element")
+		return err
+	}
+	err = registry.PutInfoElement((*entities.NewInfoElement("timeFlowRttNs", 7740, 13, EnterpriseID, 65535)), EnterpriseID)
 	if err != nil {
 		ilog.WithError(err).Errorf("Failed to register element")
 		return err
@@ -379,7 +388,13 @@ func setKubeIEValue(record config.GenericMap, ieValPtr *entities.InfoElementWith
 		} else {
 			ieVal.SetStringValue("none")
 		}
-	}
+	case "timeFlowRttNs":
+        if record["TimeFlowRttNs"] != nil {
+			ieVal.SetUnsigned64Value(record["TimeFlowRttNs"].(uint64))
+        } else {
+            // nothing here for now
+        }
+    }
 }
 func setEntities(record config.GenericMap, enrichEnterpriseID uint32, elements *[]entities.InfoElementWithValue) error {
 	for _, ieVal := range *elements {
