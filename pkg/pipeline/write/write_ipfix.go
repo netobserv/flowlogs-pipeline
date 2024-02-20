@@ -389,12 +389,12 @@ func setKubeIEValue(record config.GenericMap, ieValPtr *entities.InfoElementWith
 			ieVal.SetStringValue("none")
 		}
 	case "timeFlowRttNs":
-        if record["TimeFlowRttNs"] != nil {
+		if record["TimeFlowRttNs"] != nil {
 			ieVal.SetUnsigned64Value(record["TimeFlowRttNs"].(uint64))
-        } else {
-            // nothing here for now
-        }
-    }
+		} else {
+			// nothing here for now
+		}
+	}
 }
 func setEntities(record config.GenericMap, enrichEnterpriseID uint32, elements *[]entities.InfoElementWithValue) error {
 	for _, ieVal := range *elements {
