@@ -154,7 +154,7 @@ func loadCustomRegistry(EnterpriseID uint32) error {
 		ilog.WithError(err).Errorf("Failed to register element")
 		return err
 	}
-	err = registry.PutInfoElement((*entities.NewInfoElement("timeFlowRttNs", 7740, 13, EnterpriseID, 65535)), EnterpriseID)
+	err = registry.PutInfoElement((*entities.NewInfoElement("timeFlowRttNs", 7740, 4, EnterpriseID, 65535)), EnterpriseID)
 	if err != nil {
 		ilog.WithError(err).Errorf("Failed to register element")
 		return err
