@@ -1,7 +1,8 @@
 # This file was generated automatically by flowlogs-pipeline confgenerator
 log-level: error
 metricsSettings:
-  port: 9102
+  promconnectioninfo:
+    port: 9102
   prefix: flp_op_
 pipeline:
 - name: ingest_collector
@@ -252,41 +253,49 @@ parameters:
   encode:
     type: prom
     prom:
+      promconnectioninfo: null
       metrics:
       - name: bandwidth_per_network_service
         type: counter
         filters:
         - key: name
           value: bandwidth_network_service
+          type: ""
         valueKey: recent_op_value
         labels:
         - groupByKeys
         - aggregate
         buckets: []
+        valueScale: 0
       - name: bandwidth_per_source_destination_subnet
         type: counter
         filters:
         - key: name
           value: bandwidth_source_destination_subnet
+          type: ""
         valueKey: recent_op_value
         labels:
         - groupByKeys
         - aggregate
         buckets: []
+        valueScale: 0
       - name: bandwidth_per_source_subnet
         type: gauge
         filters:
         - key: name
           value: bandwidth_source_subnet
+          type: ""
         valueKey: bytes
         labels:
         - srcSubnet
         buckets: []
+        valueScale: 0
       - name: connection_size_histogram
         type: agg_histogram
         filters:
         - key: name
           value: connection_bytes_hist
+          type: ""
         valueKey: recent_raw_values
         labels:
         - groupByKeys
@@ -297,11 +306,13 @@ parameters:
         - 10240
         - 102400
         - 1.048576e+06
+        valueScale: 0
       - name: connection_size_histogram_ab
         type: agg_histogram
         filters:
         - key: name
           value: connection_bytes_hist_AB
+          type: ""
         valueKey: recent_raw_values
         labels:
         - groupByKeys
@@ -312,11 +323,13 @@ parameters:
         - 10240
         - 102400
         - 1.048576e+06
+        valueScale: 0
       - name: connection_size_histogram_ba
         type: agg_histogram
         filters:
         - key: name
           value: connection_bytes_hist_BA
+          type: ""
         valueKey: recent_raw_values
         labels:
         - groupByKeys
@@ -327,92 +340,110 @@ parameters:
         - 10240
         - 102400
         - 1.048576e+06
+        valueScale: 0
       - name: connections_per_destination_subnet
         type: counter
         filters:
         - key: name
           value: dest_connection_subnet_count
+          type: ""
         valueKey: recent_count
         labels:
         - _RecordType
         - dstSubnet
         buckets: []
+        valueScale: 0
       - name: connections_per_source_subnet
         type: counter
         filters:
         - key: name
           value: src_connection_count
+          type: ""
         valueKey: recent_count
         labels:
         - srcSubnet
         - _RecordType
         buckets: []
+        valueScale: 0
       - name: connections_per_tcp_flags
         type: counter
         filters:
         - key: name
           value: TCPFlags_count
+          type: ""
         valueKey: recent_count
         labels:
         - groupByKeys
         - aggregate
         buckets: []
+        valueScale: 0
       - name: connections_per_destination_as
         type: counter
         filters:
         - key: name
           value: dst_as_connection_count
+          type: ""
         valueKey: recent_count
         labels:
         - dstAS
         - _RecordType
         buckets: []
+        valueScale: 0
       - name: connections_per_source_as
         type: counter
         filters:
         - key: name
           value: src_as_connection_count
+          type: ""
         valueKey: recent_count
         labels:
         - srcAS
         - _RecordType
         buckets: []
+        valueScale: 0
       - name: count_per_source_destination_subnet
         type: counter
         filters:
         - key: name
           value: count_source_destination_subnet
+          type: ""
         valueKey: recent_count
         labels:
         - dstSubnet24
         - srcSubnet24
         - _RecordType
         buckets: []
+        valueScale: 0
       - name: egress_per_destination_subnet
         type: counter
         filters:
         - key: name
           value: bandwidth_destination_subnet
+          type: ""
         valueKey: recent_op_value
         labels:
         - groupByKeys
         - aggregate
         buckets: []
+        valueScale: 0
       - name: egress_per_namespace
         type: counter
         filters:
         - key: name
           value: bandwidth_namespace
+          type: ""
         valueKey: recent_op_value
         labels:
         - groupByKeys
         - aggregate
         buckets: []
+        valueScale: 0
       - name: flows_length_histogram
         type: agg_histogram
         filters:
         - key: name
           value: flows_bytes_hist
+          type: ""
         valueKey: recent_raw_values
         labels:
         - groupByKeys
@@ -423,26 +454,31 @@ parameters:
         - 10240
         - 102400
         - 1.048576e+06
+        valueScale: 0
       - name: connections_per_destination_location
         type: counter
         filters:
         - key: name
           value: dest_connection_location_count
+          type: ""
         valueKey: recent_count
         labels:
         - dstLocation_CountryName
         - _RecordType
         buckets: []
+        valueScale: 0
       - name: service_count
         type: counter
         filters:
         - key: name
           value: dest_service_count
+          type: ""
         valueKey: recent_count
         labels:
         - service
         - _RecordType
         buckets: []
+        valueScale: 0
       prefix: flp_
 - name: write_loki
   write:

@@ -31,6 +31,7 @@ const (
 	OtlpLogsType                 = "otlplogs"
 	OtlpMetricsType              = "otlpmetrics"
 	OtlpTracesType               = "otlptraces"
+	TCPType                      = "tcp"
 	StdoutType                   = "stdout"
 	LokiType                     = "loki"
 	IpfixType                    = "ipfix"
@@ -74,6 +75,7 @@ type API struct {
 	TransformFilter    TransformFilter   `yaml:"filter" doc:"## Transform Filter API\nFollowing is the supported API format for filter transformations:\n"`
 	TransformNetwork   TransformNetwork  `yaml:"network" doc:"## Transform Network API\nFollowing is the supported API format for network transformations:\n"`
 	WriteLoki          WriteLoki         `yaml:"loki" doc:"## Write Loki API\nFollowing is the supported API format for writing to loki:\n"`
+	WriteTCP           WriteTCP          `yaml:"tcp" doc:"## Write TCP\nFollowing is the supported API format for writing to tcp:\n"`
 	WriteStdout        WriteStdout       `yaml:"stdout" doc:"## Write Standard Output\nFollowing is the supported API format for writing to standard output:\n"`
 	ExtractAggregate   Aggregates        `yaml:"aggregates" doc:"## Aggregate metrics API\nFollowing is the supported API format for specifying metrics aggregations:\n"`
 	ConnectionTracking ConnTrack         `yaml:"conntrack" doc:"## Connection tracking API\nFollowing is the supported API format for specifying connection tracking:\n"`

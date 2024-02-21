@@ -151,6 +151,11 @@ func (b *PipelineBuilderStage) EncodeS3(name string, s3 api.EncodeS3) PipelineBu
 	return b.next(name, NewEncodeS3Params(name, s3))
 }
 
+// WriteTCP chains the current stage with a WriteTCP stage and returns that new stage
+func (b *PipelineBuilderStage) WriteTCP(name string, tcp api.WriteTCP) PipelineBuilderStage {
+	return b.next(name, NewWriteTCPParams(name, tcp))
+}
+
 // WriteStdout chains the current stage with a WriteStdout stage and returns that new stage
 func (b *PipelineBuilderStage) WriteStdout(name string, stdout api.WriteStdout) PipelineBuilderStage {
 	return b.next(name, NewWriteStdoutParams(name, stdout))

@@ -368,6 +368,8 @@ func getWriter(opMetrics *operational.Metrics, params config.StageParam) (write.
 	var writer write.Writer
 	var err error
 	switch params.Write.Type {
+	case api.TCPType:
+		writer, err = write.NewWriteTCP(params)
 	case api.StdoutType:
 		writer, err = write.NewWriteStdout(params)
 	case api.NoneType:

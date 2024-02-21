@@ -126,6 +126,7 @@ type Encode struct {
 
 type Write struct {
 	Type   string           `yaml:"type" json:"type"`
+	TCP    *api.WriteTCP    `yaml:"tcp,omitempty" json:"tcp,omitempty"`
 	Loki   *api.WriteLoki   `yaml:"loki,omitempty" json:"loki,omitempty"`
 	Stdout *api.WriteStdout `yaml:"stdout,omitempty" json:"stdout,omitempty"`
 	Ipfix  *api.WriteIpfix  `yaml:"ipfix,omitempty" json:"ipfix,omitempty"`
