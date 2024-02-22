@@ -104,7 +104,16 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	writer.Write(flow)
-	tplv4Msg, _, dataMsg := readCollector(t, cp)
+
+	// Read collector
+	// 1st = IPv4 template
+	tplv4Msg := <-cp.GetMsgChan()
+	// 2nd = IPv6 template (ignore)
+	<-cp.GetMsgChan()
+	// 3rd = data record
+	dataMsg := <-cp.GetMsgChan()
+	cp.CloseMsgChan()
+	cp.Stop()
 
 	// Check template
 	assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
@@ -208,24 +217,4 @@ func startCollector(t *testing.T) *collector.CollectingProcess {
 	require.NoError(t, err, "Connection timeout in collector setup")
 
 	return cp
-}
-
-func readCollector(t *testing.T, cp *collector.CollectingProcess) (*entities.Message, *entities.Message, *entities.Message) {
-	var tplv4Msg, tplv6Msg, dataMsg *entities.Message
-	count := 0
-	for message := range cp.GetMsgChan() {
-		switch count {
-		case 0:
-			tplv4Msg = message
-			count++
-		case 1:
-			tplv6Msg = message
-			count++
-		default:
-			dataMsg = message
-			cp.CloseMsgChan()
-		}
-	}
-	cp.Stop()
-	return tplv4Msg, tplv6Msg, dataMsg
 }
