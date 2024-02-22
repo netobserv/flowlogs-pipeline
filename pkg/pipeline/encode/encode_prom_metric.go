@@ -15,30 +15,29 @@ type MetricInfo struct {
 	FilterPredicates []Predicate
 }
 
-func Presence(filter api.MetricsFilter) Predicate {
+func presence(filter api.MetricsFilter) Predicate {
 	return func(flow config.GenericMap) bool {
 		_, found := flow[filter.Key]
 		return found
 	}
 }
 
-func Absence(filter api.MetricsFilter) Predicate {
+func absence(filter api.MetricsFilter) Predicate {
 	return func(flow config.GenericMap) bool {
 		_, found := flow[filter.Key]
 		return !found
 	}
 }
 
-func Exact(filter api.MetricsFilter) Predicate {
+func exact(filter api.MetricsFilter) Predicate {
 	return func(flow config.GenericMap) bool {
-		if val, found := flow[filter.Key]; found {
-			sVal, ok := val.(string)
-			if !ok {
-				sVal = fmt.Sprint(val)
-			}
-			return sVal == filter.Value
-		}
-		return false
+		return matchExactly(flow, filter)
+	}
+}
+
+func different(filter api.MetricsFilter) Predicate {
+	return func(flow config.GenericMap) bool {
+		return !matchExactly(flow, filter)
 	}
 }
 
@@ -59,16 +58,18 @@ func regex(filter api.MetricsFilter) Predicate {
 func filterToPredicate(filter api.MetricsFilter) Predicate {
 	switch filter.Type {
 	case api.PromFilterExact:
-		return Exact(filter)
+		return exact(filter)
+	case api.PromFilterDifferent:
+		return different(filter)
 	case api.PromFilterPresence:
-		return Presence(filter)
+		return presence(filter)
 	case api.PromFilterAbsence:
-		return Absence(filter)
+		return absence(filter)
 	case api.PromFilterRegex:
 		return regex(filter)
 	}
 	// Default = Exact
-	return Exact(filter)
+	return exact(filter)
 }
 
 func CreateMetricInfo(def api.MetricsItem) *MetricInfo {
@@ -79,4 +80,15 @@ func CreateMetricInfo(def api.MetricsItem) *MetricInfo {
 		mi.FilterPredicates = append(mi.FilterPredicates, filterToPredicate(f))
 	}
 	return &mi
+}
+
+func matchExactly(flow config.GenericMap, filter api.MetricsFilter) bool {
+	if val, found := flow[filter.Key]; found {
+		sVal, ok := val.(string)
+		if !ok {
+			sVal = fmt.Sprint(val)
+		}
+		return sVal == filter.Value
+	}
+	return false
 }

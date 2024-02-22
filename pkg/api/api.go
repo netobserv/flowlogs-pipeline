@@ -51,6 +51,7 @@ const (
 	AddKubernetesInfraRuleType   = "add_kubernetes_infra"
 	ReinterpretDirectionRuleType = "reinterpret_direction"
 	PromFilterExact              = "exact"
+	PromFilterDifferent          = "different"
 	PromFilterPresence           = "presence"
 	PromFilterAbsence            = "absence"
 	PromFilterRegex              = "regex"
