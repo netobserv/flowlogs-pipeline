@@ -1,4 +1,4 @@
-package write
+package testnorace
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/decode"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 	"github.com/stretchr/testify/assert"
@@ -90,7 +91,7 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 	flow["DstK8S_Namespace"] = "ns2"
 	flow["DstK8S_HostName"] = "node2"
 
-	writer, err := NewWriteIpfix(config.StageParam{
+	writer, err := write.NewWriteIpfix(config.StageParam{
 		Write: &config.Write{
 			Ipfix: &api.WriteIpfix{
 				TargetHost:   addr.IP.String(),
@@ -117,8 +118,8 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 	dataSet := dataMsg.GetSet()
 	record := dataSet.GetRecords()[0]
 
-	expectedFields := append(ipv4IANAFields, kubeFields...)
-	expectedFields = append(expectedFields, customNetworkFields...)
+	expectedFields := append(write.IPv4IANAFields, write.KubeFields...)
+	expectedFields = append(expectedFields, write.CustomNetworkFields...)
 
 	for _, name := range expectedFields {
 		element, _, exist := record.GetInfoElementWithValue(name)

@@ -132,8 +132,10 @@ clean: ## Clean
 TEST_OPTS := -race -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out
 .PHONY: tests-unit
 tests-unit: validate_go ## Unit tests
+	# tests may rely on non-thread safe libs such as go-ipfix => no -race flag
+	go test $$(go list ./... | grep /testnorace)
 	# enabling CGO is required for -race flag
-	CGO_ENABLED=1 go test -p 1 $(TEST_OPTS) $$(go list ./... | grep -v /e2e)
+	CGO_ENABLED=1 go test -p 1 $(TEST_OPTS) $$(go list ./... | grep -v /e2e | grep -v /testnorace)
 
 .PHONY: tests-fast
 tests-fast: TEST_OPTS=

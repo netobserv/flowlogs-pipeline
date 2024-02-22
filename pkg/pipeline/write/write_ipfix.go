@@ -45,7 +45,7 @@ const IPv6Type = 0x86DD
 
 var (
 	ilog       = logrus.WithField("component", "write.Ipfix")
-	ianaFields = []string{
+	IANAFields = []string{
 		"ethernetType",
 		"flowDirection",
 		"sourceMacAddress",
@@ -59,16 +59,16 @@ var (
 		"packetDeltaCount",
 		"interfaceName",
 	}
-	ipv4IANAFields = append([]string{
+	IPv4IANAFields = append([]string{
 		"sourceIPv4Address",
 		"destinationIPv4Address",
-	}, ianaFields...)
-	ipv6IANAFields = append([]string{
+	}, IANAFields...)
+	IPv6IANAFields = append([]string{
 		"sourceIPv6Address",
 		"destinationIPv6Address",
 		"nextHeaderIPv6",
-	}, ianaFields...)
-	kubeFields = []string{
+	}, IANAFields...)
+	KubeFields = []string{
 		"sourcePodNamespace",
 		"sourcePodName",
 		"destinationPodNamespace",
@@ -76,7 +76,7 @@ var (
 		"sourceNodeName",
 		"destinationNodeName",
 	}
-	customNetworkFields = []string{
+	CustomNetworkFields = []string{
 		// TODO
 	}
 )
@@ -97,7 +97,7 @@ func addElementToTemplate(elementName string, value []byte, elements *[]entities
 }
 
 func addNetworkEnrichmentToTemplate(elements *[]entities.InfoElementWithValue, registryID uint32) error {
-	for _, field := range customNetworkFields {
+	for _, field := range CustomNetworkFields {
 		if err := addElementToTemplate(field, nil, elements, registryID); err != nil {
 			return err
 		}
@@ -106,7 +106,7 @@ func addNetworkEnrichmentToTemplate(elements *[]entities.InfoElementWithValue, r
 }
 
 func addKubeContextToTemplate(elements *[]entities.InfoElementWithValue, registryID uint32) error {
-	for _, field := range kubeFields {
+	for _, field := range KubeFields {
 		if err := addElementToTemplate(field, nil, elements, registryID); err != nil {
 			return err
 		}
@@ -163,7 +163,7 @@ func SendTemplateRecordv4(exporter *ipfixExporter.ExportingProcess, enrichEnterp
 	}
 	elements := make([]entities.InfoElementWithValue, 0)
 
-	for _, field := range ipv4IANAFields {
+	for _, field := range IPv4IANAFields {
 		err = addElementToTemplate(field, nil, &elements, registry.IANAEnterpriseID)
 		if err != nil {
 			return 0, nil, err
@@ -202,7 +202,7 @@ func SendTemplateRecordv6(exporter *ipfixExporter.ExportingProcess, enrichEnterp
 	}
 	elements := make([]entities.InfoElementWithValue, 0)
 
-	for _, field := range ipv6IANAFields {
+	for _, field := range IPv6IANAFields {
 		err = addElementToTemplate(field, nil, &elements, registry.IANAEnterpriseID)
 		if err != nil {
 			return 0, nil, err
