@@ -150,7 +150,11 @@ func loadCustomRegistry(EnterpriseID uint32) error {
 		ilog.WithError(err).Errorf("Failed to register element")
 		return err
 	}
+<<<<<<< HEAD
 	err = registry.PutInfoElement((*entities.NewInfoElement("timeFlowRttNs", 7740, 4, EnterpriseID, 8)), EnterpriseID)
+=======
+    err = registry.PutInfoElement((*entities.NewInfoElement("timeFlowRttNs", 7740, entities.Unsigned64, EnterpriseID, 8)), EnterpriseID)
+>>>>>>> af8980f4 (sync with jotak:test-ipfix and implement writing timeflowrttns in the new pattern)
 	if err != nil {
 		ilog.WithError(err).Errorf("Failed to register element")
 		return err
@@ -343,7 +347,11 @@ func setStandardIEValue(record config.GenericMap, ieValPtr *entities.InfoElement
 		}
 	case "timeFlowRttNs":
 		if record["TimeFlowRttNs"] != nil {
+<<<<<<< HEAD
 			ieVal.SetUnsigned64Value(uint64(record["TimeFlowRttNs"].(int64)))
+=======
+            ieVal.SetUnsigned64Value(uint64(record["TimeFlowRttNs"].(int64)))
+>>>>>>> af8980f4 (sync with jotak:test-ipfix and implement writing timeflowrttns in the new pattern)
 		} else {
 			return fmt.Errorf("unable to find timeflowrtt in record")
 		}
