@@ -119,7 +119,7 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 	assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
 	templateSet := tplv4Msg.GetSet()
 	templateElements := templateSet.GetRecords()[0].GetOrderedElementList()
-	assert.Len(t, templateElements, 20)
+	assert.Len(t, templateElements, 21)
 	assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
 
 	// Check data
