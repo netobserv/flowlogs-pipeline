@@ -177,7 +177,7 @@ func matchElement(t *testing.T, element entities.InfoElementWithValue, flow conf
 	case "destinationNodeName":
 		assert.Equal(t, flow["DstK8S_HostName"], element.GetStringValue())
 	case "timeFlowRttNs":
-		assert.Equal(t, flow["TimeFlowRttNs"], element.GetStringValue())
+		assert.Equal(t, flow["TimeFlowRttNs"], element.GetUnsigned64Value())
 	case "sourceMacAddress":
 	case "destinationMacAddress":
 		// Getting some discrepancies here, need to figure out why
