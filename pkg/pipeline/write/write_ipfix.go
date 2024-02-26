@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 IBM, Inc.
+ * Copyright (C) 2023 IBM, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@ var (
 		"destinationNodeName",
 	}
 	CustomNetworkFields = []string{
-		// TODO
+		"timeFlowRttNs",
 	}
 )
 
@@ -110,10 +110,6 @@ func addKubeContextToTemplate(elements *[]entities.InfoElementWithValue, registr
 		if err := addElementToTemplate(field, nil, elements, registryID); err != nil {
 			return err
 		}
-	}
-	err = addElementToTemplate("timeFlowRttNs", nil, elements, registryID)
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -154,7 +150,7 @@ func loadCustomRegistry(EnterpriseID uint32) error {
 		ilog.WithError(err).Errorf("Failed to register element")
 		return err
 	}
-	err = registry.PutInfoElement((*entities.NewInfoElement("timeFlowRttNs", 7740, 4, EnterpriseID, 65535)), EnterpriseID)
+	err = registry.PutInfoElement((*entities.NewInfoElement("timeFlowRttNs", 7740, 4, EnterpriseID, 8)), EnterpriseID)
 	if err != nil {
 		ilog.WithError(err).Errorf("Failed to register element")
 		return err
@@ -345,6 +341,12 @@ func setStandardIEValue(record config.GenericMap, ieValPtr *entities.InfoElement
 		} else {
 			return fmt.Errorf("unable to find interface in record")
 		}
+	case "timeFlowRttNs":
+		if record["TimeFlowRttNs"] != nil {
+			ieVal.SetUnsigned64Value(uint64(record["TimeFlowRttNs"].(int64)))
+		} else {
+			return fmt.Errorf("unable to find timeflowrtt in record")
+		}
 	}
 	return nil
 }
@@ -387,12 +389,6 @@ func setKubeIEValue(record config.GenericMap, ieValPtr *entities.InfoElementWith
 			ieVal.SetStringValue(record["DstK8S_HostName"].(string))
 		} else {
 			ieVal.SetStringValue("none")
-		}
-	case "timeFlowRttNs":
-		if record["TimeFlowRttNs"] != nil {
-			ieVal.SetUnsigned64Value(record["TimeFlowRttNs"].(uint64))
-		} else {
-			// nothing here for now
 		}
 	}
 }
