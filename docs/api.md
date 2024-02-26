@@ -17,16 +17,6 @@ Following is the supported API format for prometheus encode:
                      counter: monotonically increasing counter whose value can only increase
                      histogram: counts samples in configurable buckets
                      agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
-                 filter: an optional criterion to filter entries by. Deprecated: use filters instead.
-                     key: the key to match and filter by
-                     value: the value to match and filter by
-                     type: (enum) the type of filter match: equal (default), not_equal, presence, absence, match_regex or not_match_regex
-                         equal: match exactly the provided filter value
-                         not_equal: the value must be different from the provided filter
-                         presence: filter key must be present (filter value is ignored)
-                         absence: filter key must be absent (filter value is ignored)
-                         match_regex: match filter value as a regular expression
-                         not_match_regex: the filter value must not match the provided regular expression
                  filters: a list of criteria to filter entries by
                          key: the key to match and filter by
                          value: the value to match and filter by
@@ -354,16 +344,6 @@ Following is the supported API format for writing metrics to an OpenTelemetry co
                      counter: monotonically increasing counter whose value can only increase
                      histogram: counts samples in configurable buckets
                      agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
-                 filter: an optional criterion to filter entries by. Deprecated: use filters instead.
-                     key: the key to match and filter by
-                     value: the value to match and filter by
-                     type: (enum) the type of filter match: equal (default), not_equal, presence, absence, match_regex or not_match_regex
-                         equal: match exactly the provided filter value
-                         not_equal: the value must be different from the provided filter
-                         presence: filter key must be present (filter value is ignored)
-                         absence: filter key must be absent (filter value is ignored)
-                         match_regex: match filter value as a regular expression
-                         not_match_regex: the filter value must not match the provided regular expression
                  filters: a list of criteria to filter entries by
                          key: the key to match and filter by
                          value: the value to match and filter by

@@ -122,7 +122,7 @@ func CreateMetricInfo(def api.MetricsItem) *MetricInfo {
 	mi := MetricInfo{
 		MetricsItem: def,
 	}
-	for _, f := range def.GetFilters() {
+	for _, f := range def.Filters {
 		mi.FilterPredicates = append(mi.FilterPredicates, filterToPredicate(f))
 	}
 	return &mi
