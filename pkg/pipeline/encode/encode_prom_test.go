@@ -46,7 +46,7 @@ parameters:
         metrics:
           - name: Bytes
             type: gauge
-            filter: {key: dstAddr, value: 10.1.2.4}
+            filters: [{key: dstAddr, value: 10.1.2.4}]
             valueKey: bytes
             labels:
               - srcAddr
@@ -54,7 +54,7 @@ parameters:
               - srcPort
           - name: Packets
             type: counter
-            filter: {key: dstAddr, value: 10.1.2.4}
+            filters: [{key: dstAddr, value: 10.1.2.4}]
             valueKey: packets
             labels:
               - srcAddr
