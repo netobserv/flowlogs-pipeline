@@ -163,7 +163,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 
 			}
 			if err != nil {
-				log.Errorf("error during counter creation: %v", err)
+				log.Errorf("error during histogram creation: %v", err)
 				return nil, err
 			}
 			metricCommon.AddHist(histo, mInfo)
