@@ -20,23 +20,23 @@ Following is the supported API format for prometheus encode:
                  filter: an optional criterion to filter entries by. Deprecated: use filters instead.
                      key: the key to match and filter by
                      value: the value to match and filter by
-                     type: (enum) the type of filter match: exact (default), exact_not, presence, absence, regex or regex_not
-                         exact: match exactly the provided filter value
-                         exact_not: the value must be different from the provided filter
+                     type: (enum) the type of filter match: equal (default), not_equal, presence, absence, match_regex or not_match_regex
+                         equal: match exactly the provided filter value
+                         not_equal: the value must be different from the provided filter
                          presence: filter key must be present (filter value is ignored)
                          absence: filter key must be absent (filter value is ignored)
-                         regex: match filter value as a regular expression
-                         regex_not: the filter value must not match the provided regular expression
+                         match_regex: match filter value as a regular expression
+                         not_match_regex: the filter value must not match the provided regular expression
                  filters: a list of criteria to filter entries by
                          key: the key to match and filter by
                          value: the value to match and filter by
-                         type: (enum) the type of filter match: exact (default), exact_not, presence, absence, regex or regex_not
-                             exact: match exactly the provided filter value
-                             exact_not: the value must be different from the provided filter
+                         type: (enum) the type of filter match: equal (default), not_equal, presence, absence, match_regex or not_match_regex
+                             equal: match exactly the provided filter value
+                             not_equal: the value must be different from the provided filter
                              presence: filter key must be present (filter value is ignored)
                              absence: filter key must be absent (filter value is ignored)
-                             regex: match filter value as a regular expression
-                             regex_not: the filter value must not match the provided regular expression
+                             match_regex: match filter value as a regular expression
+                             not_match_regex: the filter value must not match the provided regular expression
                  valueKey: entry key from which to resolve metric value
                  labels: labels to be associated with the metric
                  buckets: histogram buckets
@@ -357,23 +357,23 @@ Following is the supported API format for writing metrics to an OpenTelemetry co
                  filter: an optional criterion to filter entries by. Deprecated: use filters instead.
                      key: the key to match and filter by
                      value: the value to match and filter by
-                     type: (enum) the type of filter match: exact (default), exact_not, presence, absence, regex or regex_not
-                         exact: match exactly the provided filter value
-                         exact_not: the value must be different from the provided filter
+                     type: (enum) the type of filter match: equal (default), not_equal, presence, absence, match_regex or not_match_regex
+                         equal: match exactly the provided filter value
+                         not_equal: the value must be different from the provided filter
                          presence: filter key must be present (filter value is ignored)
                          absence: filter key must be absent (filter value is ignored)
-                         regex: match filter value as a regular expression
-                         regex_not: the filter value must not match the provided regular expression
+                         match_regex: match filter value as a regular expression
+                         not_match_regex: the filter value must not match the provided regular expression
                  filters: a list of criteria to filter entries by
                          key: the key to match and filter by
                          value: the value to match and filter by
-                         type: (enum) the type of filter match: exact (default), exact_not, presence, absence, regex or regex_not
-                             exact: match exactly the provided filter value
-                             exact_not: the value must be different from the provided filter
+                         type: (enum) the type of filter match: equal (default), not_equal, presence, absence, match_regex or not_match_regex
+                             equal: match exactly the provided filter value
+                             not_equal: the value must be different from the provided filter
                              presence: filter key must be present (filter value is ignored)
                              absence: filter key must be absent (filter value is ignored)
-                             regex: match filter value as a regular expression
-                             regex_not: the filter value must not match the provided regular expression
+                             match_regex: match filter value as a regular expression
+                             not_match_regex: the filter value must not match the provided regular expression
                  valueKey: entry key from which to resolve metric value
                  labels: labels to be associated with the metric
                  buckets: histogram buckets

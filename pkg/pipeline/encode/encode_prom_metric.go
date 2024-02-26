@@ -32,7 +32,7 @@ func Absence(filter api.MetricsFilter) Predicate {
 	}
 }
 
-func Exact(filter api.MetricsFilter) Predicate {
+func Equal(filter api.MetricsFilter) Predicate {
 	varLookups := extractVarLookups(filter.Value)
 	return func(flow config.GenericMap) bool {
 		if val, found := flow[filter.Key]; found {
@@ -50,8 +50,8 @@ func Exact(filter api.MetricsFilter) Predicate {
 	}
 }
 
-func ExactNot(filter api.MetricsFilter) Predicate {
-	pred := Exact(filter)
+func NotEqual(filter api.MetricsFilter) Predicate {
+	pred := Equal(filter)
 	return func(flow config.GenericMap) bool { return !pred(flow) }
 }
 
@@ -69,28 +69,28 @@ func Regex(filter api.MetricsFilter) Predicate {
 	}
 }
 
-func RegexNot(filter api.MetricsFilter) Predicate {
+func NotRegex(filter api.MetricsFilter) Predicate {
 	pred := Regex(filter)
 	return func(flow config.GenericMap) bool { return !pred(flow) }
 }
 
 func filterToPredicate(filter api.MetricsFilter) Predicate {
 	switch filter.Type {
-	case api.PromFilterExact:
-		return Exact(filter)
-	case api.PromFilterExactNot:
-		return ExactNot(filter)
+	case api.PromFilterEqual:
+		return Equal(filter)
+	case api.PromFilterNotEqual:
+		return NotEqual(filter)
 	case api.PromFilterPresence:
 		return Presence(filter)
 	case api.PromFilterAbsence:
 		return Absence(filter)
 	case api.PromFilterRegex:
 		return Regex(filter)
-	case api.PromFilterRegexNot:
-		return RegexNot(filter)
+	case api.PromFilterNotRegex:
+		return NotRegex(filter)
 	}
 	// Default = Exact
-	return Exact(filter)
+	return Equal(filter)
 }
 
 func extractVarLookups(value string) [][]string {

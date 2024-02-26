@@ -361,7 +361,7 @@ func Test_FilterDirection(t *testing.T) {
 				Name:     "ingress_or_inner_packets_total",
 				Type:     "counter",
 				ValueKey: "packets",
-				Filters:  []api.MetricsFilter{{Key: "dir", Value: "0|2", Type: "regex"}},
+				Filters:  []api.MetricsFilter{{Key: "dir", Value: "0|2", Type: "match_regex"}},
 			},
 		},
 	}
@@ -390,17 +390,17 @@ func Test_FilterSameOrDifferentNamespace(t *testing.T) {
 		{
 			"src-ns":  "b",
 			"dst-ns":  "a",
-			"packets": 100,
+			"packets": 200,
 		},
 		{
 			"src-ns":  "a",
 			"dst-ns":  "a",
-			"packets": 1000,
+			"packets": 3000,
 		},
 		{
 			"src-ns":  "b",
 			"dst-ns":  "b",
-			"packets": 10000,
+			"packets": 40000,
 		},
 	}
 	params := api.PromEncode{
@@ -419,7 +419,7 @@ func Test_FilterSameOrDifferentNamespace(t *testing.T) {
 				Name:     "packets_different_namespace_total",
 				Type:     "counter",
 				ValueKey: "packets",
-				Filters:  []api.MetricsFilter{{Key: "src-ns", Type: "exact_not", Value: "$(dst-ns)"}},
+				Filters:  []api.MetricsFilter{{Key: "src-ns", Value: "$(dst-ns)", Type: "not_equal"}},
 			},
 		},
 	}
@@ -433,8 +433,8 @@ func Test_FilterSameOrDifferentNamespace(t *testing.T) {
 
 	exposed := test.ReadExposedMetrics(t)
 
-	require.Contains(t, exposed, `test_packets_same_namespace_total 11000`)
-	require.Contains(t, exposed, `test_packets_different_namespace_total 110`)
+	require.Contains(t, exposed, `test_packets_same_namespace_total 43000`)
+	require.Contains(t, exposed, `test_packets_different_namespace_total 210`)
 }
 
 func Test_ValueScale(t *testing.T) {
