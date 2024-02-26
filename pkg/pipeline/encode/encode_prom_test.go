@@ -361,7 +361,7 @@ func Test_FilterDirection(t *testing.T) {
 				Name:     "ingress_or_inner_packets_total",
 				Type:     "counter",
 				ValueKey: "packets",
-				Filters:  []api.MetricsFilter{{Key: "dir", Value: "0|2", Type: "regex"}},
+				Filters:  []api.MetricsFilter{{Key: "dir", Value: "0|2", Type: "match_regex"}},
 			},
 		},
 	}
@@ -378,6 +378,63 @@ func Test_FilterDirection(t *testing.T) {
 	require.Contains(t, exposed, `test_ingress_packets_total 10`)
 	require.Contains(t, exposed, `test_egress_packets_total 100`)
 	require.Contains(t, exposed, `test_ingress_or_inner_packets_total 1010`)
+}
+
+func Test_FilterSameOrDifferentNamespace(t *testing.T) {
+	metrics := []config.GenericMap{
+		{
+			"src-ns":  "a",
+			"dst-ns":  "b",
+			"packets": 10,
+		},
+		{
+			"src-ns":  "b",
+			"dst-ns":  "a",
+			"packets": 200,
+		},
+		{
+			"src-ns":  "a",
+			"dst-ns":  "a",
+			"packets": 3000,
+		},
+		{
+			"src-ns":  "b",
+			"dst-ns":  "b",
+			"packets": 40000,
+		},
+	}
+	params := api.PromEncode{
+		Prefix: "test_",
+		ExpiryTime: api.Duration{
+			Duration: time.Duration(60 * time.Second),
+		},
+		Metrics: []api.MetricsItem{
+			{
+				Name:     "packets_same_namespace_total",
+				Type:     "counter",
+				ValueKey: "packets",
+				Filters:  []api.MetricsFilter{{Key: "src-ns", Value: "$(dst-ns)"}},
+			},
+			{
+				Name:     "packets_different_namespace_total",
+				Type:     "counter",
+				ValueKey: "packets",
+				Filters:  []api.MetricsFilter{{Key: "src-ns", Value: "$(dst-ns)", Type: "not_equal"}},
+			},
+		},
+	}
+
+	encodeProm, err := initProm(&params)
+	require.NoError(t, err)
+	for _, metric := range metrics {
+		encodeProm.Encode(metric)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	exposed := test.ReadExposedMetrics(t)
+
+	require.Contains(t, exposed, `test_packets_same_namespace_total 43000`)
+	require.Contains(t, exposed, `test_packets_different_namespace_total 210`)
 }
 
 func Test_ValueScale(t *testing.T) {
@@ -649,4 +706,13 @@ func Test_MultipleProm(t *testing.T) {
 	require.Equal(t, "test3_", encodeProm3.cfg.Prefix)
 
 	// TODO: Add test for different addresses, but need to deal with StartPromServer (ListenAndServe)
+}
+
+func Test_Filters_extractVarLookups(t *testing.T) {
+	variables := extractVarLookups("$(abc)--$(def)")
+
+	require.Equal(t, [][]string{{"$(abc)", "abc"}, {"$(def)", "def"}}, variables)
+
+	variables = extractVarLookups("")
+	require.Empty(t, variables)
 }
