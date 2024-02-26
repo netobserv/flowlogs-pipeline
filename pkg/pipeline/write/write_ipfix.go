@@ -150,7 +150,7 @@ func loadCustomRegistry(EnterpriseID uint32) error {
 		ilog.WithError(err).Errorf("Failed to register element")
 		return err
 	}
-    err = registry.PutInfoElement((*entities.NewInfoElement("timeFlowRttNs", 7740, entities.Unsigned64, EnterpriseID, 8)), EnterpriseID)
+	err = registry.PutInfoElement((*entities.NewInfoElement("timeFlowRttNs", 7740, entities.Unsigned64, EnterpriseID, 8)), EnterpriseID)
 	if err != nil {
 		ilog.WithError(err).Errorf("Failed to register element")
 		return err
@@ -343,9 +343,9 @@ func setStandardIEValue(record config.GenericMap, ieValPtr *entities.InfoElement
 		}
 	case "timeFlowRttNs":
 		if record["TimeFlowRttNs"] != nil {
-            ieVal.SetUnsigned64Value(uint64(record["TimeFlowRttNs"].(int64)))
+			ieVal.SetUnsigned64Value(uint64(record["TimeFlowRttNs"].(int64)))
 		} else {
-		    return fmt.Errorf("unable to find timeflowrtt in record")
+			return fmt.Errorf("unable to find timeflowrtt in record")
 		}
 	}
 	return nil
