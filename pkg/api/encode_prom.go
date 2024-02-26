@@ -57,24 +57,18 @@ type MetricsItem struct {
 	ValueScale float64         `yaml:"valueScale,omitempty" json:"valueScale,omitempty" doc:"scale factor of the value (MetricVal := FlowVal / Scale)"`
 }
 
+type MetricsItems []MetricsItem
 type MetricFilterEnum string
 
 const (
-	// match exactly the provided filter value
-	MetricFilterEqual MetricFilterEnum = "equal"
-	// the value must be different from the provided filter
-	MetricFilterNotEqual MetricFilterEnum = "not_equal"
-	// filter key must be present (filter value is ignored)
-	MetricFilterPresence MetricFilterEnum = "presence"
-	// filter key must be absent (filter value is ignored)
-	MetricFilterAbsence MetricFilterEnum = "absence"
-	// match filter value as a regular expression
-	MetricFilterRegex MetricFilterEnum = "match_regex"
-	// the filter value must not match the provided regular expression
-	MetricFilterNotRegex MetricFilterEnum = "not_match_regex"
+	// For doc generation, enum definitions must match format `Constant Type = "value" // doc`
+	MetricFilterEqual    MetricFilterEnum = "equal"           // match exactly the provided filter value
+	MetricFilterNotEqual MetricFilterEnum = "not_equal"       // the value must be different from the provided filter
+	MetricFilterPresence MetricFilterEnum = "presence"        // filter key must be present (filter value is ignored)
+	MetricFilterAbsence  MetricFilterEnum = "absence"         // filter key must be absent (filter value is ignored)
+	MetricFilterRegex    MetricFilterEnum = "match_regex"     // match filter value as a regular expression
+	MetricFilterNotRegex MetricFilterEnum = "not_match_regex" // the filter value must not match the provided regular expression
 )
-
-type MetricsItems []MetricsItem
 
 type MetricsFilter struct {
 	Key   string           `yaml:"key" json:"key" doc:"the key to match and filter by"`
