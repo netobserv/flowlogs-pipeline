@@ -93,30 +93,30 @@ func Test_NewEncodeProm(t *testing.T) {
 	encodeProm, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
 
-	require.Equal(t, 1, len(encodeProm.counters))
-	require.Equal(t, 1, len(encodeProm.gauges))
-	require.Equal(t, 1, len(encodeProm.histos))
-	require.Equal(t, 1, len(encodeProm.aggHistos))
-	require.Equal(t, time.Second, encodeProm.expiryTime)
+	require.Equal(t, 1, len(encodeProm.metricCommon.counters))
+	require.Equal(t, 1, len(encodeProm.metricCommon.gauges))
+	require.Equal(t, 1, len(encodeProm.metricCommon.histos))
+	require.Equal(t, 1, len(encodeProm.metricCommon.aggHistos))
+	require.Equal(t, time.Second, encodeProm.metricCommon.expiryTime)
 
-	require.Equal(t, encodeProm.gauges[0].info.Name, "Bytes")
+	require.Equal(t, encodeProm.metricCommon.gauges[0].info.Name, "Bytes")
 	expectedList := []string{"srcAddr", "dstAddr", "srcPort"}
-	require.Equal(t, encodeProm.gauges[0].info.Labels, expectedList)
+	require.Equal(t, encodeProm.metricCommon.gauges[0].info.Labels, expectedList)
 
-	require.Equal(t, encodeProm.counters[0].info.Name, "Packets")
+	require.Equal(t, encodeProm.metricCommon.counters[0].info.Name, "Packets")
 	expectedList = []string{"srcAddr", "dstAddr", "dstPort"}
-	require.Equal(t, encodeProm.counters[0].info.Labels, expectedList)
+	require.Equal(t, encodeProm.metricCommon.counters[0].info.Labels, expectedList)
 	entry := test.GetExtractMockEntry()
 	encodeProm.Encode(entry)
 
 	// verify entries are in cache; one for the gauge and one for the counter
-	entriesMapLen := encodeProm.mCache.GetCacheLen()
+	entriesMapLen := encodeProm.metricCommon.mCache.GetCacheLen()
 	require.Equal(t, 2, entriesMapLen)
 
 	// wait a couple seconds so that the entry will expire
 	time.Sleep(2 * time.Second)
-	encodeProm.mCache.CleanupExpiredEntries(encodeProm.expiryTime, encodeProm.Cleanup)
-	entriesMapLen = encodeProm.mCache.GetCacheLen()
+	encodeProm.metricCommon.mCache.CleanupExpiredEntries(encodeProm.metricCommon.expiryTime, encodeProm.Cleanup)
+	entriesMapLen = encodeProm.metricCommon.mCache.GetCacheLen()
 	require.Equal(t, 0, entriesMapLen)
 }
 
@@ -631,18 +631,18 @@ func Test_MultipleProm(t *testing.T) {
 	encodeProm3, err := initProm(cfg.Parameters[2].Encode.Prom)
 	require.NoError(t, err)
 
-	require.Equal(t, 0, len(encodeProm1.counters))
-	require.Equal(t, 1, len(encodeProm1.gauges))
-	require.Equal(t, 0, len(encodeProm1.histos))
-	require.Equal(t, 0, len(encodeProm1.aggHistos))
-	require.Equal(t, 1, len(encodeProm2.counters))
-	require.Equal(t, 0, len(encodeProm2.gauges))
-	require.Equal(t, 0, len(encodeProm2.histos))
-	require.Equal(t, 0, len(encodeProm2.aggHistos))
-	require.Equal(t, 0, len(encodeProm3.counters))
-	require.Equal(t, 0, len(encodeProm3.gauges))
-	require.Equal(t, 1, len(encodeProm3.histos))
-	require.Equal(t, 0, len(encodeProm3.aggHistos))
+	require.Equal(t, 0, len(encodeProm1.metricCommon.counters))
+	require.Equal(t, 1, len(encodeProm1.metricCommon.gauges))
+	require.Equal(t, 0, len(encodeProm1.metricCommon.histos))
+	require.Equal(t, 0, len(encodeProm1.metricCommon.aggHistos))
+	require.Equal(t, 1, len(encodeProm2.metricCommon.counters))
+	require.Equal(t, 0, len(encodeProm2.metricCommon.gauges))
+	require.Equal(t, 0, len(encodeProm2.metricCommon.histos))
+	require.Equal(t, 0, len(encodeProm2.metricCommon.aggHistos))
+	require.Equal(t, 0, len(encodeProm3.metricCommon.counters))
+	require.Equal(t, 0, len(encodeProm3.metricCommon.gauges))
+	require.Equal(t, 1, len(encodeProm3.metricCommon.histos))
+	require.Equal(t, 0, len(encodeProm3.metricCommon.aggHistos))
 
 	require.Equal(t, "test1_", encodeProm1.cfg.Prefix)
 	require.Equal(t, "test2_", encodeProm2.cfg.Prefix)

@@ -113,12 +113,12 @@ func Test_Prom_Cache1(t *testing.T) {
 	entries = utils.GenerateConnectionFlowEntries(10)
 	require.Equal(t, 10, len(entries))
 	encodeEntries(promEncode, entries)
-	require.Equal(t, 10, promEncode.mCache.GetCacheLen())
+	require.Equal(t, 10, promEncode.metricCommon.mCache.GetCacheLen())
 
 	entries = utils.GenerateConnectionFlowEntries(40)
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
-	require.Equal(t, 30, promEncode.mCache.GetCacheLen())
+	require.Equal(t, 30, promEncode.metricCommon.mCache.GetCacheLen())
 }
 
 func Test_Prom_Cache2(t *testing.T) {
@@ -133,12 +133,12 @@ func Test_Prom_Cache2(t *testing.T) {
 	entries = utils.GenerateConnectionFlowEntries(10)
 	require.Equal(t, 10, len(entries))
 	encodeEntries(promEncode, entries)
-	require.Equal(t, 20, promEncode.mCache.GetCacheLen())
+	require.Equal(t, 20, promEncode.metricCommon.mCache.GetCacheLen())
 
 	entries = utils.GenerateConnectionFlowEntries(40)
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
-	require.Equal(t, 30, promEncode.mCache.GetCacheLen())
+	require.Equal(t, 30, promEncode.metricCommon.mCache.GetCacheLen())
 }
 
 func Test_Prom_Cache3(t *testing.T) {
@@ -153,10 +153,10 @@ func Test_Prom_Cache3(t *testing.T) {
 	entries = utils.GenerateConnectionFlowEntries(10)
 	require.Equal(t, 10, len(entries))
 	encodeEntries(promEncode, entries)
-	require.Equal(t, 20, promEncode.mCache.GetCacheLen())
+	require.Equal(t, 20, promEncode.metricCommon.mCache.GetCacheLen())
 
 	entries = utils.GenerateConnectionFlowEntries(40)
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
-	require.Equal(t, 80, promEncode.mCache.GetCacheLen())
+	require.Equal(t, 80, promEncode.metricCommon.mCache.GetCacheLen())
 }
