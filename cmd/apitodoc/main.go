@@ -19,6 +19,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -29,9 +30,12 @@ import (
 
 func iterate(output io.Writer, data interface{}, indent int) {
 	newIndent := indent + 1
-	dataType := reflect.ValueOf(data).Kind()
-	// DEBUG code: dataTypeName := reflect.ValueOf(data).Type().String()
 	d := reflect.ValueOf(data)
+	dataType := d.Kind()
+	dataTypeName, err := getTypeName(d)
+	if err != nil {
+		dataTypeName = "(unknown)"
+	}
 	if dataType == reflect.Slice || dataType == reflect.Map {
 		// DEBUG code: fmt.Fprintf(output, "%s %s <-- %s \n",strings.Repeat(" ",4*indent),dataTypeName,dataType )
 		zeroElement := reflect.Zero(reflect.ValueOf(data).Type().Elem()).Interface()
@@ -75,7 +79,20 @@ func iterate(output io.Writer, data interface{}, indent int) {
 		// Since we only "converted" Ptr to Struct and the actual output is done in the next iteration, we call
 		// iterate() with the same `indent` as the current level
 		iterate(output, zeroElement, indent)
+	} else if strings.HasPrefix(dataTypeName, "api.") && strings.HasSuffix(dataTypeName, "Enum") {
+		// set placeholder for enum
+		fmt.Fprintf(output, "placeholder @%s:%d@\n", strings.TrimPrefix(dataTypeName, "api."), 4*newIndent)
 	}
+}
+
+func getTypeName(d reflect.Value) (name string, err error) {
+	defer func() {
+		if recover() != nil {
+			err = errors.New("unknown type name")
+		}
+	}()
+	name = d.Type().String()
+	return
 }
 
 func main() {

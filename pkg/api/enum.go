@@ -24,7 +24,6 @@ import (
 
 type enums struct {
 	MetricEncodeOperationEnum     MetricEncodeOperationEnum
-	MetricEncodeFilterTypeEnum    MetricEncodeFilterTypeEnum
 	TransformNetworkOperationEnum TransformNetworkOperationEnum
 	TransformFilterOperationEnum  TransformFilterOperationEnum
 	TransformGenericOperationEnum TransformGenericOperationEnum

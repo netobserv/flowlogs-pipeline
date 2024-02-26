@@ -57,23 +57,27 @@ type MetricsItem struct {
 	ValueScale float64         `yaml:"valueScale,omitempty" json:"valueScale,omitempty" doc:"scale factor of the value (MetricVal := FlowVal / Scale)"`
 }
 
+type MetricFilterEnum string
+
+const (
+	// match exactly the provided filter value
+	MetricFilterEqual MetricFilterEnum = "equal"
+	// the value must be different from the provided filter
+	MetricFilterNotEqual MetricFilterEnum = "not_equal"
+	// filter key must be present (filter value is ignored)
+	MetricFilterPresence MetricFilterEnum = "presence"
+	// filter key must be absent (filter value is ignored)
+	MetricFilterAbsence MetricFilterEnum = "absence"
+	// match filter value as a regular expression
+	MetricFilterRegex MetricFilterEnum = "match_regex"
+	// the filter value must not match the provided regular expression
+	MetricFilterNotRegex MetricFilterEnum = "not_match_regex"
+)
+
 type MetricsItems []MetricsItem
 
 type MetricsFilter struct {
-	Key   string `yaml:"key" json:"key" doc:"the key to match and filter by"`
-	Value string `yaml:"value" json:"value" doc:"the value to match and filter by"`
-	Type  string `yaml:"type,omitempty" json:"type,omitempty" enum:"MetricEncodeFilterTypeEnum" doc:"the type of filter match: equal (default), not_equal, presence, absence, match_regex or not_match_regex"`
-}
-
-type MetricEncodeFilterTypeEnum struct {
-	Equal         string `yaml:"equal" json:"equal" doc:"match exactly the provided filter value"`
-	NotEqual      string `yaml:"not_equal" json:"not_equal" doc:"the value must be different from the provided filter"`
-	Presence      string `yaml:"presence" json:"presence" doc:"filter key must be present (filter value is ignored)"`
-	Absence       string `yaml:"absence" json:"absence" doc:"filter key must be absent (filter value is ignored)"`
-	MatchRegex    string `yaml:"match_regex" json:"match_regex" doc:"match filter value as a regular expression"`
-	NotMatchRegex string `yaml:"not_match_regex" json:"not_match_regex" doc:"the filter value must not match the provided regular expression"`
-}
-
-func MetricEncodeFilterTypeName(t string) string {
-	return GetEnumName(MetricEncodeFilterTypeEnum{}, t)
+	Key   string           `yaml:"key" json:"key" doc:"the key to match and filter by"`
+	Value string           `yaml:"value" json:"value" doc:"the value to match and filter by"`
+	Type  MetricFilterEnum `yaml:"type,omitempty" json:"type,omitempty" doc:"the type of filter match (enum)"`
 }
