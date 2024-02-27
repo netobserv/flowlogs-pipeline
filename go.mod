@@ -29,14 +29,14 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/vladimirvivien/gexe v0.2.0
 	github.com/vmware/go-ipfix v0.9.0
-	go.opentelemetry.io/otel v1.23.1
+	go.opentelemetry.io/otel v1.24.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.23.1
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.23.1
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.23.1
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.24.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.23.1
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.23.1
-	go.opentelemetry.io/otel/metric v1.23.1
-	go.opentelemetry.io/otel/sdk v1.23.1
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.24.0
+	go.opentelemetry.io/otel/metric v1.24.0
+	go.opentelemetry.io/otel/sdk v1.24.0
 	go.opentelemetry.io/otel/sdk/metric v1.23.1
 	golang.org/x/net v0.21.0
 	google.golang.org/grpc v1.62.0
@@ -111,7 +111,7 @@ require (
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
-	go.opentelemetry.io/otel/trace v1.23.1 // indirect
+	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.1.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
