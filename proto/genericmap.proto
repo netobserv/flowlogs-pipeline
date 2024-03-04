@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "./genericmap";
+
+package genericmap;
+
+import "google/protobuf/any.proto";
+
+service Collector {
+  rpc Send (Flow) returns (CollectorReply) {}
+}
+
+// The request message containing the GenericMap
+message Flow {
+  google.protobuf.Any genericMap = 1;
+}
+
+// intentionally empty
+message CollectorReply {}
