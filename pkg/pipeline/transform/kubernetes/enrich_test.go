@@ -63,18 +63,18 @@ var nodes = map[string]*inf.Info{
 
 var rules = api.NetworkTransformRules{
 	{
-		Type:   api.OpAddKubernetes,
-		Input:  "SrcAddr",
-		Output: "SrcK8s",
+		Type: api.OpAddKubernetes,
 		Kubernetes: &api.K8sRule{
+			Input:   "SrcAddr",
+			Output:  "SrcK8s",
 			AddZone: true,
 		},
 	},
 	{
-		Type:   api.OpAddKubernetes,
-		Input:  "DstAddr",
-		Output: "DstK8s",
+		Type: api.OpAddKubernetes,
 		Kubernetes: &api.K8sRule{
+			Input:   "DstAddr",
+			Output:  "DstK8s",
 			AddZone: true,
 		},
 	},
@@ -89,7 +89,7 @@ func TestEnrich(t *testing.T) {
 		"DstAddr": "42.42.42.42", // unknown
 	}
 	for _, r := range rules {
-		Enrich(entry, r)
+		Enrich(entry, *r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
 		"DstAddr":          "42.42.42.42",
@@ -110,7 +110,7 @@ func TestEnrich(t *testing.T) {
 		"DstAddr": "10.0.0.2", // pod-2
 	}
 	for _, r := range rules {
-		Enrich(entry, r)
+		Enrich(entry, *r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
 		"DstAddr":          "10.0.0.2",
@@ -139,7 +139,7 @@ func TestEnrich(t *testing.T) {
 		"DstAddr": "20.0.0.1", // service-1
 	}
 	for _, r := range rules {
-		Enrich(entry, r)
+		Enrich(entry, *r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
 		"DstAddr":          "20.0.0.1",
@@ -162,21 +162,21 @@ func TestEnrich(t *testing.T) {
 
 var otelRules = api.NetworkTransformRules{
 	{
-		Type:     api.OpAddKubernetes,
-		Input:    "source.ip",
-		Output:   "source.",
-		Assignee: "otel",
+		Type: api.OpAddKubernetes,
 		Kubernetes: &api.K8sRule{
-			AddZone: true,
+			Input:    "source.ip",
+			Output:   "source.",
+			Assignee: "otel",
+			AddZone:  true,
 		},
 	},
 	{
-		Type:     api.OpAddKubernetes,
-		Input:    "destination.ip",
-		Output:   "destination.",
-		Assignee: "otel",
+		Type: api.OpAddKubernetes,
 		Kubernetes: &api.K8sRule{
-			AddZone: true,
+			Input:    "destination.ip",
+			Output:   "destination.",
+			Assignee: "otel",
+			AddZone:  true,
 		},
 	},
 }
@@ -190,7 +190,7 @@ func TestEnrich_Otel(t *testing.T) {
 		"destination.ip": "42.42.42.42", // unknown
 	}
 	for _, r := range otelRules {
-		Enrich(entry, r)
+		Enrich(entry, *r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
 		"destination.ip":            "42.42.42.42",
@@ -213,7 +213,7 @@ func TestEnrich_Otel(t *testing.T) {
 		"destination.ip": "10.0.0.2", // pod-2
 	}
 	for _, r := range otelRules {
-		Enrich(entry, r)
+		Enrich(entry, *r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
 		"destination.ip":                 "10.0.0.2",
@@ -246,7 +246,7 @@ func TestEnrich_Otel(t *testing.T) {
 		"destination.ip": "20.0.0.1", // service-1
 	}
 	for _, r := range otelRules {
-		Enrich(entry, r)
+		Enrich(entry, *r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
 		"destination.ip":                 "20.0.0.1",
@@ -282,9 +282,150 @@ func TestEnrich_EmptyNamespace(t *testing.T) {
 	}
 
 	for _, r := range rules {
-		Enrich(entry, r)
+		Enrich(entry, *r.Kubernetes)
 	}
 
 	assert.NotContains(t, entry, "SrcK8s_Namespace")
 	assert.NotContains(t, entry, "DstK8s_Namespace")
+}
+
+var infoLayers = map[string]*inf.Info{
+	"1.2.3.4": nil,
+	"10.0.0.1": {
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "prometheus",
+			Namespace: "openshift-monitoring",
+		},
+		Type:     "Pod",
+		HostName: "host-1",
+		HostIP:   "100.0.0.1",
+	},
+	"10.0.0.2": {
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "pod-2",
+			Namespace: "ns-2",
+		},
+		Type:     "Pod",
+		HostName: "host-2",
+		HostIP:   "100.0.0.2",
+	},
+	"10.0.0.3": {
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "flowlogs-pipeline-1",
+			Namespace: "netobserv",
+		},
+		Type:     "Pod",
+		HostName: "host-2",
+		HostIP:   "100.0.0.2",
+	},
+	"20.0.0.1": {
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "kubernetes",
+			Namespace: "default",
+		},
+		Type: "Service",
+	},
+	"20.0.0.2": {
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "my-service",
+			Namespace: "my-ns",
+		},
+		Type: "Service",
+	},
+	"30.0.0.1": {
+		ObjectMeta: v1.ObjectMeta{
+			Name: "node-x",
+		},
+		Type: "Node",
+	},
+}
+
+func TestEnrichLayer(t *testing.T) {
+	informers = inf.SetupStubs(infoLayers, nodes)
+
+	rule := api.NetworkTransformRule{
+		KubernetesInfra: &api.K8sInfraRule{
+			Inputs:        []string{"SrcAddr", "DstAddr"},
+			Output:        "K8S_FlowLayer",
+			InfraPrefixes: []string{"netobserv", "openshift-"},
+			InfraRefs: []api.K8sReference{
+				{
+					Name:      "kubernetes",
+					Namespace: "default",
+				},
+			},
+		},
+	}
+
+	// infra to infra => infra
+	flow := config.GenericMap{
+		"SrcAddr": "10.0.0.1", // openshift-monitoring
+		"DstAddr": "10.0.0.3", // netobserv/flp
+	}
+	EnrichLayer(flow, *rule.KubernetesInfra)
+
+	assert.Equal(t, "infra", flow["K8S_FlowLayer"])
+
+	// infra to node => infra
+	flow = config.GenericMap{
+		"SrcAddr": "10.0.0.1", // openshift-monitoring
+		"DstAddr": "30.0.0.1", // node
+	}
+	EnrichLayer(flow, *rule.KubernetesInfra)
+
+	assert.Equal(t, "infra", flow["K8S_FlowLayer"])
+
+	// node to kubernetes => infra
+	flow = config.GenericMap{
+		"SrcAddr": "30.0.0.1", // node
+		"DstAddr": "20.0.0.1", // kube service
+	}
+	EnrichLayer(flow, *rule.KubernetesInfra)
+
+	assert.Equal(t, "infra", flow["K8S_FlowLayer"])
+
+	// node to external => infra
+	flow = config.GenericMap{
+		"SrcAddr": "30.0.0.1", // node
+		"DstAddr": "1.2.3.4",  // external
+	}
+	EnrichLayer(flow, *rule.KubernetesInfra)
+
+	assert.Equal(t, "infra", flow["K8S_FlowLayer"])
+
+	// app to app => app
+	flow = config.GenericMap{
+		"SrcAddr": "10.0.0.2", // app pod
+		"DstAddr": "20.0.0.2", // app service
+	}
+	EnrichLayer(flow, *rule.KubernetesInfra)
+
+	assert.Equal(t, "app", flow["K8S_FlowLayer"])
+
+	// node to app => app
+	flow = config.GenericMap{
+		"SrcAddr": "30.0.0.1", // node
+		"DstAddr": "20.0.0.2", // app service
+	}
+	EnrichLayer(flow, *rule.KubernetesInfra)
+
+	assert.Equal(t, "app", flow["K8S_FlowLayer"])
+
+	// app to infra => app
+	flow = config.GenericMap{
+		"SrcAddr": "10.0.0.2", // app pod
+		"DstAddr": "20.0.0.1", // kube service
+	}
+	EnrichLayer(flow, *rule.KubernetesInfra)
+
+	assert.Equal(t, "app", flow["K8S_FlowLayer"])
+
+	// app to external => app
+	flow = config.GenericMap{
+		"SrcAddr": "10.0.0.2", // app pod
+		"DstAddr": "1.2.3.4",  // external
+	}
+	EnrichLayer(flow, *rule.KubernetesInfra)
+
+	assert.Equal(t, "app", flow["K8S_FlowLayer"])
 }

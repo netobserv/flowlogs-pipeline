@@ -29,25 +29,26 @@ func (cg *ConfGen) dedupe() {
 	cg.aggregates.Rules = dedupeAggregateDefinitions(cg.aggregates.Rules)
 }
 
-type void struct{}
-
-var voidMember void
-
 func dedupeNetworkTransformRules(rules api.NetworkTransformRules) api.NetworkTransformRules {
-	// There are no built-in sets in go
-	//https://stackoverflow.com/a/34020023/2749989
-	uniqueSet := make(map[api.NetworkTransformRule]void)
-	var dedpueSlice []api.NetworkTransformRule
+	var dedupeSlice []api.NetworkTransformRule
 	for i, rule := range rules {
-		if _, exists := uniqueSet[rule]; exists {
-			// duplicate rule
-			log.Debugf("Remove duplicate NetworkTransformRule %v at index %v", rule, i)
+		if containsNetworkTransformRule(dedupeSlice, rule) {
+			// duplicate aggregateDefinition
+			log.Debugf("Remove duplicate transformation rule %v at index %v", rule, i)
 			continue
 		}
-		uniqueSet[rule] = voidMember
-		dedpueSlice = append(dedpueSlice, rule)
+		dedupeSlice = append(dedupeSlice, rule)
 	}
-	return dedpueSlice
+	return dedupeSlice
+}
+
+func containsNetworkTransformRule(slice []api.NetworkTransformRule, rule api.NetworkTransformRule) bool {
+	for _, item := range slice {
+		if reflect.DeepEqual(item, rule) {
+			return true
+		}
+	}
+	return false
 }
 
 // dedupeAggregateDefinitions is inefficient because we can't use a map to look for duplicates.
