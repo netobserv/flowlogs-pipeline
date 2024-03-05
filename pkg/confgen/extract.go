@@ -20,8 +20,8 @@ package confgen
 import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 func (cg *ConfGen) parseExtract(extract *map[string]interface{}) (*api.Aggregates, *api.ExtractTimebased, error) {
@@ -34,7 +34,7 @@ func (cg *ConfGen) parseExtract(extract *map[string]interface{}) (*api.Aggregate
 	}
 
 	var jsonNetworkAggregate api.Aggregates
-	err = config.JsonUnmarshalStrict(b, &jsonNetworkAggregate)
+	err = yaml.UnmarshalStrict(b, &jsonNetworkAggregate)
 	if err != nil {
 		log.Errorf("Unmarshal aggregate.Definitions err: %v ", err)
 		return nil, nil, err
@@ -53,7 +53,7 @@ func (cg *ConfGen) parseExtract(extract *map[string]interface{}) (*api.Aggregate
 	}
 
 	var jsonTimebasedTopKs api.ExtractTimebased
-	err = config.JsonUnmarshalStrict(b, &jsonTimebasedTopKs)
+	err = yaml.UnmarshalStrict(b, &jsonTimebasedTopKs)
 	if err != nil {
 		log.Errorf("Unmarshal api.ExtractTimebased err: %v ", err)
 		return nil, nil, err

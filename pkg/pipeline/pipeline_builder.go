@@ -384,7 +384,7 @@ func getWriter(opMetrics *operational.Metrics, params config.StageParam) (write.
 	return writer, err
 }
 
-func getTransformer(opMetrics *operational.Metrics, params config.StageParam) (transform.Transformer, error) {
+func getTransformer(_ *operational.Metrics, params config.StageParam) (transform.Transformer, error) {
 	var transformer transform.Transformer
 	var err error
 	switch params.Transform.Type {

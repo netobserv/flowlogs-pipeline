@@ -18,12 +18,11 @@
 package config
 
 import (
-	"bytes"
-	"encoding/json"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 type Options struct {
@@ -136,14 +135,14 @@ func ParseConfig(opts Options) (ConfigFileStruct, error) {
 	out := ConfigFileStruct{}
 
 	logrus.Debugf("opts.PipeLine = %v ", opts.PipeLine)
-	err := JsonUnmarshalStrict([]byte(opts.PipeLine), &out.Pipeline)
+	err := yaml.UnmarshalStrict([]byte(opts.PipeLine), &out.Pipeline)
 	if err != nil {
 		logrus.Errorf("error when parsing pipeline: %v", err)
 		return out, err
 	}
 	logrus.Debugf("stages = %v ", out.Pipeline)
 
-	err = JsonUnmarshalStrict([]byte(opts.Parameters), &out.Parameters)
+	err = yaml.UnmarshalStrict([]byte(opts.Parameters), &out.Parameters)
 	if err != nil {
 		logrus.Errorf("error when parsing pipeline parameters: %v", err)
 		return out, err
@@ -151,7 +150,7 @@ func ParseConfig(opts Options) (ConfigFileStruct, error) {
 	logrus.Debugf("params = %v ", out.Parameters)
 
 	if opts.MetricsSettings != "" {
-		err = JsonUnmarshalStrict([]byte(opts.MetricsSettings), &out.MetricsSettings)
+		err = yaml.UnmarshalStrict([]byte(opts.MetricsSettings), &out.MetricsSettings)
 		if err != nil {
 			logrus.Errorf("error when parsing global metrics settings: %v", err)
 			return out, err
@@ -162,13 +161,4 @@ func ParseConfig(opts Options) (ConfigFileStruct, error) {
 	}
 
 	return out, nil
-}
-
-// JsonUnmarshalStrict is like Unmarshal except that any fields that are found
-// in the data that do not have corresponding struct members, or mapping
-// keys that are duplicates, will result in an error.
-func JsonUnmarshalStrict(data []byte, v interface{}) error {
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-	return dec.Decode(v)
 }

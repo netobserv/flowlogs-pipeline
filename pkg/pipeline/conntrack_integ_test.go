@@ -99,8 +99,7 @@ func TestConnTrack(t *testing.T) {
 	// connection record with specific values was written.
 	var mainPipeline *Pipeline
 	var err error
-	v, cfg := test.InitConfig(t, testConfigConntrack)
-	require.NotNil(t, v)
+	cfg := test.InitConfig(t, testConfigConntrack)
 	cfg.PerfSettings.BatcherMaxLen = 200_000
 	cfg.PerfSettings.BatcherTimeout = 2 * time.Second
 

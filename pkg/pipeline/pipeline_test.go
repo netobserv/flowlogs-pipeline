@@ -58,8 +58,7 @@ func Test_transformToLoki(t *testing.T) {
 	transform, err := transform.NewTransformNone()
 	require.NoError(t, err)
 	transformed, _ := transform.Transform(input)
-	v, cfg := test.InitConfig(t, yamlConfigNoParams)
-	require.NotNil(t, v)
+	cfg := test.InitConfig(t, yamlConfigNoParams)
 	loki, err := write.NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 	loki.Write(transformed)
@@ -107,7 +106,7 @@ parameters:
 func Test_SimplePipeline(t *testing.T) {
 	var mainPipeline *Pipeline
 	var err error
-	_, cfg := test.InitConfig(t, configTemplate)
+	cfg := test.InitConfig(t, configTemplate)
 
 	mainPipeline, err = NewPipeline(cfg)
 	require.NoError(t, err)
@@ -134,7 +133,7 @@ func Test_SimplePipeline(t *testing.T) {
 func TestGRPCProtobuf(t *testing.T) {
 	port, err := test2.FreeTCPPort()
 	require.NoError(t, err)
-	_, cfg := test.InitConfig(t, fmt.Sprintf(`---
+	cfg := test.InitConfig(t, fmt.Sprintf(`---
 log-level: debug
 pipeline:
   - name: ingest1
@@ -262,7 +261,7 @@ parameters:
 func BenchmarkPipeline(b *testing.B) {
 	logrus.StandardLogger().SetLevel(logrus.ErrorLevel)
 	t := &testing.T{}
-	_, cfg := test.InitConfig(t, strings.ReplaceAll(configTemplate, "type: file", "type: file_chunks"))
+	cfg := test.InitConfig(t, strings.ReplaceAll(configTemplate, "type: file", "type: file_chunks"))
 	if t.Failed() {
 		b.Fatalf("unexpected error loading config")
 	}

@@ -88,8 +88,7 @@ func initProm(params *api.PromEncode) (*EncodeProm, error) {
 }
 
 func Test_NewEncodeProm(t *testing.T) {
-	v, cfg := test.InitConfig(t, testConfig)
-	require.NotNil(t, v)
+	cfg := test.InitConfig(t, testConfig)
 	encodeProm, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
 
@@ -679,8 +678,7 @@ parameters:
 `
 
 func Test_MultipleProm(t *testing.T) {
-	v, cfg := test.InitConfig(t, testConfigMultiple)
-	require.NotNil(t, v)
+	cfg := test.InitConfig(t, testConfigMultiple)
 	encodeProm1, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
 	encodeProm2, err := initProm(cfg.Parameters[1].Encode.Prom)

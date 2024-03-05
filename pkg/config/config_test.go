@@ -25,21 +25,17 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func TestJsonUnmarshalStrict(t *testing.T) {
-	type Message struct {
-		Foo int    `json:"F"`
-		Bar string `json:"B"`
-	}
-	msg := `{"F":1, "B":"bbb"}`
-	var actualMsg Message
-	expectedMsg := Message{Foo: 1, Bar: "bbb"}
-	err := JsonUnmarshalStrict([]byte(msg), &actualMsg)
+func TestUnmarshalStrict(t *testing.T) {
+	_, err := ParseConfig(Options{
+		Parameters: `[{"name":"write1","write":{"type":"loki"}}]`,
+	})
 	require.NoError(t, err)
-	require.Equal(t, expectedMsg, actualMsg)
 
-	msg = `{"F":1, "B":"bbb", "NewField":0}`
-	err = JsonUnmarshalStrict([]byte(msg), &actualMsg)
+	_, err = ParseConfig(Options{
+		Parameters: `[{"name":"write1","write":{"type":"loki","foo","bar"}}]`,
+	})
 	require.Error(t, err)
+	require.ErrorContains(t, err, "field foo not found in type config.Write")
 }
 
 func TestUnmarshalInline(t *testing.T) {

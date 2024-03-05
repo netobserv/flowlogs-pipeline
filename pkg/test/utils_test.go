@@ -35,8 +35,7 @@ func Test_GetIngestMockEntry(t *testing.T) {
 }
 
 func Test_InitConfig(t *testing.T) {
-	viper, out := InitConfig(t, "")
-	require.NotNil(t, viper)
+	out := InitConfig(t, "")
 	require.NotNil(t, out)
 }
 

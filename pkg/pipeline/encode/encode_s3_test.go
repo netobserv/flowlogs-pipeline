@@ -75,8 +75,7 @@ func (f *fakeS3Writer) putObject(bucket string, objectName string, object map[st
 }
 
 func initNewEncodeS3(t *testing.T, configString string) *encodeS3 {
-	v, cfg := test.InitConfig(t, configString)
-	require.NotNil(t, v)
+	cfg := test.InitConfig(t, configString)
 
 	syncChan = make(chan bool, 10)
 	newEncode, err := NewEncodeS3(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])

@@ -20,8 +20,8 @@ package confgen
 import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 func (cg *ConfGen) parseEncode(encode *map[string]interface{}, followAggregate bool) (*api.PromEncode, error) {
@@ -34,7 +34,7 @@ func (cg *ConfGen) parseEncode(encode *map[string]interface{}, followAggregate b
 	}
 
 	var prom api.PromEncode
-	err = config.JsonUnmarshalStrict(b, &prom)
+	err = yaml.UnmarshalStrict(b, &prom)
 	if err != nil {
 		log.Debugf("Unmarshal aggregate.Definitions err: %v ", err)
 		return nil, err

@@ -20,8 +20,8 @@ package confgen
 import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 func (cg *ConfGen) parseTransport(transform *map[string]interface{}) (*api.TransformNetwork, error) {
@@ -33,7 +33,7 @@ func (cg *ConfGen) parseTransport(transform *map[string]interface{}) (*api.Trans
 	}
 
 	var jsonNetworkTransform api.TransformNetwork
-	err = config.JsonUnmarshalStrict(b, &jsonNetworkTransform)
+	err = yaml.UnmarshalStrict(b, &jsonNetworkTransform)
 	if err != nil {
 		log.Debugf("Unmarshal transform.TransformNetwork err: %v ", err)
 		return nil, err

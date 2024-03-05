@@ -17,12 +17,6 @@
 
 package confgen
 
-import (
-	jsoniter "github.com/json-iterator/go"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	log "github.com/sirupsen/logrus"
-)
-
 type VisualizationGrafana struct {
 	Expr      string `yaml:"expr"`
 	Legend    string `yaml:"legendFormat"`
@@ -53,21 +47,6 @@ type ConfigVisualizationGrafana struct {
 type Visualizations []Visualization
 
 func (cg *ConfGen) parseVisualization(visualization *Visualization) (*Visualization, error) {
-	var jsoniterJson = jsoniter.ConfigCompatibleWithStandardLibrary
-	localVisualization := *visualization
-	b, err := jsoniterJson.Marshal(&localVisualization)
-	if err != nil {
-		log.Debugf("jsoniterJson.Marshal err: %v ", err)
-		return nil, err
-	}
-
-	var jsonVisualization Visualization
-	err = config.JsonUnmarshalStrict(b, &jsonVisualization)
-	if err != nil {
-		log.Debugf("Unmarshal aggregate.Definitions err: %v ", err)
-		return nil, err
-	}
-
-	cg.visualizations = append(cg.visualizations, jsonVisualization)
-	return &jsonVisualization, nil
+	cg.visualizations = append(cg.visualizations, *visualization)
+	return visualization, nil
 }

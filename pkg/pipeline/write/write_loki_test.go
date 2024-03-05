@@ -57,6 +57,19 @@ func (f *fakeEmitter) Handle(labels model.LabelSet, timestamp time.Time, record 
 	return a.Error(0)
 }
 
+func Test_ParseLokiConfig(t *testing.T) {
+	// Testing proxy_url null, which is known to be troublesome with prometheus model
+	cfs, err := config.ParseConfig(config.Options{
+		Parameters: `[{"name":"write1","write":{"type":"loki","loki":{"url":"http://test","clientConfig":{"proxy_url":null}}}}]`,
+	})
+	require.NoError(t, err)
+
+	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfs.Parameters[0])
+	require.NoError(t, err)
+
+	assert.Nil(t, loki.lokiConfig.Client.ProxyURL.URL)
+}
+
 func Test_buildLokiConfig(t *testing.T) {
 	var yamlConfig = `
 log-level: debug
@@ -78,8 +91,7 @@ parameters:
           baz: bae
           tiki: taka
 `
-	v, cfg := test.InitConfig(t, yamlConfig)
-	require.NotNil(t, v)
+	cfg := test.InitConfig(t, yamlConfig)
 
 	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
@@ -115,8 +127,7 @@ parameters:
           - foo
           - bar
 `
-	v, cfg := test.InitConfig(t, yamlConfig)
-	require.NotNil(t, v)
+	cfg := test.InitConfig(t, yamlConfig)
 
 	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
@@ -169,8 +180,7 @@ parameters:
         url: http://loki:3100/
         timestampScale: %s
 `, testCase.unit)
-			v, cfg := test.InitConfig(t, yamlConf)
-			require.NotNil(t, v)
+			cfg := test.InitConfig(t, yamlConf)
 
 			loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 			require.NoError(t, err)
@@ -210,8 +220,7 @@ func TestTimestampExtraction_LocalTime(t *testing.T) {
 		{name: "zero ts value", tsLabel: "ts", input: map[string]interface{}{"ts": 0}},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			v, cfg := test.InitConfig(t, yamlConfigNoParams)
-			require.NotNil(t, v)
+			cfg := test.InitConfig(t, yamlConfigNoParams)
 
 			loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 			require.NoError(t, err)
@@ -252,8 +261,7 @@ parameters:
           - "ba/z"
           - "ignored?"
 `
-	v, cfg := test.InitConfig(t, yamlConfig)
-	require.NotNil(t, v)
+	cfg := test.InitConfig(t, yamlConfig)
 
 	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
@@ -287,7 +295,7 @@ parameters:
       loki:
         url: %s
 `, fakeLoki.URL)
-	_, cfg := test.InitConfig(t, yamlConfig)
+	cfg := test.InitConfig(t, yamlConfig)
 	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 
