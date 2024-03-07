@@ -18,9 +18,12 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"testing"
 
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 )
@@ -54,4 +57,24 @@ func TestUnmarshalInline(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "netobserv_", cfs.MetricsSettings.Prefix)
 	require.Equal(t, 9102, cfs.MetricsSettings.PromConnectionInfo.Port)
+}
+
+func TestUnmarshalFromViper(t *testing.T) {
+	// Make sure unmarshaling from Viper works; the trick is viper uses lower-case keys,
+	// which works with JSON unmarshaler as it's case insensitive, but not with YAML unmarshaler
+	input := `{"parameters":[{"name":"loki","write":{"type":"loki","loki":{"tenantID":"netobserv","clientConfig":{"proxy_url":null}}}}]}`
+	v := viper.New()
+	v.SetConfigType("yaml")
+	r := bytes.NewReader([]byte(input))
+	err := v.ReadConfig(r)
+	require.NoError(t, err)
+	str := v.Get("parameters")
+	b, err := json.Marshal(str)
+	require.NoError(t, err)
+	cfs, err := ParseConfig(Options{
+		PipeLine:   "[]",
+		Parameters: string(b),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "netobserv", cfs.Parameters[0].Write.Loki.TenantID)
 }
