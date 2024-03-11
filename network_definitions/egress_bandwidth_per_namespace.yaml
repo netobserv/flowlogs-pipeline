@@ -11,10 +11,11 @@ tags:
   - graph
 transform:
   rules:
-    - input: srcIP
-      output: srcK8S
-      type: add_kubernetes
-      parameters: srcK8S_labels
+    - type: add_kubernetes
+      kubernetes:
+        input: srcIP
+        output: srcK8S
+        labels_prefix: srcK8S_labels
 extract:
   type: aggregates
   aggregates:

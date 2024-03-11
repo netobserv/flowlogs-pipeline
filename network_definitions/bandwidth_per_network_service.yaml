@@ -12,10 +12,11 @@ tags:
   - network-service
 transform:
   rules:
-    - input: dstPort
-      output: service
-      type: add_service
-      parameters: proto
+    - type: add_service
+      add_service:
+        input: dstPort
+        output: service
+        protocol: proto
 extract:
   type: aggregates
   aggregates:

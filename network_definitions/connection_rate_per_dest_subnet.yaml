@@ -10,10 +10,11 @@ tags:
   - subnet
 transform:
   rules:
-    - input: dstIP
-      output: dstSubnet
-      type: add_subnet
-      parameters: /16
+    - type: add_subnet
+      add_subnet:
+        input: dstIP
+        output: dstSubnet
+        subnet_mask: /16
 extract:
   type: aggregates
   aggregates:

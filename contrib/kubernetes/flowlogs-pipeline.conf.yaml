@@ -117,37 +117,40 @@ parameters:
     type: network
     network:
       rules:
-      - input: dstPort
-        output: service
-        type: add_service
-        parameters: proto
-      - input: dstIP
-        output: dstSubnet24
-        type: add_subnet
-        parameters: /24
-      - input: srcIP
-        output: srcSubnet24
-        type: add_subnet
-        parameters: /24
-      - input: srcIP
-        output: srcSubnet
-        type: add_subnet
-        parameters: /16
-      - input: dstIP
-        output: dstSubnet
-        type: add_subnet
-        parameters: /16
-      - input: srcIP
-        output: srcK8S
-        type: add_kubernetes
-        parameters: srcK8S_labels
-      - input: bytes
-        output: all
-        type: add_if
-        parameters: '>=0'
-      - input: dstIP
-        output: dstLocation
-        type: add_location
+      - type: add_service
+        add_service:
+          input: dstPort
+          output: service
+          protocol: proto
+      - type: add_subnet
+        add_subnet:
+          input: dstIP
+          output: dstSubnet24
+          subnet_mask: /24
+      - type: add_subnet
+        add_subnet:
+          input: srcIP
+          output: srcSubnet24
+          subnet_mask: /24
+      - type: add_subnet
+        add_subnet:
+          input: srcIP
+          output: srcSubnet
+          subnet_mask: /16
+      - type: add_subnet
+        add_subnet:
+          input: dstIP
+          output: dstSubnet
+          subnet_mask: /16
+      - type: add_kubernetes
+        kubernetes:
+          input: srcIP
+          output: srcK8S
+          labels_prefix: srcK8S_labels
+      - type: add_location
+        add_location:
+          input: dstIP
+          output: dstLocation
 - name: extract_aggregate
   extract:
     type: aggregates
@@ -252,6 +255,7 @@ parameters:
   encode:
     type: prom
     prom:
+      promconnectioninfo: null
       metrics:
       - name: bandwidth_per_network_service
         type: counter

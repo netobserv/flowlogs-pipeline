@@ -10,12 +10,6 @@ tags:
   - mice
   - elephant
   - rate
-transform:
-  rules:
-    - input: bytes
-      output: all
-      type: add_if
-      parameters: ">=0"
 extract:
   type: aggregates
   aggregates:

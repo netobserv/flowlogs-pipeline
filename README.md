@@ -402,20 +402,24 @@ parameters:
       network:
         KubeConfigPath: /tmp/config
         rules:
-          - input: srcIP
-            output: srcSubnet
-            type: add_subnet
-            parameters: /24
-          - input: dstPort
-            output: service
-            type: add_service
-            parameters: protocol
-          - input: dstIP
-            output: dstLocation
-            type: add_location
-          - input: srcIP
-            output: srcK8S
-            type: add_kubernetes
+          - type: add_subnet
+            add_subnet:
+              input: srcIP
+              output: srcSubnet
+              subnet_mask: /24
+          - type: add_service
+            add_service:
+              input: dstPort
+              output: service
+              protocol: protocol
+          - type: add_location
+            add_location:
+              input: dstIP
+              output: dstLocation
+          - type: add_kubernetes
+            kubernetes:
+              input: srcIP
+              output: srcK8S
 ```
 
 The rule `add_subnet` generates a new field named `srcSubnet` with the 

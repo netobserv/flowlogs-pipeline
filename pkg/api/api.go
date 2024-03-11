@@ -43,7 +43,6 @@ const (
 	ConnTrackType                = "conntrack"
 	NoneType                     = "none"
 	AddRegExIfRuleType           = "add_regex_if"
-	AddIfRuleType                = "add_if"
 	AddSubnetRuleType            = "add_subnet"
 	AddLocationRuleType          = "add_location"
 	AddServiceRuleType           = "add_service"

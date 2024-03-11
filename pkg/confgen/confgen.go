@@ -180,31 +180,31 @@ func (cg *ConfGen) ParseDefinition(name string, bytes []byte) error {
 		Tags:        defFile.Tags,
 	}
 
-	// parse transport
-	definition.TransformNetwork, err = cg.parseTransport(&defFile.Transform)
+	// parse transform
+	definition.TransformNetwork, err = cg.parseTransform(&defFile.Transform)
 	if err != nil {
-		log.Debugf("parseTransport err: %v ", err)
+		log.Debugf("%s: parseTransform err: %v ", name, err)
 		return err
 	}
 
 	// parse extract
 	definition.Aggregates, definition.ExtractTimebased, err = cg.parseExtract(&defFile.Extract)
 	if err != nil {
-		log.Debugf("parseExtract err: %v ", err)
+		log.Debugf("%s: parseExtract err: %v ", name, err)
 		return err
 	}
 
 	// parse encode
 	definition.PromEncode, err = cg.parseEncode(&defFile.Encode, len(definition.Aggregates.Rules) > 0)
 	if err != nil {
-		log.Debugf("parseEncode err: %v ", err)
+		log.Debugf("%s: parseEncode err: %v ", name, err)
 		return err
 	}
 
 	// parse visualization
 	definition.Visualization, err = cg.parseVisualization(&defFile.Visualization)
 	if err != nil {
-		log.Debugf("cg.parseVisualization err: %v ", err)
+		log.Debugf("%s: cg.parseVisualization err: %v ", name, err)
 		return err
 	}
 
