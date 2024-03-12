@@ -147,7 +147,7 @@ func matchElement(t *testing.T, element entities.InfoElementWithValue, flow conf
 	case "ethernetType":
 		assert.Equal(t, flow["Etype"], uint32(element.GetUnsigned16Value()))
 	case "flowDirection":
-		assert.Equal(t, flow["FlowDirection"], int(element.GetUnsigned8Value()))
+		assert.Equal(t, flow["IfDirections"], []int{int(element.GetUnsigned8Value())})
 	case "protocolIdentifier":
 		assert.Equal(t, flow["Proto"], uint32(element.GetUnsigned8Value()))
 	case "sourceTransportPort":
@@ -163,7 +163,7 @@ func matchElement(t *testing.T, element entities.InfoElementWithValue, flow conf
 	case "packetDeltaCount":
 		assert.Equal(t, flow["Packets"], element.GetUnsigned64Value())
 	case "interfaceName":
-		assert.Equal(t, flow["Interface"], element.GetStringValue())
+		assert.Equal(t, flow["Interfaces"], []string{element.GetStringValue()})
 	case "sourcePodNamespace":
 		assert.Equal(t, flow["SrcK8S_Namespace"], element.GetStringValue())
 	case "sourcePodName":
