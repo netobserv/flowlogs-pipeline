@@ -1,6 +1,8 @@
 module github.com/netobserv/flowlogs-pipeline
 
-go 1.20
+go 1.21
+
+toolchain go1.21.7
 
 require (
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
