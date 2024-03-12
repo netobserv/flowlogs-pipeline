@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
@@ -92,8 +93,9 @@ pipeline:
 			_, cfg := test.InitConfig(t, tc.config)
 			_, err := NewPipeline(cfg)
 			require.Error(t, err)
-			require.IsType(t, &Error{}, err, err.Error())
-			assert.Equal(t, tc.failingNodeName, err.(*Error).StageName, err.Error())
+			var castErr *Error
+			require.True(t, errors.As(err, &castErr), err.Error())
+			assert.Equal(t, tc.failingNodeName, castErr.StageName, err.Error())
 		})
 	}
 }

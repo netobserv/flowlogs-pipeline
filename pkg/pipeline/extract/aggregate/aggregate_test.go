@@ -31,7 +31,7 @@ import (
 
 func GetMockAggregate() Aggregate {
 	aggregate := Aggregate{
-		Definition: api.AggregateDefinition{
+		definition: &api.AggregateDefinition{
 			Name:          "Avg by src and dst IP's",
 			GroupByKeys:   api.AggregateBy{"dstIP", "srcIP"},
 			OperationType: "avg",
@@ -78,7 +78,7 @@ func Test_getNormalizedValues(t *testing.T) {
 
 func Test_LabelsFromEntry(t *testing.T) {
 	aggregate := Aggregate{
-		Definition: api.AggregateDefinition{
+		definition: &api.AggregateDefinition{
 			GroupByKeys:   api.AggregateBy{"dstIP", "srcIP"},
 			OperationType: "count",
 			OperationKey:  "",
@@ -97,17 +97,17 @@ func Test_FilterEntry(t *testing.T) {
 	aggregate := GetMockAggregate()
 	entry := test.GetIngestMockEntry(false)
 
-	err, _, _ := aggregate.FilterEntry(entry)
+	_, _, err := aggregate.filterEntry(entry)
 	require.Equal(t, err, nil)
 
-	err, normalizedLabels, labels := aggregate.FilterEntry(entry)
+	normalizedLabels, labels, err := aggregate.filterEntry(entry)
 	require.Equal(t, err, nil)
 	require.Equal(t, Labels{"srcIP": "10.0.0.1", "dstIP": "20.0.0.2"}, labels)
 	require.Equal(t, NormalizedValues("20.0.0.2,10.0.0.1"), normalizedLabels)
 
 	entry = test.GetIngestMockEntry(true)
 
-	err, _, _ = aggregate.FilterEntry(entry)
+	_, _, err = aggregate.filterEntry(entry)
 
 	require.EqualError(t, err, "missing keys in entry")
 }
@@ -143,7 +143,7 @@ func Test_GetMetrics(t *testing.T) {
 	metrics := aggregate.GetMetrics()
 
 	require.Equal(t, len(metrics), 1)
-	require.Equal(t, metrics[0]["name"], aggregate.Definition.Name)
+	require.Equal(t, metrics[0]["name"], aggregate.definition.Name)
 	valueFloat64 := metrics[0]["total_value"].(float64)
 	require.Equal(t, float64(7), valueFloat64)
 }

@@ -19,6 +19,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
 	"testing"
@@ -38,7 +39,8 @@ func TestTheMain(t *testing.T) {
 	cmd := exec.Command(os.Args[0], "-test.run=TestTheMain")
 	cmd.Env = append(os.Environ(), "BE_CRASHER=1")
 	err := cmd.Run()
-	if e, ok := err.(*exec.ExitError); ok && !e.Success() {
+	var castErr *exec.ExitError
+	if errors.As(err, &castErr) && !castErr.Success() {
 		return
 	}
 	t.Fatalf("process ran with err %v, want exit status 1", err)
@@ -61,7 +63,7 @@ func TestPipelineConfigSetup(t *testing.T) {
 	var opts config.Options
 	err := json.Unmarshal([]byte(js), &opts)
 	require.NoError(t, err)
-	cfg, err := config.ParseConfig(opts)
+	cfg, err := config.ParseConfig(&opts)
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 	mainPipeline, err := pipeline.NewPipeline(&cfg)

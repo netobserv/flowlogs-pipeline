@@ -103,8 +103,8 @@ func TestComputeHash_Unidirectional(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			h1, err1 := ComputeHash(test.flowLog1, keyDefinition, testHasher, nil)
-			h2, err2 := ComputeHash(test.flowLog2, keyDefinition, testHasher, nil)
+			h1, err1 := computeHash(test.flowLog1, &keyDefinition, testHasher, nil)
+			h2, err2 := computeHash(test.flowLog2, &keyDefinition, testHasher, nil)
 			require.NoError(t, err1)
 			require.NoError(t, err2)
 			if test.sameHash {
@@ -192,8 +192,8 @@ func TestComputeHash_Bidirectional(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			h1, err1 := ComputeHash(test.flowLog1, keyDefinition, testHasher, nil)
-			h2, err2 := ComputeHash(test.flowLog2, keyDefinition, testHasher, nil)
+			h1, err1 := computeHash(test.flowLog1, &keyDefinition, testHasher, nil)
+			h2, err2 := computeHash(test.flowLog2, &keyDefinition, testHasher, nil)
 			require.NoError(t, err1)
 			require.NoError(t, err2)
 			if test.sameHash {
@@ -232,7 +232,7 @@ func TestComputeHash_MissingField(t *testing.T) {
 	fl := newMockFlowLog(ipA, portA, ipB, portB, protocolA, flowDir, 111, 22, false)
 
 	metrics := newMetrics(opMetrics)
-	h, err := ComputeHash(fl, keyDefinition, testHasher, metrics)
+	h, err := computeHash(fl, &keyDefinition, testHasher, metrics)
 	require.NoError(t, err)
 	require.NotNil(t, h)
 	exposed := test.ReadExposedMetrics(t)

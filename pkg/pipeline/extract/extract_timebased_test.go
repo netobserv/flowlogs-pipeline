@@ -23,14 +23,14 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/timebased"
+	tb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract/timebased"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
 )
 
-func GetMockTimebased1() ExtractTimebased {
-	tb := ExtractTimebased{
-		Filters: []timebased.FilterStruct{
+func getMockTimebased1() timebased {
+	tb := timebased{
+		Filters: []tb.FilterStruct{
 			{Rule: api.TimebasedFilterRule{
 				Name:          "TopK_Bytes1",
 				IndexKey:      "SrcAddr",
@@ -51,7 +51,7 @@ func GetMockTimebased1() ExtractTimebased {
 				TimeInterval:  api.Duration{Duration: 15 * time.Second},
 			}},
 		},
-		IndexKeyStructs: map[string]*timebased.IndexKeyTable{},
+		IndexKeyStructs: map[string]*tb.IndexKeyTable{},
 	}
 	return tb
 }
@@ -200,20 +200,20 @@ parameters:
             timeInterval: 10s
 `
 
-func initTimebased(t *testing.T, yamlConfig string) *ExtractTimebased {
+func initTimebased(t *testing.T, yamlConfig string) *timebased {
 	v, cfg := test.InitConfig(t, yamlConfig)
 	require.NotNil(t, v)
 	extractor, err := NewExtractTimebased(cfg.Parameters[0])
 	require.NoError(t, err)
 
-	return extractor.(*ExtractTimebased)
+	return extractor.(*timebased)
 }
 
 func Test_NewExtractTimebased(t *testing.T) {
 
 	tb := initTimebased(t, yamlConfigTopAvg)
 	require.NotNil(t, tb)
-	expectedTimebased := GetMockTimebased1()
+	expectedTimebased := getMockTimebased1()
 	require.Equal(t, expectedTimebased.Filters[0].Rule, tb.Filters[0].Rule)
 	require.Equal(t, expectedTimebased.Filters[1].Rule, tb.Filters[1].Rule)
 }

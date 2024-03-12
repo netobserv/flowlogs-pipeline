@@ -72,7 +72,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 			ct.metrics.inputRecords.WithLabelValues("discarded").Inc()
 			continue
 		}
-		computedHash, err := ComputeHash(fl, ct.config.KeyDefinition, ct.hashProvider(), ct.metrics)
+		computedHash, err := computeHash(fl, &ct.config.KeyDefinition, ct.hashProvider(), ct.metrics)
 		if err != nil {
 			log.Warningf("skipping flow log %v: %v", fl, err)
 			ct.metrics.inputRecords.WithLabelValues("rejected").Inc()
@@ -89,11 +89,11 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 					log.Warningf("too many connections; skipping flow log %v: ", fl)
 					ct.metrics.inputRecords.WithLabelValues("discarded").Inc()
 				} else {
-					builder := NewConnBuilder(ct.metrics)
+					builder := newConnBuilder(ct.metrics)
 					conn = builder.
-						ShouldSwapAB(ct.config.TCPFlags.SwapAB && ct.containsTcpFlag(fl, SYN_ACK_FLAG)).
+						ShouldSwapAB(ct.config.TCPFlags.SwapAB && ct.containsTCPFlag(fl, SYNACKFlag)).
 						Hash(computedHash).
-						KeysFrom(fl, ct.config.KeyDefinition, ct.endpointAFields, ct.endpointBFields).
+						keysFrom(fl, &ct.config.KeyDefinition, ct.endpointAFields, ct.endpointBFields).
 						Aggregators(ct.aggregators).
 						Hash(computedHash).
 						Build()
@@ -185,7 +185,7 @@ func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.Generi
 		agg.update(conn, flowLog, d, isNew)
 	}
 
-	if ct.config.TCPFlags.DetectEndConnection && ct.containsTcpFlag(flowLog, FIN_FLAG) {
+	if ct.config.TCPFlags.DetectEndConnection && ct.containsTCPFlag(flowLog, FINFlag) {
 		ct.metrics.tcpFlags.WithLabelValues("detectEndConnection").Inc()
 		ct.connStore.setConnectionTerminating(flowLogHash.hashTotal)
 	} else {
@@ -193,7 +193,7 @@ func (ct *conntrackImpl) updateConnection(conn connection, flowLog config.Generi
 	}
 }
 
-func (ct *conntrackImpl) containsTcpFlag(flowLog config.GenericMap, queryFlag uint32) bool {
+func (ct *conntrackImpl) containsTCPFlag(flowLog config.GenericMap, queryFlag uint32) bool {
 	tcpFlagsRaw, ok := flowLog[ct.config.TCPFlags.FieldName]
 	if ok {
 		tcpFlags, err := utils.ConvertToUint32(tcpFlagsRaw)
@@ -278,8 +278,8 @@ func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam
 	return conntrack, nil
 }
 
-func addHashField(record config.GenericMap, hashId uint64) {
-	record[api.HashIdFieldName] = strconv.FormatUint(hashId, 16)
+func addHashField(record config.GenericMap, hashID uint64) {
+	record[api.HashIDFieldName] = strconv.FormatUint(hashID, 16)
 }
 
 func addTypeField(record config.GenericMap, recordType string) {

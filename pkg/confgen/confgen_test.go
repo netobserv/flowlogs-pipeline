@@ -391,10 +391,10 @@ func Test_GenerateTruncatedConfig(t *testing.T) {
 		}},
 	}, params[1].Encode.Prom)
 
-	panels, err := cg.GenerateGrafanaJson()
+	panels, err := cg.GenerateGrafanaJSON()
 	require.NoError(t, err)
-	var panelJson map[string]interface{}
-	err = yaml.UnmarshalStrict([]byte(panels), &panelJson)
+	var panelJSON map[string]interface{}
+	err = yaml.UnmarshalStrict([]byte(panels), &panelJSON)
 	require.NoError(t, err)
 }
 

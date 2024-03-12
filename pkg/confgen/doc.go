@@ -39,9 +39,9 @@ func (cg *ConfGen) generateVisualizeText(vgs []VisualizationGrafana) string {
 
 func (cg *ConfGen) generatePromEncodeText(metrics api.MetricsItems) string {
 	section := ""
-	for _, metric := range metrics {
-		mType := metric.Type
-		name := cg.config.Encode.Prom.Prefix + metric.Name
+	for i := range metrics {
+		mType := metrics[i].Type
+		name := cg.config.Encode.Prom.Prefix + metrics[i].Name
 		section = section + fmt.Sprintf("| **Exposed as** | `%s` of type `%s` |\n", name, mType)
 	}
 
@@ -65,7 +65,8 @@ func (cg *ConfGen) generateOperationText(definitions api.AggregateDefinitions) s
 
 func (cg *ConfGen) generateDoc(fileName string) error {
 	doc := ""
-	for _, metric := range cg.definitions {
+	for i := range cg.definitions {
+		metric := &cg.definitions[i]
 		replacer := strings.NewReplacer("-", " ", "_", " ")
 		name := replacer.Replace(filepath.Base(metric.FileName[:len(metric.FileName)-len(filepath.Ext(metric.FileName))]))
 

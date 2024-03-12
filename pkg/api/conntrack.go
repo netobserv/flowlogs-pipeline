@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	HashIdFieldName     = "_HashId"
+	HashIDFieldName     = "_HashId"
 	RecordTypeFieldName = "_RecordType"
 	IsFirstFieldName    = "_IsFirst"
 )
@@ -103,6 +103,7 @@ type ConnTrackTCPFlags struct {
 	SwapAB              bool   `yaml:"swapAB,omitempty" json:"swapAB,omitempty" doc:"swap source and destination when the first flowlog contains the SYN_ACK flag"`
 }
 
+//nolint:cyclop
 func (ct *ConnTrack) Validate() error {
 	isGroupAEmpty := ct.KeyDefinition.Hash.FieldGroupARef == ""
 	isGroupBEmpty := ct.KeyDefinition.Hash.FieldGroupBRef == ""

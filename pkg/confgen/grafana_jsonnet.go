@@ -216,7 +216,7 @@ func (cg *ConfGen) generateGrafanaJsonnetFiles(folderName string, dashboards Das
 	return nil
 }
 
-func (cg *ConfGen) generateJsonFiles(folderName string, dashboards Dashboards) error {
+func (cg *ConfGen) generateJSONFiles(folderName string, dashboards Dashboards) error {
 	err := os.MkdirAll(folderName, 0755)
 	if err != nil {
 		log.Debugf("os.MkdirAll err: %v ", err)
@@ -224,7 +224,7 @@ func (cg *ConfGen) generateJsonFiles(folderName string, dashboards Dashboards) e
 	}
 	// write to destination files
 	for _, dashboard := range dashboards {
-		jsonStr, err := cg.generateGrafanaJsonStr(dashboard)
+		jsonStr, err := cg.generateGrafanaJSONStr(dashboard)
 		if err != nil {
 			return err
 		}
@@ -346,25 +346,25 @@ type fsCacheEntry struct {
 	exists   bool
 }
 
-func (cg *ConfGen) GenerateGrafanaJson() (string, error) {
+func (cg *ConfGen) GenerateGrafanaJSON() (string, error) {
 	log.Debugf("grafanaDir = %v", grafanaDir)
 	dashboards, err := cg.generateGrafanaDashboards()
 	if err != nil {
 		log.Debugf("cg.generateGrafanaJsonnetDashboards err: %v ", err)
 		return "", err
 	}
-	panelsJson := ""
+	panelsJSON := ""
 	for _, dashboard := range dashboards {
-		jsonStr, err := cg.generateGrafanaJsonStr(dashboard)
+		jsonStr, err := cg.generateGrafanaJSONStr(dashboard)
 		if err != nil {
 			return "", err
 		}
-		panelsJson = panelsJson + jsonStr
+		panelsJSON = panelsJSON + jsonStr
 	}
-	return panelsJson, nil
+	return panelsJSON, nil
 }
 
-func (cg *ConfGen) generateGrafanaJsonStr(dashboard Dashboard) (string, error) {
+func (cg *ConfGen) generateGrafanaJSONStr(dashboard Dashboard) (string, error) {
 	vm := jsonnet.MakeVM()
 	importer := &embedImporter{fsBase: grafanaDir}
 	err := importer.initializeCache()
@@ -398,7 +398,7 @@ func (importer *embedImporter) initializeCache() error {
 }
 
 // Import is the function required by the Importer interface to find source files
-func (importer *embedImporter) Import(importedFrom, importedPath string) (jsonnet.Contents, string, error) {
+func (importer *embedImporter) Import(_, importedPath string) (jsonnet.Contents, string, error) {
 	// ignore the importedFrom parameter
 
 	// search for item in cache

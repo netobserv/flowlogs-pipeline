@@ -101,7 +101,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 	pl := NewKafkaPipeline("ingest", api.IngestKafka{
 		Brokers: []string{"http://kafka"},
 		Topic:   "netflows",
-		GroupId: "my-group",
+		GroupID: "my-group",
 		Decoder: api.Decoder{Type: "json"},
 		TLS: &api.ClientTLS{
 			InsecureSkipVerify: true,

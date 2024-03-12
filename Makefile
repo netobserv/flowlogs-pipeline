@@ -107,7 +107,7 @@ validate_go:
 
 .PHONY: validate_go lint
 lint: $(GOLANGCI_LINT) ## Lint the code
-	$(GOLANGCI_LINT) run --enable goimports --enable gofmt --enable ineffassign --timeout 5m
+	$(GOLANGCI_LINT) run ./... --timeout=3m
 
 .PHONY: build_code
 build_code:

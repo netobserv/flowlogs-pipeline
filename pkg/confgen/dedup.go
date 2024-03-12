@@ -56,7 +56,7 @@ func containsNetworkTransformRule(slice []api.NetworkTransformRule, rule api.Net
 func dedupeAggregateDefinitions(aggregateDefinitions api.AggregateDefinitions) api.AggregateDefinitions {
 	var dedupeSlice []api.AggregateDefinition
 	for i, aggregateDefinition := range aggregateDefinitions {
-		if containsAggregateDefinitions(dedupeSlice, aggregateDefinition) {
+		if containsAggregateDefinitions(dedupeSlice, &aggregateDefinition) {
 			// duplicate aggregateDefinition
 			log.Debugf("Remove duplicate AggregateDefinitions %v at index %v", aggregateDefinition, i)
 			continue
@@ -66,9 +66,9 @@ func dedupeAggregateDefinitions(aggregateDefinitions api.AggregateDefinitions) a
 	return dedupeSlice
 }
 
-func containsAggregateDefinitions(slice []api.AggregateDefinition, searchItem api.AggregateDefinition) bool {
+func containsAggregateDefinitions(slice []api.AggregateDefinition, searchItem *api.AggregateDefinition) bool {
 	for _, item := range slice {
-		if reflect.DeepEqual(item, searchItem) {
+		if reflect.DeepEqual(item, *searchItem) {
 			return true
 		}
 	}

@@ -18,6 +18,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"testing"
@@ -31,7 +32,8 @@ func TestTheMain(t *testing.T) {
 	cmd := exec.Command(os.Args[0], "-test.run=TestTheMain")
 	cmd.Env = append(os.Environ(), "BE_CRASHER=1")
 	err := cmd.Run()
-	if e, ok := err.(*exec.ExitError); ok && !e.Success() {
+	var castErr *exec.ExitError
+	if errors.As(err, &castErr) && !castErr.Success() {
 		return
 	}
 	t.Fatalf("process ran with err %v, want exit status 1", err)

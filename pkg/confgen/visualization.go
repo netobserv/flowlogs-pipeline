@@ -53,16 +53,16 @@ type ConfigVisualizationGrafana struct {
 type Visualizations []Visualization
 
 func (cg *ConfGen) parseVisualization(visualization *Visualization) (*Visualization, error) {
-	var jsoniterJson = jsoniter.ConfigCompatibleWithStandardLibrary
+	jsoniterJSON := jsoniter.ConfigCompatibleWithStandardLibrary
 	localVisualization := *visualization
-	b, err := jsoniterJson.Marshal(&localVisualization)
+	b, err := jsoniterJSON.Marshal(&localVisualization)
 	if err != nil {
-		log.Debugf("jsoniterJson.Marshal err: %v ", err)
+		log.Debugf("jsoniterJSON.Marshal err: %v ", err)
 		return nil, err
 	}
 
 	var jsonVisualization Visualization
-	err = config.JsonUnmarshalStrict(b, &jsonVisualization)
+	err = config.JSONUnmarshalStrict(b, &jsonVisualization)
 	if err != nil {
 		log.Debugf("Unmarshal aggregate.Definitions err: %v ", err)
 		return nil, err

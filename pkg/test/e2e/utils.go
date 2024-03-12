@@ -20,6 +20,7 @@ package e2e
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -31,7 +32,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/vladimirvivien/gexe"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -100,7 +100,7 @@ func e2eBuildAndLoadImageIntoKind(org, version, arch, clusterName string) env.Fu
 		p := e.RunProc(fmt.Sprintf(`/bin/sh -c "cd $(git rev-parse --show-toplevel); MULTIARCH_TARGETS=%s IMAGE_ORG=%s VERSION=%s KIND_CLUSTER_NAME=%s make image-build kind-load-image"`,
 			arch, org, version, clusterName))
 		if p.Err() != nil || !p.IsSuccess() || p.ExitCode() != 0 {
-			return nil, fmt.Errorf("failed to build or load docker image err=%v result=%v", p.Err(), p.Result())
+			return nil, fmt.Errorf("failed to build or load docker image err=%w result=%v", p.Err(), p.Result())
 		}
 		fmt.Printf("====> Done.\n")
 		return ctx, nil
@@ -171,17 +171,17 @@ func e2eDeployEnvironmentResources(manifestDeployDefinitions ManifestDeployDefin
 			if manifestDeployDefinition.PreFunction != nil {
 				err := manifestDeployDefinition.PreFunction(ctx, cfg, namespace)
 				if err != nil {
-					return ctx, fmt.Errorf("e2eDeployEnvironmentResources:PreFunction: error: %v", err)
+					return ctx, fmt.Errorf("e2eDeployEnvironmentResources:PreFunction: error: %w", err)
 				}
 			}
 			err := deployManifest(ctx, cfg, namespace, manifestDeployDefinition.YamlFile)
 			if err != nil {
-				return ctx, fmt.Errorf("deployManifest failed: %v", err)
+				return ctx, fmt.Errorf("deployManifest failed: %w", err)
 			}
 			if manifestDeployDefinition.PostFunction != nil {
 				err = manifestDeployDefinition.PostFunction(ctx, cfg, namespace)
 				if err != nil {
-					return ctx, fmt.Errorf("e2eDeployEnvironmentResources:PostFunction: error: %v", err)
+					return ctx, fmt.Errorf("e2eDeployEnvironmentResources:PostFunction: error: %w", err)
 				}
 			}
 		}
@@ -190,14 +190,15 @@ func e2eDeployEnvironmentResources(manifestDeployDefinitions ManifestDeployDefin
 	}
 }
 
-func deployManifest(ctx context.Context, cfg *envconf.Config, namespace string, yamlFileName string) error {
+func deployManifest(_ context.Context, _ *envconf.Config, namespace string, yamlFileName string) error {
 	fmt.Printf("====> Deploying k8s manifest - %s\n", yamlFileName)
 	cmd := fmt.Sprintf("cat %s | kubectl apply -n %s -f -", yamlFileName, namespace)
 	out, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
 		fmt.Printf("deployManifest %s error :: %v\n", yamlFileName, err)
 		fmt.Printf("  Stdeout: %v\n", string(out))
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
 			fmt.Printf("  Stderror: %v\n", string(exitErr.Stderr))
 		}
 	}
@@ -220,10 +221,11 @@ func GetCoreV1Client(confFileName string) (*corev1client.CoreV1Client, error) {
 	return clientSet, err
 }
 
-func LogsFromPods(pods corev1.PodList, coreV1Client *corev1client.CoreV1Client, namespace string) string {
+func LogsFromPods(pods *corev1.PodList, coreV1Client *corev1client.CoreV1Client, namespace string) string {
 	var logsBuilder strings.Builder
-	for _, pod := range pods.Items {
-		req := coreV1Client.Pods(namespace).GetLogs(pod.GetName(), &v1.PodLogOptions{Follow: false})
+	for i := range pods.Items {
+		pod := &pods.Items[i]
+		req := coreV1Client.Pods(namespace).GetLogs(pod.GetName(), &corev1.PodLogOptions{Follow: false})
 		podLogs, err := req.Stream(context.TODO())
 		if err != nil {
 			log.Errorf("req.Stream from pod %s error %v", pod.GetName(), err)

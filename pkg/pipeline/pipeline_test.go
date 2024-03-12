@@ -116,7 +116,7 @@ func Test_SimplePipeline(t *testing.T) {
 	// So we don't need to run it in a separate go-routine
 	mainPipeline.Run()
 	// What is there left to check? Check length of saved data of each stage in private structure.
-	writer := mainPipeline.pipelineStages[2].Writer.(*write.WriteNone)
+	writer := mainPipeline.pipelineStages[2].Writer.(*write.None)
 
 	// values checked from the first line of the ../../hack/examples/ocp-ipfix-flowlogs.json file
 	test2.Eventually(t, 30*time.Second, func(t require.TestingT) {

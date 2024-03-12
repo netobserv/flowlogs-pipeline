@@ -135,8 +135,8 @@ func TestMultiOrderedMap_IterateFrontToBack(t *testing.T) {
 		mustAddRecord(t, mom, 5, "aaaa")
 		mustAddRecord(t, mom, 6, "ddd")
 		mustAddRecord(t, mom, 7, "b")
-		mom.IterateFrontToBack(lengthOrder, func(record Record) (delete, stop bool) {
-			delete = true
+		mom.IterateFrontToBack(lengthOrder, func(record Record) (del, stop bool) {
+			del = true
 			return
 		})
 		require.Zero(t, mom.Len())
@@ -150,10 +150,10 @@ func TestMultiOrderedMap_IterateFrontToBack(t *testing.T) {
 		mustAddRecord(t, mom, 7, "ccc")
 		mustAddRecord(t, mom, 8, "d")
 		var actualIteratedRecords []string
-		mom.IterateFrontToBack(lexicalOrder, func(record Record) (delete, stop bool) {
+		mom.IterateFrontToBack(lexicalOrder, func(record Record) (del, stop bool) {
 			actualIteratedRecords = append(actualIteratedRecords, record.(string))
 			if record == "bb" {
-				delete = true
+				del = true
 			}
 			if record == "ccc" {
 				stop = true

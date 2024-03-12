@@ -100,6 +100,8 @@ func (agg *aggregateBase) getOutputField(d direction) string {
 			outputField += "_AB"
 		case dirBA:
 			outputField += "_BA"
+		case dirNA:
+			fallthrough
 		default:
 			log.Panicf("splitAB aggregator %v cannot determine outputField because direction is missing. Check configuration.", outputField)
 		}
@@ -139,7 +141,7 @@ func (agg *aggregateBase) addField(conn connection) {
 	}
 }
 
-func (agg *aSum) update(conn connection, flowLog config.GenericMap, d direction, isNew bool) {
+func (agg *aSum) update(conn connection, flowLog config.GenericMap, d direction, _ bool) {
 	outputField := agg.getOutputField(d)
 	v, err := agg.getInputFieldValue(flowLog)
 	if err != nil {
@@ -151,14 +153,14 @@ func (agg *aSum) update(conn connection, flowLog config.GenericMap, d direction,
 	})
 }
 
-func (agg *aCount) update(conn connection, flowLog config.GenericMap, d direction, isNew bool) {
+func (agg *aCount) update(conn connection, _ config.GenericMap, d direction, _ bool) {
 	outputField := agg.getOutputField(d)
 	conn.updateAggFnValue(outputField, func(curr float64) float64 {
 		return curr + 1
 	})
 }
 
-func (agg *aMin) update(conn connection, flowLog config.GenericMap, d direction, isNew bool) {
+func (agg *aMin) update(conn connection, flowLog config.GenericMap, d direction, _ bool) {
 	outputField := agg.getOutputField(d)
 	v, err := agg.getInputFieldValue(flowLog)
 	if err != nil {
@@ -171,7 +173,7 @@ func (agg *aMin) update(conn connection, flowLog config.GenericMap, d direction,
 	})
 }
 
-func (agg *aMax) update(conn connection, flowLog config.GenericMap, d direction, isNew bool) {
+func (agg *aMax) update(conn connection, flowLog config.GenericMap, d direction, _ bool) {
 	outputField := agg.getOutputField(d)
 	v, err := agg.getInputFieldValue(flowLog)
 	if err != nil {
@@ -184,13 +186,13 @@ func (agg *aMax) update(conn connection, flowLog config.GenericMap, d direction,
 	})
 }
 
-func (cp *aFirst) update(conn connection, flowLog config.GenericMap, d direction, isNew bool) {
+func (cp *aFirst) update(conn connection, flowLog config.GenericMap, _ direction, isNew bool) {
 	if isNew {
 		conn.updateAggValue(cp.outputField, flowLog[cp.inputField])
 	}
 }
 
-func (cp *aLast) update(conn connection, flowLog config.GenericMap, d direction, isNew bool) {
+func (cp *aLast) update(conn connection, flowLog config.GenericMap, _ direction, _ bool) {
 	if flowLog[cp.inputField] != nil {
 		conn.updateAggValue(cp.outputField, flowLog[cp.inputField])
 	}

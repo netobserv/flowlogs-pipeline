@@ -25,15 +25,15 @@ import (
 )
 
 func (cg *ConfGen) parseTransport(transform *map[string]interface{}) (*api.TransformNetwork, error) {
-	var jsoniterJson = jsoniter.ConfigCompatibleWithStandardLibrary
-	b, err := jsoniterJson.Marshal(transform)
+	jsoniterJSON := jsoniter.ConfigCompatibleWithStandardLibrary
+	b, err := jsoniterJSON.Marshal(transform)
 	if err != nil {
-		log.Debugf("jsoniterJson.Marshal err: %v ", err)
+		log.Debugf("jsoniterJSON.Marshal err: %v ", err)
 		return nil, err
 	}
 
 	var jsonNetworkTransform api.TransformNetwork
-	err = config.JsonUnmarshalStrict(b, &jsonNetworkTransform)
+	err = config.JSONUnmarshalStrict(b, &jsonNetworkTransform)
 	if err != nil {
 		log.Debugf("Unmarshal transform.TransformNetwork err: %v ", err)
 		return nil, err

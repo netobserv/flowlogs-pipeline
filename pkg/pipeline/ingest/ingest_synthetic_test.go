@@ -35,7 +35,7 @@ func TestIngestSynthetic(t *testing.T) {
 		},
 	}
 	ingest, err := NewIngestSynthetic(operational.NewMetrics(&config.MetricsSettings{}), params)
-	syn := ingest.(*IngestSynthetic)
+	syn := ingest.(*ingestSynthetic)
 	require.NoError(t, err)
 	require.Equal(t, defaultBatchLen, syn.params.BatchMaxLen)
 	require.Equal(t, defaultConnections, syn.params.Connections)
@@ -56,7 +56,7 @@ func TestIngestSynthetic(t *testing.T) {
 		},
 	}
 	ingest, err = NewIngestSynthetic(operational.NewMetrics(&config.MetricsSettings{}), params)
-	syn = ingest.(*IngestSynthetic)
+	syn = ingest.(*ingestSynthetic)
 	require.NoError(t, err)
 	require.Equal(t, batchMaxLen, syn.params.BatchMaxLen)
 	require.Equal(t, connections, syn.params.Connections)

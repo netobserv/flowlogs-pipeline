@@ -102,13 +102,12 @@ func (cg *ConfGen) Run() error {
 			return err
 		}
 		return nil
-	} else {
-		config := cg.GenerateFlowlogs2PipelineConfig()
-		err = cg.writeConfigFile(cg.opts.DestConfFile, config)
-		if err != nil {
-			log.Debugf("cg.GenerateFlowlogs2PipelineConfig err: %v ", err)
-			return err
-		}
+	}
+	config := cg.GenerateFlowlogs2PipelineConfig()
+	err = cg.writeConfigFile(cg.opts.DestConfFile, config)
+	if err != nil {
+		log.Debugf("cg.GenerateFlowlogs2PipelineConfig err: %v ", err)
+		return err
 	}
 
 	err = cg.generateDoc(cg.opts.DestDocFile)
@@ -129,9 +128,9 @@ func (cg *ConfGen) Run() error {
 		return err
 	}
 
-	err = cg.generateJsonFiles(cg.opts.DestDashboardFolder, dashboards)
+	err = cg.generateJSONFiles(cg.opts.DestDashboardFolder, dashboards)
 	if err != nil {
-		log.Debugf("cg.generateJsonFiles err: %v ", err)
+		log.Debugf("cg.generateJSONFiles err: %v ", err)
 		return err
 	}
 	return nil

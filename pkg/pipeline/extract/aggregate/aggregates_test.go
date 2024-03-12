@@ -57,7 +57,7 @@ func Test_NewAggregatesFromConfig(t *testing.T) {
 	aggregates := initAggregates(t)
 	expectedAggregate := GetMockAggregate()
 
-	require.Equal(t, aggregates.Aggregates[0].Definition, expectedAggregate.Definition)
+	require.Equal(t, aggregates.Aggregates[0].definition, expectedAggregate.definition)
 }
 
 func Test_CleanupExpiredEntriesLoop(t *testing.T) {
@@ -66,7 +66,7 @@ func Test_CleanupExpiredEntriesLoop(t *testing.T) {
 	cleanupLoopTime = 4 * time.Second   // clean up after 4 seconds
 	aggregates := initAggregates(t)
 	expectedAggregate := GetMockAggregate()
-	require.Equal(t, expectedAggregate.Definition, aggregates.Aggregates[0].Definition)
+	require.Equal(t, expectedAggregate.definition, aggregates.Aggregates[0].definition)
 
 	entry := test.GetIngestMockEntry(false)
 	err := aggregates.Evaluate([]config.GenericMap{entry})

@@ -47,6 +47,7 @@ type subnetCategory struct {
 	name  string
 }
 
+//nolint:cyclop
 func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bool) {
 	// copy input entry before transform to avoid alteration on parallel stages
 	outputEntry := inputEntry.Copy()
@@ -71,7 +72,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				continue
 			}
 			var locationInfo *location.Info
-			err, locationInfo := location.GetLocation(fmt.Sprintf("%s", outputEntry[rule.AddLocation.Input]))
+			locationInfo, err := location.GetLocation(fmt.Sprintf("%s", outputEntry[rule.AddLocation.Input]))
 			if err != nil {
 				log.Warningf("Can't find location for IP %v err %v", outputEntry[rule.AddLocation.Input], err)
 				continue
@@ -116,7 +117,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				logrus.Error("transformation rule: Missing configuration ")
 				continue
 			}
-			kubernetes.EnrichLayer(outputEntry, *rule.KubernetesInfra)
+			kubernetes.EnrichLayer(outputEntry, rule.KubernetesInfra)
 		case api.OpReinterpretDirection:
 			reinterpretDirection(outputEntry, &n.DirectionInfo)
 		case api.OpAddIPCategory:
@@ -155,6 +156,8 @@ func (n *Network) categorizeIP(ip net.IP) string {
 }
 
 // NewTransformNetwork create a new transform
+//
+//nolint:cyclop
 func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	var needToInitLocationDB = false
 	var needToInitKubeData = false

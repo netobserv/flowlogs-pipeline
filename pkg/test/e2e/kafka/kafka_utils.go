@@ -146,7 +146,7 @@ func getInput(t *testing.T) []lineBuffer {
 	return lines
 }
 
-func receiveData(t *testing.T, consumer *kafkago.Reader, nLines int) []lineBuffer {
+func receiveData(consumer *kafkago.Reader, nLines int) []lineBuffer {
 	fmt.Printf("receiveData:  nLines = %d \n", nLines)
 	output := make([]lineBuffer, nLines)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)

@@ -138,6 +138,7 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 	}
 }
 
+//nolint:cyclop
 func matchElement(t *testing.T, element entities.InfoElementWithValue, flow config.GenericMap) {
 	switch element.GetName() {
 	case "sourceIPv4Address":

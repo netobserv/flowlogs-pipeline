@@ -135,7 +135,7 @@ func newMockRecordHeartbeat(srcIP string, srcPort int, dstIP string, dstPort int
 }
 
 func (m *mockRecord) withHash(hashStr string) *mockRecord {
-	m.record[api.HashIdFieldName] = hashStr
+	m.record[api.HashIDFieldName] = hashStr
 	return m
 }
 

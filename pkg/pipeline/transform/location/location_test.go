@@ -46,7 +46,7 @@ func Test_InitLocationDB(t *testing.T) {
 	_dbURL = "test_fake"
 	err = InitLocationDB()
 	require.Contains(t, err.Error(), "http.Get")
-	_dbURL = dbUrl
+	_dbURL = dbURL
 	_osio.Stat = os.Stat
 	_osio.Create = os.Create
 
@@ -60,7 +60,7 @@ func Test_InitLocationDB(t *testing.T) {
 	err = InitLocationDB()
 	require.Contains(t, err.Error(), "io.Copy")
 	testServer.Close()
-	_dbURL = dbUrl
+	_dbURL = dbURL
 	_osio.Stat = os.Stat
 	_osio.Create = os.Create
 
@@ -74,7 +74,7 @@ func Test_InitLocationDB(t *testing.T) {
 	err = InitLocationDB()
 	require.Contains(t, err.Error(), "io.Copy")
 	testServer.Close()
-	_dbURL = dbUrl
+	_dbURL = dbURL
 	_osio.Stat = os.Stat
 	_osio.Create = os.Create
 
@@ -88,7 +88,7 @@ func Test_InitLocationDB(t *testing.T) {
 	err = InitLocationDB()
 	require.Contains(t, err.Error(), "failed unzip")
 	testServer.Close()
-	_dbURL = dbUrl
+	_dbURL = dbURL
 	_osio.Stat = os.Stat
 
 	// fail in OpenDB
@@ -105,7 +105,7 @@ func Test_InitLocationDB(t *testing.T) {
 	err = InitLocationDB()
 	require.Error(t, err)
 	testServer.Close()
-	_dbURL = dbUrl
+	_dbURL = dbURL
 	_osio.Stat = os.Stat
 	// success
 	// NOTE:: Downloading the DB is a long operation, about 30 seconds, and this delays the tests
@@ -117,12 +117,12 @@ func Test_InitLocationDB(t *testing.T) {
 
 func Test_GetLocation(t *testing.T) {
 	locationDB = nil
-	err, info := GetLocation("test")
+	info, err := GetLocation("test")
 	require.Contains(t, err.Error(), "no location DB available")
 	require.Nil(t, info)
 
 	locationDB = &ip2location.DB{}
-	err, info = GetLocation("test")
+	info, err = GetLocation("test")
 	require.Contains(t, info.CountryName, "Invalid database file.")
 	require.Nil(t, err)
 }

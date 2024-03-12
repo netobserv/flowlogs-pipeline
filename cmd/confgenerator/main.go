@@ -112,8 +112,8 @@ func bindFlags(cmd *cobra.Command, v *viper.Viper) {
 			case bool, uint, string, int32, int16, int8, int, uint32, uint64, int64, float64, float32, []string, []int:
 				_ = cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
 			default:
-				var jsoniterJson = jsoniter.ConfigCompatibleWithStandardLibrary
-				b, err := jsoniterJson.Marshal(&val)
+				var jsoniterJSON = jsoniter.ConfigCompatibleWithStandardLibrary
+				b, err := jsoniterJSON.Marshal(&val)
 				if err != nil {
 					log.Fatalf("can't parse flag %s into json with value %v got error %s", f.Name, val, err)
 					return
@@ -158,7 +158,7 @@ func run() {
 	confGen := confgen.NewConfGen(&opts)
 	err := confGen.Run()
 	if err != nil {
-		log.Fatalf("failed to initialize NewConfGen %s", err)
+		log.Errorf("failed to initialize NewConfGen %s", err)
 		os.Exit(1)
 	}
 }

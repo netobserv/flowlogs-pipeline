@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_WriteStdout(t *testing.T) {
+func Test_WriteStdout(_ *testing.T) {
 	ws := writeStdout{}
 	ws.Write(config.GenericMap{"key": "test"})
 }
@@ -33,5 +33,4 @@ func Test_NewWriteStdout(t *testing.T) {
 	writer, err := NewWriteStdout(config.StageParam{})
 	require.Nil(t, err)
 	require.Equal(t, writer, &writeStdout{})
-
 }

@@ -23,17 +23,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func initNewDecodeJson(t *testing.T) Decoder {
-	newDecode, err := NewDecodeJson()
+func initNewDecodeJSON(t *testing.T) Decoder {
+	newDecode, err := NewDecodeJSON()
 	require.Equal(t, nil, err)
 	return newDecode
 }
 
-func TestDecodeJson(t *testing.T) {
-	newDecode := initNewDecodeJson(t)
-	decodeJson := newDecode.(*DecodeJson)
+func TestDecodeJSON(t *testing.T) {
+	newDecode := initNewDecodeJSON(t)
+	decodeJSON := newDecode.(*DecodeJSON)
 
-	out, err := decodeJson.Decode([]byte(
+	out, err := decodeJSON.Decode([]byte(
 		"{\"varInt\": 12, \"varString\":\"testString\", \"varBool\":false}"))
 	require.NoError(t, err)
 	require.Equal(t, float64(12), out["varInt"])
@@ -42,7 +42,7 @@ func TestDecodeJson(t *testing.T) {
 	// TimeReceived is added if it does not exist
 	require.NotZero(t, out["TimeReceived"])
 
-	out, err = decodeJson.Decode([]byte(
+	out, err = decodeJSON.Decode([]byte(
 		"{\"varInt\": 14, \"varString\":\"testString2\", \"varBool\":true, \"TimeReceived\":12345}"))
 	require.NoError(t, err)
 	// TimeReceived is kept if it already existed
@@ -51,10 +51,10 @@ func TestDecodeJson(t *testing.T) {
 	// TODO: Check for more complicated json structures
 }
 
-func TestDecodeJsonTimestamps(t *testing.T) {
-	newDecode := initNewDecodeJson(t)
-	decodeJson := newDecode.(*DecodeJson)
-	out, err := decodeJson.Decode([]byte("{\"unixTime\": 1645104030 }"))
+func TestDecodeJSONTimestamps(t *testing.T) {
+	newDecode := initNewDecodeJSON(t)
+	decodeJSON := newDecode.(*DecodeJSON)
+	out, err := decodeJSON.Decode([]byte("{\"unixTime\": 1645104030 }"))
 	require.NoError(t, err)
 	require.Equal(t, float64(1645104030), out["unixTime"])
 }
