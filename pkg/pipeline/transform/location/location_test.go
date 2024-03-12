@@ -33,16 +33,16 @@ import (
 
 func Test_InitLocationDB(t *testing.T) {
 	// fail in os.Create
-	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	_osio.Create = func(name string) (*os.File, error) { return nil, fmt.Errorf("test") }
+	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+	_osio.Create = func(_ string) (*os.File, error) { return nil, fmt.Errorf("test") }
 	err := InitLocationDB()
 	require.Contains(t, err.Error(), "os.Create")
 	_osio.Stat = os.Stat
 	_osio.Create = os.Create
 
 	// fail in http.Get
-	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	_osio.Create = func(name string) (*os.File, error) { return nil, nil }
+	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+	_osio.Create = func(_ string) (*os.File, error) { return nil, nil }
 	_dbURL = "test_fake"
 	err = InitLocationDB()
 	require.Contains(t, err.Error(), "http.Get")
@@ -51,9 +51,9 @@ func Test_InitLocationDB(t *testing.T) {
 	_osio.Create = os.Create
 
 	// fail in io.Copy
-	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	_osio.Create = func(name string) (*os.File, error) { return nil, nil }
-	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+	_osio.Create = func(_ string) (*os.File, error) { return nil, nil }
+	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
 		_, _ = res.Write([]byte("test"))
 	}))
 	_dbURL = testServer.URL
@@ -65,9 +65,9 @@ func Test_InitLocationDB(t *testing.T) {
 	_osio.Create = os.Create
 
 	// fail again in io.Copy
-	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	_osio.Create = func(name string) (*os.File, error) { return nil, nil }
-	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+	_osio.Create = func(_ string) (*os.File, error) { return nil, nil }
+	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
 		res.WriteHeader(http.StatusOK)
 	}))
 	_dbURL = testServer.URL
@@ -79,8 +79,8 @@ func Test_InitLocationDB(t *testing.T) {
 	_osio.Create = os.Create
 
 	// fail in unzip
-	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
 		_, _ = res.Write([]byte("test"))
 		res.WriteHeader(http.StatusOK)
 	}))
@@ -92,12 +92,12 @@ func Test_InitLocationDB(t *testing.T) {
 	_osio.Stat = os.Stat
 
 	// fail in OpenDB
-	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
 	buf := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(buf)
 	_, _ = zipWriter.Create(dbFilename)
 	zipWriter.Close()
-	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
 		_, _ = res.Write(buf.Bytes())
 		res.WriteHeader(http.StatusOK)
 	}))

@@ -211,7 +211,7 @@ func (aggregate *Aggregate) GetMetrics() []config.GenericMap {
 	var metrics []config.GenericMap
 
 	// iterate over the items in the cache
-	aggregate.cache.Iterate(func(key string, value interface{}) {
+	aggregate.cache.Iterate(func(_ string, value interface{}) {
 		group := value.(*GroupState)
 		newEntry := config.GenericMap{
 			"name":              aggregate.definition.Name,

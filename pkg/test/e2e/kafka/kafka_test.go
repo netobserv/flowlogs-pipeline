@@ -81,7 +81,7 @@ func postStrimziDeploy(_ context.Context, cfg *envconf.Config, namespace string)
 
 func TestKafka_Basic(t *testing.T) {
 	pipelineFeature := features.New("FLP/kafka").WithLabel("env", "dev").
-		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+		Setup(func(ctx context.Context, _ *testing.T, _ *envconf.Config) context.Context {
 			return ctx
 		}).
 		Assess("Kafka working as expected", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {

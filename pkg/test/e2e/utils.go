@@ -94,7 +94,7 @@ func e2eDeleteKindCluster(clusterName string) env.Func {
 }
 
 func e2eBuildAndLoadImageIntoKind(org, version, arch, clusterName string) env.Func {
-	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+	return func(ctx context.Context, _ *envconf.Config) (context.Context, error) {
 		e := gexe.New()
 		fmt.Printf("====> building docker image - %s:%s\n", org, version)
 		p := e.RunProc(fmt.Sprintf(`/bin/sh -c "cd $(git rev-parse --show-toplevel); MULTIARCH_TARGETS=%s IMAGE_ORG=%s VERSION=%s KIND_CLUSTER_NAME=%s make image-build kind-load-image"`,

@@ -59,7 +59,7 @@ func printLogsFromPods(t *testing.T, cfg *envconf.Config) {
 
 func TestPipeline_Basic(t *testing.T) {
 	pipelineFeature := features.New("FLP/pipeline").WithLabel("env", "dev").
-		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+		Setup(func(ctx context.Context, _ *testing.T, _ *envconf.Config) context.Context {
 			return ctx
 		}).
 		Assess("FLP deployment available", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {

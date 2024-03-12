@@ -173,7 +173,7 @@ func NewQuietExpiringTimedCache(expiry time.Duration) *TimedCache {
 			case <-ExitChannel():
 				return
 			case <-ticker.C:
-				l.CleanupExpiredEntries(expiry, func(entry interface{}) {})
+				l.CleanupExpiredEntries(expiry, func(_ interface{}) {})
 			}
 		}
 	}()

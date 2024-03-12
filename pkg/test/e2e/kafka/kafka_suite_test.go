@@ -32,7 +32,7 @@ var TestEnv env.Environment
 var manifestDeployDefinitions = e2e.ManifestDeployDefinitions{
 	e2e.ManifestDeployDefinition{
 		YamlFile: "strimzi-cluster-operator-0.31.0.yaml",
-		PostFunction: func(ctx context.Context, cfg *envconf.Config, namespace string) error {
+		PostFunction: func(_ context.Context, _ *envconf.Config, _ string) error {
 			// Wait few seconds to allow the CRD to be registered so the next step does not fail
 			time.Sleep(5 * time.Second)
 			return nil

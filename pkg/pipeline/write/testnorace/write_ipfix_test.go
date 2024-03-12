@@ -204,7 +204,7 @@ func startCollector(t *testing.T) *collector.CollectingProcess {
 	go cp.Start()
 
 	// Wait for collector to be ready
-	checkConn := func(ctx context.Context) (bool, error) {
+	checkConn := func(_ context.Context) (bool, error) {
 		addr := cp.GetAddress()
 		if addr == nil || strings.HasSuffix(addr.String(), ":0") {
 			return false, fmt.Errorf("random port is not resolved")

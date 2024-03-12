@@ -55,7 +55,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "flowlogs-pipeline",
 	Short: "Transform, persist and expose flow-logs as network metrics",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		run()
 	},
 }

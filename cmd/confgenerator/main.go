@@ -46,7 +46,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "confgenerator",
 	Short: "Generate configuration and docs from metric definitions",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		run()
 	},
 }
