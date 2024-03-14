@@ -362,7 +362,7 @@ func TestEnrichLayer(t *testing.T) {
 		"SrcAddr": "10.0.0.1", // openshift-monitoring
 		"DstAddr": "10.0.0.3", // netobserv/flp
 	}
-	EnrichLayer(flow, *rule.KubernetesInfra)
+	EnrichLayer(flow, rule.KubernetesInfra)
 
 	assert.Equal(t, "infra", flow["K8S_FlowLayer"])
 
@@ -371,7 +371,7 @@ func TestEnrichLayer(t *testing.T) {
 		"SrcAddr": "10.0.0.1", // openshift-monitoring
 		"DstAddr": "30.0.0.1", // node
 	}
-	EnrichLayer(flow, *rule.KubernetesInfra)
+	EnrichLayer(flow, rule.KubernetesInfra)
 
 	assert.Equal(t, "infra", flow["K8S_FlowLayer"])
 
@@ -380,7 +380,7 @@ func TestEnrichLayer(t *testing.T) {
 		"SrcAddr": "30.0.0.1", // node
 		"DstAddr": "20.0.0.1", // kube service
 	}
-	EnrichLayer(flow, *rule.KubernetesInfra)
+	EnrichLayer(flow, rule.KubernetesInfra)
 
 	assert.Equal(t, "infra", flow["K8S_FlowLayer"])
 
@@ -389,7 +389,7 @@ func TestEnrichLayer(t *testing.T) {
 		"SrcAddr": "30.0.0.1", // node
 		"DstAddr": "1.2.3.4",  // external
 	}
-	EnrichLayer(flow, *rule.KubernetesInfra)
+	EnrichLayer(flow, rule.KubernetesInfra)
 
 	assert.Equal(t, "infra", flow["K8S_FlowLayer"])
 
@@ -398,7 +398,7 @@ func TestEnrichLayer(t *testing.T) {
 		"SrcAddr": "10.0.0.2", // app pod
 		"DstAddr": "20.0.0.2", // app service
 	}
-	EnrichLayer(flow, *rule.KubernetesInfra)
+	EnrichLayer(flow, rule.KubernetesInfra)
 
 	assert.Equal(t, "app", flow["K8S_FlowLayer"])
 
@@ -407,7 +407,7 @@ func TestEnrichLayer(t *testing.T) {
 		"SrcAddr": "30.0.0.1", // node
 		"DstAddr": "20.0.0.2", // app service
 	}
-	EnrichLayer(flow, *rule.KubernetesInfra)
+	EnrichLayer(flow, rule.KubernetesInfra)
 
 	assert.Equal(t, "app", flow["K8S_FlowLayer"])
 
@@ -416,7 +416,7 @@ func TestEnrichLayer(t *testing.T) {
 		"SrcAddr": "10.0.0.2", // app pod
 		"DstAddr": "20.0.0.1", // kube service
 	}
-	EnrichLayer(flow, *rule.KubernetesInfra)
+	EnrichLayer(flow, rule.KubernetesInfra)
 
 	assert.Equal(t, "app", flow["K8S_FlowLayer"])
 
@@ -425,7 +425,7 @@ func TestEnrichLayer(t *testing.T) {
 		"SrcAddr": "10.0.0.2", // app pod
 		"DstAddr": "1.2.3.4",  // external
 	}
-	EnrichLayer(flow, *rule.KubernetesInfra)
+	EnrichLayer(flow, rule.KubernetesInfra)
 
 	assert.Equal(t, "app", flow["K8S_FlowLayer"])
 }

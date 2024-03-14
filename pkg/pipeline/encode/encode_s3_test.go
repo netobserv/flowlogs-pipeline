@@ -96,7 +96,7 @@ func Test_EncodeS3(t *testing.T) {
 	require.Equal(t, "1.2.3.4:9000", encodeS3.s3Params.Endpoint)
 	require.Equal(t, "bucket1", encodeS3.s3Params.Bucket)
 	require.Equal(t, "account1", encodeS3.s3Params.Account)
-	require.Equal(t, "accessKey1", encodeS3.s3Params.AccessKeyId)
+	require.Equal(t, "accessKey1", encodeS3.s3Params.AccessKeyID)
 	require.Equal(t, "secretAccessKey1", encodeS3.s3Params.SecretAccessKey)
 
 	entries := test.GetExtractMockEntries2()

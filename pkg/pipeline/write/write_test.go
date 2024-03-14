@@ -24,14 +24,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Write(t *testing.T) {
-	wn := WriteNone{}
+func Test_Write(_ *testing.T) {
+	wn := None{}
 	wn.Write(config.GenericMap{"key": "test"})
 }
 
 func Test_NewWriteNone(t *testing.T) {
 	writer, err := NewWriteNone()
 	require.Nil(t, err)
-	require.Equal(t, writer, &WriteNone{})
-
+	require.Equal(t, writer, &None{})
 }

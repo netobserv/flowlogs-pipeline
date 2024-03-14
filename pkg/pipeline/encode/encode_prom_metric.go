@@ -14,7 +14,7 @@ type Predicate func(flow config.GenericMap) bool
 var variableExtractor, _ = regexp.Compile(`\$\(([^\)]+)\)`)
 
 type MetricInfo struct {
-	api.MetricsItem
+	*api.MetricsItem
 	FilterPredicates []Predicate
 }
 
@@ -118,7 +118,7 @@ func injectVars(flow config.GenericMap, filterValue string, varLookups [][]strin
 	return injected
 }
 
-func CreateMetricInfo(def api.MetricsItem) *MetricInfo {
+func CreateMetricInfo(def *api.MetricsItem) *MetricInfo {
 	mi := MetricInfo{
 		MetricsItem: def,
 	}

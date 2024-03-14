@@ -1,0 +1,30 @@
+linters:
+  enable:
+    - errcheck
+    - errorlint
+    - cyclop
+    - errname
+    - exhaustive
+    - exportloopref
+    - gocritic
+    - gofmt
+    - gosimple
+    - govet
+    - ineffassign
+    - revive
+    - staticcheck
+    - stylecheck
+    - typecheck
+    - unused
+linters-settings:
+  stylecheck:
+    go: "1.21"
+  gocritic:
+    enabled-checks:
+      - hugeParam
+      - rangeExprCopy
+      - rangeValCopy
+      - indexAlloc
+      - deprecatedComment
+  cyclop:
+    max-complexity: 20

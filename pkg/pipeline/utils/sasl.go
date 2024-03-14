@@ -17,7 +17,7 @@ func SetupSASLMechanism(cfg *api.SASLConfig) (sasl.Mechanism, error) {
 	if err != nil {
 		return nil, err
 	}
-	strId := strings.TrimSpace(string(id))
+	strID := strings.TrimSpace(string(id))
 	// Read password
 	pwd, err := os.ReadFile(cfg.ClientSecretPath)
 	if err != nil {
@@ -27,11 +27,11 @@ func SetupSASLMechanism(cfg *api.SASLConfig) (sasl.Mechanism, error) {
 	var mechanism sasl.Mechanism
 	switch cfg.Type {
 	case api.SASLTypeName("Plain"):
-		mechanism = plain.Mechanism{Username: strId, Password: strPwd}
+		mechanism = plain.Mechanism{Username: strID, Password: strPwd}
 	case api.SASLTypeName("ScramSHA512"):
-		mechanism, err = scram.Mechanism(scram.SHA512, strId, strPwd)
+		mechanism, err = scram.Mechanism(scram.SHA512, strID, strPwd)
 	default:
-		return nil, fmt.Errorf("Unknown SASL type: %s", cfg.Type)
+		return nil, fmt.Errorf("unknown SASL type: %s", cfg.Type)
 	}
 	if err != nil {
 		return nil, err

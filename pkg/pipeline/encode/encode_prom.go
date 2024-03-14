@@ -30,6 +30,7 @@ import (
 
 const defaultExpiryTime = time.Duration(2 * time.Minute)
 
+// nolint:revive
 type EncodeProm struct {
 	cfg          *api.PromEncode
 	registerer   prometheus.Registerer
@@ -52,7 +53,7 @@ func (e *EncodeProm) ProcessCounter(m interface{}, labels map[string]string, val
 	return nil
 }
 
-func (e *EncodeProm) ProcessGauge(m interface{}, labels map[string]string, value float64, key string) error {
+func (e *EncodeProm) ProcessGauge(m interface{}, labels map[string]string, value float64, _ string) error {
 	gauge := m.(*prometheus.GaugeVec)
 	mm, err := gauge.GetMetricWith(labels)
 	if err != nil {
@@ -130,7 +131,8 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	metricCommon := NewMetricsCommonStruct(opMetrics, cfg.MaxMetrics, params.Name, expiryTime, w.Cleanup)
 	w.metricCommon = metricCommon
 
-	for _, mCfg := range cfg.Metrics {
+	for i := range cfg.Metrics {
+		mCfg := &cfg.Metrics[i]
 		fullMetricName := cfg.Prefix + mCfg.Name
 		labels := mCfg.Labels
 		log.Debugf("fullMetricName = %v", fullMetricName)

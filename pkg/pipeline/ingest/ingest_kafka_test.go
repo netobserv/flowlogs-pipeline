@@ -162,7 +162,7 @@ var fakeRecord = []byte(`{"Bytes":20801,"DstAddr":"10.130.2.1","DstPort":36936,"
 
 // ReadMessage runs in the kafka client thread, which blocks until data is available.
 // If data is always available, we have an infinite loop. So we return data only a specified number of time.
-func (f *fakeKafkaReader) ReadMessage(ctx context.Context) (kafkago.Message, error) {
+func (f *fakeKafkaReader) ReadMessage(_ context.Context) (kafkago.Message, error) {
 	if f.readToDo == 0 {
 		// block indefinitely
 		c := make(chan struct{})
@@ -172,7 +172,7 @@ func (f *fakeKafkaReader) ReadMessage(ctx context.Context) (kafkago.Message, err
 		Topic: "topic1",
 		Value: fakeRecord,
 	}
-	f.readToDo -= 1
+	f.readToDo--
 	return message, nil
 }
 

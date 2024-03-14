@@ -28,7 +28,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func TestJsonUnmarshalStrict(t *testing.T) {
+func TestJSONUnmarshalStrict(t *testing.T) {
 	type Message struct {
 		Foo int    `json:"F"`
 		Bar string `json:"B"`
@@ -36,12 +36,12 @@ func TestJsonUnmarshalStrict(t *testing.T) {
 	msg := `{"F":1, "B":"bbb"}`
 	var actualMsg Message
 	expectedMsg := Message{Foo: 1, Bar: "bbb"}
-	err := JsonUnmarshalStrict([]byte(msg), &actualMsg)
+	err := JSONUnmarshalStrict([]byte(msg), &actualMsg)
 	require.NoError(t, err)
 	require.Equal(t, expectedMsg, actualMsg)
 
 	msg = `{"F":1, "B":"bbb", "NewField":0}`
-	err = JsonUnmarshalStrict([]byte(msg), &actualMsg)
+	err = JSONUnmarshalStrict([]byte(msg), &actualMsg)
 	require.Error(t, err)
 }
 
@@ -71,7 +71,7 @@ func TestUnmarshalFromViper(t *testing.T) {
 	str := v.Get("parameters")
 	b, err := json.Marshal(str)
 	require.NoError(t, err)
-	cfs, err := ParseConfig(Options{
+	cfs, err := ParseConfig(&Options{
 		PipeLine:   "[]",
 		Parameters: string(b),
 	})

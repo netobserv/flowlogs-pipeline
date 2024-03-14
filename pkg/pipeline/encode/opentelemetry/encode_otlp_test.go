@@ -52,11 +52,12 @@ type fakeOltpLogger struct {
 
 var otlpReceivedData []logs.LogRecord
 
+// nolint:gocritic
 func (f *fakeOltpLogger) Emit(msg logs.LogRecord) {
 	otlpReceivedData = append(otlpReceivedData, msg)
 }
 
-func (f *fakeOltpLoggerProvider) Logger(name string, options ...logs.LoggerOption) logs.Logger {
+func (f *fakeOltpLoggerProvider) Logger(_ string, _ ...logs.LoggerOption) logs.Logger {
 	return &fakeOltpLogger{}
 }
 

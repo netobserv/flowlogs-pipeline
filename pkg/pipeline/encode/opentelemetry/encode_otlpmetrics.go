@@ -85,7 +85,7 @@ func (e *EncodeOtlpMetrics) ProcessAggHist(m interface{}, labels map[string]stri
 	return nil
 }
 
-func (e *EncodeOtlpMetrics) GetChacheEntry(entryLabels map[string]string, m interface{}) interface{} {
+func (e *EncodeOtlpMetrics) GetChacheEntry(entryLabels map[string]string, _ interface{}) interface{} {
 	return entryLabels
 }
 
@@ -126,7 +126,8 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 	metricCommon := encode.NewMetricsCommonStruct(opMetrics, 0, params.Name, expiryTime, nil)
 	w.metricCommon = metricCommon
 
-	for _, mCfg := range cfg.Metrics {
+	for i := range cfg.Metrics {
+		mCfg := &cfg.Metrics[i]
 		fullMetricName := cfg.Prefix + mCfg.Name
 		labels := mCfg.Labels
 		log.Debugf("fullMetricName = %v", fullMetricName)
@@ -189,7 +190,7 @@ type Float64Gauge struct {
 
 // Callback implements the callback function for the underlying asynchronous gauge
 // it observes the current state of all previous Set() calls.
-func (f *Float64Gauge) Callback(ctx context.Context, o metric.Float64Observer) error {
+func (f *Float64Gauge) Callback(_ context.Context, o metric.Float64Observer) error {
 	for _, fEntry := range f.observations {
 		o.Observe(fEntry.value, metric.WithAttributes(fEntry.attributes...))
 	}

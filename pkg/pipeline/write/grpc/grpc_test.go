@@ -69,7 +69,7 @@ func TestConstructorOptions(t *testing.T) {
 		WithGRPCServerOptions(grpc.UnaryInterceptor(func(
 			ctx context.Context,
 			req interface{},
-			info *grpc.UnaryServerInfo,
+			_ *grpc.UnaryServerInfo,
 			handler grpc.UnaryHandler,
 		) (resp interface{}, err error) {
 			close(intercepted)

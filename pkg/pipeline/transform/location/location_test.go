@@ -33,54 +33,54 @@ import (
 
 func Test_InitLocationDB(t *testing.T) {
 	// fail in os.Create
-	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	_osio.Create = func(name string) (*os.File, error) { return nil, fmt.Errorf("test") }
+	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+	_osio.Create = func(_ string) (*os.File, error) { return nil, fmt.Errorf("test") }
 	err := InitLocationDB()
 	require.Contains(t, err.Error(), "os.Create")
 	_osio.Stat = os.Stat
 	_osio.Create = os.Create
 
 	// fail in http.Get
-	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	_osio.Create = func(name string) (*os.File, error) { return nil, nil }
+	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+	_osio.Create = func(_ string) (*os.File, error) { return nil, nil }
 	_dbURL = "test_fake"
 	err = InitLocationDB()
 	require.Contains(t, err.Error(), "http.Get")
-	_dbURL = dbUrl
+	_dbURL = dbURL
 	_osio.Stat = os.Stat
 	_osio.Create = os.Create
 
 	// fail in io.Copy
-	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	_osio.Create = func(name string) (*os.File, error) { return nil, nil }
-	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+	_osio.Create = func(_ string) (*os.File, error) { return nil, nil }
+	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
 		_, _ = res.Write([]byte("test"))
 	}))
 	_dbURL = testServer.URL
 	err = InitLocationDB()
 	require.Contains(t, err.Error(), "io.Copy")
 	testServer.Close()
-	_dbURL = dbUrl
+	_dbURL = dbURL
 	_osio.Stat = os.Stat
 	_osio.Create = os.Create
 
 	// fail again in io.Copy
-	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	_osio.Create = func(name string) (*os.File, error) { return nil, nil }
-	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+	_osio.Create = func(_ string) (*os.File, error) { return nil, nil }
+	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
 		res.WriteHeader(http.StatusOK)
 	}))
 	_dbURL = testServer.URL
 	err = InitLocationDB()
 	require.Contains(t, err.Error(), "io.Copy")
 	testServer.Close()
-	_dbURL = dbUrl
+	_dbURL = dbURL
 	_osio.Stat = os.Stat
 	_osio.Create = os.Create
 
 	// fail in unzip
-	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
 		_, _ = res.Write([]byte("test"))
 		res.WriteHeader(http.StatusOK)
 	}))
@@ -88,16 +88,16 @@ func Test_InitLocationDB(t *testing.T) {
 	err = InitLocationDB()
 	require.Contains(t, err.Error(), "failed unzip")
 	testServer.Close()
-	_dbURL = dbUrl
+	_dbURL = dbURL
 	_osio.Stat = os.Stat
 
 	// fail in OpenDB
-	_osio.Stat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
 	buf := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(buf)
 	_, _ = zipWriter.Create(dbFilename)
 	zipWriter.Close()
-	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
 		_, _ = res.Write(buf.Bytes())
 		res.WriteHeader(http.StatusOK)
 	}))
@@ -105,7 +105,7 @@ func Test_InitLocationDB(t *testing.T) {
 	err = InitLocationDB()
 	require.Error(t, err)
 	testServer.Close()
-	_dbURL = dbUrl
+	_dbURL = dbURL
 	_osio.Stat = os.Stat
 	// success
 	// NOTE:: Downloading the DB is a long operation, about 30 seconds, and this delays the tests
@@ -117,12 +117,12 @@ func Test_InitLocationDB(t *testing.T) {
 
 func Test_GetLocation(t *testing.T) {
 	locationDB = nil
-	err, info := GetLocation("test")
+	info, err := GetLocation("test")
 	require.Contains(t, err.Error(), "no location DB available")
 	require.Nil(t, info)
 
 	locationDB = &ip2location.DB{}
-	err, info = GetLocation("test")
+	info, err = GetLocation("test")
 	require.Contains(t, info.CountryName, "Invalid database file.")
 	require.Nil(t, err)
 }

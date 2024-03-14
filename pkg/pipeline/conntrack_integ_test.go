@@ -109,9 +109,9 @@ func TestConnTrack(t *testing.T) {
 
 	go mainPipeline.Run()
 
-	ingest := mainPipeline.pipelineStages[0].Ingester.(*ingest.IngestFake)
+	ingest := mainPipeline.pipelineStages[0].Ingester.(*ingest.Fake)
 	in := ingest.In
-	writer := mainPipeline.pipelineStages[2].Writer.(*write.WriteFake)
+	writer := mainPipeline.pipelineStages[2].Writer.(*write.Fake)
 
 	sentLines := ingestFile(t, in, "../../hack/examples/ocp-ipfix-flowlogs.json")
 
@@ -166,7 +166,7 @@ func ingestFile(t *testing.T, in chan<- config.GenericMap, filepath string) int 
 		lines = append(lines, []byte(text))
 	}
 	submittedLines := 0
-	decoder, err := decode.NewDecodeJson()
+	decoder, err := decode.NewDecodeJSON()
 	require.NoError(t, err)
 	for _, line := range lines {
 		line, err := decoder.Decode(line)

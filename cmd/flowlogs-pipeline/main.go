@@ -55,7 +55,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "flowlogs-pipeline",
 	Short: "Transform, persist and expose flow-logs as network metrics",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		run()
 	},
 }
@@ -104,7 +104,7 @@ func initLogger() {
 	log.SetFormatter(&log.TextFormatter{DisableColors: false, FullTimestamp: true, PadLevelText: true, DisableQuote: true})
 }
 
-func dumpConfig(opts config.Options) {
+func dumpConfig(opts *config.Options) {
 	configAsJSON, err := json.MarshalIndent(opts, "", "    ")
 	if err != nil {
 		panic(fmt.Sprintf("error dumping config: %v", err))
@@ -171,9 +171,9 @@ func run() {
 		filepath.Base(os.Args[0]), BuildVersion, BuildDate)
 
 	// Dump configuration
-	dumpConfig(opts)
+	dumpConfig(&opts)
 
-	cfg, err := config.ParseConfig(opts)
+	cfg, err := config.ParseConfig(&opts)
 	if err != nil {
 		log.Errorf("error in parsing config file: %v", err)
 		os.Exit(1)
@@ -186,7 +186,7 @@ func run() {
 	// Create new flows pipeline
 	mainPipeline, err = pipeline.NewPipeline(&cfg)
 	if err != nil {
-		log.Fatalf("failed to initialize pipeline: %s", err)
+		log.Errorf("failed to initialize pipeline: %s", err)
 		os.Exit(1)
 	}
 

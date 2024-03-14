@@ -44,6 +44,6 @@ func Test_iterate(t *testing.T) {
 	require.Equal(t, expected, output.String())
 }
 
-func Test_main(t *testing.T) {
+func Test_main(_ *testing.T) {
 	main()
 }

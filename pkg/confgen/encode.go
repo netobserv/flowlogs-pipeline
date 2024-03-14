@@ -25,16 +25,16 @@ import (
 )
 
 func (cg *ConfGen) parseEncode(encode *map[string]interface{}, followAggregate bool) (*api.PromEncode, error) {
-	var jsoniterJson = jsoniter.ConfigCompatibleWithStandardLibrary
+	jsoniterJSON := jsoniter.ConfigCompatibleWithStandardLibrary
 	promEncode := (*encode)["prom"]
-	b, err := jsoniterJson.Marshal(promEncode)
+	b, err := jsoniterJSON.Marshal(promEncode)
 	if err != nil {
-		log.Debugf("jsoniterJson.Marshal err: %v ", err)
+		log.Debugf("jsoniterJSON.Marshal err: %v ", err)
 		return nil, err
 	}
 
 	var prom api.PromEncode
-	err = config.JsonUnmarshalStrict(b, &prom)
+	err = config.JSONUnmarshalStrict(b, &prom)
 	if err != nil {
 		log.Debugf("Unmarshal aggregate.Definitions err: %v ", err)
 		return nil, err

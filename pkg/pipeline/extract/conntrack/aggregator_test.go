@@ -205,7 +205,7 @@ func TestAddField_and_Update(t *testing.T) {
 		},
 	}
 
-	conn := NewConnBuilder(nil).Build()
+	conn := newConnBuilder(nil).Build()
 	for _, agg := range aggs {
 		agg.addField(conn)
 	}
@@ -238,7 +238,7 @@ func TestMissingFieldError(t *testing.T) {
 	agg, err := newAggregator(api.OutputField{Name: "Bytes", Operation: "sum", SplitAB: true, ReportMissing: true}, metrics)
 	require.NoError(t, err)
 
-	conn := NewConnBuilder(metrics).Build()
+	conn := newConnBuilder(metrics).Build()
 	agg.addField(conn)
 
 	flowLog := config.GenericMap{}
@@ -254,7 +254,7 @@ func TestSkipMissingFieldError(t *testing.T) {
 	agg, err := newAggregator(api.OutputField{Name: "Bytes", Operation: "sum", SplitAB: true}, metrics)
 	require.NoError(t, err)
 
-	conn := NewConnBuilder(metrics).Build()
+	conn := newConnBuilder(metrics).Build()
 	agg.addField(conn)
 
 	flowLog := config.GenericMap{}
@@ -270,7 +270,7 @@ func TestFloat64ConversionError(t *testing.T) {
 	agg, err := newAggregator(api.OutputField{Name: "Bytes", Operation: "sum", SplitAB: true}, metrics)
 	require.NoError(t, err)
 
-	conn := NewConnBuilder(metrics).Build()
+	conn := newConnBuilder(metrics).Build()
 	agg.addField(conn)
 
 	flowLog := config.GenericMap{"Bytes": "float64 inconvertible value"}

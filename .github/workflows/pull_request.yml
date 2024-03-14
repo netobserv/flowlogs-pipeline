@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.21']
+        go: ['1.21','1.22']
 
     steps:
     - name: install make
@@ -28,6 +28,7 @@ jobs:
     - name: run unit tests
       run: make tests-unit
     - name: upload coverage to codecov.io
+      if: ${{ matrix.go == '1.21' }}
       uses: codecov/codecov-action@v3
       with:
         files: /tmp/coverage.out

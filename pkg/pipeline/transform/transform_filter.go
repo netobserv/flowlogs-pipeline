@@ -36,6 +36,8 @@ type Filter struct {
 }
 
 // Transform transforms a flow
+//
+//nolint:cyclop
 func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 	tlog.Tracef("f = %v", f)
 	outputEntry := entry.Copy()

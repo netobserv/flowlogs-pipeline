@@ -25,16 +25,16 @@ import (
 )
 
 func (cg *ConfGen) parseExtract(extract *map[string]interface{}) (*api.Aggregates, *api.ExtractTimebased, error) {
-	var jsoniterJson = jsoniter.ConfigCompatibleWithStandardLibrary
+	jsoniterJSON := jsoniter.ConfigCompatibleWithStandardLibrary
 	aggregateExtract := (*extract)["aggregates"]
-	b, err := jsoniterJson.Marshal(&aggregateExtract)
+	b, err := jsoniterJSON.Marshal(&aggregateExtract)
 	if err != nil {
-		log.Errorf("jsoniterJson.Marshal err: %v ", err)
+		log.Errorf("jsoniterJSON.Marshal err: %v ", err)
 		return nil, nil, err
 	}
 
 	var jsonNetworkAggregate api.Aggregates
-	err = config.JsonUnmarshalStrict(b, &jsonNetworkAggregate)
+	err = config.JSONUnmarshalStrict(b, &jsonNetworkAggregate)
 	if err != nil {
 		log.Errorf("Unmarshal aggregate.Definitions err: %v ", err)
 		return nil, nil, err
@@ -46,14 +46,14 @@ func (cg *ConfGen) parseExtract(extract *map[string]interface{}) (*api.Aggregate
 	if !ok {
 		return &jsonNetworkAggregate, nil, nil
 	}
-	b, err = jsoniterJson.Marshal(&timebasedExtract)
+	b, err = jsoniterJSON.Marshal(&timebasedExtract)
 	if err != nil {
 		log.Errorf("jsoniterJson.Marshal err: %v ", err)
 		return nil, nil, err
 	}
 
 	var jsonTimebasedTopKs api.ExtractTimebased
-	err = config.JsonUnmarshalStrict(b, &jsonTimebasedTopKs)
+	err = config.JSONUnmarshalStrict(b, &jsonTimebasedTopKs)
 	if err != nil {
 		log.Errorf("Unmarshal api.ExtractTimebased err: %v ", err)
 		return nil, nil, err

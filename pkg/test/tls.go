@@ -78,7 +78,7 @@ dA==
 
 // CreateCACert returns paths to CA cert and the cleanup function to defer
 func CreateCACert(t *testing.T) (string, func()) {
-	name, err, cleanup := DumpToTemp(caCert)
+	name, cleanup, err := DumpToTemp(caCert)
 	require.NoError(t, err)
 	return name, cleanup
 }
@@ -89,11 +89,11 @@ func CreateCACert(t *testing.T) (string, func()) {
 // - user key
 // and the cleanup function to defer
 func CreateAllCerts(t *testing.T) (string, string, string, func()) {
-	ca, err, cleanupCA := DumpToTemp(caCert)
+	ca, cleanupCA, err := DumpToTemp(caCert)
 	require.NoError(t, err)
-	uc, err, cleanupUC := DumpToTemp(userCert)
+	uc, cleanupUC, err := DumpToTemp(userCert)
 	require.NoError(t, err)
-	uk, err, cleanupUK := DumpToTemp(userKey)
+	uk, cleanupUK, err := DumpToTemp(userKey)
 	require.NoError(t, err)
 	return ca, uc, uk, func() {
 		cleanupCA()

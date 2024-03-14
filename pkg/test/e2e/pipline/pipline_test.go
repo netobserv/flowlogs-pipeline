@@ -27,7 +27,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/test/e2e"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
@@ -53,14 +52,14 @@ func printLogsFromPods(t *testing.T, cfg *envconf.Config) {
 		t.Fatal(err)
 	}
 
-	logs := e2e.LogsFromPods(pods, coreV1Client, cfg.Namespace())
+	logs := e2e.LogsFromPods(&pods, coreV1Client, cfg.Namespace())
 	fmt.Print(logs)
 
 }
 
 func TestPipeline_Basic(t *testing.T) {
 	pipelineFeature := features.New("FLP/pipeline").WithLabel("env", "dev").
-		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+		Setup(func(ctx context.Context, _ *testing.T, _ *envconf.Config) context.Context {
 			return ctx
 		}).
 		Assess("FLP deployment available", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
@@ -72,7 +71,7 @@ func TestPipeline_Basic(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "flowlogs-pipeline", Namespace: cfg.Namespace()},
 			}
 			// wait for the deployment to finish becoming available
-			err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&dep, appsv1.DeploymentAvailable, v1.ConditionTrue), wait.WithTimeout(time.Minute*3))
+			err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&dep, appsv1.DeploymentAvailable, corev1.ConditionTrue), wait.WithTimeout(time.Minute*3))
 			if err != nil {
 				printLogsFromPods(t, cfg)
 				t.Fatal(err)
@@ -90,7 +89,7 @@ func TestPipeline_Basic(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			logs := e2e.LogsFromPods(pods, coreV1Client, cfg.Namespace())
+			logs := e2e.LogsFromPods(&pods, coreV1Client, cfg.Namespace())
 			fmt.Print(logs)
 			startExist := strings.Contains(logs, "Starting flowlogs-pipeline")
 			if !startExist {

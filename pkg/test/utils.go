@@ -83,7 +83,7 @@ func InitConfig(t *testing.T, conf string) (*viper.Viper, *config.ConfigFileStru
 		return nil, nil
 	}
 	opts.Parameters = string(b)
-	out, err := config.ParseConfig(opts)
+	out, err := config.ParseConfig(&opts)
 	if err != nil {
 		fmt.Printf("error in parsing config file: %v \n", err)
 		return nil, nil
@@ -151,19 +151,19 @@ func DeserializeJSONToMap(t *testing.T, in string) config.GenericMap {
 	return m
 }
 
-func DumpToTemp(content string) (string, error, func()) {
+func DumpToTemp(content string) (string, func(), error) {
 	file, err := os.CreateTemp("", "flp-tests-")
 	if err != nil {
-		return "", err, nil
+		return "", nil, err
 	}
 	err = os.WriteFile(file.Name(), []byte(content), 0644)
 	if err != nil {
 		defer os.Remove(file.Name())
-		return "", err, nil
+		return "", nil, err
 	}
-	return file.Name(), nil, func() {
+	return file.Name(), func() {
 		os.Remove(file.Name())
-	}
+	}, nil
 }
 
 func WaitFromChannel(in chan config.GenericMap, timeout time.Duration) (config.GenericMap, error) {
@@ -172,7 +172,7 @@ func WaitFromChannel(in chan config.GenericMap, timeout time.Duration) (config.G
 	case record := <-in:
 		return record, nil
 	case <-timeoutReached.C:
-		return nil, errors.New("Timeout reached")
+		return nil, errors.New("timeout reached")
 	}
 }
 

@@ -236,6 +236,7 @@ func SendTemplateRecordv6(exporter *ipfixExporter.ExportingProcess, enrichEnterp
 	return templateID, elements, nil
 }
 
+//nolint:cyclop
 func setStandardIEValue(record config.GenericMap, ieValPtr *entities.InfoElementWithValue) error {
 	ieVal := *ieValPtr
 	switch ieVal.GetName() {

@@ -70,10 +70,9 @@ func GetEnumName(enum interface{}, operation string) string {
 	cachedValue, found := enumNamesCache[key]
 	if found {
 		return cachedValue
-	} else {
-		log.Panicf("can't find name '%s' in enum %v", operation, enum)
-		return ""
 	}
+	log.Panicf("can't find name '%s' in enum %v", operation, enum)
+	return ""
 }
 
 // GetEnumReflectionTypeByFieldName gets the enum struct `reflection Type` from the name of the struct (using fields from `enums{}` struct).
