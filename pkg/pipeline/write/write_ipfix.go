@@ -51,7 +51,7 @@ type FieldMap struct {
 }
 
 // IPv6Type value as defined in IEEE 802: https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
-const IPv6Type = 0x86DD
+const IPv6Type uint16 = 0x86DD
 
 var (
 	ilog       = logrus.WithField("component", "write.Ipfix")
@@ -115,8 +115,8 @@ var (
 		},
 		"nextHeaderIPv6": {
 			Key:    "Proto",
-			Getter: func(elt entities.InfoElementWithValue) any { return uint32(elt.GetUnsigned8Value()) },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned8Value(uint8(rec.(uint32))) },
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned8Value() },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned8Value(rec.(uint8)) },
 		},
 		"sourceMacAddress": {
 			Key: "SrcMac",
@@ -140,8 +140,8 @@ var (
 		},
 		"ethernetType": {
 			Key:    "Etype",
-			Getter: func(elt entities.InfoElementWithValue) any { return uint32(elt.GetUnsigned16Value()) },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(uint16(rec.(uint32))) },
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
 		},
 		"flowDirection": {
 			Key: "IfDirections",
@@ -177,18 +177,18 @@ var (
 		},
 		"protocolIdentifier": {
 			Key:    "Proto",
-			Getter: func(elt entities.InfoElementWithValue) any { return uint32(elt.GetUnsigned8Value()) },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned8Value(uint8(rec.(uint32))) },
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned8Value() },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned8Value(rec.(uint8)) },
 		},
 		"sourceTransportPort": {
 			Key:    "SrcPort",
-			Getter: func(elt entities.InfoElementWithValue) any { return uint32(elt.GetUnsigned16Value()) },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(uint16(rec.(uint32))) },
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
 		},
 		"destinationTransportPort": {
 			Key:    "DstPort",
-			Getter: func(elt entities.InfoElementWithValue) any { return uint32(elt.GetUnsigned16Value()) },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(uint16(rec.(uint32))) },
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
 		},
 		"octetDeltaCount": {
 			Key:    "Bytes",
@@ -207,8 +207,8 @@ var (
 		},
 		"packetDeltaCount": {
 			Key:    "Packets",
-			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned64Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(rec.(uint64)) },
+			Getter: func(elt entities.InfoElementWithValue) any { return uint32(elt.GetUnsigned64Value()) },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(uint32))) },
 		},
 		"interfaceName": {
 			Key: "Interfaces",
@@ -507,7 +507,7 @@ func (t *writeIpfix) sendDataRecord(record config.GenericMap, v6 bool) error {
 // Write writes a flow before being stored
 func (t *writeIpfix) Write(entry config.GenericMap) {
 	ilog.Tracef("entering writeIpfix Write")
-	if IPv6Type == entry["Etype"].(uint32) {
+	if IPv6Type == entry["Etype"].(uint16) {
 		err := t.sendDataRecord(entry, true)
 		if err != nil {
 			ilog.WithError(err).Error("Failed in send v6 IPFIX record")
@@ -518,7 +518,6 @@ func (t *writeIpfix) Write(entry config.GenericMap) {
 			ilog.WithError(err).Error("Failed in send v4 IPFIX record")
 		}
 	}
-
 }
 
 // NewWriteIpfix creates a new write
