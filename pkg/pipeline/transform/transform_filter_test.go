@@ -36,10 +36,12 @@ parameters:
       type: filter
       filter:
         rules:
-        - input: dstPort
-          type: remove_field
-        - input: srcPort
-          type: remove_field
+        - type: remove_field
+          removeField:
+            input: dstPort
+        - type: remove_field
+          removeField:
+            input: srcPort
 `
 
 const testConfigTransformFilterRemoveEntryIfExists = `---
@@ -52,8 +54,10 @@ parameters:
       type: filter
       filter:
         rules:
-        - input: srcPort
-          type: remove_entry_if_exists
+        - type: remove_entry_if_exists
+          removeEntryIfExists:
+            input: srcPort
+          
 `
 
 const testConfigTransformFilterRemoveEntryIfDoesntExists = `---
@@ -66,8 +70,10 @@ parameters:
       type: filter
       filter:
         rules:
-        - input: doesntSrcPort
-          type: remove_entry_if_doesnt_exist
+        - type: remove_entry_if_doesnt_exist
+          removeEntryIfDoesntExist:
+            input: doesntSrcPort
+          
 `
 const testConfigTransformFilterRemoveEntryIfEqual = `---
 log-level: debug
@@ -79,12 +85,14 @@ parameters:
       type: filter
       filter:
         rules:
-        - input: message
-          type: remove_entry_if_equal
-          value: "test message"
-        - input: value
-          type: remove_entry_if_equal
-          value: 8.0
+        - type: remove_entry_if_equal
+          removeEntryIfEqual:
+            input: message
+            value: "test message"
+        - type: remove_entry_if_equal
+          removeEntryIfEqual:
+            input: value          
+            value: 8.0
 `
 
 const testConfigTransformFilterRemoveEntryIfNotEqual = `---
@@ -97,9 +105,10 @@ parameters:
       type: filter
       filter:
         rules:
-        - input: message
-          type: remove_entry_if_not_equal
-          value: "test message"
+        - type: remove_entry_if_not_equal
+          removeEntryIfNotEqual:
+            input: message
+            value: "test message"
 `
 
 const testConfigTransformFilterAddField = `---
@@ -112,12 +121,14 @@ parameters:
       type: filter
       filter:
         rules:
-        - input: dstPort
-          type: add_field_if_doesnt_exist
-          value: dummy_value
-        - input: dummy_field
-          type: add_field_if_doesnt_exist
-          value: dummy_value
+        - type: add_field_if_doesnt_exist
+          addFieldIfDoesntExist:
+            input: dstPort        
+            value: dummy_value
+        - type: add_field_if_doesnt_exist
+          addFieldIfDoesntExist:
+            input: dummy_field
+            value: dummy_value
 `
 
 func getFilterExpectedOutput() config.GenericMap {
@@ -236,44 +247,56 @@ func Test_Transform_AddIfScientificNotation(t *testing.T) {
 	newFilter := Filter{
 		Rules: []api.TransformFilterRule{
 			{
-				Input:      "value",
-				Output:     "bigger_than_10",
-				Type:       "add_field_if",
-				Parameters: ">10",
+				Type: "add_field_if",
+				AddFieldIf: &api.TransformFilterRuleWithAssignee{
+					Input:      "value",
+					Output:     "bigger_than_10",
+					Parameters: ">10",
+				},
 			},
 			{
-				Input:      "value",
-				Output:     "smaller_than_10",
-				Type:       "add_field_if",
-				Parameters: "<10",
+				Type: "add_field_if",
+				AddFieldIf: &api.TransformFilterRuleWithAssignee{
+					Input:      "value",
+					Output:     "smaller_than_10",
+					Parameters: "<10",
+				},
 			},
 			{
-				Input:      "value",
-				Output:     "dir",
-				Assignee:   "in",
-				Type:       "add_field_if",
-				Parameters: "==1",
+				Type: "add_field_if",
+				AddFieldIf: &api.TransformFilterRuleWithAssignee{
+					Input:      "value",
+					Output:     "dir",
+					Assignee:   "in",
+					Parameters: "==1",
+				},
 			},
 			{
-				Input:      "value",
-				Output:     "dir",
-				Assignee:   "out",
-				Type:       "add_field_if",
-				Parameters: "==0",
+				Type: "add_field_if",
+				AddFieldIf: &api.TransformFilterRuleWithAssignee{
+					Input:      "value",
+					Output:     "dir",
+					Assignee:   "out",
+					Parameters: "==0",
+				},
 			},
 			{
-				Input:      "value",
-				Output:     "not_one",
-				Assignee:   "true",
-				Type:       "add_field_if",
-				Parameters: "!=1",
+				Type: "add_field_if",
+				AddFieldIf: &api.TransformFilterRuleWithAssignee{
+					Input:      "value",
+					Output:     "not_one",
+					Assignee:   "true",
+					Parameters: "!=1",
+				},
 			},
 			{
-				Input:      "value",
-				Output:     "not_one",
-				Assignee:   "false",
-				Type:       "add_field_if",
-				Parameters: "==1",
+				Type: "add_field_if",
+				AddFieldIf: &api.TransformFilterRuleWithAssignee{
+					Input:      "value",
+					Output:     "not_one",
+					Assignee:   "false",
+					Parameters: "==1",
+				},
 			},
 		},
 	}
@@ -329,17 +352,20 @@ parameters:
       type: filter
       filter:
         rules:
-        - input: subnetSrcIP
-          type: add_field_if_doesnt_exist
-          value: 10.0.0.0/24
-        - input: subnetSrcIP
-          output: match-10.0.*
-          type: add_regex_if
-          parameters: 10.0.*
-        - input: subnetSrcIP
-          output: match-11.0.*
-          type: add_regex_if
-          parameters: 11.0.*
+        - type: add_field_if_doesnt_exist
+          addFieldIfDoesntExist:
+            input: subnetSrcIP
+            value: 10.0.0.0/24
+        - type: add_regex_if
+          addRegexIf:
+            input: subnetSrcIP
+            output: match-10.0.*
+            parameters: 10.0.*
+        - type: add_regex_if
+          addRegexIf:
+            input: subnetSrcIP
+            output: match-11.0.*
+            parameters: 11.0.*
   - name: write1
     write:
       type: stdout
@@ -368,32 +394,40 @@ func Test_AddLabelIf(t *testing.T) {
 			Filter: &api.TransformFilter{
 				Rules: []api.TransformFilterRule{
 					{
-						Type:       "add_label_if",
-						Input:      "param1",
-						Parameters: "<10",
-						Output:     "group1",
-						Assignee:   "LT10",
+						Type: "add_label_if",
+						AddLabelIf: &api.TransformFilterRuleWithAssignee{
+							Input:      "param1",
+							Parameters: "<10",
+							Output:     "group1",
+							Assignee:   "LT10",
+						},
 					},
 					{
-						Type:       "add_label_if",
-						Input:      "param1",
-						Parameters: ">=10",
-						Output:     "group1",
-						Assignee:   "GE10",
+						Type: "add_label_if",
+						AddLabelIf: &api.TransformFilterRuleWithAssignee{
+							Input:      "param1",
+							Parameters: ">=10",
+							Output:     "group1",
+							Assignee:   "GE10",
+						},
 					},
 					{
-						Type:       "add_label_if",
-						Input:      "param2",
-						Parameters: "<5",
-						Output:     "group2",
-						Assignee:   "LT5",
+						Type: "add_label_if",
+						AddLabelIf: &api.TransformFilterRuleWithAssignee{
+							Input:      "param2",
+							Parameters: "<5",
+							Output:     "group2",
+							Assignee:   "LT5",
+						},
 					},
 					{
-						Type:       "add_label_if",
-						Input:      "param3",
-						Parameters: "<0",
-						Output:     "group3",
-						Assignee:   "LT0",
+						Type: "add_label_if",
+						AddLabelIf: &api.TransformFilterRuleWithAssignee{
+							Input:      "param3",
+							Parameters: "<0",
+							Output:     "group3",
+							Assignee:   "LT0",
+						},
 					},
 				},
 			},
@@ -424,19 +458,25 @@ func Test_AddLabel(t *testing.T) {
 			Filter: &api.TransformFilter{
 				Rules: []api.TransformFilterRule{
 					{
-						Type:  "add_label",
-						Input: "key1",
-						Value: "value1",
+						Type: "add_label",
+						AddLabel: &api.TransformFilterGenericRule{
+							Input: "key1",
+							Value: "value1",
+						},
 					},
 					{
-						Type:  "add_label",
-						Input: "key2",
-						Value: "value2",
+						Type: "add_label",
+						AddLabel: &api.TransformFilterGenericRule{
+							Input: "key2",
+							Value: "value2",
+						},
 					},
 					{
-						Type:  "add_label",
-						Input: "key3",
-						Value: "value3",
+						Type: "add_label",
+						AddLabel: &api.TransformFilterGenericRule{
+							Input: "key3",
+							Value: "value3",
+						},
 					},
 				},
 			},
@@ -478,14 +518,18 @@ func Test_AddField(t *testing.T) {
 			Filter: &api.TransformFilter{
 				Rules: []api.TransformFilterRule{
 					{
-						Type:  "add_field",
-						Input: "field1",
-						Value: "value1",
+						Type: "add_field",
+						AddField: &api.TransformFilterGenericRule{
+							Input: "field1",
+							Value: "value1",
+						},
 					},
 					{
-						Type:  "add_field",
-						Input: "param1",
-						Value: "new_value",
+						Type: "add_field",
+						AddField: &api.TransformFilterGenericRule{
+							Input: "param1",
+							Value: "new_value",
+						},
 					},
 				},
 			},

@@ -374,9 +374,11 @@ pipeline:
     - type: filter
       filter:
         rules:
-        - input: SrcPort
-          type: remove_entry_if_exists 
+        - type: remove_entry_if_exists
+          removeEntryIfExists:
+            input: SrcPort
 ```
+
 Using `remove_entry_if_doesnt_exist` in the rule reverses the logic and will not remove the above example entry
 Using `remove_field` in the rule `type` instead, results in outputting the entry after
 removal of only the `SrcPort` key and value 

@@ -153,8 +153,6 @@ Following is the supported API format for filter transformations:
 <pre>
  filter:
          rules: list of filter rules, each includes:
-                 input: entry input field
-                 output: entry output field
                  type: (enum) one of the following:
                     remove_field: removes the field from the entry
                     remove_entry_if_exists: removes the entry if the field exists
@@ -167,9 +165,45 @@ Following is the supported API format for filter transformations:
                     add_regex_if: add output field if input field satisfies regex pattern from parameters field
                     add_label: add (input) field to list of labels with value taken from Value field (key=input, value=value)
                     add_label_if: add output field to list of labels with value taken from assignee field if input field satisfies criteria from parameters field
-                 value: specified value of input field:
-                 parameters: parameters specific to type
-                 assignee: value needs to assign to output field
+                 removeField: configuration for remove_field rule
+                     input: entry input field
+                     value: specified value of input field:
+                 removeEntryIfExists: configuration for remove_entry_if_exists rule
+                     input: entry input field
+                     value: specified value of input field:
+                 removeEntryIfDoesntExist: configuration for remove_entry_if_doesnt_exist rule
+                     input: entry input field
+                     value: specified value of input field:
+                 removeEntryIfEqual: configuration for remove_entry_if_equal rule
+                     input: entry input field
+                     value: specified value of input field:
+                 removeEntryIfNotEqual: configuration for remove_entry_if_not_equal rule
+                     input: entry input field
+                     value: specified value of input field:
+                 addField: configuration for add_field rule
+                     input: entry input field
+                     value: specified value of input field:
+                 addFieldIfDoesntExist: configuration for add_field_if_doesnt_exist rule
+                     input: entry input field
+                     value: specified value of input field:
+                 addFieldIf: configuration for add_field_if rule
+                     input: entry input field
+                     output: entry output field
+                     parameters: parameters specific to type
+                     assignee: value needs to assign to output field
+                 addRegexIf: configuration for add_regex_if rule
+                     input: entry input field
+                     output: entry output field
+                     parameters: parameters specific to type
+                     assignee: value needs to assign to output field
+                 addLabel: configuration for add_label rule
+                     input: entry input field
+                     value: specified value of input field:
+                 addLabelIf: configuration for add_label_if rule
+                     input: entry input field
+                     output: entry output field
+                     parameters: parameters specific to type
+                     assignee: value needs to assign to output field
 </pre>
 ## Transform Network API
 Following is the supported API format for network transformations:

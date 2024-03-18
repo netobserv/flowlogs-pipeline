@@ -39,10 +39,28 @@ const (
 )
 
 type TransformFilterRule struct {
-	Input      string              `yaml:"input,omitempty" json:"input,omitempty" doc:"entry input field"`
-	Output     string              `yaml:"output,omitempty" json:"output,omitempty" doc:"entry output field"`
-	Type       TransformFilterEnum `yaml:"type,omitempty" json:"type,omitempty" doc:"(enum) one of the following:"`
-	Value      interface{}         `yaml:"value,omitempty" json:"value,omitempty" doc:"specified value of input field:"`
-	Parameters string              `yaml:"parameters,omitempty" json:"parameters,omitempty" doc:"parameters specific to type"`
-	Assignee   string              `yaml:"assignee,omitempty" json:"assignee,omitempty" doc:"value needs to assign to output field"`
+	Type                     TransformFilterEnum              `yaml:"type,omitempty" json:"type,omitempty" doc:"(enum) one of the following:"`
+	RemoveField              *TransformFilterGenericRule      `yaml:"removeField,omitempty" json:"removeField,omitempty" doc:"configuration for remove_field rule"`
+	RemoveEntryIfExists      *TransformFilterGenericRule      `yaml:"removeEntryIfExists,omitempty" json:"removeEntryIfExists,omitempty" doc:"configuration for remove_entry_if_exists rule"`
+	RemoveEntryIfDoesntExist *TransformFilterGenericRule      `yaml:"removeEntryIfDoesntExist,omitempty" json:"removeEntryIfDoesntExist,omitempty" doc:"configuration for remove_entry_if_doesnt_exist rule"`
+	RemoveEntryIfEqual       *TransformFilterGenericRule      `yaml:"removeEntryIfEqual,omitempty" json:"removeEntryIfEqual,omitempty" doc:"configuration for remove_entry_if_equal rule"`
+	RemoveEntryIfNotEqual    *TransformFilterGenericRule      `yaml:"removeEntryIfNotEqual,omitempty" json:"removeEntryIfNotEqual,omitempty" doc:"configuration for remove_entry_if_not_equal rule"`
+	AddField                 *TransformFilterGenericRule      `yaml:"addField,omitempty" json:"addField,omitempty" doc:"configuration for add_field rule"`
+	AddFieldIfDoesntExist    *TransformFilterGenericRule      `yaml:"addFieldIfDoesntExist,omitempty" json:"addFieldIfDoesntExist,omitempty" doc:"configuration for add_field_if_doesnt_exist rule"`
+	AddFieldIf               *TransformFilterRuleWithAssignee `yaml:"addFieldIf,omitempty" json:"addFieldIf,omitempty" doc:"configuration for add_field_if rule"`
+	AddRegExIf               *TransformFilterRuleWithAssignee `yaml:"addRegexIf,omitempty" json:"addRegexIf,omitempty" doc:"configuration for add_regex_if rule"`
+	AddLabel                 *TransformFilterGenericRule      `yaml:"addLabel,omitempty" json:"addLabel,omitempty" doc:"configuration for add_label rule"`
+	AddLabelIf               *TransformFilterRuleWithAssignee `yaml:"addLabelIf,omitempty" json:"addLabelIf,omitempty" doc:"configuration for add_label_if rule"`
+}
+
+type TransformFilterGenericRule struct {
+	Input string      `yaml:"input,omitempty" json:"input,omitempty" doc:"entry input field"`
+	Value interface{} `yaml:"value,omitempty" json:"value,omitempty" doc:"specified value of input field:"`
+}
+
+type TransformFilterRuleWithAssignee struct {
+	Input      string `yaml:"input,omitempty" json:"input,omitempty" doc:"entry input field"`
+	Output     string `yaml:"output,omitempty" json:"output,omitempty" doc:"entry output field"`
+	Parameters string `yaml:"parameters,omitempty" json:"parameters,omitempty" doc:"parameters specific to type"`
+	Assignee   string `yaml:"assignee,omitempty" json:"assignee,omitempty" doc:"value needs to assign to output field"`
 }
