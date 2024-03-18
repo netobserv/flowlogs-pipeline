@@ -30,16 +30,15 @@ type PromEncode struct {
 	MaxMetrics          int          `yaml:"maxMetrics,omitempty" json:"maxMetrics,omitempty" doc:"maximum number of metrics to report (default: unlimited)"`
 }
 
-type MetricEncodeOperationEnum struct {
-	Gauge        string `yaml:"gauge" json:"gauge" doc:"single numerical value that can arbitrarily go up and down"`
-	Counter      string `yaml:"counter" json:"counter" doc:"monotonically increasing counter whose value can only increase"`
-	Histogram    string `yaml:"histogram" json:"histogram" doc:"counts samples in configurable buckets"`
-	AggHistogram string `yaml:"agg_histogram" json:"agg_histogram" doc:"counts samples in configurable buckets, pre-aggregated via an Aggregate stage"`
-}
+type MetricEncodeOperationEnum string
 
-func MetricEncodeOperationName(operation string) string {
-	return GetEnumName(MetricEncodeOperationEnum{}, operation)
-}
+const (
+	// For doc generation, enum definitions must match format `Constant Type = "value" // doc`
+	MetricGauge        MetricEncodeOperationEnum = "gauge"         // single numerical value that can arbitrarily go up and down
+	MetricCounter      MetricEncodeOperationEnum = "counter"       // monotonically increasing counter whose value can only increase
+	MetricHistogram    MetricEncodeOperationEnum = "histogram"     // counts samples in configurable buckets
+	MetricAggHistogram MetricEncodeOperationEnum = "agg_histogram" // counts samples in configurable buckets, pre-aggregated via an Aggregate stage
+)
 
 type PromConnectionInfo struct {
 	Address string       `yaml:"address,omitempty" json:"address,omitempty" doc:"endpoint address to expose"`
@@ -48,13 +47,13 @@ type PromConnectionInfo struct {
 }
 
 type MetricsItem struct {
-	Name       string          `yaml:"name" json:"name" doc:"the metric name"`
-	Type       string          `yaml:"type" json:"type" enum:"MetricEncodeOperationEnum" doc:"one of the following:"`
-	Filters    []MetricsFilter `yaml:"filters" json:"filters" doc:"a list of criteria to filter entries by"`
-	ValueKey   string          `yaml:"valueKey" json:"valueKey" doc:"entry key from which to resolve metric value"`
-	Labels     []string        `yaml:"labels" json:"labels" doc:"labels to be associated with the metric"`
-	Buckets    []float64       `yaml:"buckets" json:"buckets" doc:"histogram buckets"`
-	ValueScale float64         `yaml:"valueScale,omitempty" json:"valueScale,omitempty" doc:"scale factor of the value (MetricVal := FlowVal / Scale)"`
+	Name       string                    `yaml:"name" json:"name" doc:"the metric name"`
+	Type       MetricEncodeOperationEnum `yaml:"type" json:"type" doc:"(enum) one of the following:"`
+	Filters    []MetricsFilter           `yaml:"filters" json:"filters" doc:"a list of criteria to filter entries by"`
+	ValueKey   string                    `yaml:"valueKey" json:"valueKey" doc:"entry key from which to resolve metric value"`
+	Labels     []string                  `yaml:"labels" json:"labels" doc:"labels to be associated with the metric"`
+	Buckets    []float64                 `yaml:"buckets" json:"buckets" doc:"histogram buckets"`
+	ValueScale float64                   `yaml:"valueScale,omitempty" json:"valueScale,omitempty" doc:"scale factor of the value (MetricVal := FlowVal / Scale)"`
 }
 
 type MetricsItems []MetricsItem

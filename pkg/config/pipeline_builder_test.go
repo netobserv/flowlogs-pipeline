@@ -29,13 +29,13 @@ import (
 func TestLokiPipeline(t *testing.T) {
 	pl := NewCollectorPipeline("ingest", api.IngestCollector{HostName: "127.0.0.1", Port: 9999})
 	pl = pl.TransformNetwork("enrich", api.TransformNetwork{Rules: api.NetworkTransformRules{{
-		Type: api.AddKubernetesRuleType,
+		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
 			Input:  "SrcAddr",
 			Output: "SrcK8S",
 		},
 	}, {
-		Type: api.AddKubernetesRuleType,
+		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
 			Input:  "DstAddr",
 			Output: "DstK8S",
@@ -203,13 +203,13 @@ func TestForkPipeline(t *testing.T) {
 func TestIPFIXPipeline(t *testing.T) {
 	pl := NewCollectorPipeline("ingest", api.IngestCollector{HostName: "127.0.0.1", Port: 9999})
 	pl = pl.TransformNetwork("enrich", api.TransformNetwork{Rules: api.NetworkTransformRules{{
-		Type: api.AddKubernetesRuleType,
+		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
 			Input:  "SrcAddr",
 			Output: "SrcK8S",
 		},
 	}, {
-		Type: api.AddKubernetesRuleType,
+		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
 			Input:  "DstAddr",
 			Output: "DstK8S",

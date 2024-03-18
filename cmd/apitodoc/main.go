@@ -47,17 +47,8 @@ func iterate(output io.Writer, data interface{}, indent int) {
 			val := reflect.Indirect(reflect.ValueOf(data))
 			fieldName := val.Type().Field(i).Tag.Get(api.TagYaml)
 			fieldName = strings.ReplaceAll(fieldName, ",omitempty", "")
-
 			fieldDocTag := val.Type().Field(i).Tag.Get(api.TagDoc)
-			fieldEnumTag := val.Type().Field(i).Tag.Get(api.TagEnum)
 
-			if fieldEnumTag != "" {
-				enumType := api.GetEnumReflectionTypeByFieldName(fieldEnumTag)
-				zeroElement := reflect.Zero(enumType).Interface()
-				fmt.Fprintf(output, "%s %s: (enum) %s\n", strings.Repeat(" ", 4*newIndent), fieldName, fieldDocTag)
-				iterate(output, zeroElement, newIndent)
-				continue
-			}
 			if fieldDocTag != "" {
 				if fieldDocTag[0:1] == "#" {
 					fmt.Fprintf(output, "\n%s\n", fieldDocTag)

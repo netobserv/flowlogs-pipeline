@@ -139,7 +139,7 @@ func (m *mockRecord) withHash(hashStr string) *mockRecord {
 	return m
 }
 
-func (m *mockRecord) withType(recordType string) *mockRecord {
+func (m *mockRecord) withType(recordType api.ConnTrackOutputRecordTypeEnum) *mockRecord {
 	m.record[api.RecordTypeFieldName] = recordType
 	return m
 }

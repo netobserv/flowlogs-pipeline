@@ -31,9 +31,9 @@ type Decoder interface {
 
 func GetDecoder(params api.Decoder) (Decoder, error) {
 	switch params.Type {
-	case api.DecoderName("JSON"):
+	case api.DecoderJSON:
 		return NewDecodeJSON()
-	case api.DecoderName("Protobuf"):
+	case api.DecoderProtobuf:
 		return decode.NewProtobuf()
 	}
 	panic(fmt.Sprintf("`decode` type %s not defined", params.Type))

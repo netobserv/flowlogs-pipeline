@@ -45,35 +45,35 @@ func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 	for _, rule := range f.Rules {
 		tlog.Tracef("rule = %v", rule)
 		switch rule.Type {
-		case api.TransformFilterOperationName("RemoveField"):
+		case api.RemoveField:
 			delete(outputEntry, rule.Input)
-		case api.TransformFilterOperationName("RemoveEntryIfExists"):
+		case api.RemoveEntryIfExists:
 			if _, ok := entry[rule.Input]; ok {
 				return nil, false
 			}
-		case api.TransformFilterOperationName("RemoveEntryIfDoesntExist"):
+		case api.RemoveEntryIfDoesntExist:
 			if _, ok := entry[rule.Input]; !ok {
 				return nil, false
 			}
-		case api.TransformFilterOperationName("RemoveEntryIfEqual"):
+		case api.RemoveEntryIfEqual:
 			if val, ok := entry[rule.Input]; ok {
 				if val == rule.Value {
 					return nil, false
 				}
 			}
-		case api.TransformFilterOperationName("RemoveEntryIfNotEqual"):
+		case api.RemoveEntryIfNotEqual:
 			if val, ok := entry[rule.Input]; ok {
 				if val != rule.Value {
 					return nil, false
 				}
 			}
-		case api.TransformFilterOperationName("AddField"):
+		case api.AddField:
 			outputEntry[rule.Input] = rule.Value
-		case api.TransformFilterOperationName("AddFieldIfDoesntExist"):
+		case api.AddFieldIfDoesntExist:
 			if _, ok := entry[rule.Input]; !ok {
 				outputEntry[rule.Input] = rule.Value
 			}
-		case api.TransformFilterOperationName("AddRegExIf"):
+		case api.AddRegExIf:
 			matched, err := regexp.MatchString(rule.Parameters, fmt.Sprintf("%s", outputEntry[rule.Input]))
 			if err != nil {
 				continue
@@ -82,7 +82,7 @@ func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 				outputEntry[rule.Output] = outputEntry[rule.Input]
 				outputEntry[rule.Output+"_Matched"] = true
 			}
-		case api.TransformFilterOperationName("AddFieldIf"):
+		case api.AddFieldIf:
 			expressionString := fmt.Sprintf("val %s", rule.Parameters)
 			expression, err := govaluate.NewEvaluableExpression(expressionString)
 			if err != nil {
@@ -98,9 +98,9 @@ func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 				}
 				outputEntry[rule.Output+"_Evaluate"] = true
 			}
-		case api.TransformFilterOperationName("AddLabel"):
+		case api.AddLabel:
 			labels[rule.Input], _ = utils.ConvertToString(rule.Value)
-		case api.TransformFilterOperationName("AddLabelIf"):
+		case api.AddLabelIf:
 			// TODO perhaps add a cache of previously evaluated expressions
 			expressionString := fmt.Sprintf("val %s", rule.Parameters)
 			expression, err := govaluate.NewEvaluableExpression(expressionString)

@@ -134,14 +134,14 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 		log.Debugf("Labels = %v", labels)
 		mInfo := encode.CreateMetricInfo(mCfg)
 		switch mCfg.Type {
-		case api.MetricEncodeOperationName("Counter"):
+		case api.MetricCounter:
 			counter, err := meter.Float64Counter(fullMetricName)
 			if err != nil {
 				log.Errorf("error during counter creation: %v", err)
 				return nil, err
 			}
 			metricCommon.AddCounter(counter, mInfo)
-		case api.MetricEncodeOperationName("Gauge"):
+		case api.MetricGauge:
 			// at implementation time, only asynchronous gauges are supported by otel in golang
 			obs := Float64Gauge{observations: make(map[string]Float64GaugeEntry)}
 			gauge, err := meterFactory.Float64ObservableGauge(
@@ -153,7 +153,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 				return nil, err
 			}
 			metricCommon.AddGauge(gauge, mInfo)
-		case api.MetricEncodeOperationName("Histogram"):
+		case api.MetricHistogram:
 			var histo metric.Float64Histogram
 			if len(mCfg.Buckets) == 0 {
 				histo, err = meter.Float64Histogram(fullMetricName)
@@ -168,7 +168,9 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 				return nil, err
 			}
 			metricCommon.AddHist(histo, mInfo)
-		case "default":
+		case api.MetricAggHistogram:
+			fallthrough
+		default:
 			log.Errorf("invalid metric type = %v, skipping", mCfg.Type)
 			continue
 		}

@@ -13,10 +13,10 @@ Following is the supported API format for prometheus encode:
          metrics: list of prometheus metric definitions, each includes:
                  name: the metric name
                  type: (enum) one of the following:
-                     gauge: single numerical value that can arbitrarily go up and down
-                     counter: monotonically increasing counter whose value can only increase
-                     histogram: counts samples in configurable buckets
-                     agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
+                    gauge: single numerical value that can arbitrarily go up and down
+                    counter: monotonically increasing counter whose value can only increase
+                    histogram: counts samples in configurable buckets
+                    agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
                  filters: a list of criteria to filter entries by
                          key: the key to match and filter by
                          value: the value to match and filter by
@@ -43,11 +43,11 @@ Following is the supported API format for kafka encode:
          address: address of kafka server
          topic: kafka topic to write to
          balancer: (enum) one of the following:
-             roundRobin: RoundRobin balancer
-             leastBytes: LeastBytes balancer
-             hash: Hash balancer
-             crc32: Crc32 balancer
-             murmur2: Murmur2 balancer
+            roundRobin: RoundRobin balancer
+            leastBytes: LeastBytes balancer
+            hash: Hash balancer
+            crc32: Crc32 balancer
+            murmur2: Murmur2 balancer
          writeTimeout: timeout (in seconds) for write operation performed by the Writer
          readTimeout: timeout (in seconds) for read operation performed by the Writer
          batchBytes: limit the maximum size of a request in bytes before being sent to a partition
@@ -58,6 +58,9 @@ Following is the supported API format for kafka encode:
              userCertPath: path to the user certificate
              userKeyPath: path to the user private key
          sasl: SASL configuration (optional)
+             type: SASL type
+                plain: Plain SASL
+                scramSHA512: SCRAM/SHA512 SASL
              clientIDPath: path to the client ID / SASL username
              clientSecretPath: path to the client secret / SASL password
 </pre>
@@ -99,8 +102,8 @@ Following is the supported API format for the kafka ingest:
          batchReadTimeout: how often (in milliseconds) to process input
          decoder: decoder to use (E.g. json or protobuf)
              type: (enum) one of the following:
-                 json: JSON decoder
-                 protobuf: Protobuf decoder
+                json: JSON decoder
+                protobuf: Protobuf decoder
          batchMaxLen: the number of accumulated flows before being forwarded for processing
          pullQueueCapacity: the capacity of the queue use to store pulled flows
          pullMaxBytes: the maximum number of bytes being pulled from kafka
@@ -111,6 +114,9 @@ Following is the supported API format for the kafka ingest:
              userCertPath: path to the user certificate
              userKeyPath: path to the user private key
          sasl: SASL configuration (optional)
+             type: SASL type
+                plain: Plain SASL
+                scramSHA512: SCRAM/SHA512 SASL
              clientIDPath: path to the client ID / SASL username
              clientSecretPath: path to the client secret / SASL password
 </pre>
@@ -134,8 +140,8 @@ Following is the supported API format for generic transformations:
 <pre>
  generic:
          policy: (enum) key replacement policy; may be one of the following:
-             preserve_original_keys: adds new keys in addition to existing keys (default)
-             replace_keys: removes all old keys and uses only the new keys
+            preserve_original_keys: adds new keys in addition to existing keys (default)
+            replace_keys: removes all old keys and uses only the new keys
          rules: list of transform rules, each includes:
                  input: entry input field
                  output: entry output field
@@ -150,17 +156,17 @@ Following is the supported API format for filter transformations:
                  input: entry input field
                  output: entry output field
                  type: (enum) one of the following:
-                     remove_field: removes the field from the entry
-                     remove_entry_if_exists: removes the entry if the field exists
-                     remove_entry_if_doesnt_exist: removes the entry if the field does not exist
-                     remove_entry_if_equal: removes the entry if the field value equals specified value
-                     remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
-                     add_field: adds (input) field to the entry; overrides previous value if present (key=input, value=value)
-                     add_field_if_doesnt_exist: adds a field to the entry if the field does not exist
-                     add_field_if: add output field set to assignee if input field satisfies criteria from parameters field
-                     add_regex_if: add output field if input field satisfies regex pattern from parameters field
-                     add_label: add (input) field to list of labels with value taken from Value field (key=input, value=value)
-                     add_label_if: add output field to list of labels with value taken from assignee field if input field satisfies criteria from parameters field
+                    remove_field: removes the field from the entry
+                    remove_entry_if_exists: removes the entry if the field exists
+                    remove_entry_if_doesnt_exist: removes the entry if the field does not exist
+                    remove_entry_if_equal: removes the entry if the field value equals specified value
+                    remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
+                    add_field: adds (input) field to the entry; overrides previous value if present (key=input, value=value)
+                    add_field_if_doesnt_exist: adds a field to the entry if the field does not exist
+                    add_field_if: add output field set to assignee if input field satisfies criteria from parameters field
+                    add_regex_if: add output field if input field satisfies regex pattern from parameters field
+                    add_label: add (input) field to list of labels with value taken from Value field (key=input, value=value)
+                    add_label_if: add output field to list of labels with value taken from assignee field if input field satisfies criteria from parameters field
                  value: specified value of input field:
                  parameters: parameters specific to type
                  assignee: value needs to assign to output field
@@ -171,24 +177,41 @@ Following is the supported API format for network transformations:
 <pre>
  network:
          rules: list of transform rules, each includes:
-                 input: entry input field
-                 output: entry output field
                  type: (enum) one of the following:
-                     add_subnet: add output subnet field from input field and prefix length from parameters field
-                     add_location: add output location fields from input
-                     add_service: add output network service field from input port and parameters protocol field
-                     add_kubernetes: add output kubernetes fields from input
-                     add_kubernetes_infra: add output kubernetes isInfra field from input
-                     reinterpret_direction: reinterpret flow direction at the node level (instead of net interface), to ease the deduplication process
-                     add_ip_category: categorize IPs based on known subnets configuration
-                 parameters: parameters specific to type
-                 assignee: value needs to assign to output field
-                 kubernetes_infra: Kubernetes infra rule specific configuration
+                    add_subnet: add output subnet field from input field and prefix length from parameters field
+                    add_location: add output location fields from input
+                    add_service: add output network service field from input port and parameters protocol field
+                    add_kubernetes: add output kubernetes fields from input
+                    add_kubernetes_infra: add output kubernetes isInfra field from input
+                    reinterpret_direction: reinterpret flow direction at the node level (instead of net interface), to ease the deduplication process
+                    add_ip_category: categorize IPs based on known subnets configuration
+                 kubernetes_infra: Kubernetes infra rule configuration
                      inputs: entry inputs fields
                      output: entry output field
                      infra_prefixes: Namespace prefixes that will be tagged as infra
-                 kubernetes: Kubernetes rule specific configuration
+                     infra_refs: Additional object references to be tagged as infra
+                             name: name of the object
+                             namespace: namespace of the object
+                 kubernetes: Kubernetes rule configuration
+                     input: entry input field
+                     output: entry output field
+                     assignee: value needs to assign to output field
+                     labels_prefix: labels prefix to use to copy input lables, if empty labels will not be copied
                      add_zone: If true the rule will add the zone
+                 add_subnet: Add subnet rule configuration
+                     input: entry input field
+                     output: entry output field
+                     subnet_mask: subnet mask field
+                 add_location: Add location rule configuration
+                     input: entry input field
+                     output: entry output field
+                 add_ip_category: Add ip category rule configuration
+                     input: entry input field
+                     output: entry output field
+                 add_service: Add service rule configuration
+                     input: entry input field
+                     output: entry output field
+                     protocol: entry protocol field
          kubeConfigPath: path to kubeconfig file (optional)
          servicesFile: path to services file (optional, default: /etc/services)
          protocolsFile: path to protocols file (optional, default: /etc/protocols)
@@ -256,19 +279,19 @@ Following is the supported API format for specifying connection tracking:
                  fieldGroupARef: field group name of endpoint A
                  fieldGroupBRef: field group name of endpoint B
          outputRecordTypes: (enum) output record types to emit
-             newConnection: New connection
-             endConnection: End connection
-             heartbeat: Heartbeat
-             flowLog: Flow log
+                newConnection: New connection
+                endConnection: End connection
+                heartbeat: Heartbeat
+                flowLog: Flow log
          outputFields: list of output fields
                  name: output field name
                  operation: (enum) aggregate operation on the field value
-                     sum: sum
-                     count: count
-                     min: min
-                     max: max
-                     first: first
-                     last: last
+                    sum: sum
+                    count: count
+                    min: min
+                    max: max
+                    first: first
+                    last: last
                  splitAB: When true, 2 output fields will be created. One for A->B and one for B->A flows.
                  input: The input field to base the operation on. When omitted, 'name' is used
                  reportMissing: When true, missing input will produce MissingFieldError metric and error logs
@@ -293,13 +316,13 @@ Following is the supported API format for specifying metrics time-based filters:
                  indexKey: internal field to index TopK. Deprecated, use indexKeys instead
                  indexKeys: internal fields to index TopK
                  operationType: (enum) sum, min, max, avg, count, last or diff
-                     sum: set output field to sum of parameters fields in the time window
-                     avg: set output field to average of parameters fields in the time window
-                     min: set output field to minimum of parameters fields in the time window
-                     max: set output field to maximum of parameters fields in the time window
-                     count: set output field to number of flows registered in the time window
-                     last: set output field to last of parameters fields in the time window
-                     diff: set output field to the difference of the first and last parameters fields in the time window
+                    sum: set output field to sum of parameters fields in the time window
+                    avg: set output field to average of parameters fields in the time window
+                    min: set output field to minimum of parameters fields in the time window
+                    max: set output field to maximum of parameters fields in the time window
+                    count: set output field to number of flows registered in the time window
+                    last: set output field to last of parameters fields in the time window
+                    diff: set output field to the difference of the first and last parameters fields in the time window
                  operationKey: internal field on which to perform the operation
                  topK: number of highest incidence to report (default - report all)
                  reversed: report lowest incidence instead of highest (default - false)
@@ -340,10 +363,10 @@ Following is the supported API format for writing metrics to an OpenTelemetry co
          metrics: list of metric definitions, each includes:
                  name: the metric name
                  type: (enum) one of the following:
-                     gauge: single numerical value that can arbitrarily go up and down
-                     counter: monotonically increasing counter whose value can only increase
-                     histogram: counts samples in configurable buckets
-                     agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
+                    gauge: single numerical value that can arbitrarily go up and down
+                    counter: monotonically increasing counter whose value can only increase
+                    histogram: counts samples in configurable buckets
+                    agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
                  filters: a list of criteria to filter entries by
                          key: the key to match and filter by
                          value: the value to match and filter by

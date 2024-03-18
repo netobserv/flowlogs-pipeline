@@ -25,6 +25,7 @@ import (
 	"time"
 
 	test2 "github.com/mariomac/guara/pkg/test"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/decode"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
@@ -141,7 +142,7 @@ func TestConnTrack(t *testing.T) {
 		"TimeFlowEnd":   1_637_501_829.0,
 		"TimeFlowStart": 1_637_501_079.0,
 		"_HashId":       "d28db42bcd8aea8f",
-		"_RecordType":   "endConnection",
+		"_RecordType":   api.ConnTrackOutputRecordTypeEnum("endConnection"),
 		"_IsFirst":      false,
 		"numFlowLogs":   5.0,
 	}

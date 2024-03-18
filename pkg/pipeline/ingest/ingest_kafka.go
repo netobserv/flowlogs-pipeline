@@ -294,6 +294,6 @@ func NewIngestKafka(opMetrics *operational.Metrics, params config.StageParam) (I
 		batchMaxLength:   bml,
 		batchReadTimeout: batchReadTimeout,
 		metrics:          metrics,
-		canLogMessages:   jsonIngestKafka.Decoder.Type == api.DecoderName("JSON"),
+		canLogMessages:   jsonIngestKafka.Decoder.Type == api.DecoderJSON,
 	}, nil
 }
