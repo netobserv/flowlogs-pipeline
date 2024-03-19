@@ -90,7 +90,7 @@ func TestGRPCPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"removeEntryIfDoesntExist":{"input":"doesnt_exist"},"type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"removeEntry":{"input":"doesnt_exist"},"type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
@@ -158,7 +158,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"removeEntryIfDoesntExist":{"input":"doesnt_exist"},"type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"removeEntry":{"input":"doesnt_exist"},"type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
