@@ -69,8 +69,8 @@ func TestGRPCPipeline(t *testing.T) {
 	pl := NewGRPCPipeline("grpc", api.IngestGRPCProto{Port: 9050, BufferLen: 50})
 	pl = pl.TransformFilter("filter", api.TransformFilter{
 		Rules: []api.TransformFilterRule{{
-			Type:                     "remove_entry_if_doesnt_exist",
-			RemoveEntryIfDoesntExist: &api.TransformFilterGenericRule{Input: "doesnt_exist"},
+			Type:        "remove_entry_if_doesnt_exist",
+			RemoveEntry: &api.TransformFilterGenericRule{Input: "doesnt_exist"},
 		}},
 	})
 	pl = pl.WriteStdout("stdout", api.WriteStdout{Format: "json"})
@@ -110,8 +110,8 @@ func TestKafkaPromPipeline(t *testing.T) {
 	})
 	pl = pl.TransformFilter("filter", api.TransformFilter{
 		Rules: []api.TransformFilterRule{{
-			Type:                     "remove_entry_if_doesnt_exist",
-			RemoveEntryIfDoesntExist: &api.TransformFilterGenericRule{Input: "doesnt_exist"},
+			Type:        "remove_entry_if_doesnt_exist",
+			RemoveEntry: &api.TransformFilterGenericRule{Input: "doesnt_exist"},
 		}},
 	})
 	pl = pl.ConnTrack("conntrack", api.ConnTrack{

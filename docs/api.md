@@ -159,33 +159,40 @@ Following is the supported API format for filter transformations:
                     remove_entry_if_doesnt_exist: removes the entry if the field does not exist
                     remove_entry_if_equal: removes the entry if the field value equals specified value
                     remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
+                    remove_entry_all_satisfied: removes the entry if all of the defined rules are satisfied
                     add_field: adds (input) field to the entry; overrides previous value if present (key=input, value=value)
                     add_field_if_doesnt_exist: adds a field to the entry if the field does not exist
                     add_field_if: add output field set to assignee if input field satisfies criteria from parameters field
                     add_regex_if: add output field if input field satisfies regex pattern from parameters field
                     add_label: add (input) field to list of labels with value taken from Value field (key=input, value=value)
                     add_label_if: add output field to list of labels with value taken from assignee field if input field satisfies criteria from parameters field
+                    conditional_sampling: define conditional sampling rules
                  removeField: configuration for remove_field rule
                      input: entry input field
                      value: specified value of input field:
-                 removeEntryIfExists: configuration for remove_entry_if_exists rule
+                     castInt: set true to cast the value field as an int (numeric values are float64 otherwise)
+                 removeEntry: configuration for remove_entry_* rules
                      input: entry input field
                      value: specified value of input field:
-                 removeEntryIfDoesntExist: configuration for remove_entry_if_doesnt_exist rule
-                     input: entry input field
-                     value: specified value of input field:
-                 removeEntryIfEqual: configuration for remove_entry_if_equal rule
-                     input: entry input field
-                     value: specified value of input field:
-                 removeEntryIfNotEqual: configuration for remove_entry_if_not_equal rule
-                     input: entry input field
-                     value: specified value of input field:
+                     castInt: set true to cast the value field as an int (numeric values are float64 otherwise)
+                 removeEntryAllSatisfied: configuration for remove_entry_all_satisfied rule
+                         type: (enum) one of the following:
+                            remove_entry_if_exists: removes the entry if the field exists
+                            remove_entry_if_doesnt_exist: removes the entry if the field does not exist
+                            remove_entry_if_equal: removes the entry if the field value equals specified value
+                            remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
+                         removeEntry: configuration for remove_entry_* rules
+                             input: entry input field
+                             value: specified value of input field:
+                             castInt: set true to cast the value field as an int (numeric values are float64 otherwise)
                  addField: configuration for add_field rule
                      input: entry input field
                      value: specified value of input field:
+                     castInt: set true to cast the value field as an int (numeric values are float64 otherwise)
                  addFieldIfDoesntExist: configuration for add_field_if_doesnt_exist rule
                      input: entry input field
                      value: specified value of input field:
+                     castInt: set true to cast the value field as an int (numeric values are float64 otherwise)
                  addFieldIf: configuration for add_field_if rule
                      input: entry input field
                      output: entry output field
@@ -199,11 +206,24 @@ Following is the supported API format for filter transformations:
                  addLabel: configuration for add_label rule
                      input: entry input field
                      value: specified value of input field:
+                     castInt: set true to cast the value field as an int (numeric values are float64 otherwise)
                  addLabelIf: configuration for add_label_if rule
                      input: entry input field
                      output: entry output field
                      parameters: parameters specific to type
                      assignee: value needs to assign to output field
+                 conditionalSampling: sampling configuration rules
+                         value: sampling value: 1 flow on <sampling> is kept
+                         rules: rules to be satisfied for this sampling configuration
+                                 type: (enum) one of the following:
+                                    remove_entry_if_exists: removes the entry if the field exists
+                                    remove_entry_if_doesnt_exist: removes the entry if the field does not exist
+                                    remove_entry_if_equal: removes the entry if the field value equals specified value
+                                    remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
+                                 removeEntry: configuration for remove_entry_* rules
+                                     input: entry input field
+                                     value: specified value of input field:
+                                     castInt: set true to cast the value field as an int (numeric values are float64 otherwise)
 </pre>
 ## Transform Network API
 Following is the supported API format for network transformations:
