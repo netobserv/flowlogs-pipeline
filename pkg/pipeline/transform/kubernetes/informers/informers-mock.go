@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -19,8 +20,8 @@ func NewInformersMock() *Mock {
 	return inf
 }
 
-func (o *Mock) InitFromConfig(kubeConfigPath string) error {
-	args := o.Called(kubeConfigPath)
+func (o *Mock) InitFromConfig(config *rest.Config) error {
+	args := o.Called(config)
 	return args.Error(0)
 }
 
@@ -139,7 +140,7 @@ func SetupStubs(info map[string]*Info, nodes map[string]*Info) *FakeInformers {
 	}
 }
 
-func (f *FakeInformers) InitFromConfig(_ string) error {
+func (f *FakeInformers) InitFromConfig(_ *rest.Config) error {
 	return nil
 }
 

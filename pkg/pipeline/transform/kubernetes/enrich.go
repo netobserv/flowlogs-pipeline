@@ -18,7 +18,12 @@ func MockInformers() {
 }
 
 func InitFromConfig(kubeConfigPath string) error {
-	return informers.InitFromConfig(kubeConfigPath)
+	config, err := LoadConfig(kubeConfigPath)
+	if err != nil {
+		return err
+	}
+
+	return informers.InitFromConfig(config)
 }
 
 func Enrich(outputEntry config.GenericMap, rule api.K8sRule) {

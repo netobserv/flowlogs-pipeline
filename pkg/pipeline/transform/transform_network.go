@@ -26,6 +26,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/infinispan"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
@@ -40,6 +41,7 @@ type Network struct {
 	svcNames   *netdb.ServiceNames
 	categories []subnetCategory
 	ipCatCache *utils.TimedCache
+	cache      *infinispan.Cache
 }
 
 type subnetCategory struct {
@@ -119,7 +121,33 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			}
 			kubernetes.EnrichLayer(outputEntry, rule.KubernetesInfra)
 		case api.OpReinterpretDirection:
-			reinterpretDirection(outputEntry, &n.DirectionInfo)
+			isInner, isSrcReporter := reinterpretDirection(outputEntry, &n.DirectionInfo)
+			if !isInner && n.cache != nil {
+				if isSrcReporter {
+					// add flow to cache and stop pipeline for now
+					err := n.cache.PutDedupInnerToCache(outputEntry)
+					if err != nil {
+						log.Errorf("error putting cache %v for %v", err, outputEntry)
+					}
+					return nil, false
+				}
+
+				found, err := n.cache.GetDedupInner(outputEntry)
+				if err != nil {
+					log.Errorf("error getting cache %v for %v", err, outputEntry)
+				} else if found != nil {
+					// append interfaces and direction to flow
+					srcFlow := *found
+					log.Debugf("merging cached flow %v with %v ...", srcFlow, outputEntry)
+					if len(srcFlow["Interfaces"].([]interface{})) == len(srcFlow["IfDirections"].([]interface{})) {
+						for i := 0; i < len(srcFlow["Interfaces"].([]interface{})); i++ {
+							outputEntry["Interfaces"] = append(outputEntry["Interfaces"].([]string), fmt.Sprintf("%s*", srcFlow["Interfaces"].([]interface{})[i].(string)))
+							outputEntry["IfDirections"] = append(outputEntry["IfDirections"].([]int), int(srcFlow["IfDirections"].([]interface{})[i].(float64)))
+						}
+					}
+					log.Debugf("merged flow: %v", outputEntry)
+				}
+			}
 		case api.OpAddIPCategory:
 			if rule.AddIPCategory == nil {
 				logrus.Error("AddIPCategory rule: Missing configuration ")
@@ -133,7 +161,6 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				}
 				outputEntry[rule.AddIPCategory.Output] = cat
 			}
-
 		default:
 			log.Panicf("unknown type %s for transform.Network rule: %v", rule.Type, rule)
 		}
@@ -162,6 +189,7 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	var needToInitLocationDB = false
 	var needToInitKubeData = false
 	var needToInitNetworkServices = false
+	var needCache = false
 
 	jsonNetworkTransform := api.TransformNetwork{}
 	if params.Transform != nil && params.Transform.Network != nil {
@@ -181,6 +209,8 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 			if err := validateReinterpretDirectionConfig(&jsonNetworkTransform.DirectionInfo); err != nil {
 				return nil, err
 			}
+			// TODO: make this configurable
+			needCache = true
 		case api.OpAddIPCategory:
 			if len(jsonNetworkTransform.IPCategories) == 0 {
 				return nil, fmt.Errorf("a rule '%s' was found, but there are no IP categories configured", api.OpAddIPCategory)
@@ -237,6 +267,15 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		}
 	}
 
+	var cache *infinispan.Cache
+	if needCache {
+		var err error
+		cache, err = infinispan.NewCache(jsonNetworkTransform.KubeConfigPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &Network{
 		TransformNetwork: api.TransformNetwork{
 			Rules:         jsonNetworkTransform.Rules,
@@ -245,5 +284,6 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		svcNames:   servicesDB,
 		categories: subnetCats,
 		ipCatCache: utils.NewQuietExpiringTimedCache(2 * time.Minute),
+		cache:      cache,
 	}, nil
 }
