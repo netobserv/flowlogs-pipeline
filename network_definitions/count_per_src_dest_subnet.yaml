@@ -12,14 +12,16 @@ tags:
   - subnet
 transform:
   rules:
-    - input: dstIP
-      output: dstSubnet24
-      type: add_subnet
-      parameters: /24
-    - input: srcIP
-      output: srcSubnet24
-      type: add_subnet
-      parameters: /24
+    - type: add_subnet
+      add_subnet:
+        input: dstIP
+        output: dstSubnet24
+        subnet_mask: /24
+    - type: add_subnet
+      add_subnet:
+        input: srcIP
+        output: srcSubnet24
+        subnet_mask: /24
 extract:
   type: aggregates
   aggregates:

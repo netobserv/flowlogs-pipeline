@@ -54,7 +54,7 @@ type MetricsItem struct {
 	ValueKey   string          `yaml:"valueKey" json:"valueKey" doc:"entry key from which to resolve metric value"`
 	Labels     []string        `yaml:"labels" json:"labels" doc:"labels to be associated with the metric"`
 	Buckets    []float64       `yaml:"buckets" json:"buckets" doc:"histogram buckets"`
-	ValueScale float64         `yaml:"valueScale" json:"valueScale" doc:"scale factor of the value (MetricVal := FlowVal / Scale)"`
+	ValueScale float64         `yaml:"valueScale,omitempty" json:"valueScale,omitempty" doc:"scale factor of the value (MetricVal := FlowVal / Scale)"`
 }
 
 type MetricsItems []MetricsItem
@@ -62,7 +62,7 @@ type MetricsItems []MetricsItem
 type MetricsFilter struct {
 	Key   string `yaml:"key" json:"key" doc:"the key to match and filter by"`
 	Value string `yaml:"value" json:"value" doc:"the value to match and filter by"`
-	Type  string `yaml:"type" json:"type" enum:"MetricEncodeFilterTypeEnum" doc:"the type of filter match: equal (default), not_equal, presence, absence, match_regex or not_match_regex"`
+	Type  string `yaml:"type,omitempty" json:"type,omitempty" enum:"MetricEncodeFilterTypeEnum" doc:"the type of filter match: equal (default), not_equal, presence, absence, match_regex or not_match_regex"`
 }
 
 type MetricEncodeFilterTypeEnum struct {

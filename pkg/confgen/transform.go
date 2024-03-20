@@ -24,7 +24,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (cg *ConfGen) parseTransport(transform *map[string]interface{}) (*api.TransformNetwork, error) {
+func (cg *ConfGen) parseTransform(transform *map[string]interface{}) (*api.TransformNetwork, error) {
 	jsoniterJSON := jsoniter.ConfigCompatibleWithStandardLibrary
 	b, err := jsoniterJSON.Marshal(transform)
 	if err != nil {

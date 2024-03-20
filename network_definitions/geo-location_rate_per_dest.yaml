@@ -12,9 +12,10 @@ tags:
   - destinationIP
 transform:
   rules:
-    - input: dstIP
-      output: dstLocation
-      type: add_location
+    - type: add_location
+      add_location:
+        input: dstIP
+        output: dstLocation
 extract:
   type: aggregates
   aggregates:
