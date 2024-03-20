@@ -122,31 +122,8 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			kubernetes.EnrichLayer(outputEntry, rule.KubernetesInfra)
 		case api.OpReinterpretDirection:
 			isInner, isSrcReporter := reinterpretDirection(outputEntry, &n.DirectionInfo)
-			if !isInner && n.cache != nil {
-				if isSrcReporter {
-					// add flow to cache and stop pipeline for now
-					err := n.cache.PutDedupInnerToCache(outputEntry)
-					if err != nil {
-						log.Errorf("error putting cache %v for %v", err, outputEntry)
-					}
-					return nil, false
-				}
-
-				found, err := n.cache.GetDedupInner(outputEntry)
-				if err != nil {
-					log.Errorf("error getting cache %v for %v", err, outputEntry)
-				} else if found != nil {
-					// append interfaces and direction to flow
-					srcFlow := *found
-					log.Debugf("merging cached flow %v with %v ...", srcFlow, outputEntry)
-					if len(srcFlow["Interfaces"].([]interface{})) == len(srcFlow["IfDirections"].([]interface{})) {
-						for i := 0; i < len(srcFlow["Interfaces"].([]interface{})); i++ {
-							outputEntry["Interfaces"] = append(outputEntry["Interfaces"].([]string), fmt.Sprintf("%s*", srcFlow["Interfaces"].([]interface{})[i].(string)))
-							outputEntry["IfDirections"] = append(outputEntry["IfDirections"].([]int), int(srcFlow["IfDirections"].([]interface{})[i].(float64)))
-						}
-					}
-					log.Debugf("merged flow: %v", outputEntry)
-				}
+			if n.cache != nil {
+				return n.cache.DedupFlows(isInner, isSrcReporter, outputEntry)
 			}
 		case api.OpAddIPCategory:
 			if rule.AddIPCategory == nil {
