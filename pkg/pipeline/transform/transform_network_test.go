@@ -227,10 +227,10 @@ func Test_Categorize(t *testing.T) {
 		Transform: &config.Transform{
 			Network: &api.TransformNetwork{
 				Rules: []api.NetworkTransformRule{
-					{Type: api.OpAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr1", Output: "cat1"}},
-					{Type: api.OpAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr2", Output: "cat2"}},
-					{Type: api.OpAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr3", Output: "cat3"}},
-					{Type: api.OpAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr4", Output: "cat4"}},
+					{Type: api.NetworkAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr1", Output: "cat1"}},
+					{Type: api.NetworkAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr2", Output: "cat2"}},
+					{Type: api.NetworkAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr3", Output: "cat3"}},
+					{Type: api.NetworkAddIPCategory, AddIPCategory: &api.NetworkGenericRule{Input: "addr4", Output: "cat4"}},
 				},
 				IPCategories: []api.NetworkTransformIPCategory{{
 					Name:  "Pods overlay",

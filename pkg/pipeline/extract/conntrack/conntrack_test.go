@@ -36,7 +36,7 @@ import (
 
 var opMetrics = operational.NewMetrics(&config.MetricsSettings{})
 
-func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []string,
+func buildMockConnTrackConfig(isBidirectional bool, outputRecordType []api.ConnTrackOutputRecordTypeEnum,
 	heartbeatInterval, endConnectionTimeout time.Duration, terminatingTimeout time.Duration) *config.StageParam {
 	splitAB := isBidirectional
 	var hash api.ConnTrackHash
@@ -128,14 +128,14 @@ func TestTrack(t *testing.T) {
 	}{
 		{
 			"duplicates, doesn't output connection events",
-			buildMockConnTrackConfig(true, []string{"newConnection", "heartbeat", "endConnection"},
+			buildMockConnTrackConfig(true, []api.ConnTrackOutputRecordTypeEnum{"newConnection", "heartbeat", "endConnection"},
 				heartbeatInterval, endConnectionTimeout, terminatingTimeout),
 			[]config.GenericMap{flAB1Duplicated},
 			[]config.GenericMap(nil),
 		},
 		{
 			"bidirectional, output new connection",
-			buildMockConnTrackConfig(true, []string{"newConnection"},
+			buildMockConnTrackConfig(true, []api.ConnTrackOutputRecordTypeEnum{"newConnection"},
 				heartbeatInterval, endConnectionTimeout, terminatingTimeout),
 			[]config.GenericMap{flAB1, flAB1Duplicated, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
@@ -144,7 +144,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"bidirectional, output new connection and flow log",
-			buildMockConnTrackConfig(true, []string{"newConnection", "flowLog"},
+			buildMockConnTrackConfig(true, []api.ConnTrackOutputRecordTypeEnum{"newConnection", "flowLog"},
 				heartbeatInterval, endConnectionTimeout, terminatingTimeout),
 			[]config.GenericMap{flAB1, flAB1Duplicated, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
@@ -158,7 +158,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"unidirectional, output new connection",
-			buildMockConnTrackConfig(false, []string{"newConnection"},
+			buildMockConnTrackConfig(false, []api.ConnTrackOutputRecordTypeEnum{"newConnection"},
 				heartbeatInterval, endConnectionTimeout, terminatingTimeout),
 			[]config.GenericMap{flAB1, flAB1Duplicated, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
@@ -168,7 +168,7 @@ func TestTrack(t *testing.T) {
 		},
 		{
 			"unidirectional, output new connection and flow log",
-			buildMockConnTrackConfig(false, []string{"newConnection", "flowLog"},
+			buildMockConnTrackConfig(false, []api.ConnTrackOutputRecordTypeEnum{"newConnection", "flowLog"},
 				heartbeatInterval, endConnectionTimeout, terminatingTimeout),
 			[]config.GenericMap{flAB1, flAB1Duplicated, flAB2, flBA3, flBA4},
 			[]config.GenericMap{
@@ -206,7 +206,7 @@ func TestEndConn_Bidirectional(t *testing.T) {
 	endConnectionTimeout := 30 * time.Second
 	terminatingTimeout := 5 * time.Second
 
-	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"},
+	conf := buildMockConnTrackConfig(true, []api.ConnTrackOutputRecordTypeEnum{"newConnection", "flowLog", "endConnection"},
 		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
@@ -296,7 +296,7 @@ func TestEndConn_Unidirectional(t *testing.T) {
 	endConnectionTimeout := 30 * time.Second
 	terminatingTimeout := 5 * time.Second
 
-	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "endConnection"},
+	conf := buildMockConnTrackConfig(false, []api.ConnTrackOutputRecordTypeEnum{"newConnection", "flowLog", "endConnection"},
 		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
@@ -402,7 +402,7 @@ func TestHeartbeat_Unidirectional(t *testing.T) {
 	endConnectionTimeout := 30 * time.Second
 	terminatingTimeout := 5 * time.Second
 
-	conf := buildMockConnTrackConfig(false, []string{"newConnection", "flowLog", "heartbeat", "endConnection"},
+	conf := buildMockConnTrackConfig(false, []api.ConnTrackOutputRecordTypeEnum{"newConnection", "flowLog", "heartbeat", "endConnection"},
 		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
@@ -554,7 +554,7 @@ func TestIsFirst_LongConnection(t *testing.T) {
 	endConnectionTimeout := 30 * time.Second
 	terminatingTimeout := 5 * time.Second
 
-	conf := buildMockConnTrackConfig(false, []string{"heartbeat", "endConnection"},
+	conf := buildMockConnTrackConfig(false, []api.ConnTrackOutputRecordTypeEnum{"heartbeat", "endConnection"},
 		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
@@ -646,7 +646,7 @@ func TestIsFirst_ShortConnection(t *testing.T) {
 	endConnectionTimeout := 5 * time.Second
 	terminatingTimeout := 5 * time.Second
 
-	conf := buildMockConnTrackConfig(false, []string{"heartbeat", "endConnection"},
+	conf := buildMockConnTrackConfig(false, []api.ConnTrackOutputRecordTypeEnum{"heartbeat", "endConnection"},
 		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	ct, err := NewConnectionTrack(opMetrics, *conf, clk)
 	require.NoError(t, err)
@@ -712,7 +712,7 @@ func TestPrepareUpdateConnectionRecords(t *testing.T) {
 	endConnectionTimeout := 30 * time.Second
 	terminatingTimeout := 5 * time.Second
 
-	conf := buildMockConnTrackConfig(false, []string{"heartbeat"},
+	conf := buildMockConnTrackConfig(false, []api.ConnTrackOutputRecordTypeEnum{"heartbeat"},
 		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	interval := 10 * time.Second
 	extract, err := NewConnectionTrack(opMetrics, *conf, clk)
@@ -774,7 +774,7 @@ func TestScheduling(t *testing.T) {
 	defaultEndConnectionTimeout := 15 * time.Second
 	defaultTerminatingTimeout := 5 * time.Second
 
-	conf := buildMockConnTrackConfig(true, []string{"heartbeat", "endConnection"},
+	conf := buildMockConnTrackConfig(true, []api.ConnTrackOutputRecordTypeEnum{"heartbeat", "endConnection"},
 		defaultHeartbeatInterval, defaultEndConnectionTimeout, defaultTerminatingTimeout)
 	// Insert a scheduling group before the default group.
 	// https://github.com/golang/go/wiki/SliceTricks#push-frontunshift
@@ -941,7 +941,7 @@ func TestMaxConnections(t *testing.T) {
 	endConnectionTimeout := 30 * time.Second
 	terminatingTimeout := 5 * time.Second
 
-	conf := buildMockConnTrackConfig(true, []string{"newConnection", "flowLog", "endConnection"},
+	conf := buildMockConnTrackConfig(true, []api.ConnTrackOutputRecordTypeEnum{"newConnection", "flowLog", "endConnection"},
 		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	conf.Extract.ConnTrack.MaxConnectionsTracked = maxConnections
 	extract, err := NewConnectionTrack(opMetrics, *conf, clk)
@@ -976,7 +976,7 @@ func TestIsLastFlowLogOfConnection(t *testing.T) {
 	endConnectionTimeout := 10 * time.Second
 	terminatingTimeout := 5 * time.Second
 
-	conf := buildMockConnTrackConfig(true, []string{},
+	conf := buildMockConnTrackConfig(true, []api.ConnTrackOutputRecordTypeEnum{},
 		heartbeatInterval, endConnectionTimeout, terminatingTimeout)
 	tcpFlagsFieldName := "TCPFlags"
 	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{
@@ -1051,7 +1051,7 @@ func TestDetectEndConnection(t *testing.T) {
 	defaultEndConnectionTimeout := 10 * time.Second
 	defaultTerminatingTimeout := 5 * time.Second
 
-	conf := buildMockConnTrackConfig(true, []string{"newConnection", "endConnection"},
+	conf := buildMockConnTrackConfig(true, []api.ConnTrackOutputRecordTypeEnum{"newConnection", "endConnection"},
 		defaultUpdateConnectionInterval, defaultEndConnectionTimeout, defaultTerminatingTimeout)
 	tcpFlagsFieldName := "TCPFlags"
 	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{
@@ -1135,7 +1135,7 @@ func TestSwapAB(t *testing.T) {
 	defaultEndConnectionTimeout := 10 * time.Second
 	defaultTerminatingTimeout := 5 * time.Second
 
-	conf := buildMockConnTrackConfig(true, []string{"newConnection", "endConnection"},
+	conf := buildMockConnTrackConfig(true, []api.ConnTrackOutputRecordTypeEnum{"newConnection", "endConnection"},
 		defaultUpdateConnectionInterval, defaultEndConnectionTimeout, defaultTerminatingTimeout)
 	tcpFlagsFieldName := "TCPFlags"
 	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{
@@ -1194,7 +1194,7 @@ func TestExpiringConnection(t *testing.T) {
 	defaultEndConnectionTimeout := 10 * time.Second
 	defaultTerminatingTimeout := 5 * time.Second
 
-	conf := buildMockConnTrackConfig(true, []string{"newConnection", "endConnection"},
+	conf := buildMockConnTrackConfig(true, []api.ConnTrackOutputRecordTypeEnum{"newConnection", "endConnection"},
 		defaultUpdateConnectionInterval, defaultEndConnectionTimeout, defaultTerminatingTimeout)
 	tcpFlagsFieldName := "TCPFlags"
 	conf.Extract.ConnTrack.TCPFlags = api.ConnTrackTCPFlags{

@@ -104,7 +104,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 					if ct.shouldOutputNewConnection {
 						record := conn.toGenericMap()
 						addHashField(record, computedHash.hashTotal)
-						addTypeField(record, api.ConnTrackOutputRecordTypeName("NewConnection"))
+						addTypeField(record, api.ConnTrackNewConnection)
 						isFirst := conn.markReported()
 						addIsFirstField(record, isFirst)
 						outputRecords = append(outputRecords, record)
@@ -120,7 +120,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 		if ct.shouldOutputFlowLogs {
 			record := fl.Copy()
 			addHashField(record, computedHash.hashTotal)
-			addTypeField(record, api.ConnTrackOutputRecordTypeName("FlowLog"))
+			addTypeField(record, api.ConnTrackFlowLog)
 			outputRecords = append(outputRecords, record)
 			ct.metrics.outputRecords.WithLabelValues("flowLog").Inc()
 		}
@@ -149,7 +149,7 @@ func (ct *conntrackImpl) popEndConnections() []config.GenericMap {
 	for _, conn := range connections {
 		record := conn.toGenericMap()
 		addHashField(record, conn.getHash().hashTotal)
-		addTypeField(record, api.ConnTrackOutputRecordTypeName("EndConnection"))
+		addTypeField(record, api.ConnTrackEndConnection)
 		var isFirst bool
 		if ct.shouldOutputEndConnection {
 			isFirst = conn.markReported()
@@ -168,7 +168,7 @@ func (ct *conntrackImpl) prepareHeartbeatRecords() []config.GenericMap {
 	for _, conn := range connections {
 		record := conn.toGenericMap()
 		addHashField(record, conn.getHash().hashTotal)
-		addTypeField(record, api.ConnTrackOutputRecordTypeName("Heartbeat"))
+		addTypeField(record, api.ConnTrackHeartbeat)
 		var isFirst bool
 		if ct.shouldOutputHeartbeats {
 			isFirst = conn.markReported()
@@ -247,13 +247,13 @@ func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam
 	shouldOutputHeartbeats := false
 	for _, option := range cfg.OutputRecordTypes {
 		switch option {
-		case api.ConnTrackOutputRecordTypeName("FlowLog"):
+		case api.ConnTrackFlowLog:
 			shouldOutputFlowLogs = true
-		case api.ConnTrackOutputRecordTypeName("NewConnection"):
+		case api.ConnTrackNewConnection:
 			shouldOutputNewConnection = true
-		case api.ConnTrackOutputRecordTypeName("EndConnection"):
+		case api.ConnTrackEndConnection:
 			shouldOutputEndConnection = true
-		case api.ConnTrackOutputRecordTypeName("Heartbeat"):
+		case api.ConnTrackHeartbeat:
 			shouldOutputHeartbeats = true
 		default:
 			return nil, fmt.Errorf("unknown OutputRecordTypes: %v", option)
@@ -282,7 +282,7 @@ func addHashField(record config.GenericMap, hashID uint64) {
 	record[api.HashIDFieldName] = strconv.FormatUint(hashID, 16)
 }
 
-func addTypeField(record config.GenericMap, recordType string) {
+func addTypeField(record config.GenericMap, recordType api.ConnTrackOutputRecordTypeEnum) {
 	record[api.RecordTypeFieldName] = recordType
 }
 

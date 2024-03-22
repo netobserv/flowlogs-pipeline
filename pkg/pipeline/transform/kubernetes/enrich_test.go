@@ -63,7 +63,7 @@ var nodes = map[string]*inf.Info{
 
 var rules = api.NetworkTransformRules{
 	{
-		Type: api.OpAddKubernetes,
+		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
 			Input:   "SrcAddr",
 			Output:  "SrcK8s",
@@ -71,7 +71,7 @@ var rules = api.NetworkTransformRules{
 		},
 	},
 	{
-		Type: api.OpAddKubernetes,
+		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
 			Input:   "DstAddr",
 			Output:  "DstK8s",
@@ -162,7 +162,7 @@ func TestEnrich(t *testing.T) {
 
 var otelRules = api.NetworkTransformRules{
 	{
-		Type: api.OpAddKubernetes,
+		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
 			Input:    "source.ip",
 			Output:   "source.",
@@ -171,7 +171,7 @@ var otelRules = api.NetworkTransformRules{
 		},
 	},
 	{
-		Type: api.OpAddKubernetes,
+		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
 			Input:    "destination.ip",
 			Output:   "destination.",

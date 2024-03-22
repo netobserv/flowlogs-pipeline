@@ -121,6 +121,7 @@ build: validate_go lint build_code docs ## Build flowlogs-pipeline executable an
 docs: FORCE ## Update flowlogs-pipeline documentation
 	@./hack/update-docs.sh
 	@go run cmd/apitodoc/main.go > docs/api.md
+	@./hack/update-enum-docs.sh
 	@go run cmd/operationalmetricstodoc/main.go > docs/operational-metrics.md
 
 .PHONY: clean

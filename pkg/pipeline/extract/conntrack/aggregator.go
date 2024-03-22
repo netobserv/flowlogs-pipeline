@@ -68,22 +68,22 @@ func newAggregator(of api.OutputField, metrics *metricsType) (aggregator, error)
 	aggBase := aggregateBase{inputField: inputField, outputField: of.Name, splitAB: of.SplitAB, metrics: metrics, reportMissing: of.ReportMissing}
 	var agg aggregator
 	switch of.Operation {
-	case api.ConnTrackOperationName("Sum"):
+	case api.ConnTrackSum:
 		aggBase.initVal = float64(0)
 		agg = &aSum{aggBase}
-	case api.ConnTrackOperationName("Count"):
+	case api.ConnTrackCount:
 		aggBase.initVal = float64(0)
 		agg = &aCount{aggBase}
-	case api.ConnTrackOperationName("Min"):
+	case api.ConnTrackMin:
 		aggBase.initVal = math.MaxFloat64
 		agg = &aMin{aggBase}
-	case api.ConnTrackOperationName("Max"):
+	case api.ConnTrackMax:
 		aggBase.initVal = -math.MaxFloat64
 		agg = &aMax{aggBase}
-	case api.ConnTrackOperationName("First"):
+	case api.ConnTrackFirst:
 		aggBase.initVal = nil
 		agg = &aFirst{aggBase}
-	case api.ConnTrackOperationName("Last"):
+	case api.ConnTrackLast:
 		aggBase.initVal = nil
 		agg = &aLast{aggBase}
 	default:

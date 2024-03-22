@@ -26,9 +26,9 @@ func SetupSASLMechanism(cfg *api.SASLConfig) (sasl.Mechanism, error) {
 	strPwd := strings.TrimSpace(string(pwd))
 	var mechanism sasl.Mechanism
 	switch cfg.Type {
-	case api.SASLTypeName("Plain"):
+	case api.SASLPlain:
 		mechanism = plain.Mechanism{Username: strID, Password: strPwd}
-	case api.SASLTypeName("ScramSHA512"):
+	case api.SASLScramSHA512:
 		mechanism, err = scram.Mechanism(scram.SHA512, strID, strPwd)
 	default:
 		return nil, fmt.Errorf("unknown SASL type: %s", cfg.Type)

@@ -298,7 +298,7 @@ func Test_RunLongConfGen(t *testing.T) {
 	}, out.Parameters[0].Ingest.Collector)
 
 	// Expects transform generic
-	require.Equal(t, "replace_keys", out.Parameters[1].Transform.Generic.Policy)
+	require.Equal(t, api.ReplaceKeys, out.Parameters[1].Transform.Generic.Policy)
 
 	// Expects transform network
 	require.Len(t, out.Parameters[2].Transform.Network.Rules, 1)

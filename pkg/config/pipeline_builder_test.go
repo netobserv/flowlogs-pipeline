@@ -29,13 +29,13 @@ import (
 func TestLokiPipeline(t *testing.T) {
 	pl := NewCollectorPipeline("ingest", api.IngestCollector{HostName: "127.0.0.1", Port: 9999})
 	pl = pl.TransformNetwork("enrich", api.TransformNetwork{Rules: api.NetworkTransformRules{{
-		Type: api.AddKubernetesRuleType,
+		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
 			Input:  "SrcAddr",
 			Output: "SrcK8S",
 		},
 	}, {
-		Type: api.AddKubernetesRuleType,
+		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
 			Input:  "DstAddr",
 			Output: "DstK8S",
@@ -69,8 +69,8 @@ func TestGRPCPipeline(t *testing.T) {
 	pl := NewGRPCPipeline("grpc", api.IngestGRPCProto{Port: 9050, BufferLen: 50})
 	pl = pl.TransformFilter("filter", api.TransformFilter{
 		Rules: []api.TransformFilterRule{{
-			Type:  "remove_entry_if_doesnt_exist",
-			Input: "doesnt_exist",
+			Type:                     "remove_entry_if_doesnt_exist",
+			RemoveEntryIfDoesntExist: &api.TransformFilterGenericRule{Input: "doesnt_exist"},
 		}},
 	})
 	pl = pl.WriteStdout("stdout", api.WriteStdout{Format: "json"})
@@ -90,7 +90,7 @@ func TestGRPCPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"input":"doesnt_exist","type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"removeEntryIfDoesntExist":{"input":"doesnt_exist"},"type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
@@ -110,8 +110,8 @@ func TestKafkaPromPipeline(t *testing.T) {
 	})
 	pl = pl.TransformFilter("filter", api.TransformFilter{
 		Rules: []api.TransformFilterRule{{
-			Type:  "remove_entry_if_doesnt_exist",
-			Input: "doesnt_exist",
+			Type:                     "remove_entry_if_doesnt_exist",
+			RemoveEntryIfDoesntExist: &api.TransformFilterGenericRule{Input: "doesnt_exist"},
 		}},
 	})
 	pl = pl.ConnTrack("conntrack", api.ConnTrack{
@@ -158,7 +158,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"input":"doesnt_exist","type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"removeEntryIfDoesntExist":{"input":"doesnt_exist"},"type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
@@ -203,13 +203,13 @@ func TestForkPipeline(t *testing.T) {
 func TestIPFIXPipeline(t *testing.T) {
 	pl := NewCollectorPipeline("ingest", api.IngestCollector{HostName: "127.0.0.1", Port: 9999})
 	pl = pl.TransformNetwork("enrich", api.TransformNetwork{Rules: api.NetworkTransformRules{{
-		Type: api.AddKubernetesRuleType,
+		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
 			Input:  "SrcAddr",
 			Output: "SrcK8S",
 		},
 	}, {
-		Type: api.AddKubernetesRuleType,
+		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
 			Input:  "DstAddr",
 			Output: "DstK8S",

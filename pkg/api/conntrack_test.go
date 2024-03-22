@@ -141,7 +141,7 @@ func TestConnTrackValidate(t *testing.T) {
 		{
 			"Unknown output record",
 			ConnTrack{
-				OutputRecordTypes: []string{"unknown"},
+				OutputRecordTypes: []ConnTrackOutputRecordTypeEnum{"unknown"},
 			},
 			conntrackInvalidError{unknownOutputRecord: true},
 		},

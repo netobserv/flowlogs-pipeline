@@ -227,35 +227,35 @@ func Test_ExtractTimebasedTopAvg(t *testing.T) {
 	expectedOutput := []config.GenericMap{
 		{
 			"name":      "TopK_Bytes1",
-			"operation": "last",
+			"operation": api.FilterOperationLast,
 			"Bytes":     float64(1000),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.4",
 		},
 		{
 			"name":      "TopK_Bytes1",
-			"operation": "last",
+			"operation": api.FilterOperationLast,
 			"Bytes":     float64(900),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.3",
 		},
 		{
 			"name":      "TopK_Bytes1",
-			"operation": "last",
+			"operation": api.FilterOperationLast,
 			"Bytes":     float64(800),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.2",
 		},
 		{
 			"name":      "BotK_Bytes1",
-			"operation": "avg",
+			"operation": api.FilterOperationAvg,
 			"Bytes":     float64(400),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.1",
 		},
 		{
 			"name":      "BotK_Bytes1",
-			"operation": "avg",
+			"operation": api.FilterOperationAvg,
 			"Bytes":     float64(500),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.2",
@@ -273,7 +273,7 @@ func Test_ExtractTimebasedSum(t *testing.T) {
 	expectedOutput := []config.GenericMap{
 		{
 			"name":      "TopK_Bytes2",
-			"operation": "sum",
+			"operation": api.FilterOperationSum,
 			"Bytes":     float64(1800),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.3",
@@ -291,7 +291,7 @@ func Test_ExtractTimebasedDiff(t *testing.T) {
 	expectedOutput := []config.GenericMap{
 		{
 			"name":      "BotK_Bytes3",
-			"operation": "diff",
+			"operation": api.FilterOperationDiff,
 			"Bytes":     float64(0),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.4",
@@ -309,7 +309,7 @@ func Test_ExtractTimebasedMax(t *testing.T) {
 	expectedOutput := []config.GenericMap{
 		{
 			"name":      "TopK_Bytes4",
-			"operation": "max",
+			"operation": api.FilterOperationMax,
 			"Bytes":     float64(1000),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.4",
@@ -327,7 +327,7 @@ func Test_ExtractTimebasedMinReversed(t *testing.T) {
 	expectedOutput := []config.GenericMap{
 		{
 			"name":      "BotK_Bytes5",
-			"operation": "min",
+			"operation": api.FilterOperationMin,
 			"Bytes":     float64(100),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.1",
@@ -345,28 +345,28 @@ func Test_ExtractTimebasedAllFlows(t *testing.T) {
 	expectedOutput := []config.GenericMap{
 		{
 			"name":      "All_Bytes6",
-			"operation": "sum",
+			"operation": api.FilterOperationSum,
 			"Bytes":     float64(1200),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.1",
 		},
 		{
 			"name":      "All_Bytes6",
-			"operation": "sum",
+			"operation": api.FilterOperationSum,
 			"Bytes":     float64(1500),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.2",
 		},
 		{
 			"name":      "All_Bytes6",
-			"operation": "sum",
+			"operation": api.FilterOperationSum,
 			"Bytes":     float64(1800),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.3",
 		},
 		{
 			"name":      "All_Bytes6",
-			"operation": "sum",
+			"operation": api.FilterOperationSum,
 			"Bytes":     float64(1000),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.4",
@@ -386,28 +386,28 @@ func Test_ExtractTimebasedCount(t *testing.T) {
 	expectedOutput := []config.GenericMap{
 		{
 			"name":      "Count_Flows",
-			"operation": "count",
+			"operation": api.FilterOperationCnt,
 			"Bytes":     float64(3),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.1",
 		},
 		{
 			"name":      "Count_Flows",
-			"operation": "count",
+			"operation": api.FilterOperationCnt,
 			"Bytes":     float64(3),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.2",
 		},
 		{
 			"name":      "Count_Flows",
-			"operation": "count",
+			"operation": api.FilterOperationCnt,
 			"Bytes":     float64(3),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.3",
 		},
 		{
 			"name":      "Count_Flows",
-			"operation": "count",
+			"operation": api.FilterOperationCnt,
 			"Bytes":     float64(1),
 			"index_key": "SrcAddr",
 			"SrcAddr":   "10.0.0.4",
@@ -427,7 +427,7 @@ func Test_ExtractTimebasedMultiple(t *testing.T) {
 	expectedOutput := []config.GenericMap{
 		{
 			"name":      "BotK_SrcDst_Bytes",
-			"operation": "avg",
+			"operation": api.FilterOperationAvg,
 			"Bytes":     float64(1000),
 			"index_key": "SrcAddr,DstAddr,Direction",
 			"SrcAddr":   "10.0.0.4",
@@ -436,7 +436,7 @@ func Test_ExtractTimebasedMultiple(t *testing.T) {
 		},
 		{
 			"name":      "BotK_SrcDst_Bytes",
-			"operation": "avg",
+			"operation": api.FilterOperationAvg,
 			"Bytes":     float64(500),
 			"index_key": "SrcAddr,DstAddr,Direction",
 			"SrcAddr":   "10.0.0.2",
