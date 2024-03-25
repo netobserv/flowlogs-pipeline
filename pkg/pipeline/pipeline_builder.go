@@ -56,6 +56,7 @@ type builder struct {
 	batchMaxLen      int
 	batchTimeout     time.Duration
 	nodeBufferLen    int
+	updtChans        map[string]chan config.StageParam
 }
 
 type pipelineEntry struct {
@@ -96,6 +97,7 @@ func newBuilder(cfg *config.ConfigFileStruct) *builder {
 		batchMaxLen:      bl,
 		batchTimeout:     bt,
 		nodeBufferLen:    nb,
+		updtChans:        map[string]chan config.StageParam{},
 	}
 }
 
@@ -221,10 +223,11 @@ func (b *builder) build() (*Pipeline, error) {
 		return nil, errors.New("no writers have been defined")
 	}
 	return &Pipeline{
-		startNodes:     b.startNodes,
-		terminalNodes:  b.terminalNodes,
-		pipelineStages: b.pipelineStages,
-		Metrics:        b.opMetrics,
+		startNodes:       b.startNodes,
+		terminalNodes:    b.terminalNodes,
+		pipelineStages:   b.pipelineStages,
+		pipelineEntryMap: b.pipelineEntryMap,
+		Metrics:          b.opMetrics,
 	}, nil
 }
 

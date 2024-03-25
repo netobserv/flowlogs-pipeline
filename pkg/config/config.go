@@ -38,11 +38,23 @@ type Options struct {
 //
 //nolint:revive
 type ConfigFileStruct struct {
-	LogLevel        string          `yaml:"log-level,omitempty" json:"log-level,omitempty"`
-	MetricsSettings MetricsSettings `yaml:"metricsSettings,omitempty" json:"metricsSettings,omitempty"`
-	Pipeline        []Stage         `yaml:"pipeline,omitempty" json:"pipeline,omitempty"`
-	Parameters      []StageParam    `yaml:"parameters,omitempty" json:"parameters,omitempty"`
-	PerfSettings    PerfSettings    `yaml:"perfSettings,omitempty" json:"perfSettings,omitempty"`
+	LogLevel          string            `yaml:"log-level,omitempty" json:"log-level,omitempty"`
+	MetricsSettings   MetricsSettings   `yaml:"metricsSettings,omitempty" json:"metricsSettings,omitempty"`
+	Pipeline          []Stage           `yaml:"pipeline,omitempty" json:"pipeline,omitempty"`
+	Parameters        []StageParam      `yaml:"parameters,omitempty" json:"parameters,omitempty"`
+	PerfSettings      PerfSettings      `yaml:"perfSettings,omitempty" json:"perfSettings,omitempty"`
+	DynamicParameters DynamicParameters `yaml:"dynamicParameters,omitempty" json:"dynamicParameters,omitempty"`
+}
+
+type DynamicParameters struct {
+	Namespace      string `yaml:"namespace,omitempty" json:"namespace,omitempty"`
+	Name           string `yaml:"name,omitempty" json:"name,omitempty"`
+	FileName       string `yaml:"fileName,omitempty" json:"fileName,omitempty"`
+	KubeConfigPath string `yaml:"kubeConfigPath,omitempty" json:"kubeConfigPath,omitempty" doc:"path to kubeconfig file (optional)"`
+}
+
+type ConfigHotReloadStruct struct {
+	Parameters []StageParam `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 }
 
 type Health struct {
