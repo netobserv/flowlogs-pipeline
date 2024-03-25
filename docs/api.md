@@ -218,7 +218,7 @@ Following is the supported API format for network transformations:
                     add_kubernetes: add output kubernetes fields from input
                     add_kubernetes_infra: add output kubernetes isInfra field from input
                     reinterpret_direction: reinterpret flow direction at the node level (instead of net interface), to ease the deduplication process
-                    add_ip_category: categorize IPs based on known subnets configuration
+                    add_subnet_label: categorize IPs based on known subnets configuration
                  kubernetes_infra: Kubernetes infra rule configuration
                      inputs: entry inputs fields
                      output: entry output field
@@ -239,7 +239,7 @@ Following is the supported API format for network transformations:
                  add_location: Add location rule configuration
                      input: entry input field
                      output: entry output field
-                 add_ip_category: Add ip category rule configuration
+                 add_subnet_label: Add subnet label rule configuration
                      input: entry input field
                      output: entry output field
                  add_service: Add service rule configuration
@@ -249,9 +249,9 @@ Following is the supported API format for network transformations:
          kubeConfigPath: path to kubeconfig file (optional)
          servicesFile: path to services file (optional, default: /etc/services)
          protocolsFile: path to protocols file (optional, default: /etc/protocols)
-         ipCategories: configure IP categories
-                 cidrs: list of CIDRs to match a category
-                 name: name of the category
+         subnetLabels: configure subnet and IPs custom labels
+                 cidrs: list of CIDRs to match a label
+                 name: name of the label
          directionInfo: information to reinterpret flow direction (optional, to use with reinterpret_direction rule)
              reporterIPField: field providing the reporter (agent) host IP
              srcHostField: source host field
