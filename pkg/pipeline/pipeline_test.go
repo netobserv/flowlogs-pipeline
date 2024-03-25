@@ -33,7 +33,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
-	"github.com/netobserv/netobserv-ebpf-agent/pkg/grpc"
+	grpc "github.com/netobserv/netobserv-ebpf-agent/pkg/grpc/flow"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
