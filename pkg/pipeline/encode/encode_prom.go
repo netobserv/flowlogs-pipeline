@@ -18,6 +18,8 @@
 package encode
 
 import (
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -35,12 +37,14 @@ type EncodeProm struct {
 	cfg          *api.PromEncode
 	registerer   prometheus.Registerer
 	metricCommon *MetricsCommonStruct
+	updateChan   chan config.StageParam
 }
 
 // Encode encodes a metric before being stored; the heavy work is done by the MetricCommonEncode
 func (e *EncodeProm) Encode(metricRecord config.GenericMap) {
 	log.Tracef("entering EncodeMetric. metricRecord = %v", metricRecord)
 	e.metricCommon.MetricCommonEncode(e, metricRecord)
+	e.checkConfUpdate()
 }
 
 func (e *EncodeProm) ProcessCounter(m interface{}, labels map[string]string, value float64) error {
@@ -102,6 +106,215 @@ func (e *EncodeProm) Cleanup(cleanupFunc interface{}) {
 	cleanupFunc.(func())()
 }
 
+func (e *EncodeProm) addCounter(fullMetricName string, mInfo *MetricInfo) {
+	counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: ""}, mInfo.Labels)
+	err := e.registerer.Register(counter)
+	if err != nil {
+		log.Errorf("error during prometheus.Register: %v", err)
+	}
+	e.metricCommon.AddCounter(fullMetricName, counter, mInfo)
+}
+
+func (e *EncodeProm) addGauge(fullMetricName string, mInfo *MetricInfo) {
+	gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: ""}, mInfo.Labels)
+	err := e.registerer.Register(gauge)
+	if err != nil {
+		log.Errorf("error during prometheus.Register: %v", err)
+	}
+	e.metricCommon.AddGauge(fullMetricName, gauge, mInfo)
+}
+func (e *EncodeProm) addHistogram(fullMetricName string, mInfo *MetricInfo) {
+	histogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: ""}, mInfo.Labels)
+	err := e.registerer.Register(histogram)
+	if err != nil {
+		log.Errorf("error during prometheus.Register: %v", err)
+	}
+	e.metricCommon.AddHist(fullMetricName, histogram, mInfo)
+}
+func (e *EncodeProm) addAgghistogram(fullMetricName string, mInfo *MetricInfo) {
+	agghistogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: ""}, mInfo.Labels)
+	err := e.registerer.Register(agghistogram)
+	if err != nil {
+		log.Errorf("error during prometheus.Register: %v", err)
+	}
+	e.metricCommon.AddAggHist(fullMetricName, agghistogram, mInfo)
+}
+
+func (e *EncodeProm) unregisterMetric(c interface{}) {
+	if c, ok := c.(prometheus.Collector); ok {
+		e.registerer.Unregister(c)
+	}
+
+}
+
+func (e *EncodeProm) cleanDeletedCounters(newCfg api.PromEncode) {
+	for fullName, counter := range e.metricCommon.counters {
+		if !strings.HasPrefix(fullName, newCfg.Prefix) {
+			e.unregisterMetric(counter.genericMetric)
+			delete(e.metricCommon.counters, fullName)
+		}
+		metricName := strings.TrimPrefix(fullName, newCfg.Prefix)
+		found := false
+		for _, mCfg := range newCfg.Metrics {
+			if metricName == mCfg.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			e.unregisterMetric(counter)
+			delete(e.metricCommon.counters, fullName)
+
+		}
+	}
+
+}
+
+func (e *EncodeProm) cleanDeletedGauges(newCfg api.PromEncode) {
+	for fullName, gauge := range e.metricCommon.gauges {
+		if !strings.HasPrefix(fullName, newCfg.Prefix) {
+			if c, ok := gauge.genericMetric.(prometheus.Collector); ok {
+				e.registerer.Unregister(c)
+			}
+			e.unregisterMetric(gauge.genericMetric)
+			delete(e.metricCommon.gauges, fullName)
+		}
+		metricName := strings.TrimPrefix(fullName, newCfg.Prefix)
+		found := false
+		for _, mCfg := range newCfg.Metrics {
+			if metricName == mCfg.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			e.unregisterMetric(gauge.genericMetric)
+			delete(e.metricCommon.gauges, fullName)
+
+		}
+	}
+
+}
+
+func (e *EncodeProm) cleanDeletedHistograms(newCfg api.PromEncode) {
+	for fullName, histogram := range e.metricCommon.histos {
+		if !strings.HasPrefix(fullName, newCfg.Prefix) {
+			e.unregisterMetric(histogram.genericMetric)
+			delete(e.metricCommon.histos, fullName)
+		}
+		metricName := strings.TrimPrefix(fullName, newCfg.Prefix)
+		found := false
+		for _, mCfg := range newCfg.Metrics {
+			if metricName == mCfg.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			e.unregisterMetric(histogram.genericMetric)
+			delete(e.metricCommon.histos, fullName)
+
+		}
+	}
+
+}
+
+func (e *EncodeProm) cleanDeletedAggHistograms(newCfg api.PromEncode) {
+	for fullName, aggHisto := range e.metricCommon.aggHistos {
+		if !strings.HasPrefix(fullName, newCfg.Prefix) {
+			e.unregisterMetric(aggHisto.genericMetric)
+			delete(e.metricCommon.aggHistos, fullName)
+		}
+		metricName := strings.TrimPrefix(fullName, newCfg.Prefix)
+		found := false
+		for _, mCfg := range newCfg.Metrics {
+			if metricName == mCfg.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			e.unregisterMetric(aggHisto.genericMetric)
+			delete(e.metricCommon.aggHistos, fullName)
+
+		}
+	}
+
+}
+
+func (e *EncodeProm) cleanDeletedMetrics(newCfg api.PromEncode) {
+	e.cleanDeletedCounters(newCfg)
+	e.cleanDeletedGauges(newCfg)
+	e.cleanDeletedHistograms(newCfg)
+	e.cleanDeletedAggHistograms(newCfg)
+}
+
+func (e *EncodeProm) checkConfUpdate() {
+	select {
+	case stage := <-e.updateChan:
+		cfg := api.PromEncode{}
+		if stage.Encode != nil && stage.Encode.Prom != nil {
+			cfg = *stage.Encode.Prom
+		}
+
+		e.cleanDeletedMetrics(cfg)
+
+		for _, mCfg := range cfg.Metrics {
+			fullMetricName := cfg.Prefix + mCfg.Name
+			mInfo := CreateMetricInfo(&mCfg)
+			switch mCfg.Type {
+			case api.MetricCounter:
+				if oldMetric, ok := e.metricCommon.counters[fullMetricName]; ok {
+					if !reflect.DeepEqual(mInfo.MetricsItem, oldMetric.info.MetricsItem) {
+						e.unregisterMetric(oldMetric.genericMetric)
+						e.addCounter(fullMetricName, mInfo)
+					}
+				} else {
+					// New metric
+					e.addCounter(fullMetricName, mInfo)
+				}
+			case api.MetricGauge:
+				if oldMetric, ok := e.metricCommon.gauges[fullMetricName]; ok {
+					if !reflect.DeepEqual(mInfo.MetricsItem, oldMetric.info.MetricsItem) {
+						e.unregisterMetric(oldMetric.genericMetric)
+						e.addGauge(fullMetricName, mInfo)
+					}
+				} else {
+					// New metric
+					e.addGauge(fullMetricName, mInfo)
+				}
+			case api.MetricHistogram:
+				if oldMetric, ok := e.metricCommon.histos[fullMetricName]; ok {
+					if !reflect.DeepEqual(mInfo.MetricsItem, oldMetric.info.MetricsItem) {
+						e.unregisterMetric(oldMetric.genericMetric)
+						e.addHistogram(fullMetricName, mInfo)
+					}
+				} else {
+					// New metric
+					e.addHistogram(fullMetricName, mInfo)
+				}
+			case api.MetricAggHistogram:
+				if oldMetric, ok := e.metricCommon.aggHistos[fullMetricName]; ok {
+					if !reflect.DeepEqual(mInfo.MetricsItem, oldMetric.info.MetricsItem) {
+						e.unregisterMetric(oldMetric.genericMetric)
+						e.addAgghistogram(fullMetricName, mInfo)
+					}
+				} else {
+					// New metric
+					e.addAgghistogram(fullMetricName, mInfo)
+				}
+			case "default":
+				log.Errorf("invalid metric type = %v, skipping", mCfg.Type)
+				continue
+			}
+
+		}
+	default:
+		//Nothing to do
+		return
+	}
+}
+
 func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (Encoder, error) {
 	cfg := api.PromEncode{}
 	if params.Encode != nil && params.Encode.Prom != nil {
@@ -126,6 +339,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	w := &EncodeProm{
 		cfg:        params.Encode.Prom,
 		registerer: registerer,
+		updateChan: make(chan config.StageParam),
 	}
 
 	metricCommon := NewMetricsCommonStruct(opMetrics, cfg.MaxMetrics, params.Name, expiryTime, w.Cleanup)
@@ -146,7 +360,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 				log.Errorf("error during prometheus.Register: %v", err)
 				return nil, err
 			}
-			metricCommon.AddCounter(counter, mInfo)
+			metricCommon.AddCounter(fullMetricName, counter, mInfo)
 		case api.MetricGauge:
 			gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: ""}, labels)
 			err := registerer.Register(gauge)
@@ -154,7 +368,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 				log.Errorf("error during prometheus.Register: %v", err)
 				return nil, err
 			}
-			metricCommon.AddGauge(gauge, mInfo)
+			metricCommon.AddGauge(fullMetricName, gauge, mInfo)
 		case api.MetricHistogram:
 			log.Debugf("buckets = %v", mCfg.Buckets)
 			hist := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: "", Buckets: mCfg.Buckets}, labels)
@@ -163,7 +377,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 				log.Errorf("error during prometheus.Register: %v", err)
 				return nil, err
 			}
-			metricCommon.AddHist(hist, mInfo)
+			metricCommon.AddHist(fullMetricName, hist, mInfo)
 		case api.MetricAggHistogram:
 			log.Debugf("buckets = %v", mCfg.Buckets)
 			hist := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: "", Buckets: mCfg.Buckets}, labels)
@@ -172,11 +386,15 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 				log.Errorf("error during prometheus.Register: %v", err)
 				return nil, err
 			}
-			metricCommon.AddAggHist(hist, mInfo)
+			metricCommon.AddAggHist(fullMetricName, hist, mInfo)
 		case "default":
 			log.Errorf("invalid metric type = %v, skipping", mCfg.Type)
 			continue
 		}
 	}
 	return w, nil
+}
+
+func (t *EncodeProm) Update(config config.StageParam) {
+	t.updateChan <- config
 }
