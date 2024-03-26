@@ -1,6 +1,6 @@
 module github.com/netobserv/flowlogs-pipeline
 
-go 1.21
+go 1.21.0
 
 toolchain go1.21.7
 

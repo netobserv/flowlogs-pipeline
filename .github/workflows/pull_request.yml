@@ -27,6 +27,8 @@ jobs:
       run: make build
     - name: run unit tests
       run: make tests-unit
+    - name: check clean vendors
+      run: go mod vendor
     - name: upload coverage to codecov.io
       if: ${{ matrix.go == '1.21' }}
       uses: codecov/codecov-action@v3
