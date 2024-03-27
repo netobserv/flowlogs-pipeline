@@ -69,8 +69,8 @@ func TestGRPCPipeline(t *testing.T) {
 	pl := NewGRPCPipeline("grpc", api.IngestGRPCProto{Port: 9050, BufferLen: 50})
 	pl = pl.TransformFilter("filter", api.TransformFilter{
 		Rules: []api.TransformFilterRule{{
-			Type:                     "remove_entry_if_doesnt_exist",
-			RemoveEntryIfDoesntExist: &api.TransformFilterGenericRule{Input: "doesnt_exist"},
+			Type:        "remove_entry_if_doesnt_exist",
+			RemoveEntry: &api.TransformFilterGenericRule{Input: "doesnt_exist"},
 		}},
 	})
 	pl = pl.WriteStdout("stdout", api.WriteStdout{Format: "json"})
@@ -90,7 +90,7 @@ func TestGRPCPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"removeEntryIfDoesntExist":{"input":"doesnt_exist"},"type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"removeEntry":{"input":"doesnt_exist"},"type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
@@ -110,8 +110,8 @@ func TestKafkaPromPipeline(t *testing.T) {
 	})
 	pl = pl.TransformFilter("filter", api.TransformFilter{
 		Rules: []api.TransformFilterRule{{
-			Type:                     "remove_entry_if_doesnt_exist",
-			RemoveEntryIfDoesntExist: &api.TransformFilterGenericRule{Input: "doesnt_exist"},
+			Type:        "remove_entry_if_doesnt_exist",
+			RemoveEntry: &api.TransformFilterGenericRule{Input: "doesnt_exist"},
 		}},
 	})
 	pl = pl.ConnTrack("conntrack", api.ConnTrack{
@@ -158,7 +158,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"removeEntryIfDoesntExist":{"input":"doesnt_exist"},"type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"filter","transform":{"type":"filter","filter":{"rules":[{"removeEntry":{"input":"doesnt_exist"},"type":"remove_entry_if_doesnt_exist"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)

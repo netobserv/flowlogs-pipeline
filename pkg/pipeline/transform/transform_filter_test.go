@@ -23,6 +23,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -55,7 +56,7 @@ parameters:
       filter:
         rules:
         - type: remove_entry_if_exists
-          removeEntryIfExists:
+          removeEntry:
             input: srcPort
           
 `
@@ -71,7 +72,7 @@ parameters:
       filter:
         rules:
         - type: remove_entry_if_doesnt_exist
-          removeEntryIfDoesntExist:
+          removeEntry:
             input: doesntSrcPort
           
 `
@@ -86,11 +87,11 @@ parameters:
       filter:
         rules:
         - type: remove_entry_if_equal
-          removeEntryIfEqual:
+          removeEntry:
             input: message
             value: "test message"
         - type: remove_entry_if_equal
-          removeEntryIfEqual:
+          removeEntry:
             input: value          
             value: 8.0
 `
@@ -106,7 +107,7 @@ parameters:
       filter:
         rules:
         - type: remove_entry_if_not_equal
-          removeEntryIfNotEqual:
+          removeEntry:
             input: message
             value: "test message"
 `
@@ -544,4 +545,123 @@ func Test_AddField(t *testing.T) {
 	require.Contains(t, output, "field1")
 	require.Equal(t, "value1", output["field1"])
 	require.Equal(t, "new_value", output["param1"])
+}
+
+func Test_Transform_RemoveEntryAllSatisfied(t *testing.T) {
+	newFilter := Filter{
+		Rules: []api.TransformFilterRule{
+			{
+				Type: api.RemoveEntryAllSatisfied,
+				RemoveEntryAllSatisfied: []*api.RemoveEntryRule{
+					{
+						Type: api.RemoveEntryIfEqualD,
+						RemoveEntry: &api.TransformFilterGenericRule{
+							Input: "FlowDirection",
+							Value: 1,
+						},
+					},
+					{
+						Type: api.RemoveEntryIfExistsD,
+						RemoveEntry: &api.TransformFilterGenericRule{
+							Input: "DstK8S_OwnerName",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, keep := newFilter.Transform(config.GenericMap{
+		"FlowDirection":    0,
+		"SrcK8S_OwnerName": "my-deployment",
+		"DstK8S_OwnerName": "my-service",
+		"Bytes":            10,
+	}) // Ingress and internal => keep
+	require.True(t, keep)
+
+	_, keep = newFilter.Transform(config.GenericMap{
+		"FlowDirection":    1,
+		"SrcK8S_OwnerName": "my-deployment",
+		"DstK8S_OwnerName": "my-service",
+		"Bytes":            10,
+	}) // Egress and internal => remove
+	require.False(t, keep)
+
+	_, keep = newFilter.Transform(config.GenericMap{
+		"FlowDirection":    1,
+		"SrcK8S_OwnerName": "my-deployment",
+		"Bytes":            10,
+	}) // Egress and external => keep
+	require.True(t, keep)
+
+	_, keep = newFilter.Transform(config.GenericMap{
+		"FlowDirection":    0,
+		"DstK8S_OwnerName": "my-deployment",
+		"Bytes":            10,
+	}) // Ingress and external => keep
+	require.True(t, keep)
+}
+
+func Test_Transform_Sampling(t *testing.T) {
+	newFilter := Filter{
+		Rules: []api.TransformFilterRule{
+			{
+				Type: api.ConditionalSampling,
+				ConditionalSampling: []*api.SamplingCondition{
+					{
+						Rules: []*api.RemoveEntryRule{
+							{
+								Type: api.RemoveEntryIfEqualD,
+								RemoveEntry: &api.TransformFilterGenericRule{
+									Input: "FlowDirection",
+									Value: 1,
+								},
+							},
+							{
+								Type: api.RemoveEntryIfExistsD,
+								RemoveEntry: &api.TransformFilterGenericRule{
+									Input: "DstK8S_OwnerName",
+								},
+							},
+						},
+						Value: 10,
+					},
+				},
+			},
+		},
+	}
+
+	input := []config.GenericMap{}
+	for i := 0; i < 1000; i++ {
+		input = append(input, config.GenericMap{
+			"FlowDirection":    0,
+			"SrcK8S_OwnerName": "my-deployment",
+			"DstK8S_OwnerName": "my-service",
+			"Bytes":            10,
+		}) // Ingress and internal => always keep
+		input = append(input, config.GenericMap{
+			"FlowDirection":    1,
+			"SrcK8S_OwnerName": "my-deployment",
+			"DstK8S_OwnerName": "my-service",
+			"Bytes":            10,
+		}) // Egress and internal => sample 1:10
+	}
+
+	countIngress := 0
+	countEgress := 0
+
+	for _, flow := range input {
+		if out, ok := newFilter.Transform(flow); ok {
+			switch out["FlowDirection"] {
+			case 0:
+				countIngress++
+			case 1:
+				countEgress++
+			}
+		}
+	}
+
+	assert.Equal(t, countIngress, 1000)
+	assert.Less(t, countEgress, 300)
+	assert.Greater(t, countEgress, 30)
 }
