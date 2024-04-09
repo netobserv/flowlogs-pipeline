@@ -129,14 +129,23 @@ clean: ## Clean
 	rm -f "${FLP_BIN_FILE}"
 	go clean ./...
 
-# note: to review coverage execute: go tool cover -html=/tmp/coverage.out
-TEST_OPTS := -race -coverpkg=./... -covermode=atomic -coverprofile=/tmp/coverage.out
+TEST_OPTS := -race -coverpkg=./... -covermode=atomic -coverprofile cover.out
 .PHONY: tests-unit
 tests-unit: validate_go ## Unit tests
 	# tests may rely on non-thread safe libs such as go-ipfix => no -race flag
 	go test $$(go list ./... | grep /testnorace)
 	# enabling CGO is required for -race flag
 	CGO_ENABLED=1 go test -p 1 $(TEST_OPTS) $$(go list ./... | grep -v /e2e | grep -v /testnorace)
+
+.PHONY: coverage-report
+coverage-report: ## Generate coverage report
+	@echo "### Generating coverage report"
+	go tool cover --func=./cover.out
+
+.PHONY: coverage-report-html
+coverage-report-html: ## Generate HTML coverage report
+	@echo "### Generating HTML coverage report"
+	go tool cover --html=./cover.out
 
 .PHONY: tests-fast
 tests-fast: TEST_OPTS=
