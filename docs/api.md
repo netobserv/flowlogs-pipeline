@@ -258,6 +258,7 @@ Following is the supported API format for network transformations:
              dstHostField: destination host field
              flowDirectionField: field providing the flow direction in the input entries; it will be rewritten
              ifDirectionField: interface-level field for flow direction, to create in output
+             cacheEndpoint: Infinispan cache endpoint for flow deduplication
 </pre>
 ## Write Loki API
 Following is the supported API format for writing to loki:

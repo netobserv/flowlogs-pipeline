@@ -29,7 +29,7 @@ func validateReinterpretDirectionConfig(info *api.NetworkTransformDirectionInfo)
 	return nil
 }
 
-func reinterpretDirection(output config.GenericMap, info *api.NetworkTransformDirectionInfo) {
+func reinterpretDirection(output config.GenericMap, info *api.NetworkTransformDirectionInfo) (bool, bool) {
 	if fd, ok := output[info.FlowDirectionField]; ok && len(info.IfDirectionField) > 0 {
 		output[info.IfDirectionField] = fd
 	}
@@ -40,7 +40,7 @@ func reinterpretDirection(output config.GenericMap, info *api.NetworkTransformDi
 		}
 	}
 	if len(reporter) == 0 {
-		return
+		return false, false
 	}
 	if gen, ok := output[info.SrcHostField]; ok {
 		if str, ok := gen.(string); ok {
@@ -52,13 +52,16 @@ func reinterpretDirection(output config.GenericMap, info *api.NetworkTransformDi
 			dstNode = str
 		}
 	}
+	isSrcReporter := srcNode == reporter
 	if srcNode != dstNode {
-		if srcNode == reporter {
+		if isSrcReporter {
 			output[info.FlowDirectionField] = egress
 		} else if dstNode == reporter {
 			output[info.FlowDirectionField] = ingress
 		}
 	} else if srcNode != "" {
 		output[info.FlowDirectionField] = inner
+		return true, isSrcReporter
 	}
+	return false, isSrcReporter
 }

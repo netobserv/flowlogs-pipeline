@@ -109,6 +109,7 @@ type NetworkTransformDirectionInfo struct {
 	DstHostField       string `yaml:"dstHostField,omitempty" json:"dstHostField,omitempty" doc:"destination host field"`
 	FlowDirectionField string `yaml:"flowDirectionField,omitempty" json:"flowDirectionField,omitempty" doc:"field providing the flow direction in the input entries; it will be rewritten"`
 	IfDirectionField   string `yaml:"ifDirectionField,omitempty" json:"ifDirectionField,omitempty" doc:"interface-level field for flow direction, to create in output"`
+	CacheEndpoint      string `yaml:"cacheEndpoint,omitempty" json:"cacheEndpoint,omitempty" doc:"Infinispan cache endpoint for flow deduplication"`
 }
 
 type NetworkTransformRules []NetworkTransformRule

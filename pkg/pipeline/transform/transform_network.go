@@ -26,6 +26,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/infinispan"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
@@ -40,6 +41,7 @@ type Network struct {
 	svcNames     *netdb.ServiceNames
 	snLabels     []subnetLabel
 	ipLabelCache *utils.TimedCache
+	cache        *infinispan.Cache
 }
 
 type subnetLabel struct {
@@ -119,7 +121,24 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			}
 			kubernetes.EnrichLayer(outputEntry, rule.KubernetesInfra)
 		case api.NetworkReinterpretDirection:
-			reinterpretDirection(outputEntry, &n.DirectionInfo)
+			isInner, isSrcReporter := reinterpretDirection(outputEntry, &n.DirectionInfo)
+			if !isInner && n.cache != nil {
+				if isSrcReporter {
+					// add flow to cache and stop pipeline for now
+					err := n.cache.PutDedupToCache(outputEntry)
+					if err != nil {
+						log.Errorf("error putting cache %v for %v", err, outputEntry)
+					}
+					return nil, false
+				}
+
+				found, err := n.cache.GetDedup(outputEntry)
+				if err != nil {
+					log.Errorf("error getting cache %v for %v", err, outputEntry)
+				} else if found != nil {
+					outputEntry.MergeInterfaces(*found)
+				}
+			}
 		case api.NetworkAddSubnetLabel:
 			if rule.AddSubnetLabel == nil {
 				logrus.Error("AddSubnetLabel rule: Missing configuration ")
@@ -137,7 +156,6 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 					}
 				}
 			}
-
 		default:
 			log.Panicf("unknown type %s for transform.Network rule: %v", rule.Type, rule)
 		}
@@ -167,6 +185,7 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	var needToInitLocationDB = false
 	var needToInitKubeData = false
 	var needToInitNetworkServices = false
+	var needCache = false
 
 	jsonNetworkTransform := api.TransformNetwork{}
 	if params.Transform != nil && params.Transform.Network != nil {
@@ -185,6 +204,9 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		case api.NetworkReinterpretDirection:
 			if err := validateReinterpretDirectionConfig(&jsonNetworkTransform.DirectionInfo); err != nil {
 				return nil, err
+			}
+			if jsonNetworkTransform.DirectionInfo.CacheEndpoint != "" {
+				needCache = true
 			}
 		case api.NetworkAddSubnetLabel:
 			if len(jsonNetworkTransform.SubnetLabels) == 0 {
@@ -243,6 +265,15 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		}
 	}
 
+	var cache *infinispan.Cache
+	if needCache {
+		var err error
+		cache, err = infinispan.NewCache(jsonNetworkTransform.DirectionInfo.CacheEndpoint)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &Network{
 		TransformNetwork: api.TransformNetwork{
 			Rules:         jsonNetworkTransform.Rules,
@@ -251,5 +282,6 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 		svcNames:     servicesDB,
 		snLabels:     subnetCats,
 		ipLabelCache: utils.NewQuietExpiringTimedCache(2 * time.Minute),
+		cache:        cache,
 	}, nil
 }
