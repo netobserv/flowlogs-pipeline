@@ -23,6 +23,9 @@ github.com/benbjohnson/clock
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
+# github.com/blang/semver v3.5.1+incompatible
+## explicit
+github.com/blang/semver
 # github.com/cenkalti/backoff/v4 v4.2.1
 ## explicit; go 1.18
 github.com/cenkalti/backoff/v4
@@ -94,6 +97,16 @@ github.com/go-openapi/jsonreference/internal
 # github.com/go-openapi/swag v0.22.3
 ## explicit; go 1.18
 github.com/go-openapi/swag
+# github.com/go-playground/locales v0.13.0
+## explicit; go 1.13
+github.com/go-playground/locales
+github.com/go-playground/locales/currency
+# github.com/go-playground/universal-translator v0.17.0
+## explicit; go 1.13
+github.com/go-playground/universal-translator
+# github.com/go-playground/validator/v10 v10.8.0
+## explicit; go 1.13
+github.com/go-playground/validator/v10
 # github.com/gogo/protobuf v1.3.2
 ## explicit; go 1.15
 github.com/gogo/protobuf/gogoproto
@@ -169,6 +182,14 @@ github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
+# github.com/infinispan/infinispan-operator v0.0.0-20240313115734-fd4a8533b1f1
+## explicit; go 1.20
+github.com/infinispan/infinispan-operator/controllers/constants
+github.com/infinispan/infinispan-operator/pkg/http
+github.com/infinispan/infinispan-operator/pkg/infinispan/client/api
+github.com/infinispan/infinispan-operator/pkg/infinispan/client/v13
+github.com/infinispan/infinispan-operator/pkg/infinispan/client/v14
+github.com/infinispan/infinispan-operator/pkg/mime
 # github.com/ip2location/ip2location-go/v9 v9.7.0
 ## explicit; go 1.14
 github.com/ip2location/ip2location-go/v9
@@ -198,6 +219,9 @@ github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/klauspost/cpuid/v2 v2.2.6
 ## explicit; go 1.15
 github.com/klauspost/cpuid/v2
+# github.com/leodido/go-urn v1.2.1
+## explicit; go 1.13
+github.com/leodido/go-urn
 # github.com/libp2p/go-reuseport v0.3.0
 ## explicit; go 1.19
 github.com/libp2p/go-reuseport
@@ -605,7 +629,7 @@ go.opentelemetry.io/proto/otlp/trace/v1
 # go.uber.org/atomic v1.9.0
 ## explicit; go 1.13
 go.uber.org/atomic
-# go.uber.org/multierr v1.9.0
+# go.uber.org/multierr v1.10.0
 ## explicit; go 1.19
 go.uber.org/multierr
 # golang.org/x/crypto v0.21.0
@@ -616,6 +640,7 @@ golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/curve25519/internal/field
+golang.org/x/crypto/sha3
 # golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 ## explicit; go 1.20
 golang.org/x/exp/constraints
@@ -659,7 +684,11 @@ golang.org/x/text/encoding
 golang.org/x/text/encoding/internal
 golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/unicode
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/tag
 golang.org/x/text/internal/utf8internal
+golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
