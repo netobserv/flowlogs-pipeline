@@ -31,8 +31,8 @@ jobs:
       run: go mod vendor
     - name: upload coverage to codecov.io
       if: ${{ matrix.go == '1.21' }}
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
-        files: /tmp/coverage.out
+        files: ./cover.out
         flags: unittests
         fail_ci_if_error: true
