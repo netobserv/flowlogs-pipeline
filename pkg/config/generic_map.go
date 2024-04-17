@@ -18,6 +18,7 @@
 package config
 
 import (
+	"fmt"
 	"syscall"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
@@ -66,4 +67,13 @@ func (m GenericMap) IsTransportProtocol() bool {
 		}
 	}
 	return false
+}
+
+func (m GenericMap) MergeInterfaces(cached GenericMap) {
+	if len(cached["Interfaces"].([]interface{})) == len(cached["IfDirections"].([]interface{})) {
+		for i := 0; i < len(cached["Interfaces"].([]interface{})); i++ {
+			m["Interfaces"] = append(m["Interfaces"].([]string), fmt.Sprintf("%s*", cached["Interfaces"].([]interface{})[i].(string)))
+			m["IfDirections"] = append(m["IfDirections"].([]int), int(cached["IfDirections"].([]interface{})[i].(float64)))
+		}
+	}
 }
