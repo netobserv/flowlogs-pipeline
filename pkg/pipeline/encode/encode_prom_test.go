@@ -99,13 +99,13 @@ func Test_NewEncodeProm(t *testing.T) {
 	require.Equal(t, 1, len(encodeProm.metricCommon.aggHistos))
 	require.Equal(t, time.Second, encodeProm.metricCommon.expiryTime)
 
-	require.Equal(t, encodeProm.metricCommon.gauges[0].info.Name, "Bytes")
+	require.Equal(t, encodeProm.metricCommon.gauges["test_Bytes"].info.Name, "Bytes")
 	expectedList := []string{"srcAddr", "dstAddr", "srcPort"}
-	require.Equal(t, encodeProm.metricCommon.gauges[0].info.Labels, expectedList)
+	require.Equal(t, encodeProm.metricCommon.gauges["test_Bytes"].info.Labels, expectedList)
 
-	require.Equal(t, encodeProm.metricCommon.counters[0].info.Name, "Packets")
+	require.Equal(t, encodeProm.metricCommon.counters["test_Packets"].info.Name, "Packets")
 	expectedList = []string{"srcAddr", "dstAddr", "dstPort"}
-	require.Equal(t, encodeProm.metricCommon.counters[0].info.Labels, expectedList)
+	require.Equal(t, encodeProm.metricCommon.counters["test_Packets"].info.Labels, expectedList)
 	entry := test.GetExtractMockEntry()
 	encodeProm.Encode(entry)
 
