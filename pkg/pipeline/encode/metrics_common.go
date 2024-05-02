@@ -228,8 +228,8 @@ func (m *MetricsCommonStruct) extractGenericValue(flow config.GenericMap, info *
 	}
 	val, found := flow[info.ValueKey]
 	if !found {
-		m.errorsCounter.WithLabelValues("RecordKeyMissing", info.Name, info.ValueKey).Inc()
-		return nil
+		// No value means 0 to keep storage lightweight
+		return 0
 	}
 	return val
 }
