@@ -6,7 +6,7 @@ toolchain go1.21.7
 
 require (
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
-	github.com/agoda-com/opentelemetry-logs-go v0.4.3
+	github.com/agoda-com/opentelemetry-logs-go v0.5.0
 	github.com/benbjohnson/clock v1.3.5
 	github.com/go-kit/kit v0.13.0
 	github.com/golang/snappy v0.0.4
@@ -130,7 +130,7 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240227224415-6ceb2ff114de // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240401170217-c3f982113cda // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240415180920-8c6c420018be // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
