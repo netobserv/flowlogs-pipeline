@@ -22,7 +22,7 @@ RUN git status --porcelain
 RUN GOARCH=$TARGETARCH make build_code
 
 # final stage
-FROM  --platform=$TARGETPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:9.3
+FROM  --platform=$TARGETPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:9.4
 
 COPY --from=builder /app/flowlogs-pipeline /app/
 COPY --from=builder /app/confgenerator /app/
