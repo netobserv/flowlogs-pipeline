@@ -1,10 +1,8 @@
 name: pull request - build and unit tests
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    branches: ['*']
 
 jobs:
   unit-tests:
@@ -32,10 +30,8 @@ jobs:
     - name: upload coverage to codecov.io
       if: ${{ matrix.go == '1.21' }}
       uses: codecov/codecov-action@v4
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
         files: ./cover.out
         flags: unittests
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         verbose: true
