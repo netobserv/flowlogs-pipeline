@@ -27,7 +27,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.18.2
+	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/vladimirvivien/gexe v0.2.0
 	github.com/vmware/go-ipfix v0.9.0
@@ -94,7 +94,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
-	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
+	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.17 // indirect
 	github.com/pion/dtls/v2 v2.2.4 // indirect
 	github.com/pion/logging v0.2.2 // indirect
@@ -123,13 +123,13 @@ require (
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/crypto v0.22.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/oauth2 v0.17.0 // indirect
+	golang.org/x/oauth2 v0.18.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/term v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240227224415-6ceb2ff114de // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240311132316-a219d84964c2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240415180920-8c6c420018be // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
