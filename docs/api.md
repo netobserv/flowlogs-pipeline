@@ -251,7 +251,7 @@ Following is the supported API format for network transformations:
                      output: entry output field
                      assignee: value needs to assign to output field
                      labels_prefix: labels prefix to use to copy input lables, if empty labels will not be copied
-                     add_zone: If true the rule will add the zone
+                     add_zone: if true the rule will add the zone
                  add_subnet: Add subnet rule configuration
                      input: entry input field
                      output: entry output field
@@ -266,7 +266,9 @@ Following is the supported API format for network transformations:
                      input: entry input field
                      output: entry output field
                      protocol: entry protocol field
-         kubeConfigPath: path to kubeconfig file (optional)
+         kubeConfig: global configuration related to Kubernetes (optional)
+             configPath: path to kubeconfig file (optional)
+             managedCNI: a list of CNI (network plugins) to manage, for detecting additional interfaces. Currently supported: ovn, multus
          servicesFile: path to services file (optional, default: /etc/services)
          protocolsFile: path to protocols file (optional, default: /etc/protocols)
          subnetLabels: configure subnet and IPs custom labels

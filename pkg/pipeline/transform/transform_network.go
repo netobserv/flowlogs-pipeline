@@ -202,7 +202,7 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	}
 
 	if needToInitKubeData {
-		err := kubernetes.InitFromConfig(jsonNetworkTransform.KubeConfigPath)
+		err := kubernetes.InitFromConfig(jsonNetworkTransform.KubeConfig)
 		if err != nil {
 			return nil, err
 		}

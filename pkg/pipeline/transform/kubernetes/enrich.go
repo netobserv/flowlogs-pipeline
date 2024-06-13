@@ -17,8 +17,8 @@ func MockInformers() {
 	informers = inf.NewInformersMock()
 }
 
-func InitFromConfig(kubeConfigPath string) error {
-	return informers.InitFromConfig(kubeConfigPath)
+func InitFromConfig(config api.NetworkTransformKubeConfig) error {
+	return informers.InitFromConfig(config)
 }
 
 func Enrich(outputEntry config.GenericMap, rule api.K8sRule) {

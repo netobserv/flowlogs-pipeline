@@ -22,6 +22,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/cni"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -46,12 +47,16 @@ const (
 )
 
 var log = logrus.WithField("component", "transform.Network.Kubernetes")
+var cniPlugins = map[string]cni.Plugin{
+	api.OVN:    &cni.OVNPlugin{},
+	api.Multus: &cni.MultusPlugin{},
+}
 
 //nolint:revive
 type InformersInterface interface {
 	GetInfo(string) (*Info, error)
 	GetNodeInfo(string) (*Info, error)
-	InitFromConfig(string) error
+	InitFromConfig(api.NetworkTransformKubeConfig) error
 }
 
 type Informers struct {
@@ -184,7 +189,7 @@ func (k *Informers) getHostName(hostIP string) string {
 	return ""
 }
 
-func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory) error {
+func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory, managedCNI []string) error {
 	nodes := informerFactory.Core().V1().Nodes().Informer()
 	// Transform any *v1.Node instance into a *Info instance to save space
 	// in the informer's cache
@@ -204,8 +209,15 @@ func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory) 
 				}
 			}
 		}
-		// CNI-dependent logic (must work regardless of whether the CNI is installed)
-		ips = cni.AddOvnIPs(ips, node)
+		// CNI-dependent logic (must not fail when the CNI is not installed)
+		for _, name := range managedCNI {
+			if plugin := cniPlugins[name]; plugin != nil {
+				moreIPs := plugin.GetNodeIPs(node)
+				if moreIPs != nil {
+					ips = append(ips, moreIPs...)
+				}
+			}
+		}
 
 		return &Info{
 			ObjectMeta: metav1.ObjectMeta{
@@ -231,7 +243,7 @@ func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory) 
 	return nil
 }
 
-func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory) error {
+func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory, managedCNI []string) error {
 	pods := informerFactory.Core().V1().Pods().Informer()
 	// Transform any *v1.Pod instance into a *Info instance to save space
 	// in the informer's cache
@@ -245,6 +257,15 @@ func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory) e
 			// ignoring host-networked Pod IPs
 			if ip.IP != pod.Status.HostIP {
 				ips = append(ips, ip.IP)
+			}
+		}
+		// CNI-dependent logic (must not fail when the CNI is not installed)
+		for _, name := range managedCNI {
+			if plugin := cniPlugins[name]; plugin != nil {
+				moreIPs := plugin.GetPodIPs(pod)
+				if moreIPs != nil {
+					ips = append(ips, moreIPs...)
+				}
 			}
 		}
 		return &Info{
@@ -331,27 +352,31 @@ func (k *Informers) initReplicaSetInformer(informerFactory metadatainformer.Shar
 	return nil
 }
 
-func (k *Informers) InitFromConfig(kubeConfigPath string) error {
+func (k *Informers) InitFromConfig(cfg api.NetworkTransformKubeConfig) error {
 	// Initialization variables
 	k.stopChan = make(chan struct{})
 	k.mdStopChan = make(chan struct{})
 
-	config, err := utils.LoadK8sConfig(kubeConfigPath)
+	kconf, err := utils.LoadK8sConfig(cfg.ConfigPath)
 	if err != nil {
 		return err
 	}
 
-	kubeClient, err := kubernetes.NewForConfig(config)
+	kubeClient, err := kubernetes.NewForConfig(kconf)
 	if err != nil {
 		return err
 	}
 
-	metaKubeClient, err := metadata.NewForConfig(config)
+	metaKubeClient, err := metadata.NewForConfig(kconf)
 	if err != nil {
 		return err
 	}
 
-	err = k.initInformers(kubeClient, metaKubeClient)
+	cnis := cfg.ManagedCNI
+	if cnis == nil {
+		cnis = []string{api.OVN, api.Multus}
+	}
+	err = k.initInformers(kubeClient, metaKubeClient, cnis)
 	if err != nil {
 		return err
 	}
@@ -359,14 +384,14 @@ func (k *Informers) InitFromConfig(kubeConfigPath string) error {
 	return nil
 }
 
-func (k *Informers) initInformers(client kubernetes.Interface, metaClient metadata.Interface) error {
+func (k *Informers) initInformers(client kubernetes.Interface, metaClient metadata.Interface, managedCNI []string) error {
 	informerFactory := inf.NewSharedInformerFactory(client, syncTime)
 	metadataInformerFactory := metadatainformer.NewSharedInformerFactory(metaClient, syncTime)
-	err := k.initNodeInformer(informerFactory)
+	err := k.initNodeInformer(informerFactory, managedCNI)
 	if err != nil {
 		return err
 	}
-	err = k.initPodInformer(informerFactory)
+	err = k.initPodInformer(informerFactory, managedCNI)
 	if err != nil {
 		return err
 	}
