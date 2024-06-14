@@ -49,15 +49,16 @@ Usage:
   flowlogs-pipeline [flags]  
   
 Flags:  
-      --config string            config file (default is $HOME/.flowlogs-pipeline)  
-      --health.address string    Health server address (default "0.0.0.0")  
-      --health.port string       Health server port (default "8080")  
-  -h, --help                     help for flowlogs-pipeline  
-      --log-level string         Log level: debug, info, warning, error (default "error")  
-      --metricsSettings string   json for global metrics settings  
-      --parameters string        json of config file parameters field  
-      --pipeline string          json of config file pipeline field  
-      --profile.port int         Go pprof tool port (default: disabled)
+      --config string              config file (default is $HOME/.flowlogs-pipeline)  
+      --dynamicParameters string   json of configmap location for dynamic parameters  
+      --health.address string      Health server address (default "0.0.0.0")  
+      --health.port string         Health server port (default "8080")  
+  -h, --help                       help for flowlogs-pipeline  
+      --log-level string           Log level: debug, info, warning, error (default "error")  
+      --metricsSettings string     json for global metrics settings  
+      --parameters string          json of config file parameters field  
+      --pipeline string            json of config file pipeline field  
+      --profile.port int           Go pprof tool port (default: disabled)
 ```
 <!---END-AUTO-flowlogs-pipeline_help--->
 
@@ -927,6 +928,8 @@ Develop
   docs                  Update flowlogs-pipeline documentation  
   clean                 Clean  
   tests-unit            Unit tests  
+  coverage-report       Generate coverage report  
+  coverage-report-html  Generate HTML coverage report  
   tests-fast            Fast unit tests (no race tests / coverage)  
   tests-e2e             End-to-end tests  
   tests-all             All tests  
