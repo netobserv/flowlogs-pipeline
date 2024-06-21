@@ -29,7 +29,7 @@ IMAGE ?= $(IMAGE_TAG_BASE):$(VERSION)
 
 # Image building tool (docker / podman) - docker is preferred in CI
 OCI_BIN_PATH = $(shell which docker 2>/dev/null || which podman)
-OCI_BIN ?= $(shell basename ${OCI_BIN_PATH})
+OCI_BIN ?= $(shell basename ${OCI_BIN_PATH} 2>/dev/null)
 OCI_BUILD_OPTS ?=
 
 ifneq ($(CLEAN_BUILD),)
@@ -42,6 +42,7 @@ GOLANGCI_LINT_VERSION = v1.61.0
 
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
+FLP_INFORMERS_BIN_FILE=flp-informers
 NETFLOW_GENERATOR=nflow-generator
 CMD_DIR=./cmd/
 FLP_CONF_FILE ?= contrib/kubernetes/flowlogs-pipeline.conf.yaml
@@ -111,9 +112,10 @@ lint: prereqs ## Lint the code
 compile: ## Compile main flowlogs-pipeline and config generator
 	GOARCH=${GOARCH} go build "${CMD_DIR}${FLP_BIN_FILE}"
 	GOARCH=${GOARCH} go build "${CMD_DIR}${CG_BIN_FILE}"
+	GOARCH=${GOARCH} go build "${CMD_DIR}${FLP_INFORMERS_BIN_FILE}"
 
 .PHONY: build
-build: lint compile docs ## Build flowlogs-pipeline executable and update the docs
+build: lint compile docs ## Build flowlogs-pipeline executables and update the docs
 
 .PHONY: docs
 docs: FORCE ## Update flowlogs-pipeline documentation

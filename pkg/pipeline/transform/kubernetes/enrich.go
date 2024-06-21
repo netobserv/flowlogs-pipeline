@@ -12,21 +12,27 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var ds *datasource.Datasource
+var ds datasource.Datasource
 var infConfig informers.Config
 
 // For testing
-func MockInformers() {
-	infConfig = informers.NewConfig(api.NetworkTransformKubeConfig{})
-	ds = &datasource.Datasource{Informers: informers.NewInformersMock()}
+func ResetGlobals(newDS datasource.Datasource, newInfConfig informers.Config) {
+	ds = newDS
+	infConfig = newInfConfig
 }
 
-func InitInformerDatasource(config api.NetworkTransformKubeConfig, opMetrics *operational.Metrics) error {
+func InitInformerDatasource(config api.NetworkTransformKubeConfig, kafkaConfig *api.EncodeKafka, opMetrics *operational.Metrics) error {
 	var err error
 	infConfig = informers.NewConfig(config)
 	if ds == nil {
-		ds, err = datasource.NewInformerDatasource(config.ConfigPath, infConfig, opMetrics)
+		ds, err = datasource.NewInformerDatasource(config.ConfigPath, infConfig, kafkaConfig, opMetrics)
 	}
+	return err
+}
+
+func InitKafkaCacheDatasource(kafkaConfig *api.IngestKafka) error {
+	var err error
+	ds, err = datasource.NewKafkaCacheDatasource(kafkaConfig)
 	return err
 }
 

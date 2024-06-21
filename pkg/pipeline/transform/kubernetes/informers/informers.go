@@ -22,13 +22,15 @@ import (
 	"net"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/kafka"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/cni"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/model"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
-	"github.com/sirupsen/logrus"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -375,7 +377,7 @@ func (k *Informers) initReplicaSetInformer(informerFactory metadatainformer.Shar
 	return nil
 }
 
-func (k *Informers) InitFromConfig(kubeconfig string, infConfig Config, opMetrics *operational.Metrics) error {
+func (k *Informers) InitFromConfig(kubeconfig string, infConfig Config, kafkaConfig *api.EncodeKafka, opMetrics *operational.Metrics) error {
 	// Initialization variables
 	k.stopChan = make(chan struct{})
 	k.mdStopChan = make(chan struct{})
@@ -396,7 +398,7 @@ func (k *Informers) InitFromConfig(kubeconfig string, infConfig Config, opMetric
 	}
 
 	k.indexerHitMetric = opMetrics.CreateIndexerHitCounter()
-	err = k.initInformers(kubeClient, metaKubeClient, infConfig)
+	err = k.initInformers(kubeClient, metaKubeClient, infConfig, kafkaConfig)
 	if err != nil {
 		return err
 	}
@@ -404,7 +406,7 @@ func (k *Informers) InitFromConfig(kubeconfig string, infConfig Config, opMetric
 	return nil
 }
 
-func (k *Informers) initInformers(client kubernetes.Interface, metaClient metadata.Interface, cfg Config) error {
+func (k *Informers) initInformers(client kubernetes.Interface, metaClient metadata.Interface, cfg Config, kafkaConfig *api.EncodeKafka) error {
 	informerFactory := inf.NewSharedInformerFactory(client, syncTime)
 	metadataInformerFactory := metadatainformer.NewSharedInformerFactory(metaClient, syncTime)
 	err := k.initNodeInformer(informerFactory, cfg)
@@ -424,21 +426,39 @@ func (k *Informers) initInformers(client kubernetes.Interface, metaClient metada
 		return err
 	}
 
-	// Informers expose an indexer
-	log.Debugf("adding indexers")
-	byIP := cache.Indexers{IndexIP: ipIndexer}
-	byIPAndCustom := cache.Indexers{
-		IndexIP:     ipIndexer,
-		IndexCustom: customKeyIndexer,
-	}
-	if err := k.nodes.AddIndexers(byIP); err != nil {
-		return fmt.Errorf("can't add indexers to Nodes informer: %w", err)
-	}
-	if err := k.pods.AddIndexers(byIPAndCustom); err != nil {
-		return fmt.Errorf("can't add indexers to Pods informer: %w", err)
-	}
-	if err := k.services.AddIndexers(byIP); err != nil {
-		return fmt.Errorf("can't add indexers to Services informer: %w", err)
+	if kafkaConfig != nil {
+		log.Debugf("adding event handlers for Kafka")
+		kafkaWriter, err := kafka.NewWriter(kafkaConfig)
+		if err != nil {
+			return err
+		}
+		// Informers will publish updates to Kafka
+		for _, inf := range []cache.SharedIndexInformer{k.nodes, k.pods, k.services} {
+			// Note that the update handler is called whenever the resource was updated, even if the update doesn't affect
+			// the transformed data (model.ResourceMetaData). We may want to further optimize this later. On the flip side, this helps
+			// to keep everything in sync in case of missed events.
+			_, err := inf.AddEventHandler(getKafkaEventHandlers(kafkaWriter))
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// Informers expose an indexer
+		log.Debugf("adding indexers")
+		byIP := cache.Indexers{IndexIP: ipIndexer}
+		byIPAndCustom := cache.Indexers{
+			IndexIP:     ipIndexer,
+			IndexCustom: customKeyIndexer,
+		}
+		if err := k.nodes.AddIndexers(byIP); err != nil {
+			return fmt.Errorf("can't add indexers to Nodes informer: %w", err)
+		}
+		if err := k.pods.AddIndexers(byIPAndCustom); err != nil {
+			return fmt.Errorf("can't add indexers to Pods informer: %w", err)
+		}
+		if err := k.services.AddIndexers(byIP); err != nil {
+			return fmt.Errorf("can't add indexers to Services informer: %w", err)
+		}
 	}
 
 	log.Debugf("starting kubernetes informers, waiting for synchronization")

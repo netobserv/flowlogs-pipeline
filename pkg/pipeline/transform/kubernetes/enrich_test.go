@@ -5,7 +5,6 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/datasource"
 	inf "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/model"
 	"github.com/stretchr/testify/assert"
@@ -104,8 +103,7 @@ var rules = api.NetworkTransformRules{
 
 func setupStubs(ipInfo, customKeysInfo, nodes map[string]*model.ResourceMetaData) {
 	cfg, informers := inf.SetupStubs(ipInfo, customKeysInfo, nodes)
-	ds = &datasource.Datasource{Informers: informers}
-	infConfig = cfg
+	ResetGlobals(informers, cfg)
 }
 
 func TestEnrich(t *testing.T) {

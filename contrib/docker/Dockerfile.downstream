@@ -11,16 +11,13 @@ WORKDIR /app
 # Copy source code
 COPY go.mod .
 COPY go.sum .
-COPY Makefile .
-COPY .mk/ .mk/
 COPY vendor/ vendor/
-COPY .git/ .git/
 COPY cmd/ cmd/
 COPY pkg/ pkg/
 
-RUN git status --porcelain
 ENV GOEXPERIMENT strictfipsruntime
 RUN GOARCH=$TARGETARCH go build -tags strictfipsruntime -ldflags "-X main.BuildVersion=$BUILDVERSION -X main.BuildDate=$DATE" "./cmd/flowlogs-pipeline"
+RUN GOARCH=$TARGETARCH go build -tags strictfipsruntime -ldflags "-X main.BuildVersion=$BUILDVERSION -X main.BuildDate=$DATE" "./cmd/flp-informers"
 
 # final stage
 FROM --platform=linux/$TARGETARCH registry.access.redhat.com/ubi9/ubi-minimal:9.5-1738816775
@@ -28,8 +25,8 @@ FROM --platform=linux/$TARGETARCH registry.access.redhat.com/ubi9/ubi-minimal:9.
 ARG COMMIT
 
 COPY --from=builder /app/flowlogs-pipeline /app/
+COPY --from=builder /app/flp-informers /app/
 
-# expose ports
 ENTRYPOINT ["/app/flowlogs-pipeline"]
 
 LABEL com.redhat.component="network-observability-flowlogs-pipeline-container"
