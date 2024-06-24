@@ -20,7 +20,9 @@ func MockInformers() {
 
 func InitInformerDatasource(kubeConfigPath string, kafkaConfig *api.EncodeKafka) error {
 	var err error
-	ds, err = datasource.NewInformerDatasource(kubeConfigPath, kafkaConfig)
+	if ds == nil {
+		ds, err = datasource.NewInformerDatasource(kubeConfigPath, kafkaConfig)
+	}
 	return err
 }
 
