@@ -376,7 +376,7 @@ pipeline:
       filter:
         rules:
         - type: remove_entry_if_exists
-          removeEntryIfExists:
+          removeEntry:
             input: SrcPort
 ```
 
