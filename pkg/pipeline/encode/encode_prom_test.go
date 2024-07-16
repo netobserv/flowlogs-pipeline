@@ -201,7 +201,7 @@ func Test_CustomMetric(t *testing.T) {
 	}
 	time.Sleep(100 * time.Millisecond)
 
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
 
 	require.Contains(t, exposed, `test_bytes_total{dstIP="10.0.0.1",srcIP="20.0.0.2"} 8`)
 	require.Contains(t, exposed, `test_bytes_total{dstIP="30.0.0.3",srcIP="10.0.0.1"} 12`)
@@ -273,7 +273,7 @@ func Test_FilterDuplicates(t *testing.T) {
 	}
 	time.Sleep(100 * time.Millisecond)
 
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
 
 	require.Contains(t, exposed, `bytes_unfiltered 15`)
 	require.Contains(t, exposed, `bytes_filtered 8`)
@@ -318,7 +318,7 @@ func Test_FilterNotNil(t *testing.T) {
 	}
 	time.Sleep(100 * time.Millisecond)
 
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
 
 	require.Contains(t, exposed, `test_latencies_sum 1`)
 	require.Contains(t, exposed, `test_latencies_count 2`)
@@ -373,7 +373,7 @@ func Test_FilterDirection(t *testing.T) {
 	}
 	time.Sleep(100 * time.Millisecond)
 
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
 
 	require.Contains(t, exposed, `test_ingress_packets_total 10`)
 	require.Contains(t, exposed, `test_egress_packets_total 100`)
@@ -431,7 +431,7 @@ func Test_FilterSameOrDifferentNamespace(t *testing.T) {
 	}
 	time.Sleep(100 * time.Millisecond)
 
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
 
 	require.Contains(t, exposed, `test_packets_same_namespace_total 43000`)
 	require.Contains(t, exposed, `test_packets_different_namespace_total 210`)
@@ -459,7 +459,7 @@ func Test_ValueScale(t *testing.T) {
 	}
 	time.Sleep(100 * time.Millisecond)
 
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
 
 	// One is less than 25ms, Two are less than 250ms
 	require.Contains(t, exposed, `test_rtt_seconds_bucket{le="0.005"} 0`)
@@ -510,7 +510,7 @@ func Test_MetricTTL(t *testing.T) {
 	for _, metric := range metrics {
 		encodeProm.Encode(metric)
 	}
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
 
 	require.Contains(t, exposed, `test_bytes_total{dstIP="10.0.0.1",srcIP="20.0.0.2"}`)
 	require.Contains(t, exposed, `test_bytes_total{dstIP="30.0.0.3",srcIP="10.0.0.1"}`)
@@ -519,7 +519,7 @@ func Test_MetricTTL(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	// Scrape a second time
-	exposed = test.ReadExposedMetrics(t)
+	exposed = test.ReadExposedMetrics(t, encodeProm.server)
 
 	require.NotContains(t, exposed, `test_bytes_total{dstIP="10.0.0.1",srcIP="20.0.0.2"}`)
 	require.NotContains(t, exposed, `test_bytes_total{dstIP="30.0.0.3",srcIP="10.0.0.1"}`)
@@ -563,7 +563,7 @@ func Test_MissingLabels(t *testing.T) {
 	}
 	time.Sleep(100 * time.Millisecond)
 
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
 
 	require.Contains(t, exposed, `my_counter{namespace="A"} 8`)
 	require.Contains(t, exposed, `my_counter{namespace=""} 4`)

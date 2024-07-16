@@ -18,7 +18,6 @@
 package encode
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -242,7 +241,7 @@ func extractLabelsAndKey(flow config.GenericMap, info *api.MetricsItem) (map[str
 	for _, t := range info.Labels {
 		entryLabels[t] = ""
 		if v, ok := flow[t]; ok {
-			entryLabels[t] = fmt.Sprintf("%v", v)
+			entryLabels[t] = utils.ConvertToString(v)
 		}
 		key.WriteString(entryLabels[t])
 		key.WriteRune('|')
@@ -261,6 +260,13 @@ func (m *MetricsCommonStruct) cleanupExpiredEntriesLoop(callback putils.CacheCal
 			m.mCache.CleanupExpiredEntries(m.expiryTime, callback)
 		}
 	}
+}
+
+func (m *MetricsCommonStruct) cleanupInfoStructs() {
+	m.gauges = map[string]mInfoStruct{}
+	m.counters = map[string]mInfoStruct{}
+	m.histos = map[string]mInfoStruct{}
+	m.aggHistos = map[string]mInfoStruct{}
 }
 
 func NewMetricsCommonStruct(opMetrics *operational.Metrics, maxCacheEntries int, name string, expiryTime api.Duration, callback putils.CacheCallback) *MetricsCommonStruct {
