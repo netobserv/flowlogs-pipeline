@@ -9,6 +9,8 @@ export GO111MODULE=on
 export CGO_ENABLED=0
 export GOOS=linux
 
+SHELL := /bin/bash
+
 # VERSION defines the project version for the bundle.
 # Update this value when you upgrade the version of your project.
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
@@ -99,9 +101,18 @@ vendors: ## Check go vendors
 
 .PHONY: validate_go
 validate_go:
-	@current_ver=$$(go version | { read _ _ v _; echo $${v#go}; }); \
-	required_ver=${MIN_GO_VERSION}; min_ver=$$(echo -e "$$current_ver\n$$required_ver" | sort -V | head -n 1); \
-	if [[ $$min_ver == $$current_ver ]]; then echo -e "\n!!! golang version > $$required_ver required !!!\n"; exit 7;fi
+	@go_ver=$$(go version | { read -r _ _ v _; echo "$${v#go}"; }); \
+	major_ver=$$(echo "$$go_ver" | cut -d'.' -f1);\
+	minor_ver=$$(echo "$$go_ver" | cut -d'.' -f2);\
+	second_minor_ver=$$(echo "$$go_ver" | cut -d'.' -f3); \
+	req_major_ver=$$(echo "${MIN_GO_VERSION}" | cut -d'.' -f1);\
+	req_minor_ver=$$(echo "${MIN_GO_VERSION}" | cut -d'.' -f2);\
+	req_second_minor_ver=$$(echo "${MIN_GO_VERSION}" | cut -d'.' -f3);\
+	err_msg="\n!!!golang version current $$go_ver < ${MIN_GO_VERSION} required!!!\n";\
+	if [ $$major_ver -lt $$req_major_ver ]; then echo -e "$$err_msg"; exit 1;\
+	elif [ $$minor_ver -lt $$req_minor_ver ]; then echo -e "$$err_msg"; exit 1;\
+	elif [ $$second_minor_ver -lt $$req_second_minor_ver ]; then echo -e "$$err_msg"; exit 1;\
+	else echo "golang version $$go_ver validated!"; fi
 
 ##@ Develop
 
