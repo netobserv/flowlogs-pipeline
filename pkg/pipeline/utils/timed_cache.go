@@ -141,7 +141,9 @@ func (tc *TimedCache) CleanupExpiredEntries(expiry time.Duration, callback Cache
 			return
 		}
 		deleted++
-		callback(pCacheInfo.SourceEntry)
+		if callback != nil {
+			callback(pCacheInfo.SourceEntry)
+		}
 		delete(tc.cacheMap, pCacheInfo.key)
 		tc.cacheList.Remove(listEntry)
 		if tc.cacheLenMetric != nil {
