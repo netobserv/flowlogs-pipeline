@@ -24,6 +24,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -235,6 +236,6 @@ func TestComputeHash_MissingField(t *testing.T) {
 	h, err := computeHash(fl, &keyDefinition, testHasher, metrics)
 	require.NoError(t, err)
 	require.NotNil(t, h)
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, prometheus.DefaultGatherer)
 	require.Contains(t, exposed, `conntrack_hash_errors{error="MissingFieldError",field="Missing"} 1`)
 }

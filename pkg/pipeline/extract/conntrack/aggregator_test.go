@@ -24,6 +24,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -244,7 +245,7 @@ func TestMissingFieldError(t *testing.T) {
 	flowLog := config.GenericMap{}
 	agg.update(conn, flowLog, dirAB, true)
 
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, prometheus.DefaultGatherer)
 	require.Contains(t, exposed, `conntrack_aggregator_errors{error="MissingFieldError",field="Bytes"} 1`)
 }
 
@@ -260,7 +261,7 @@ func TestSkipMissingFieldError(t *testing.T) {
 	flowLog := config.GenericMap{}
 	agg.update(conn, flowLog, dirAB, true)
 
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, prometheus.DefaultGatherer)
 	require.NotContains(t, exposed, `conntrack_aggregator_errors{error="MissingFieldError",field="Bytes"}`)
 }
 
@@ -276,6 +277,6 @@ func TestFloat64ConversionError(t *testing.T) {
 	flowLog := config.GenericMap{"Bytes": "float64 inconvertible value"}
 	agg.update(conn, flowLog, dirAB, true)
 
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, prometheus.DefaultGatherer)
 	require.Contains(t, exposed, `conntrack_aggregator_errors{error="Float64ConversionError",field="Bytes"} 1`)
 }

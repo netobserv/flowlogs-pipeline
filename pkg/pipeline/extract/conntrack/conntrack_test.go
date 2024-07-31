@@ -31,6 +31,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/extract"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -898,7 +899,7 @@ func TestScheduling(t *testing.T) {
 			assertStoreConsistency(t, ct)
 		})
 	}
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, prometheus.DefaultGatherer)
 	require.Contains(t, exposed, `conntrack_end_connections{group="0: Proto=17, ",reason="timeout"} 1`)
 }
 
@@ -1123,7 +1124,7 @@ func TestDetectEndConnection(t *testing.T) {
 			assertStoreConsistency(t, ct)
 		})
 	}
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, prometheus.DefaultGatherer)
 	require.Contains(t, exposed, `conntrack_tcp_flags{action="detectEndConnection"} 1`)
 	require.Contains(t, exposed, `conntrack_input_records{classification="duplicate"} 1`)
 }
@@ -1183,7 +1184,7 @@ func TestSwapAB(t *testing.T) {
 			assertStoreConsistency(t, ct)
 		})
 	}
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, prometheus.DefaultGatherer)
 	require.Contains(t, exposed, `conntrack_tcp_flags{action="swapAB"} 1`)
 }
 
@@ -1273,6 +1274,6 @@ func TestExpiringConnection(t *testing.T) {
 			assertStoreConsistency(t, ct)
 		})
 	}
-	exposed := test.ReadExposedMetrics(t)
+	exposed := test.ReadExposedMetrics(t, prometheus.DefaultGatherer)
 	require.Contains(t, exposed, `conntrack_end_connections{group="0: DEFAULT",reason="FIN_flag"} 1`)
 }

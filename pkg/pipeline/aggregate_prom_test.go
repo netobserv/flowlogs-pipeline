@@ -177,7 +177,7 @@ parameters:
 			for _, aa := range actualAggs {
 				promEncode.Encode(aa)
 			}
-			exposed := test.ReadExposedMetrics(t)
+			exposed := test.ReadExposedMetrics(t, promEncode.(*encode.EncodeProm).Gatherer())
 
 			for _, expected := range tt.expectedEncode {
 				require.Contains(t, exposed, expected)
