@@ -8,20 +8,22 @@ import (
 
 func TestExtractNetStatusIPs(t *testing.T) {
 	// Annotation not found => no error, no ip
-	ip, err := extractNetStatusIPs(map[string]string{})
+	ip, mac, err := extractNetStatusIPsAndMACs(map[string]string{})
 	require.NoError(t, err)
 	require.Empty(t, ip)
+	require.Empty(t, mac)
 
 	// Annotation malformed => error, no ip
-	ip, err = extractNetStatusIPs(map[string]string{
+	ip, mac, err = extractNetStatusIPsAndMACs(map[string]string{
 		statusAnnotation: "whatever",
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "cannot read annotation")
 	require.Empty(t, ip)
+	require.Empty(t, mac)
 
 	// Valid annotation => no error, ip
-	ip, err = extractNetStatusIPs(map[string]string{
+	ip, mac, err = extractNetStatusIPsAndMACs(map[string]string{
 		statusAnnotation: `
 		[{
 			"name": "cbr0",
@@ -43,4 +45,6 @@ func TestExtractNetStatusIPs(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, []string{"10.244.1.73", "192.168.1.205"}, ip)
+	require.Equal(t, []string{"86:1D:96:FF:55:0D"}, mac)
+
 }

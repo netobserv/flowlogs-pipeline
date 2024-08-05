@@ -6,5 +6,5 @@ import (
 
 type Plugin interface {
 	GetNodeIPs(node *v1.Node) []string
-	GetPodIPs(pod *v1.Pod) []string
+	GetPodIPsAndMACs(pod *v1.Pod) ([]string, []string)
 }
