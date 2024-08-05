@@ -22,7 +22,12 @@ func InitFromConfig(config api.NetworkTransformKubeConfig) error {
 }
 
 func Enrich(outputEntry config.GenericMap, rule api.K8sRule) {
-	kubeInfo, err := informers.GetInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
+	ip := fmt.Sprintf("%s", outputEntry[rule.Input])
+	// TODO: replace this by a new rule input
+	mac := fmt.Sprintf("%s", outputEntry[strings.Replace(rule.Input, "Addr", "Mac", -1)])
+	logrus.Tracef("Enrich IP %s MAC %s", ip, mac)
+
+	kubeInfo, err := informers.GetInfo(ip, mac)
 	if err != nil {
 		logrus.WithError(err).Tracef("can't find kubernetes info for IP %v", outputEntry[rule.Input])
 		return
@@ -131,7 +136,7 @@ func EnrichLayer(outputEntry config.GenericMap, rule *api.K8sInfraRule) {
 }
 
 func objectIsApp(addr string, rule *api.K8sInfraRule) bool {
-	obj, err := informers.GetInfo(addr)
+	obj, err := informers.GetInfo(addr, "")
 	if err != nil {
 		logrus.WithError(err).Tracef("can't find kubernetes info for IP %s", addr)
 		return false

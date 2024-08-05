@@ -47,9 +47,9 @@ func (o *OVNPlugin) GetNodeIPs(node *v1.Node) []string {
 	return nil
 }
 
-func (o *OVNPlugin) GetPodIPs(_ *v1.Pod) []string {
+func (o *OVNPlugin) GetPodIPsAndMACs(_ *v1.Pod) ([]string, []string) {
 	// No CNI-specific logic needed for pods
-	return nil
+	return nil, nil
 }
 
 func unmarshalOVNAnnotation(annot []byte) (string, error) {

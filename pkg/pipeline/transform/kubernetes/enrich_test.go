@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var info = map[string]*inf.Info{
+var ipInfo = map[string]*inf.Info{
 	"1.2.3.4": nil,
 	"10.0.0.1": {
 		ObjectMeta: v1.ObjectMeta{
@@ -37,6 +37,18 @@ var info = map[string]*inf.Info{
 			Namespace: "ns-1",
 		},
 		Type: "Service",
+	},
+}
+
+var macInfo = map[string]*inf.Info{
+	"AA:BB:CC:DD:EE:FF": {
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "pod-1",
+			Namespace: "ns-1",
+		},
+		Type:     "Pod",
+		HostName: "host-1",
+		HostIP:   "100.0.0.1",
 	},
 }
 
@@ -81,7 +93,7 @@ var rules = api.NetworkTransformRules{
 }
 
 func TestEnrich(t *testing.T) {
-	informers = inf.SetupStubs(info, nodes)
+	informers = inf.SetupStubs(ipInfo, macInfo, nodes)
 
 	// Pod to unknown
 	entry := config.GenericMap{
@@ -182,7 +194,7 @@ var otelRules = api.NetworkTransformRules{
 }
 
 func TestEnrich_Otel(t *testing.T) {
-	informers = inf.SetupStubs(info, nodes)
+	informers = inf.SetupStubs(ipInfo, macInfo, nodes)
 
 	// Pod to unknown
 	entry := config.GenericMap{
@@ -272,7 +284,7 @@ func TestEnrich_Otel(t *testing.T) {
 }
 
 func TestEnrich_EmptyNamespace(t *testing.T) {
-	informers = inf.SetupStubs(info, nodes)
+	informers = inf.SetupStubs(ipInfo, macInfo, nodes)
 
 	// We need to check that, whether it returns NotFound or just an empty namespace,
 	// there is no map entry for that namespace (an empty-valued map entry is not valid)
@@ -341,7 +353,7 @@ var infoLayers = map[string]*inf.Info{
 }
 
 func TestEnrichLayer(t *testing.T) {
-	informers = inf.SetupStubs(infoLayers, nodes)
+	informers = inf.SetupStubs(infoLayers, macInfo, nodes)
 
 	rule := api.NetworkTransformRule{
 		KubernetesInfra: &api.K8sInfraRule{
