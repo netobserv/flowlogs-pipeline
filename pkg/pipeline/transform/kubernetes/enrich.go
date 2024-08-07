@@ -21,10 +21,12 @@ func InitFromConfig(config api.NetworkTransformKubeConfig) error {
 	return informers.InitFromConfig(config)
 }
 
-func Enrich(outputEntry config.GenericMap, rule api.K8sRule) {
+func Enrich(outputEntry config.GenericMap, rule *api.K8sRule) {
 	ip := fmt.Sprintf("%s", outputEntry[rule.Input])
-	// TODO: replace this by a new rule input
-	mac := fmt.Sprintf("%s", outputEntry[strings.Replace(rule.Input, "Addr", "Mac", -1)])
+	var mac string
+	if len(rule.MacInput) > 0 {
+		mac = fmt.Sprintf("%s", outputEntry[rule.MacInput])
+	}
 	logrus.Tracef("Enrich IP %s MAC %s", ip, mac)
 
 	kubeInfo, err := informers.GetInfo(ip, mac)
@@ -93,7 +95,7 @@ func Enrich(outputEntry config.GenericMap, rule api.K8sRule) {
 
 const nodeZoneLabelName = "topology.kubernetes.io/zone"
 
-func fillInK8sZone(outputEntry config.GenericMap, rule api.K8sRule, kubeInfo *inf.Info, zonePrefix string) {
+func fillInK8sZone(outputEntry config.GenericMap, rule *api.K8sRule, kubeInfo *inf.Info, zonePrefix string) {
 	if !rule.AddZone {
 		//Nothing to do
 		return

@@ -84,7 +84,8 @@ type K8sReference struct {
 }
 
 type K8sRule struct {
-	Input        string `yaml:"input,omitempty" json:"input,omitempty" doc:"entry input field"`
+	Input        string `yaml:"input,omitempty" json:"input,omitempty" doc:"entry IP input field"`
+	MacInput     string `yaml:"mac-input,omitempty" json:"mac-input,omitempty" doc:"Optional entry MAC input field"`
 	Output       string `yaml:"output,omitempty" json:"output,omitempty" doc:"entry output field"`
 	Assignee     string `yaml:"assignee,omitempty" json:"assignee,omitempty" doc:"value needs to assign to output field"`
 	LabelsPrefix string `yaml:"labels_prefix,omitempty" json:"labels_prefix,omitempty" doc:"labels prefix to use to copy input lables, if empty labels will not be copied"`

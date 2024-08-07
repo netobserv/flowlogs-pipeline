@@ -111,7 +111,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			}
 			outputEntry[rule.AddService.Output] = serviceName
 		case api.NetworkAddKubernetes:
-			kubernetes.Enrich(outputEntry, *rule.Kubernetes)
+			kubernetes.Enrich(outputEntry, rule.Kubernetes)
 		case api.NetworkAddKubernetesInfra:
 			if rule.KubernetesInfra == nil {
 				logrus.Error("transformation rule: Missing configuration ")
