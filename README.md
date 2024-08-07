@@ -403,7 +403,8 @@ parameters:
     transform:
       type: network
       network:
-        KubeConfigPath: /tmp/config
+        kubeConfig:
+          configPath: /tmp/config
         rules:
           - type: add_subnet
             add_subnet:
@@ -453,7 +454,7 @@ will be generated, and named by appending `parameters` value to the label keys.
 If `assignee` is set to `otel` then the output fields of `add_kubernetes` will be produced in opentelemetry format.
 
 > Note: kubernetes connection is done using the first available method: 
-> 1. configuration parameter `KubeConfigPath` (in the example above `/tmp/config`) or
+> 1. configuration parameter `kubeConfig.configPath` (in the example above `/tmp/config`) or
 > 2. using `KUBECONFIG` environment variable
 > 3. using local `~/.kube/config`
 

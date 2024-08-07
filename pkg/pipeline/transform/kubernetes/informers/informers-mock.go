@@ -3,6 +3,7 @@ package informers
 import (
 	"errors"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
@@ -19,8 +20,8 @@ func NewInformersMock() *Mock {
 	return inf
 }
 
-func (o *Mock) InitFromConfig(kubeConfigPath string) error {
-	args := o.Called(kubeConfigPath)
+func (o *Mock) InitFromConfig(cfg api.NetworkTransformKubeConfig) error {
+	args := o.Called(cfg)
 	return args.Error(0)
 }
 
@@ -55,7 +56,7 @@ func (m *InformerMock) GetIndexer() cache.Indexer {
 	return args.Get(0).(cache.Indexer)
 }
 
-func (m *IndexerMock) MockPod(ip, name, namespace, nodeIP string, owner *Owner) {
+func (m *IndexerMock) MockPod(ip, mac, name, namespace, nodeIP string, owner *Owner) {
 	var ownerRef []metav1.OwnerReference
 	if owner != nil {
 		ownerRef = []metav1.OwnerReference{{
@@ -63,7 +64,7 @@ func (m *IndexerMock) MockPod(ip, name, namespace, nodeIP string, owner *Owner) 
 			Name: owner.Name,
 		}}
 	}
-	m.On("ByIndex", IndexIP, ip).Return([]interface{}{&Info{
+	info := Info{
 		Type: "Pod",
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
@@ -71,13 +72,25 @@ func (m *IndexerMock) MockPod(ip, name, namespace, nodeIP string, owner *Owner) 
 			OwnerReferences: ownerRef,
 		},
 		HostIP: nodeIP,
-	}}, nil)
+		ips:    []string{},
+		macs:   []string{},
+	}
+	if len(mac) > 0 {
+		info.macs = []string{mac}
+		m.On("ByIndex", IndexMAC, mac).Return([]interface{}{&info}, nil)
+	}
+	if len(ip) > 0 {
+		info.ips = []string{ip}
+		m.On("ByIndex", IndexIP, ip).Return([]interface{}{&info}, nil)
+	}
 }
 
 func (m *IndexerMock) MockNode(ip, name string) {
 	m.On("ByIndex", IndexIP, ip).Return([]interface{}{&Info{
 		Type:       "Node",
 		ObjectMeta: metav1.ObjectMeta{Name: name},
+		ips:        []string{ip},
+		macs:       []string{},
 	}}, nil)
 }
 
@@ -85,6 +98,8 @@ func (m *IndexerMock) MockService(ip, name, namespace string) {
 	m.On("ByIndex", IndexIP, ip).Return([]interface{}{&Info{
 		Type:       "Service",
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+		ips:        []string{ip},
+		macs:       []string{},
 	}}, nil)
 }
 
@@ -128,23 +143,32 @@ func SetupIndexerMocks(kd *Informers) (pods, nodes, svc, rs *IndexerMock) {
 
 type FakeInformers struct {
 	InformersInterface
-	info  map[string]*Info
-	nodes map[string]*Info
+	ipInfo  map[string]*Info
+	macInfo map[string]*Info
+	nodes   map[string]*Info
 }
 
-func SetupStubs(info map[string]*Info, nodes map[string]*Info) *FakeInformers {
+func SetupStubs(ipInfo map[string]*Info, macInfo map[string]*Info, nodes map[string]*Info) *FakeInformers {
 	return &FakeInformers{
-		info:  info,
-		nodes: nodes,
+		ipInfo:  ipInfo,
+		macInfo: macInfo,
+		nodes:   nodes,
 	}
 }
 
-func (f *FakeInformers) InitFromConfig(_ string) error {
+func (f *FakeInformers) InitFromConfig(_ api.NetworkTransformKubeConfig) error {
 	return nil
 }
 
-func (f *FakeInformers) GetInfo(n string) (*Info, error) {
-	i := f.info[n]
+func (f *FakeInformers) GetInfo(ip string, mac string) (*Info, error) {
+	if len(mac) > 0 {
+		i := f.macInfo[mac]
+		if i != nil {
+			return i, nil
+		}
+	}
+
+	i := f.ipInfo[ip]
 	if i != nil {
 		return i, nil
 	}

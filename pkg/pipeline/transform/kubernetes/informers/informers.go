@@ -20,8 +20,10 @@ package informers
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/cni"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -40,18 +42,23 @@ const (
 	kubeConfigEnvVariable = "KUBECONFIG"
 	syncTime              = 10 * time.Minute
 	IndexIP               = "byIP"
+	IndexMAC              = "byMAC"
 	TypeNode              = "Node"
 	TypePod               = "Pod"
 	TypeService           = "Service"
 )
 
 var log = logrus.WithField("component", "transform.Network.Kubernetes")
+var cniPlugins = map[string]cni.Plugin{
+	api.OVN:    &cni.OVNPlugin{},
+	api.Multus: &cni.MultusPlugin{},
+}
 
 //nolint:revive
 type InformersInterface interface {
-	GetInfo(string) (*Info, error)
+	GetInfo(string, string) (*Info, error)
 	GetNodeInfo(string) (*Info, error)
-	InitFromConfig(string) error
+	InitFromConfig(api.NetworkTransformKubeConfig) error
 }
 
 type Informers struct {
@@ -84,16 +91,20 @@ type Info struct {
 	HostName string
 	HostIP   string
 	ips      []string
+	macs     []string
 }
 
 var commonIndexers = map[string]cache.IndexFunc{
 	IndexIP: func(obj interface{}) ([]string, error) {
 		return obj.(*Info).ips, nil
 	},
+	IndexMAC: func(obj interface{}) ([]string, error) {
+		return obj.(*Info).macs, nil
+	},
 }
 
-func (k *Informers) GetInfo(ip string) (*Info, error) {
-	if info, ok := k.fetchInformers(ip); ok {
+func (k *Informers) GetInfo(ip string, mac string) (*Info, error) {
+	if info, ok := k.fetchInformers(ip, mac); ok {
 		// Owner data might be discovered after the owned, so we fetch it
 		// at the last moment
 		if info.Owner.Name == "" {
@@ -105,33 +116,48 @@ func (k *Informers) GetInfo(ip string) (*Info, error) {
 	return nil, fmt.Errorf("informers can't find IP %s", ip)
 }
 
-func (k *Informers) fetchInformers(ip string) (*Info, bool) {
-	if info, ok := infoForIP(k.pods.GetIndexer(), ip); ok {
+func (k *Informers) fetchInformers(ip string, mac string) (*Info, bool) {
+	if info, ok := infoForIPOrMac(k.pods.GetIndexer(), ip, mac); ok {
 		// it might happen that the Host is discovered after the Pod
 		if info.HostName == "" {
 			info.HostName = k.getHostName(info.HostIP)
 		}
 		return info, true
 	}
-	if info, ok := infoForIP(k.nodes.GetIndexer(), ip); ok {
+	if info, ok := infoForIPOrMac(k.nodes.GetIndexer(), ip, mac); ok {
 		return info, true
 	}
-	if info, ok := infoForIP(k.services.GetIndexer(), ip); ok {
+	if info, ok := infoForIPOrMac(k.services.GetIndexer(), ip, mac); ok {
 		return info, true
 	}
 	return nil, false
 }
 
-func infoForIP(idx cache.Indexer, ip string) (*Info, bool) {
+func infoForIPOrMac(idx cache.Indexer, ip string, mac string) (*Info, bool) {
+	// check for mac first
+	if len(mac) > 0 {
+		objs, err := idx.ByIndex(IndexMAC, strings.ToUpper(mac))
+		if err != nil {
+			log.WithError(err).WithField("mac", mac).Debug("error accessing mac index. Ignoring")
+			return nil, false
+		}
+		if len(objs) > 0 {
+			log.Tracef("infoForIPOrMac found mac %v", objs[0].(*Info))
+			return objs[0].(*Info), true
+		}
+	}
+
+	// then check for ip
 	objs, err := idx.ByIndex(IndexIP, ip)
 	if err != nil {
-		log.WithError(err).WithField("ip", ip).Debug("error accessing index. Ignoring")
+		log.WithError(err).WithField("ip", ip).Debug("error accessing ip index. Ignoring")
 		return nil, false
 	}
-	if len(objs) == 0 {
-		return nil, false
+	if len(objs) > 0 {
+		log.Tracef("infoForIPOrMac found ip %v", objs[0].(*Info))
+		return objs[0].(*Info), true
 	}
-	return objs[0].(*Info), true
+	return nil, false
 }
 
 func (k *Informers) GetNodeInfo(name string) (*Info, error) {
@@ -177,14 +203,14 @@ func (k *Informers) getOwner(info *Info) Owner {
 
 func (k *Informers) getHostName(hostIP string) string {
 	if hostIP != "" {
-		if info, ok := infoForIP(k.nodes.GetIndexer(), hostIP); ok {
+		if info, ok := infoForIPOrMac(k.nodes.GetIndexer(), hostIP, ""); ok {
 			return info.Name
 		}
 	}
 	return ""
 }
 
-func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory) error {
+func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory, managedCNI []string) error {
 	nodes := informerFactory.Core().V1().Nodes().Informer()
 	// Transform any *v1.Node instance into a *Info instance to save space
 	// in the informer's cache
@@ -204,8 +230,15 @@ func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory) 
 				}
 			}
 		}
-		// CNI-dependent logic (must work regardless of whether the CNI is installed)
-		ips = cni.AddOvnIPs(ips, node)
+		// CNI-dependent logic (must not fail when the CNI is not installed)
+		for _, name := range managedCNI {
+			if plugin := cniPlugins[name]; plugin != nil {
+				moreIPs := plugin.GetNodeIPs(node)
+				if moreIPs != nil {
+					ips = append(ips, moreIPs...)
+				}
+			}
+		}
 
 		return &Info{
 			ObjectMeta: metav1.ObjectMeta{
@@ -214,6 +247,7 @@ func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory) 
 				Labels:    node.Labels,
 			},
 			ips:  ips,
+			macs: []string{},
 			Type: TypeNode,
 			// We duplicate HostIP and HostName information to simplify later filtering e.g. by
 			// Host IP, where we want to get all the Pod flows by src/dst host, but also the actual
@@ -231,7 +265,7 @@ func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory) 
 	return nil
 }
 
-func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory) error {
+func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory, managedCNI []string) error {
 	pods := informerFactory.Core().V1().Pods().Informer()
 	// Transform any *v1.Pod instance into a *Info instance to save space
 	// in the informer's cache
@@ -241,10 +275,23 @@ func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory) e
 			return nil, fmt.Errorf("was expecting a Pod. Got: %T", i)
 		}
 		ips := make([]string, 0, len(pod.Status.PodIPs))
+		macs := []string{}
 		for _, ip := range pod.Status.PodIPs {
 			// ignoring host-networked Pod IPs
 			if ip.IP != pod.Status.HostIP {
 				ips = append(ips, ip.IP)
+			}
+		}
+		// CNI-dependent logic (must not fail when the CNI is not installed)
+		for _, name := range managedCNI {
+			if plugin := cniPlugins[name]; plugin != nil {
+				moreIPs, moreMacs := plugin.GetPodIPsAndMACs(pod)
+				if moreIPs != nil {
+					ips = append(ips, moreIPs...)
+				}
+				if moreMacs != nil {
+					macs = append(macs, moreMacs...)
+				}
 			}
 		}
 		return &Info{
@@ -258,6 +305,7 @@ func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory) e
 			HostIP:   pod.Status.HostIP,
 			HostName: pod.Spec.NodeName,
 			ips:      ips,
+			macs:     macs,
 		}, nil
 	}); err != nil {
 		return fmt.Errorf("can't set pods transform: %w", err)
@@ -294,6 +342,7 @@ func (k *Informers) initServiceInformer(informerFactory inf.SharedInformerFactor
 			},
 			Type: TypeService,
 			ips:  ips,
+			macs: []string{},
 		}, nil
 	}); err != nil {
 		return fmt.Errorf("can't set services transform: %w", err)
@@ -331,27 +380,31 @@ func (k *Informers) initReplicaSetInformer(informerFactory metadatainformer.Shar
 	return nil
 }
 
-func (k *Informers) InitFromConfig(kubeConfigPath string) error {
+func (k *Informers) InitFromConfig(cfg api.NetworkTransformKubeConfig) error {
 	// Initialization variables
 	k.stopChan = make(chan struct{})
 	k.mdStopChan = make(chan struct{})
 
-	config, err := utils.LoadK8sConfig(kubeConfigPath)
+	kconf, err := utils.LoadK8sConfig(cfg.ConfigPath)
 	if err != nil {
 		return err
 	}
 
-	kubeClient, err := kubernetes.NewForConfig(config)
+	kubeClient, err := kubernetes.NewForConfig(kconf)
 	if err != nil {
 		return err
 	}
 
-	metaKubeClient, err := metadata.NewForConfig(config)
+	metaKubeClient, err := metadata.NewForConfig(kconf)
 	if err != nil {
 		return err
 	}
 
-	err = k.initInformers(kubeClient, metaKubeClient)
+	cnis := cfg.ManagedCNI
+	if cnis == nil {
+		cnis = []string{api.OVN, api.Multus}
+	}
+	err = k.initInformers(kubeClient, metaKubeClient, cnis)
 	if err != nil {
 		return err
 	}
@@ -359,14 +412,14 @@ func (k *Informers) InitFromConfig(kubeConfigPath string) error {
 	return nil
 }
 
-func (k *Informers) initInformers(client kubernetes.Interface, metaClient metadata.Interface) error {
+func (k *Informers) initInformers(client kubernetes.Interface, metaClient metadata.Interface, managedCNI []string) error {
 	informerFactory := inf.NewSharedInformerFactory(client, syncTime)
 	metadataInformerFactory := metadatainformer.NewSharedInformerFactory(metaClient, syncTime)
-	err := k.initNodeInformer(informerFactory)
+	err := k.initNodeInformer(informerFactory, managedCNI)
 	if err != nil {
 		return err
 	}
-	err = k.initPodInformer(informerFactory)
+	err = k.initPodInformer(informerFactory, managedCNI)
 	if err != nil {
 		return err
 	}

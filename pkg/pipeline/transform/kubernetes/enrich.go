@@ -17,12 +17,19 @@ func MockInformers() {
 	informers = inf.NewInformersMock()
 }
 
-func InitFromConfig(kubeConfigPath string) error {
-	return informers.InitFromConfig(kubeConfigPath)
+func InitFromConfig(config api.NetworkTransformKubeConfig) error {
+	return informers.InitFromConfig(config)
 }
 
-func Enrich(outputEntry config.GenericMap, rule api.K8sRule) {
-	kubeInfo, err := informers.GetInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
+func Enrich(outputEntry config.GenericMap, rule *api.K8sRule) {
+	ip := fmt.Sprintf("%s", outputEntry[rule.Input])
+	var mac string
+	if len(rule.MacInput) > 0 {
+		mac = fmt.Sprintf("%s", outputEntry[rule.MacInput])
+	}
+	logrus.Tracef("Enrich IP %s MAC %s", ip, mac)
+
+	kubeInfo, err := informers.GetInfo(ip, mac)
 	if err != nil {
 		logrus.WithError(err).Tracef("can't find kubernetes info for IP %v", outputEntry[rule.Input])
 		return
@@ -88,7 +95,7 @@ func Enrich(outputEntry config.GenericMap, rule api.K8sRule) {
 
 const nodeZoneLabelName = "topology.kubernetes.io/zone"
 
-func fillInK8sZone(outputEntry config.GenericMap, rule api.K8sRule, kubeInfo *inf.Info, zonePrefix string) {
+func fillInK8sZone(outputEntry config.GenericMap, rule *api.K8sRule, kubeInfo *inf.Info, zonePrefix string) {
 	if !rule.AddZone {
 		//Nothing to do
 		return
@@ -131,7 +138,7 @@ func EnrichLayer(outputEntry config.GenericMap, rule *api.K8sInfraRule) {
 }
 
 func objectIsApp(addr string, rule *api.K8sInfraRule) bool {
-	obj, err := informers.GetInfo(addr)
+	obj, err := informers.GetInfo(addr, "")
 	if err != nil {
 		logrus.WithError(err).Tracef("can't find kubernetes info for IP %s", addr)
 		return false
