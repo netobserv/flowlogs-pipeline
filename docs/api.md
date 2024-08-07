@@ -247,7 +247,8 @@ Following is the supported API format for network transformations:
                              name: name of the object
                              namespace: namespace of the object
                  kubernetes: Kubernetes rule configuration
-                     input: entry input field
+                     input: entry IP input field
+                     mac-input: Optional entry MAC input field
                      output: entry output field
                      assignee: value needs to assign to output field
                      labels_prefix: labels prefix to use to copy input lables, if empty labels will not be copied
