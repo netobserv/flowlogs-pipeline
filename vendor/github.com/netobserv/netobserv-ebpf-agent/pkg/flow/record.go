@@ -19,6 +19,7 @@ const MacLen = 6
 
 // IPv4Type / IPv6Type value as defined in IEEE 802: https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
 const IPv6Type = 0x86DD
+const networkeventsMaxEventsMD = 8
 
 type HumanBytes uint64
 type MacAddr [MacLen]uint8
@@ -52,8 +53,9 @@ type Record struct {
 	// AgentIP provides information about the source of the flow (the Agent that traced it)
 	AgentIP net.IP
 	// Calculated RTT which is set when record is created by calling NewRecord
-	TimeFlowRtt time.Duration
-	DupList     []map[string]uint8
+	TimeFlowRtt            time.Duration
+	DupList                []map[string]uint8
+	NetworkMonitorEventsMD []string
 }
 
 func NewRecord(
@@ -80,6 +82,7 @@ func NewRecord(
 		record.DNSLatency = time.Duration(metrics.DnsRecord.Latency)
 	}
 	record.DupList = make([]map[string]uint8, 0)
+	record.NetworkMonitorEventsMD = make([]string, 0)
 	return &record
 }
 
@@ -121,6 +124,12 @@ func Accumulate(r *ebpf.BpfFlowMetrics, src *ebpf.BpfFlowMetrics) {
 	if src.DnsRecord.Errno != 0 {
 		r.DnsRecord.Errno = src.DnsRecord.Errno
 	}
+
+	for i, md := range src.NetworkEvents {
+		if !AllZerosMetaData(md) {
+			copy(r.NetworkEvents[i][:], md[:])
+		}
+	}
 }
 
 // IP returns the net.IP equivalent object
@@ -159,4 +168,13 @@ func ReadFrom(reader io.Reader) (*RawRecord, error) {
 	var fr RawRecord
 	err := binary.Read(reader, binary.LittleEndian, &fr)
 	return &fr, err
+}
+
+func AllZerosMetaData(s [networkeventsMaxEventsMD]uint8) bool {
+	for _, v := range s {
+		if v != 0 {
+			return false
+		}
+	}
+	return true
 }

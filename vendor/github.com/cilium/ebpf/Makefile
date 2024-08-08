@@ -44,6 +44,7 @@ TARGETS := \
 	testdata/invalid-kfunc \
 	testdata/kfunc-kmod \
 	testdata/constants \
+	testdata/errors \
 	btf/testdata/relocs \
 	btf/testdata/relocs_read \
 	btf/testdata/relocs_read_tgt \
@@ -105,7 +106,7 @@ testdata/loader-%-eb.elf: testdata/loader.c
 	$(STRIP) -g $@
 
 .PHONY: update-kernel-deps
-update-kernel-deps: export KERNEL_VERSION?=6.7
+update-kernel-deps: export KERNEL_VERSION?=6.8
 update-kernel-deps:
 	./testdata/sh/update-kernel-deps.sh
 	$(MAKE) container-all
