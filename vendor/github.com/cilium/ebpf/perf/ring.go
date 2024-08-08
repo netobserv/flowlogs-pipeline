@@ -10,42 +10,47 @@ import (
 	"sync/atomic"
 	"unsafe"
 
+	"github.com/cilium/ebpf/internal/sys"
 	"github.com/cilium/ebpf/internal/unix"
 )
 
 // perfEventRing is a page of metadata followed by
 // a variable number of pages which form a ring buffer.
 type perfEventRing struct {
-	fd   int
 	cpu  int
 	mmap []byte
 	ringReader
 }
 
-func newPerfEventRing(cpu, perCPUBuffer, watermark int, overwritable bool) (*perfEventRing, error) {
-	if watermark >= perCPUBuffer {
-		return nil, errors.New("watermark must be smaller than perCPUBuffer")
+func newPerfEventRing(cpu, perCPUBuffer int, opts ReaderOptions) (_ *sys.FD, _ *perfEventRing, err error) {
+	closeOnError := func(c io.Closer) {
+		if err != nil {
+			c.Close()
+		}
 	}
 
-	fd, err := createPerfEvent(cpu, watermark, overwritable)
+	if opts.Watermark >= perCPUBuffer {
+		return nil, nil, errors.New("watermark must be smaller than perCPUBuffer")
+	}
+
+	fd, err := createPerfEvent(cpu, opts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	defer closeOnError(fd)
 
-	if err := unix.SetNonblock(fd, true); err != nil {
-		unix.Close(fd)
-		return nil, err
+	if err := unix.SetNonblock(fd.Int(), true); err != nil {
+		return nil, nil, err
 	}
 
 	protections := unix.PROT_READ
-	if !overwritable {
+	if !opts.Overwritable {
 		protections |= unix.PROT_WRITE
 	}
 
-	mmap, err := unix.Mmap(fd, 0, perfBufferSize(perCPUBuffer), protections, unix.MAP_SHARED)
+	mmap, err := unix.Mmap(fd.Int(), 0, perfBufferSize(perCPUBuffer), protections, unix.MAP_SHARED)
 	if err != nil {
-		unix.Close(fd)
-		return nil, fmt.Errorf("can't mmap: %v", err)
+		return nil, nil, fmt.Errorf("can't mmap: %v", err)
 	}
 
 	// This relies on the fact that we allocate an extra metadata page,
@@ -55,21 +60,20 @@ func newPerfEventRing(cpu, perCPUBuffer, watermark int, overwritable bool) (*per
 	meta := (*unix.PerfEventMmapPage)(unsafe.Pointer(&mmap[0]))
 
 	var reader ringReader
-	if overwritable {
+	if opts.Overwritable {
 		reader = newReverseReader(meta, mmap[meta.Data_offset:meta.Data_offset+meta.Data_size])
 	} else {
 		reader = newForwardReader(meta, mmap[meta.Data_offset:meta.Data_offset+meta.Data_size])
 	}
 
 	ring := &perfEventRing{
-		fd:         fd,
 		cpu:        cpu,
 		mmap:       mmap,
 		ringReader: reader,
 	}
 	runtime.SetFinalizer(ring, (*perfEventRing).Close)
 
-	return ring, nil
+	return fd, ring, nil
 }
 
 // perfBufferSize returns a valid mmap buffer size for use with perf_event_open (1+2^n pages)
@@ -88,23 +92,27 @@ func perfBufferSize(perCPUBuffer int) int {
 	return nPages * pageSize
 }
 
-func (ring *perfEventRing) Close() {
+func (ring *perfEventRing) Close() error {
 	runtime.SetFinalizer(ring, nil)
-
-	_ = unix.Close(ring.fd)
-	_ = unix.Munmap(ring.mmap)
-
-	ring.fd = -1
+	mmap := ring.mmap
 	ring.mmap = nil
+	return unix.Munmap(mmap)
 }
 
-func createPerfEvent(cpu, watermark int, overwritable bool) (int, error) {
-	if watermark == 0 {
-		watermark = 1
+func createPerfEvent(cpu int, opts ReaderOptions) (*sys.FD, error) {
+	wakeup := 0
+	bits := 0
+	if opts.WakeupEvents > 0 {
+		wakeup = opts.WakeupEvents
+	} else {
+		wakeup = opts.Watermark
+		if wakeup == 0 {
+			wakeup = 1
+		}
+		bits |= unix.PerfBitWatermark
 	}
 
-	bits := unix.PerfBitWatermark
-	if overwritable {
+	if opts.Overwritable {
 		bits |= unix.PerfBitWriteBackward
 	}
 
@@ -113,15 +121,15 @@ func createPerfEvent(cpu, watermark int, overwritable bool) (int, error) {
 		Config:      unix.PERF_COUNT_SW_BPF_OUTPUT,
 		Bits:        uint64(bits),
 		Sample_type: unix.PERF_SAMPLE_RAW,
-		Wakeup:      uint32(watermark),
+		Wakeup:      uint32(wakeup),
 	}
 
 	attr.Size = uint32(unsafe.Sizeof(attr))
 	fd, err := unix.PerfEventOpen(&attr, -1, cpu, -1, unix.PERF_FLAG_FD_CLOEXEC)
 	if err != nil {
-		return -1, fmt.Errorf("can't create perf event: %w", err)
+		return nil, fmt.Errorf("can't create perf event: %w", err)
 	}
-	return fd, nil
+	return sys.NewFD(fd)
 }
 
 type ringReader interface {

@@ -13,12 +13,14 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/internal"
 	"github.com/cilium/ebpf/internal/epoll"
+	"github.com/cilium/ebpf/internal/sys"
 	"github.com/cilium/ebpf/internal/unix"
 )
 
 var (
-	ErrClosed = os.ErrClosed
-	errEOR    = errors.New("end of ring")
+	ErrClosed  = os.ErrClosed
+	ErrFlushed = epoll.ErrFlushed
+	errEOR     = errors.New("end of ring")
 )
 
 var perfEventHeaderSize = binary.Size(perfEventHeader{})
@@ -28,10 +30,6 @@ type perfEventHeader struct {
 	Type uint32
 	Misc uint16
 	Size uint16
-}
-
-func cpuForEvent(event *unix.EpollEvent) int {
-	return int(event.Pad)
 }
 
 // Record contains either a sample or a counter of the
@@ -138,37 +136,36 @@ func readRawSample(rd io.Reader, buf, sampleBuf []byte) ([]byte, error) {
 // Reader allows reading bpf_perf_event_output
 // from user space.
 type Reader struct {
-	poller   *epoll.Poller
-	deadline time.Time
+	poller *epoll.Poller
 
 	// mu protects read/write access to the Reader structure with the
-	// exception of 'pauseFds', which is protected by 'pauseMu'.
+	// exception fields protected by 'pauseMu'.
 	// If locking both 'mu' and 'pauseMu', 'mu' must be locked first.
-	mu sync.Mutex
-
-	// Closing a PERF_EVENT_ARRAY removes all event fds
-	// stored in it, so we keep a reference alive.
-	array       *ebpf.Map
-	rings       []*perfEventRing
-	epollEvents []unix.EpollEvent
-	epollRings  []*perfEventRing
-	eventHeader []byte
-
-	// pauseFds are a copy of the fds in 'rings', protected by 'pauseMu'.
-	// These allow Pause/Resume to be executed independently of any ongoing
-	// Read calls, which would otherwise need to be interrupted.
-	pauseMu  sync.Mutex
-	pauseFds []int
-
-	paused       bool
+	mu           sync.Mutex
+	array        *ebpf.Map
+	rings        []*perfEventRing
+	epollEvents  []unix.EpollEvent
+	epollRings   []*perfEventRing
+	eventHeader  []byte
+	deadline     time.Time
 	overwritable bool
+	bufferSize   int
+	pendingErr   error
 
-	bufferSize int
+	// pauseMu protects eventFds so that Pause / Resume can be invoked while
+	// Read is blocked.
+	pauseMu  sync.Mutex
+	eventFds []*sys.FD
+	paused   bool
 }
 
 // ReaderOptions control the behaviour of the user
 // space reader.
 type ReaderOptions struct {
+	// The number of events required in any per CPU buffer before
+	// Read will process data. This is mutually exclusive with Watermark.
+	// The default is zero, which means Watermark will take precedence.
+	WakeupEvents int
 	// The number of written bytes required in any per CPU buffer before
 	// Read will process data. Must be smaller than PerCPUBuffer.
 	// The default is to start processing as soon as data is available.
@@ -189,62 +186,59 @@ func NewReader(array *ebpf.Map, perCPUBuffer int) (*Reader, error) {
 
 // NewReaderWithOptions creates a new reader with the given options.
 func NewReaderWithOptions(array *ebpf.Map, perCPUBuffer int, opts ReaderOptions) (pr *Reader, err error) {
+	closeOnError := func(c io.Closer) {
+		if err != nil {
+			c.Close()
+		}
+	}
+
 	if perCPUBuffer < 1 {
 		return nil, errors.New("perCPUBuffer must be larger than 0")
 	}
+	if opts.WakeupEvents > 0 && opts.Watermark > 0 {
+		return nil, errors.New("WakeupEvents and Watermark cannot both be non-zero")
+	}
 
 	var (
-		fds      []int
 		nCPU     = int(array.MaxEntries())
 		rings    = make([]*perfEventRing, 0, nCPU)
-		pauseFds = make([]int, 0, nCPU)
+		eventFds = make([]*sys.FD, 0, nCPU)
 	)
 
 	poller, err := epoll.New()
 	if err != nil {
 		return nil, err
 	}
-
-	defer func() {
-		if err != nil {
-			poller.Close()
-			for _, fd := range fds {
-				unix.Close(fd)
-			}
-			for _, ring := range rings {
-				if ring != nil {
-					ring.Close()
-				}
-			}
-		}
-	}()
+	defer closeOnError(poller)
 
 	// bpf_perf_event_output checks which CPU an event is enabled on,
 	// but doesn't allow using a wildcard like -1 to specify "all CPUs".
 	// Hence we have to create a ring for each CPU.
 	bufferSize := 0
 	for i := 0; i < nCPU; i++ {
-		ring, err := newPerfEventRing(i, perCPUBuffer, opts.Watermark, opts.Overwritable)
+		event, ring, err := newPerfEventRing(i, perCPUBuffer, opts)
 		if errors.Is(err, unix.ENODEV) {
 			// The requested CPU is currently offline, skip it.
-			rings = append(rings, nil)
-			pauseFds = append(pauseFds, -1)
 			continue
 		}
 
 		if err != nil {
 			return nil, fmt.Errorf("failed to create perf ring for CPU %d: %v", i, err)
 		}
+		defer closeOnError(event)
+		defer closeOnError(ring)
 
 		bufferSize = ring.size()
 		rings = append(rings, ring)
-		pauseFds = append(pauseFds, ring.fd)
+		eventFds = append(eventFds, event)
 
-		if err := poller.Add(ring.fd, i); err != nil {
+		if err := poller.Add(event.Int(), 0); err != nil {
 			return nil, err
 		}
 	}
 
+	// Closing a PERF_EVENT_ARRAY removes all event fds
+	// stored in it, so we keep a reference alive.
 	array, err = array.Clone()
 	if err != nil {
 		return nil, err
@@ -258,7 +252,7 @@ func NewReaderWithOptions(array *ebpf.Map, perCPUBuffer int, opts ReaderOptions)
 		epollEvents:  make([]unix.EpollEvent, len(rings)),
 		epollRings:   make([]*perfEventRing, 0, len(rings)),
 		eventHeader:  make([]byte, perfEventHeaderSize),
-		pauseFds:     pauseFds,
+		eventFds:     eventFds,
 		overwritable: opts.Overwritable,
 		bufferSize:   bufferSize,
 	}
@@ -284,17 +278,21 @@ func (pr *Reader) Close() error {
 	}
 
 	// Trying to poll will now fail, so Read() can't block anymore. Acquire the
-	// lock so that we can clean up.
+	// locks so that we can clean up.
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 
+	pr.pauseMu.Lock()
+	defer pr.pauseMu.Unlock()
+
 	for _, ring := range pr.rings {
-		if ring != nil {
-			ring.Close()
-		}
+		ring.Close()
+	}
+	for _, event := range pr.eventFds {
+		event.Close()
 	}
 	pr.rings = nil
-	pr.pauseFds = nil
+	pr.eventFds = nil
 	pr.array.Close()
 
 	return nil
@@ -313,16 +311,20 @@ func (pr *Reader) SetDeadline(t time.Time) {
 
 // Read the next record from the perf ring buffer.
 //
-// The function blocks until there are at least Watermark bytes in one
+// The method blocks until there are at least Watermark bytes in one
 // of the per CPU buffers. Records from buffers below the Watermark
 // are not returned.
 //
 // Records can contain between 0 and 7 bytes of trailing garbage from the ring
 // depending on the input sample's length.
 //
-// Calling Close interrupts the function.
+// Calling [Close] interrupts the method with [os.ErrClosed]. Calling [Flush]
+// makes it return all records currently in the ring buffer, followed by [ErrFlushed].
 //
-// Returns os.ErrDeadlineExceeded if a deadline was set.
+// Returns [os.ErrDeadlineExceeded] if a deadline was set and after all records
+// have been read from the ring.
+//
+// See [Reader.ReadInto] for a more efficient version of this method.
 func (pr *Reader) Read() (Record, error) {
 	var r Record
 
@@ -331,7 +333,7 @@ func (pr *Reader) Read() (Record, error) {
 
 var errMustBePaused = fmt.Errorf("perf ringbuffer: must have been paused before reading overwritable buffer")
 
-// ReadInto is like Read except that it allows reusing Record and associated buffers.
+// ReadInto is like [Reader.Read] except that it allows reusing Record and associated buffers.
 func (pr *Reader) ReadInto(rec *Record) error {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
@@ -349,12 +351,24 @@ func (pr *Reader) ReadInto(rec *Record) error {
 
 	for {
 		if len(pr.epollRings) == 0 {
+			if pe := pr.pendingErr; pe != nil {
+				// All rings have been emptied since the error occurred, return
+				// appropriate error.
+				pr.pendingErr = nil
+				return pe
+			}
+
 			// NB: The deferred pauseMu.Unlock will panic if Wait panics, which
 			// might obscure the original panic.
 			pr.pauseMu.Unlock()
-			nEvents, err := pr.poller.Wait(pr.epollEvents, pr.deadline)
+			_, err := pr.poller.Wait(pr.epollEvents, pr.deadline)
 			pr.pauseMu.Lock()
-			if err != nil {
+
+			if errors.Is(err, os.ErrDeadlineExceeded) || errors.Is(err, ErrFlushed) {
+				// We've hit the deadline, check whether there is any data in
+				// the rings that we've not been woken up for.
+				pr.pendingErr = err
+			} else if err != nil {
 				return err
 			}
 
@@ -363,14 +377,11 @@ func (pr *Reader) ReadInto(rec *Record) error {
 				return errMustBePaused
 			}
 
-			for _, event := range pr.epollEvents[:nEvents] {
-				ring := pr.rings[cpuForEvent(&event)]
-				pr.epollRings = append(pr.epollRings, ring)
-
-				// Read the current head pointer now, not every time
-				// we read a record. This prevents a single fast producer
-				// from keeping the reader busy.
+			// Waking up userspace is expensive, make the most of it by checking
+			// all rings.
+			for _, ring := range pr.rings {
 				ring.loadHead()
+				pr.epollRings = append(pr.epollRings, ring)
 			}
 		}
 
@@ -399,11 +410,11 @@ func (pr *Reader) Pause() error {
 	pr.pauseMu.Lock()
 	defer pr.pauseMu.Unlock()
 
-	if pr.pauseFds == nil {
+	if pr.eventFds == nil {
 		return fmt.Errorf("%w", ErrClosed)
 	}
 
-	for i := range pr.pauseFds {
+	for i := range pr.eventFds {
 		if err := pr.array.Delete(uint32(i)); err != nil && !errors.Is(err, ebpf.ErrKeyNotExist) {
 			return fmt.Errorf("could't delete event fd for CPU %d: %w", i, err)
 		}
@@ -421,16 +432,16 @@ func (pr *Reader) Resume() error {
 	pr.pauseMu.Lock()
 	defer pr.pauseMu.Unlock()
 
-	if pr.pauseFds == nil {
+	if pr.eventFds == nil {
 		return fmt.Errorf("%w", ErrClosed)
 	}
 
-	for i, fd := range pr.pauseFds {
-		if fd == -1 {
+	for i, fd := range pr.eventFds {
+		if fd == nil {
 			continue
 		}
 
-		if err := pr.array.Put(uint32(i), uint32(fd)); err != nil {
+		if err := pr.array.Put(uint32(i), fd.Uint()); err != nil {
 			return fmt.Errorf("couldn't put event fd %d for CPU %d: %w", fd, i, err)
 		}
 	}
@@ -443,6 +454,12 @@ func (pr *Reader) Resume() error {
 // BufferSize is the size in bytes of each per-CPU buffer
 func (pr *Reader) BufferSize() int {
 	return pr.bufferSize
+}
+
+// Flush unblocks Read/ReadInto and successive Read/ReadInto calls will return pending samples at this point,
+// until you receive a [ErrFlushed] error.
+func (pr *Reader) Flush() error {
+	return pr.poller.Flush()
 }
 
 // NB: Has to be preceded by a call to ring.loadHead.

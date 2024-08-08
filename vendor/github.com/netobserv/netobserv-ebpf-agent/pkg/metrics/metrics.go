@@ -14,9 +14,15 @@ type MetricDefinition struct {
 	Labels []string
 }
 
+type PromTLS struct {
+	CertPath string
+	KeyPath  string
+}
+
 type PromConnectionInfo struct {
 	Address string
 	Port    int
+	TLS     *PromTLS
 }
 
 type Settings struct {
@@ -79,6 +85,13 @@ var (
 		"source",
 		"reason",
 	)
+	filterFlows = defineMetric(
+		"filtered_flows_total",
+		"Number of filtered flows",
+		TypeCounter,
+		"source",
+		"reason",
+	)
 	bufferSize = defineMetric(
 		"buffer_size",
 		"Buffer size",
@@ -130,6 +143,7 @@ type Metrics struct {
 	EvictedFlowsCounter   *EvictionCounter
 	EvictedPacketsCounter *EvictionCounter
 	DroppedFlowsCounter   *EvictionCounter
+	FilteredFlowsCounter  *EvictionCounter
 	BufferSizeGauge       *BufferSizeGauge
 	Errors                *ErrorCounter
 }
@@ -142,6 +156,7 @@ func NewMetrics(settings *Settings) *Metrics {
 	m.EvictedFlowsCounter = &EvictionCounter{vec: m.NewCounterVec(&evictedFlowsTotal)}
 	m.EvictedPacketsCounter = &EvictionCounter{vec: m.NewCounterVec(&evictedPktTotal)}
 	m.DroppedFlowsCounter = &EvictionCounter{vec: m.NewCounterVec(&droppedFlows)}
+	m.FilteredFlowsCounter = &EvictionCounter{vec: m.NewCounterVec(&filterFlows)}
 	m.BufferSizeGauge = &BufferSizeGauge{vec: m.NewGaugeVec(&bufferSize)}
 	m.Errors = &ErrorCounter{vec: m.NewCounterVec(&errorsCounter)}
 	return m
