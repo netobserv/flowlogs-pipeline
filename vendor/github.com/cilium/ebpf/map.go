@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -28,6 +29,10 @@ var (
 	ErrIterationAborted = errors.New("iteration aborted")
 	ErrMapIncompatible  = errors.New("map spec is incompatible with existing map")
 	errMapNoBTFValue    = errors.New("map spec does not contain a BTF Value")
+
+	// pre-allocating these errors here since they may get called in hot code paths
+	// and cause unnecessary memory allocations
+	errMapLookupKeyNotExist = fmt.Errorf("lookup: %w", sysErrKeyNotExist)
 )
 
 // MapOptions control loading a map into the kernel.
@@ -96,11 +101,20 @@ func (ms *MapSpec) Copy() *MapSpec {
 	}
 
 	cpy := *ms
+	cpy.Contents = slices.Clone(cpy.Contents)
+	cpy.Key = btf.Copy(cpy.Key)
+	cpy.Value = btf.Copy(cpy.Value)
 
-	cpy.Contents = make([]MapKV, len(ms.Contents))
-	copy(cpy.Contents, ms.Contents)
+	if cpy.InnerMap == ms {
+		cpy.InnerMap = &cpy
+	} else {
+		cpy.InnerMap = ms.InnerMap.Copy()
+	}
 
-	cpy.InnerMap = ms.InnerMap.Copy()
+	if cpy.Extra != nil {
+		extra := *cpy.Extra
+		cpy.Extra = &extra
+	}
 
 	return &cpy
 }
@@ -490,8 +504,14 @@ func handleMapCreateError(attr sys.MapCreateAttr, spec *MapSpec, err error) erro
 			return fmt.Errorf("map create: %w", haveFeatErr)
 		}
 	}
-	if attr.BtfFd == 0 {
-		return fmt.Errorf("map create: %w (without BTF k/v)", err)
+	// BPF_MAP_TYPE_RINGBUF's max_entries must be a power-of-2 multiple of kernel's page size.
+	if errors.Is(err, unix.EINVAL) &&
+		(attr.MapType == sys.BPF_MAP_TYPE_RINGBUF || attr.MapType == sys.BPF_MAP_TYPE_USER_RINGBUF) {
+		pageSize := uint32(os.Getpagesize())
+		maxEntries := attr.MaxEntries
+		if maxEntries%pageSize != 0 || !internal.IsPow(maxEntries) {
+			return fmt.Errorf("map create: %w (ring map size %d not a multiple of page size %d)", err, maxEntries, pageSize)
+		}
 	}
 
 	return fmt.Errorf("map create: %w", err)
@@ -562,11 +582,29 @@ func (m *Map) Info() (*MapInfo, error) {
 	return newMapInfoFromFd(m.fd)
 }
 
+// Handle returns a reference to the Map's type information in the kernel.
+//
+// Returns ErrNotSupported if the kernel has no BTF support, or if there is no
+// BTF associated with the Map.
+func (m *Map) Handle() (*btf.Handle, error) {
+	info, err := m.Info()
+	if err != nil {
+		return nil, err
+	}
+
+	id, ok := info.BTFID()
+	if !ok {
+		return nil, fmt.Errorf("map %s: retrieve BTF ID: %w", m, ErrNotSupported)
+	}
+
+	return btf.NewHandleFromID(id)
+}
+
 // MapLookupFlags controls the behaviour of the map lookup calls.
 type MapLookupFlags uint64
 
 // LookupLock look up the value of a spin-locked map.
-const LookupLock MapLookupFlags = 4
+const LookupLock MapLookupFlags = unix.BPF_F_LOCK
 
 // Lookup retrieves a value from a Map.
 //
@@ -643,7 +681,7 @@ func (m *Map) LookupBytes(key interface{}) ([]byte, error) {
 }
 
 func (m *Map) lookupPerCPU(key, valueOut any, flags MapLookupFlags) error {
-	slice, err := ensurePerCPUSlice(valueOut, int(m.valueSize))
+	slice, err := ensurePerCPUSlice(valueOut)
 	if err != nil {
 		return err
 	}
@@ -668,13 +706,16 @@ func (m *Map) lookup(key interface{}, valueOut sys.Pointer, flags MapLookupFlags
 	}
 
 	if err = sys.MapLookupElem(&attr); err != nil {
+		if errors.Is(err, unix.ENOENT) {
+			return errMapLookupKeyNotExist
+		}
 		return fmt.Errorf("lookup: %w", wrapMapError(err))
 	}
 	return nil
 }
 
 func (m *Map) lookupAndDeletePerCPU(key, valueOut any, flags MapLookupFlags) error {
-	slice, err := ensurePerCPUSlice(valueOut, int(m.valueSize))
+	slice, err := ensurePerCPUSlice(valueOut)
 	if err != nil {
 		return err
 	}
@@ -686,7 +727,7 @@ func (m *Map) lookupAndDeletePerCPU(key, valueOut any, flags MapLookupFlags) err
 }
 
 // ensurePerCPUSlice allocates a slice for a per-CPU value if necessary.
-func ensurePerCPUSlice(sliceOrPtr any, elemLength int) (any, error) {
+func ensurePerCPUSlice(sliceOrPtr any) (any, error) {
 	sliceOrPtrType := reflect.TypeOf(sliceOrPtr)
 	if sliceOrPtrType.Kind() == reflect.Slice {
 		// The target is a slice, the caller is responsible for ensuring that
@@ -976,7 +1017,11 @@ func (m *Map) guessNonExistentKey() ([]byte, error) {
 // the end of all possible results, even when partial results
 // are returned. It should be used to evaluate when lookup is "done".
 func (m *Map) BatchLookup(cursor *MapBatchCursor, keysOut, valuesOut interface{}, opts *BatchOptions) (int, error) {
-	return m.batchLookup(sys.BPF_MAP_LOOKUP_BATCH, cursor, keysOut, valuesOut, opts)
+	n, err := m.batchLookup(sys.BPF_MAP_LOOKUP_BATCH, cursor, keysOut, valuesOut, opts)
+	if err != nil {
+		return n, fmt.Errorf("map batch lookup: %w", err)
+	}
+	return n, nil
 }
 
 // BatchLookupAndDelete looks up many elements in a map at once,
@@ -996,7 +1041,11 @@ func (m *Map) BatchLookup(cursor *MapBatchCursor, keysOut, valuesOut interface{}
 // the end of all possible results, even when partial results
 // are returned. It should be used to evaluate when lookup is "done".
 func (m *Map) BatchLookupAndDelete(cursor *MapBatchCursor, keysOut, valuesOut interface{}, opts *BatchOptions) (int, error) {
-	return m.batchLookup(sys.BPF_MAP_LOOKUP_AND_DELETE_BATCH, cursor, keysOut, valuesOut, opts)
+	n, err := m.batchLookup(sys.BPF_MAP_LOOKUP_AND_DELETE_BATCH, cursor, keysOut, valuesOut, opts)
+	if err != nil {
+		return n, fmt.Errorf("map batch lookup and delete: %w", err)
+	}
+	return n, nil
 }
 
 // MapBatchCursor represents a starting point for a batch operation.
@@ -1018,7 +1067,11 @@ func (m *Map) batchLookup(cmd sys.Cmd, cursor *MapBatchCursor, keysOut, valuesOu
 	valueBuf := sysenc.SyscallOutput(valuesOut, count*int(m.fullValueSize))
 
 	n, err := m.batchLookupCmd(cmd, cursor, count, keysOut, valueBuf.Pointer(), opts)
-	if err != nil {
+	if errors.Is(err, unix.ENOSPC) {
+		// Hash tables return ENOSPC when the size of the batch is smaller than
+		// any bucket.
+		return n, fmt.Errorf("%w (batch size too small?)", err)
+	} else if err != nil {
 		return n, err
 	}
 
