@@ -240,7 +240,9 @@ Following is the supported API format for network transformations:
                     reinterpret_direction: reinterpret flow direction at the node level (instead of net interface), to ease the deduplication process
                     add_subnet_label: categorize IPs based on known subnets configuration
                  kubernetes_infra: Kubernetes infra rule configuration
-                     inputs: entry inputs fields
+                     namespaceNameFields: entries for namespace and name input fields
+                             name: name of the object
+                             namespace: namespace of the object
                      output: entry output field
                      infra_prefixes: Namespace prefixes that will be tagged as infra
                      infra_refs: Additional object references to be tagged as infra

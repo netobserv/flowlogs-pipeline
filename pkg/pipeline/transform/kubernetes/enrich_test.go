@@ -303,63 +303,13 @@ func TestEnrich_EmptyNamespace(t *testing.T) {
 	assert.NotContains(t, entry, "DstK8s_Namespace")
 }
 
-var infoLayers = map[string]*inf.Info{
-	"1.2.3.4": nil,
-	"10.0.0.1": {
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "prometheus",
-			Namespace: "openshift-monitoring",
-		},
-		Type:     "Pod",
-		HostName: "host-1",
-		HostIP:   "100.0.0.1",
-	},
-	"10.0.0.2": {
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "pod-2",
-			Namespace: "ns-2",
-		},
-		Type:     "Pod",
-		HostName: "host-2",
-		HostIP:   "100.0.0.2",
-	},
-	"10.0.0.3": {
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "flowlogs-pipeline-1",
-			Namespace: "netobserv",
-		},
-		Type:     "Pod",
-		HostName: "host-2",
-		HostIP:   "100.0.0.2",
-	},
-	"20.0.0.1": {
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "kubernetes",
-			Namespace: "default",
-		},
-		Type: "Service",
-	},
-	"20.0.0.2": {
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "my-service",
-			Namespace: "my-ns",
-		},
-		Type: "Service",
-	},
-	"30.0.0.1": {
-		ObjectMeta: v1.ObjectMeta{
-			Name: "node-x",
-		},
-		Type: "Node",
-	},
-}
-
 func TestEnrichLayer(t *testing.T) {
-	informers = inf.SetupStubs(infoLayers, macInfo, nodes)
-
 	rule := api.NetworkTransformRule{
 		KubernetesInfra: &api.K8sInfraRule{
-			Inputs:        []string{"SrcAddr", "DstAddr"},
+			NamespaceNameFields: []api.K8sReference{
+				{Namespace: "SrcK8S_Namespace", Name: "SrcK8S_Name"},
+				{Namespace: "DstK8S_Namespace", Name: "DstK8S_Name"},
+			},
 			Output:        "K8S_FlowLayer",
 			InfraPrefixes: []string{"netobserv", "openshift-"},
 			InfraRefs: []api.K8sReference{
@@ -373,8 +323,12 @@ func TestEnrichLayer(t *testing.T) {
 
 	// infra to infra => infra
 	flow := config.GenericMap{
-		"SrcAddr": "10.0.0.1", // openshift-monitoring
-		"DstAddr": "10.0.0.3", // netobserv/flp
+		"SrcK8S_Name":      "prometheus-0",
+		"SrcK8S_Namespace": "openshift-monitoring",
+		"SrcAddr":          "10.0.0.1",
+		"DstK8S_Name":      "flowlog-pipeline-12345",
+		"DstK8S_Namespace": "netobserv",
+		"DstAddr":          "10.0.0.3",
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -382,8 +336,11 @@ func TestEnrichLayer(t *testing.T) {
 
 	// infra to node => infra
 	flow = config.GenericMap{
-		"SrcAddr": "10.0.0.1", // openshift-monitoring
-		"DstAddr": "30.0.0.1", // node
+		"SrcK8S_Name":      "prometheus-0",
+		"SrcK8S_Namespace": "openshift-monitoring",
+		"SrcAddr":          "10.0.0.1",
+		"DstK8S_Name":      "host-12345",
+		"DstAddr":          "30.0.0.1",
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -391,8 +348,11 @@ func TestEnrichLayer(t *testing.T) {
 
 	// node to kubernetes => infra
 	flow = config.GenericMap{
-		"SrcAddr": "30.0.0.1", // node
-		"DstAddr": "20.0.0.1", // kube service
+		"SrcK8S_Name":      "host-12345",
+		"SrcAddr":          "30.0.0.1",
+		"DstK8S_Name":      "kubernetes",
+		"DstK8S_Namespace": "default",
+		"DstAddr":          "20.0.0.1",
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -400,8 +360,9 @@ func TestEnrichLayer(t *testing.T) {
 
 	// node to external => infra
 	flow = config.GenericMap{
-		"SrcAddr": "30.0.0.1", // node
-		"DstAddr": "1.2.3.4",  // external
+		"SrcK8S_Name": "host-12345",
+		"SrcAddr":     "30.0.0.1",
+		"DstAddr":     "1.2.3.4", // external
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -409,8 +370,12 @@ func TestEnrichLayer(t *testing.T) {
 
 	// app to app => app
 	flow = config.GenericMap{
-		"SrcAddr": "10.0.0.2", // app pod
-		"DstAddr": "20.0.0.2", // app service
+		"SrcK8S_Name":      "my-app-12345",
+		"SrcK8S_Namespace": "my-namespace",
+		"SrcAddr":          "10.0.0.2",
+		"DstK8S_Name":      "my-app",
+		"DstK8S_Namespace": "my-namespace",
+		"DstAddr":          "20.0.0.2",
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -418,8 +383,11 @@ func TestEnrichLayer(t *testing.T) {
 
 	// node to app => app
 	flow = config.GenericMap{
-		"SrcAddr": "30.0.0.1", // node
-		"DstAddr": "20.0.0.2", // app service
+		"SrcK8S_Name":      "host-12345",
+		"SrcAddr":          "30.0.0.1",
+		"DstK8S_Name":      "my-app",
+		"DstK8S_Namespace": "my-namespace",
+		"DstAddr":          "20.0.0.2",
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -427,8 +395,12 @@ func TestEnrichLayer(t *testing.T) {
 
 	// app to infra => app
 	flow = config.GenericMap{
-		"SrcAddr": "10.0.0.2", // app pod
-		"DstAddr": "20.0.0.1", // kube service
+		"SrcK8S_Name":      "my-app-12345",
+		"SrcK8S_Namespace": "my-namespace",
+		"SrcAddr":          "10.0.0.2",
+		"DstK8S_Name":      "kubernetes",
+		"DstK8S_Namespace": "default",
+		"DstAddr":          "20.0.0.1",
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -436,8 +408,10 @@ func TestEnrichLayer(t *testing.T) {
 
 	// app to external => app
 	flow = config.GenericMap{
-		"SrcAddr": "10.0.0.2", // app pod
-		"DstAddr": "1.2.3.4",  // external
+		"SrcK8S_Name":      "my-app-12345",
+		"SrcK8S_Namespace": "my-namespace",
+		"SrcAddr":          "10.0.0.2",
+		"DstAddr":          "1.2.3.4", // external
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 

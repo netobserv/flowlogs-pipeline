@@ -131,9 +131,10 @@ func fillInK8sZone(outputEntry config.GenericMap, rule *api.K8sRule, kubeInfo *i
 
 func EnrichLayer(outputEntry config.GenericMap, rule *api.K8sInfraRule) {
 	outputEntry[rule.Output] = "infra"
-	for _, input := range rule.Inputs {
-		if ip, ok := outputEntry.LookupString(input); ok {
-			if objectIsApp(ip, rule) {
+	for _, nsnameFields := range rule.NamespaceNameFields {
+		if namespace, _ := outputEntry.LookupString(nsnameFields.Namespace); namespace != "" {
+			name, _ := outputEntry.LookupString(nsnameFields.Name)
+			if objectIsApp(namespace, name, rule) {
 				outputEntry[rule.Output] = "app"
 				return
 			}
@@ -141,22 +142,14 @@ func EnrichLayer(outputEntry config.GenericMap, rule *api.K8sInfraRule) {
 	}
 }
 
-func objectIsApp(addr string, rule *api.K8sInfraRule) bool {
-	obj, err := informers.GetInfo(addr, "")
-	if err != nil {
-		logrus.WithError(err).Tracef("can't find kubernetes info for IP %s", addr)
-		return false
-	}
-	if len(obj.Namespace) == 0 {
-		return false
-	}
+func objectIsApp(namespace, name string, rule *api.K8sInfraRule) bool {
 	for _, prefix := range rule.InfraPrefixes {
-		if strings.HasPrefix(obj.Namespace, prefix) {
+		if strings.HasPrefix(namespace, prefix) {
 			return false
 		}
 	}
 	for _, ref := range rule.InfraRefs {
-		if obj.Namespace == ref.Namespace && obj.Name == ref.Name {
+		if namespace == ref.Namespace && name == ref.Name {
 			return false
 		}
 	}
