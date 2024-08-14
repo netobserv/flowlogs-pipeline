@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -22,12 +21,15 @@ func InitFromConfig(config api.NetworkTransformKubeConfig) error {
 }
 
 func Enrich(outputEntry config.GenericMap, rule *api.K8sRule) {
-	ip := fmt.Sprintf("%s", outputEntry[rule.Input])
+	ip, _ := outputEntry.LookupString(rule.Input)
 	var mac string
 	if len(rule.MacInput) > 0 {
-		mac = fmt.Sprintf("%s", outputEntry[rule.MacInput])
+		mac, _ = outputEntry.LookupString(rule.MacInput)
 	}
 	logrus.Tracef("Enrich IP %s MAC %s", ip, mac)
+	if ip == "" && mac == "" {
+		return
+	}
 
 	kubeInfo, err := informers.GetInfo(ip, mac)
 	if err != nil {
@@ -130,9 +132,11 @@ func fillInK8sZone(outputEntry config.GenericMap, rule *api.K8sRule, kubeInfo *i
 func EnrichLayer(outputEntry config.GenericMap, rule *api.K8sInfraRule) {
 	outputEntry[rule.Output] = "infra"
 	for _, input := range rule.Inputs {
-		if objectIsApp(fmt.Sprintf("%s", outputEntry[input]), rule) {
-			outputEntry[rule.Output] = "app"
-			return
+		if ip, ok := outputEntry.LookupString(input); ok {
+			if objectIsApp(ip, rule) {
+				outputEntry[rule.Output] = "app"
+				return
+			}
 		}
 	}
 }
@@ -155,10 +159,6 @@ func objectIsApp(addr string, rule *api.K8sInfraRule) bool {
 		if obj.Namespace == ref.Namespace && obj.Name == ref.Name {
 			return false
 		}
-	}
-	//Special case with openshift and kubernetes service in default namespace
-	if obj.Namespace == "default" && (obj.Name == "kubernetes" || obj.Name == "openshift") {
-		return false
 	}
 	return true
 }

@@ -52,7 +52,6 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 	// copy input entry before transform to avoid alteration on parallel stages
 	outputEntry := inputEntry.Copy()
 
-	// TODO: for efficiency and maintainability, maybe each case in the switch below should be an individual implementation of Transformer
 	for _, rule := range n.Rules {
 		switch rule.Type {
 		case api.NetworkAddSubnet:
@@ -60,34 +59,39 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				log.Errorf("Missing add subnet configuration")
 				continue
 			}
-			_, ipv4Net, err := net.ParseCIDR(fmt.Sprintf("%v%s", outputEntry[rule.AddSubnet.Input], rule.AddSubnet.SubnetMask))
-			if err != nil {
-				log.Warningf("Can't find subnet for IP %v and prefix length %s - err %v", outputEntry[rule.AddSubnet.Input], rule.AddSubnet.SubnetMask, err)
-				continue
+			if v, ok := outputEntry.LookupString(rule.AddSubnet.Input); ok {
+				_, ipv4Net, err := net.ParseCIDR(v + rule.AddSubnet.SubnetMask)
+				if err != nil {
+					log.Warningf("Can't find subnet for IP %v and prefix length %s - err %v", v, rule.AddSubnet.SubnetMask, err)
+					continue
+				}
+				outputEntry[rule.AddSubnet.Output] = ipv4Net.String()
 			}
-			outputEntry[rule.AddSubnet.Output] = ipv4Net.String()
 		case api.NetworkAddLocation:
 			if rule.AddLocation == nil {
 				log.Errorf("Missing add location configuration")
 				continue
 			}
-			var locationInfo *location.Info
-			locationInfo, err := location.GetLocation(fmt.Sprintf("%s", outputEntry[rule.AddLocation.Input]))
-			if err != nil {
-				log.Warningf("Can't find location for IP %v err %v", outputEntry[rule.AddLocation.Input], err)
-				continue
+			if v, ok := outputEntry.LookupString(rule.AddLocation.Input); ok {
+				var locationInfo *location.Info
+				locationInfo, err := location.GetLocation(v)
+				if err != nil {
+					log.Warningf("Can't find location for IP %v err %v", outputEntry[rule.AddLocation.Input], err)
+					continue
+				}
+				outputEntry[rule.AddLocation.Output+"_CountryName"] = locationInfo.CountryName
+				outputEntry[rule.AddLocation.Output+"_CountryLongName"] = locationInfo.CountryLongName
+				outputEntry[rule.AddLocation.Output+"_RegionName"] = locationInfo.RegionName
+				outputEntry[rule.AddLocation.Output+"_CityName"] = locationInfo.CityName
+				outputEntry[rule.AddLocation.Output+"_Latitude"] = locationInfo.Latitude
+				outputEntry[rule.AddLocation.Output+"_Longitude"] = locationInfo.Longitude
 			}
-			outputEntry[rule.AddLocation.Output+"_CountryName"] = locationInfo.CountryName
-			outputEntry[rule.AddLocation.Output+"_CountryLongName"] = locationInfo.CountryLongName
-			outputEntry[rule.AddLocation.Output+"_RegionName"] = locationInfo.RegionName
-			outputEntry[rule.AddLocation.Output+"_CityName"] = locationInfo.CityName
-			outputEntry[rule.AddLocation.Output+"_Latitude"] = locationInfo.Latitude
-			outputEntry[rule.AddLocation.Output+"_Longitude"] = locationInfo.Longitude
 		case api.NetworkAddService:
 			if rule.AddService == nil {
 				log.Errorf("Missing add service configuration")
 				continue
 			}
+			// Should be optimized (unused in netobserv)
 			protocol := fmt.Sprintf("%v", outputEntry[rule.AddService.Protocol])
 			portNumber, err := strconv.Atoi(fmt.Sprintf("%v", outputEntry[rule.AddService.Input]))
 			if err != nil {
