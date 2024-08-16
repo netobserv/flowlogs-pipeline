@@ -30,6 +30,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	util "github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -72,7 +73,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				continue
 			}
 			var locationInfo *location.Info
-			locationInfo, err := location.GetLocation(fmt.Sprintf("%s", outputEntry[rule.AddLocation.Input]))
+			locationInfo, err := location.GetLocation(util.ConvertToString(outputEntry[rule.AddLocation.Input]))
 			if err != nil {
 				log.Warningf("Can't find location for IP %v err %v", outputEntry[rule.AddLocation.Input], err)
 				continue

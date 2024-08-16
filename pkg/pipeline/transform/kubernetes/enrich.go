@@ -1,12 +1,12 @@
 package kubernetes
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	inf "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,7 +22,7 @@ func InitFromConfig(kubeConfigPath string) error {
 }
 
 func Enrich(outputEntry config.GenericMap, rule api.K8sRule) {
-	kubeInfo, err := informers.GetInfo(fmt.Sprintf("%s", outputEntry[rule.Input]))
+	kubeInfo, err := informers.GetInfo(utils.ConvertToString(outputEntry[rule.Input]))
 	if err != nil {
 		logrus.WithError(err).Tracef("can't find kubernetes info for IP %v", outputEntry[rule.Input])
 		return
@@ -123,7 +123,7 @@ func fillInK8sZone(outputEntry config.GenericMap, rule api.K8sRule, kubeInfo *in
 func EnrichLayer(outputEntry config.GenericMap, rule *api.K8sInfraRule) {
 	outputEntry[rule.Output] = "infra"
 	for _, input := range rule.Inputs {
-		if objectIsApp(fmt.Sprintf("%s", outputEntry[input]), rule) {
+		if objectIsApp(utils.ConvertToString(outputEntry[input]), rule) {
 			outputEntry[rule.Output] = "app"
 			return
 		}
