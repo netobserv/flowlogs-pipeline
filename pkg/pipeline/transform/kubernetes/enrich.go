@@ -6,7 +6,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	inf "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
-	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
