@@ -30,6 +30,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	util "github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -72,20 +73,18 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				log.Errorf("Missing add location configuration")
 				continue
 			}
-			if v, ok := outputEntry.LookupString(rule.AddLocation.Input); ok {
-				var locationInfo *location.Info
-				locationInfo, err := location.GetLocation(v)
-				if err != nil {
-					log.Warningf("Can't find location for IP %v err %v", outputEntry[rule.AddLocation.Input], err)
-					continue
-				}
-				outputEntry[rule.AddLocation.Output+"_CountryName"] = locationInfo.CountryName
-				outputEntry[rule.AddLocation.Output+"_CountryLongName"] = locationInfo.CountryLongName
-				outputEntry[rule.AddLocation.Output+"_RegionName"] = locationInfo.RegionName
-				outputEntry[rule.AddLocation.Output+"_CityName"] = locationInfo.CityName
-				outputEntry[rule.AddLocation.Output+"_Latitude"] = locationInfo.Latitude
-				outputEntry[rule.AddLocation.Output+"_Longitude"] = locationInfo.Longitude
+			var locationInfo *location.Info
+			locationInfo, err := location.GetLocation(util.ConvertToString(outputEntry[rule.AddLocation.Input]))
+			if err != nil {
+				log.Warningf("Can't find location for IP %v err %v", outputEntry[rule.AddLocation.Input], err)
+				continue
 			}
+			outputEntry[rule.AddLocation.Output+"_CountryName"] = locationInfo.CountryName
+			outputEntry[rule.AddLocation.Output+"_CountryLongName"] = locationInfo.CountryLongName
+			outputEntry[rule.AddLocation.Output+"_RegionName"] = locationInfo.RegionName
+			outputEntry[rule.AddLocation.Output+"_CityName"] = locationInfo.CityName
+			outputEntry[rule.AddLocation.Output+"_Latitude"] = locationInfo.Latitude
+			outputEntry[rule.AddLocation.Output+"_Longitude"] = locationInfo.Longitude
 		case api.NetworkAddService:
 			if rule.AddService == nil {
 				log.Errorf("Missing add service configuration")

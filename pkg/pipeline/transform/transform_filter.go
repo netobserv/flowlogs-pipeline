@@ -101,15 +101,13 @@ func applyRule(entry config.GenericMap, labels map[string]string, rule *api.Tran
 			entry[rule.AddFieldIfDoesntExist.Input] = rule.AddFieldIfDoesntExist.Value
 		}
 	case api.AddRegExIf:
-		if value, ok := entry.LookupString(rule.AddRegExIf.Input); ok {
-			matched, err := regexp.MatchString(rule.AddRegExIf.Parameters, value)
-			if err != nil {
-				return true
-			}
-			if matched {
-				entry[rule.AddRegExIf.Output] = entry[rule.AddRegExIf.Input]
-				entry[rule.AddRegExIf.Output+"_Matched"] = true
-			}
+		matched, err := regexp.MatchString(rule.AddRegExIf.Parameters, utils.ConvertToString(entry[rule.AddRegExIf.Input]))
+		if err != nil {
+			return true
+		}
+		if matched {
+			entry[rule.AddRegExIf.Output] = entry[rule.AddRegExIf.Input]
+			entry[rule.AddRegExIf.Output+"_Matched"] = true
 		}
 	case api.AddFieldIf:
 		expressionString := fmt.Sprintf("val %s", rule.AddFieldIf.Parameters)

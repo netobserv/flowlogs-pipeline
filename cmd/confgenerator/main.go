@@ -26,6 +26,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/confgen"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -110,7 +111,7 @@ func bindFlags(cmd *cobra.Command, v *viper.Viper) {
 			val := v.Get(f.Name)
 			switch val.(type) {
 			case bool, uint, string, int32, int16, int8, int, uint32, uint64, int64, float64, float32, []string, []int:
-				_ = cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
+				_ = cmd.Flags().Set(f.Name, utils.ConvertToString(val))
 			default:
 				var jsoniterJSON = jsoniter.ConfigCompatibleWithStandardLibrary
 				b, err := jsoniterJSON.Marshal(&val)
