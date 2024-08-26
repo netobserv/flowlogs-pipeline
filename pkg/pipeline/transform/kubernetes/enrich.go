@@ -6,6 +6,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	inf "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,7 +31,6 @@ func Enrich(outputEntry config.GenericMap, rule *api.K8sRule) {
 	if ip == "" && mac == "" {
 		return
 	}
-
 	kubeInfo, err := informers.GetInfo(ip, mac)
 	if err != nil {
 		logrus.WithError(err).Tracef("can't find kubernetes info for IP %v", outputEntry[rule.Input])
