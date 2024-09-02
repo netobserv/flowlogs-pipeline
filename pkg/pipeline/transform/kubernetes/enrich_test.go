@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var info = map[string]*inf.Info{
+var ipInfo = map[string]*inf.Info{
 	"1.2.3.4": nil,
 	"10.0.0.1": {
 		ObjectMeta: v1.ObjectMeta{
@@ -40,6 +40,18 @@ var info = map[string]*inf.Info{
 	},
 }
 
+var macInfo = map[string]*inf.Info{
+	"AA:BB:CC:DD:EE:FF": {
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "pod-1",
+			Namespace: "ns-1",
+		},
+		Type:     "Pod",
+		HostName: "host-1",
+		HostIP:   "100.0.0.1",
+	},
+}
+
 var nodes = map[string]*inf.Info{
 	"host-1": {
 		ObjectMeta: v1.ObjectMeta{
@@ -65,23 +77,25 @@ var rules = api.NetworkTransformRules{
 	{
 		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
-			Input:   "SrcAddr",
-			Output:  "SrcK8s",
-			AddZone: true,
+			Input:    "SrcAddr",
+			MacInput: "SrcMAC",
+			Output:   "SrcK8s",
+			AddZone:  true,
 		},
 	},
 	{
 		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
-			Input:   "DstAddr",
-			Output:  "DstK8s",
-			AddZone: true,
+			Input:    "DstAddr",
+			MacInput: "DstMAC",
+			Output:   "DstK8s",
+			AddZone:  true,
 		},
 	},
 }
 
 func TestEnrich(t *testing.T) {
-	informers = inf.SetupStubs(info, nodes)
+	informers = inf.SetupStubs(ipInfo, macInfo, nodes)
 
 	// Pod to unknown
 	entry := config.GenericMap{
@@ -89,7 +103,7 @@ func TestEnrich(t *testing.T) {
 		"DstAddr": "42.42.42.42", // unknown
 	}
 	for _, r := range rules {
-		Enrich(entry, *r.Kubernetes)
+		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
 		"DstAddr":          "42.42.42.42",
@@ -110,7 +124,7 @@ func TestEnrich(t *testing.T) {
 		"DstAddr": "10.0.0.2", // pod-2
 	}
 	for _, r := range rules {
-		Enrich(entry, *r.Kubernetes)
+		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
 		"DstAddr":          "10.0.0.2",
@@ -139,7 +153,7 @@ func TestEnrich(t *testing.T) {
 		"DstAddr": "20.0.0.1", // service-1
 	}
 	for _, r := range rules {
-		Enrich(entry, *r.Kubernetes)
+		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
 		"DstAddr":          "20.0.0.1",
@@ -182,7 +196,7 @@ var otelRules = api.NetworkTransformRules{
 }
 
 func TestEnrich_Otel(t *testing.T) {
-	informers = inf.SetupStubs(info, nodes)
+	informers = inf.SetupStubs(ipInfo, macInfo, nodes)
 
 	// Pod to unknown
 	entry := config.GenericMap{
@@ -190,7 +204,7 @@ func TestEnrich_Otel(t *testing.T) {
 		"destination.ip": "42.42.42.42", // unknown
 	}
 	for _, r := range otelRules {
-		Enrich(entry, *r.Kubernetes)
+		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
 		"destination.ip":            "42.42.42.42",
@@ -213,7 +227,7 @@ func TestEnrich_Otel(t *testing.T) {
 		"destination.ip": "10.0.0.2", // pod-2
 	}
 	for _, r := range otelRules {
-		Enrich(entry, *r.Kubernetes)
+		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
 		"destination.ip":                 "10.0.0.2",
@@ -246,7 +260,7 @@ func TestEnrich_Otel(t *testing.T) {
 		"destination.ip": "20.0.0.1", // service-1
 	}
 	for _, r := range otelRules {
-		Enrich(entry, *r.Kubernetes)
+		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
 		"destination.ip":                 "20.0.0.1",
@@ -272,7 +286,7 @@ func TestEnrich_Otel(t *testing.T) {
 }
 
 func TestEnrich_EmptyNamespace(t *testing.T) {
-	informers = inf.SetupStubs(info, nodes)
+	informers = inf.SetupStubs(ipInfo, macInfo, nodes)
 
 	// We need to check that, whether it returns NotFound or just an empty namespace,
 	// there is no map entry for that namespace (an empty-valued map entry is not valid)
@@ -282,70 +296,20 @@ func TestEnrich_EmptyNamespace(t *testing.T) {
 	}
 
 	for _, r := range rules {
-		Enrich(entry, *r.Kubernetes)
+		Enrich(entry, r.Kubernetes)
 	}
 
 	assert.NotContains(t, entry, "SrcK8s_Namespace")
 	assert.NotContains(t, entry, "DstK8s_Namespace")
 }
 
-var infoLayers = map[string]*inf.Info{
-	"1.2.3.4": nil,
-	"10.0.0.1": {
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "prometheus",
-			Namespace: "openshift-monitoring",
-		},
-		Type:     "Pod",
-		HostName: "host-1",
-		HostIP:   "100.0.0.1",
-	},
-	"10.0.0.2": {
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "pod-2",
-			Namespace: "ns-2",
-		},
-		Type:     "Pod",
-		HostName: "host-2",
-		HostIP:   "100.0.0.2",
-	},
-	"10.0.0.3": {
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "flowlogs-pipeline-1",
-			Namespace: "netobserv",
-		},
-		Type:     "Pod",
-		HostName: "host-2",
-		HostIP:   "100.0.0.2",
-	},
-	"20.0.0.1": {
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "kubernetes",
-			Namespace: "default",
-		},
-		Type: "Service",
-	},
-	"20.0.0.2": {
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "my-service",
-			Namespace: "my-ns",
-		},
-		Type: "Service",
-	},
-	"30.0.0.1": {
-		ObjectMeta: v1.ObjectMeta{
-			Name: "node-x",
-		},
-		Type: "Node",
-	},
-}
-
 func TestEnrichLayer(t *testing.T) {
-	informers = inf.SetupStubs(infoLayers, nodes)
-
 	rule := api.NetworkTransformRule{
 		KubernetesInfra: &api.K8sInfraRule{
-			Inputs:        []string{"SrcAddr", "DstAddr"},
+			NamespaceNameFields: []api.K8sReference{
+				{Namespace: "SrcK8S_Namespace", Name: "SrcK8S_Name"},
+				{Namespace: "DstK8S_Namespace", Name: "DstK8S_Name"},
+			},
 			Output:        "K8S_FlowLayer",
 			InfraPrefixes: []string{"netobserv", "openshift-"},
 			InfraRefs: []api.K8sReference{
@@ -359,8 +323,12 @@ func TestEnrichLayer(t *testing.T) {
 
 	// infra to infra => infra
 	flow := config.GenericMap{
-		"SrcAddr": "10.0.0.1", // openshift-monitoring
-		"DstAddr": "10.0.0.3", // netobserv/flp
+		"SrcK8S_Name":      "prometheus-0",
+		"SrcK8S_Namespace": "openshift-monitoring",
+		"SrcAddr":          "10.0.0.1",
+		"DstK8S_Name":      "flowlog-pipeline-12345",
+		"DstK8S_Namespace": "netobserv",
+		"DstAddr":          "10.0.0.3",
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -368,8 +336,11 @@ func TestEnrichLayer(t *testing.T) {
 
 	// infra to node => infra
 	flow = config.GenericMap{
-		"SrcAddr": "10.0.0.1", // openshift-monitoring
-		"DstAddr": "30.0.0.1", // node
+		"SrcK8S_Name":      "prometheus-0",
+		"SrcK8S_Namespace": "openshift-monitoring",
+		"SrcAddr":          "10.0.0.1",
+		"DstK8S_Name":      "host-12345",
+		"DstAddr":          "30.0.0.1",
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -377,8 +348,11 @@ func TestEnrichLayer(t *testing.T) {
 
 	// node to kubernetes => infra
 	flow = config.GenericMap{
-		"SrcAddr": "30.0.0.1", // node
-		"DstAddr": "20.0.0.1", // kube service
+		"SrcK8S_Name":      "host-12345",
+		"SrcAddr":          "30.0.0.1",
+		"DstK8S_Name":      "kubernetes",
+		"DstK8S_Namespace": "default",
+		"DstAddr":          "20.0.0.1",
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -386,8 +360,9 @@ func TestEnrichLayer(t *testing.T) {
 
 	// node to external => infra
 	flow = config.GenericMap{
-		"SrcAddr": "30.0.0.1", // node
-		"DstAddr": "1.2.3.4",  // external
+		"SrcK8S_Name": "host-12345",
+		"SrcAddr":     "30.0.0.1",
+		"DstAddr":     "1.2.3.4", // external
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -395,8 +370,12 @@ func TestEnrichLayer(t *testing.T) {
 
 	// app to app => app
 	flow = config.GenericMap{
-		"SrcAddr": "10.0.0.2", // app pod
-		"DstAddr": "20.0.0.2", // app service
+		"SrcK8S_Name":      "my-app-12345",
+		"SrcK8S_Namespace": "my-namespace",
+		"SrcAddr":          "10.0.0.2",
+		"DstK8S_Name":      "my-app",
+		"DstK8S_Namespace": "my-namespace",
+		"DstAddr":          "20.0.0.2",
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -404,8 +383,11 @@ func TestEnrichLayer(t *testing.T) {
 
 	// node to app => app
 	flow = config.GenericMap{
-		"SrcAddr": "30.0.0.1", // node
-		"DstAddr": "20.0.0.2", // app service
+		"SrcK8S_Name":      "host-12345",
+		"SrcAddr":          "30.0.0.1",
+		"DstK8S_Name":      "my-app",
+		"DstK8S_Namespace": "my-namespace",
+		"DstAddr":          "20.0.0.2",
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -413,8 +395,12 @@ func TestEnrichLayer(t *testing.T) {
 
 	// app to infra => app
 	flow = config.GenericMap{
-		"SrcAddr": "10.0.0.2", // app pod
-		"DstAddr": "20.0.0.1", // kube service
+		"SrcK8S_Name":      "my-app-12345",
+		"SrcK8S_Namespace": "my-namespace",
+		"SrcAddr":          "10.0.0.2",
+		"DstK8S_Name":      "kubernetes",
+		"DstK8S_Namespace": "default",
+		"DstAddr":          "20.0.0.1",
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -422,10 +408,51 @@ func TestEnrichLayer(t *testing.T) {
 
 	// app to external => app
 	flow = config.GenericMap{
-		"SrcAddr": "10.0.0.2", // app pod
-		"DstAddr": "1.2.3.4",  // external
+		"SrcK8S_Name":      "my-app-12345",
+		"SrcK8S_Namespace": "my-namespace",
+		"SrcAddr":          "10.0.0.2",
+		"DstAddr":          "1.2.3.4", // external
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
 	assert.Equal(t, "app", flow["K8S_FlowLayer"])
+}
+
+func TestEnrichUsingMac(t *testing.T) {
+	informers = inf.SetupStubs(ipInfo, macInfo, nodes)
+
+	// Pod to unknown using MAC
+	entry := config.GenericMap{
+		"SrcMAC": "AA:BB:CC:DD:EE:FF", // pod-1
+		"DstMAC": "GG:HH:II:JJ:KK:LL", // unknown
+	}
+	for _, r := range rules {
+		Enrich(entry, r.Kubernetes)
+	}
+	assert.Equal(t, config.GenericMap{
+		"DstMAC":           "GG:HH:II:JJ:KK:LL",
+		"SrcMAC":           "AA:BB:CC:DD:EE:FF",
+		"SrcK8s_HostIP":    "100.0.0.1",
+		"SrcK8s_HostName":  "host-1",
+		"SrcK8s_Name":      "pod-1",
+		"SrcK8s_Namespace": "ns-1",
+		"SrcK8s_OwnerName": "",
+		"SrcK8s_OwnerType": "",
+		"SrcK8s_Type":      "Pod",
+		"SrcK8s_Zone":      "us-east-1a",
+	}, entry)
+
+	// remove the MAC rules and retry
+	entry = config.GenericMap{
+		"SrcMAC": "AA:BB:CC:DD:EE:FF", // pod-1
+		"DstMAC": "GG:HH:II:JJ:KK:LL", // unknown
+	}
+	for _, r := range rules {
+		r.Kubernetes.MacInput = ""
+		Enrich(entry, r.Kubernetes)
+	}
+	assert.Equal(t, config.GenericMap{
+		"DstMAC": "GG:HH:II:JJ:KK:LL",
+		"SrcMAC": "AA:BB:CC:DD:EE:FF",
+	}, entry)
 }

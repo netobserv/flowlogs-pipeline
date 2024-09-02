@@ -53,7 +53,6 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 	// copy input entry before transform to avoid alteration on parallel stages
 	outputEntry := inputEntry.Copy()
 
-	// TODO: for efficiency and maintainability, maybe each case in the switch below should be an individual implementation of Transformer
 	for _, rule := range n.Rules {
 		switch rule.Type {
 		case api.NetworkAddSubnet:
@@ -61,12 +60,14 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				log.Errorf("Missing add subnet configuration")
 				continue
 			}
-			_, ipv4Net, err := net.ParseCIDR(fmt.Sprintf("%v%s", outputEntry[rule.AddSubnet.Input], rule.AddSubnet.SubnetMask))
-			if err != nil {
-				log.Warningf("Can't find subnet for IP %v and prefix length %s - err %v", outputEntry[rule.AddSubnet.Input], rule.AddSubnet.SubnetMask, err)
-				continue
+			if v, ok := outputEntry.LookupString(rule.AddSubnet.Input); ok {
+				_, ipv4Net, err := net.ParseCIDR(v + rule.AddSubnet.SubnetMask)
+				if err != nil {
+					log.Warningf("Can't find subnet for IP %v and prefix length %s - err %v", v, rule.AddSubnet.SubnetMask, err)
+					continue
+				}
+				outputEntry[rule.AddSubnet.Output] = ipv4Net.String()
 			}
-			outputEntry[rule.AddSubnet.Output] = ipv4Net.String()
 		case api.NetworkAddLocation:
 			if rule.AddLocation == nil {
 				log.Errorf("Missing add location configuration")
@@ -89,6 +90,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				log.Errorf("Missing add service configuration")
 				continue
 			}
+			// Should be optimized (unused in netobserv)
 			protocol := fmt.Sprintf("%v", outputEntry[rule.AddService.Protocol])
 			portNumber, err := strconv.Atoi(fmt.Sprintf("%v", outputEntry[rule.AddService.Input]))
 			if err != nil {
@@ -112,7 +114,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			}
 			outputEntry[rule.AddService.Output] = serviceName
 		case api.NetworkAddKubernetes:
-			kubernetes.Enrich(outputEntry, *rule.Kubernetes)
+			kubernetes.Enrich(outputEntry, rule.Kubernetes)
 		case api.NetworkAddKubernetesInfra:
 			if rule.KubernetesInfra == nil {
 				logrus.Error("transformation rule: Missing configuration ")
@@ -203,7 +205,7 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	}
 
 	if needToInitKubeData {
-		err := kubernetes.InitFromConfig(jsonNetworkTransform.KubeConfigPath)
+		err := kubernetes.InitFromConfig(jsonNetworkTransform.KubeConfig)
 		if err != nil {
 			return nil, err
 		}
