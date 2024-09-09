@@ -21,7 +21,7 @@ require (
 	github.com/netobserv/netobserv-ebpf-agent v1.6.1-crc2.0.20240905095613-6adad95c9d84
 	github.com/netsampler/goflow2 v1.3.7
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.19.1
+	github.com/prometheus/client_golang v1.20.3
 	github.com/prometheus/client_model v0.6.1
 	github.com/prometheus/common v0.55.0
 	github.com/segmentio/kafka-go v0.4.47
@@ -84,7 +84,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
-	github.com/klauspost/compress v1.17.6 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/libp2p/go-reuseport v0.3.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
