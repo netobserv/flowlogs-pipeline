@@ -115,25 +115,25 @@ func (e *EncodeProm) Cleanup(cleanupFunc interface{}) {
 }
 
 func (e *EncodeProm) addCounter(fullMetricName string, mInfo *MetricInfo) prometheus.Collector {
-	counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: ""}, mInfo.Labels)
+	counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: ""}, mInfo.TargetLabels())
 	e.metricCommon.AddCounter(fullMetricName, counter, mInfo)
 	return counter
 }
 
 func (e *EncodeProm) addGauge(fullMetricName string, mInfo *MetricInfo) prometheus.Collector {
-	gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: ""}, mInfo.Labels)
+	gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: ""}, mInfo.TargetLabels())
 	e.metricCommon.AddGauge(fullMetricName, gauge, mInfo)
 	return gauge
 }
 
 func (e *EncodeProm) addHistogram(fullMetricName string, mInfo *MetricInfo) prometheus.Collector {
-	histogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: ""}, mInfo.Labels)
+	histogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: ""}, mInfo.TargetLabels())
 	e.metricCommon.AddHist(fullMetricName, histogram, mInfo)
 	return histogram
 }
 
 func (e *EncodeProm) addAgghistogram(fullMetricName string, mInfo *MetricInfo) prometheus.Collector {
-	agghistogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: ""}, mInfo.Labels)
+	agghistogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: ""}, mInfo.TargetLabels())
 	e.metricCommon.AddAggHist(fullMetricName, agghistogram, mInfo)
 	return agghistogram
 }
@@ -181,7 +181,7 @@ func (e *EncodeProm) checkMetricUpdate(prefix string, apiItem *api.MetricsItem, 
 	plog.Debugf("Checking metric: %s", fullMetricName)
 	mInfo := CreateMetricInfo(apiItem)
 	if oldMetric, ok := store[fullMetricName]; ok {
-		if !reflect.DeepEqual(mInfo.MetricsItem.Labels, oldMetric.info.MetricsItem.Labels) {
+		if !reflect.DeepEqual(mInfo.TargetLabels(), oldMetric.info.TargetLabels()) {
 			plog.Debug("Changes detected in labels")
 			return true
 		}
@@ -257,9 +257,8 @@ func (e *EncodeProm) resetRegistry() {
 	for i := range e.cfg.Metrics {
 		mCfg := &e.cfg.Metrics[i]
 		fullMetricName := e.cfg.Prefix + mCfg.Name
-		labels := mCfg.Labels
-		plog.Debugf("Create metric: %s, Labels: %v", fullMetricName, labels)
 		mInfo := CreateMetricInfo(mCfg)
+		plog.Debugf("Create metric: %s, Labels: %v", fullMetricName, mInfo.TargetLabels())
 		var m prometheus.Collector
 		switch mCfg.Type {
 		case api.MetricCounter:

@@ -569,6 +569,53 @@ func Test_MissingLabels(t *testing.T) {
 	require.Contains(t, exposed, `my_counter{namespace=""} 4`)
 }
 
+func Test_Remap(t *testing.T) {
+	metrics := []config.GenericMap{
+		{
+			"namespace": "A",
+			"IP":        "10.0.0.1",
+			"bytes":     7,
+		},
+		{
+			"namespace": "A",
+			"IP":        "10.0.0.2",
+			"bytes":     1,
+		},
+		{
+			"namespace": "B",
+			"IP":        "10.0.0.3",
+			"bytes":     4,
+		},
+	}
+	params := api.PromEncode{
+		ExpiryTime: api.Duration{
+			Duration: time.Duration(60 * time.Second),
+		},
+		Metrics: []api.MetricsItem{
+			{
+				Name:     "my_counter",
+				Type:     "counter",
+				ValueKey: "bytes",
+				Labels:   []string{"namespace", "IP"},
+				Remap:    map[string]string{"IP": "ip"},
+			},
+		},
+	}
+
+	encodeProm, err := initProm(&params)
+	require.NoError(t, err)
+	for _, metric := range metrics {
+		encodeProm.Encode(metric)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
+
+	require.Contains(t, exposed, `my_counter{ip="10.0.0.1",namespace="A"} 7`)
+	require.Contains(t, exposed, `my_counter{ip="10.0.0.2",namespace="A"} 1`)
+	require.Contains(t, exposed, `my_counter{ip="10.0.0.3",namespace="B"} 4`)
+}
+
 func buildFlow() config.GenericMap {
 	return config.GenericMap{
 		"srcIP":   "10.0.0." + strconv.Itoa(rand.Intn(20)),

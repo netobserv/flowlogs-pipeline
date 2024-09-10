@@ -182,7 +182,7 @@ func (m *MetricsCommonStruct) prepareMetric(mci MetricsCommonInterface, flow con
 		floatVal = floatVal / info.ValueScale
 	}
 
-	entryLabels, key := extractLabelsAndKey(flow, info.MetricsItem)
+	entryLabels, key := extractLabelsAndKey(flow, info)
 	// Update entry for expiry mechanism (the entry itself is its own cleanup function)
 	cacheEntry := mci.GetChacheEntry(entryLabels, mv)
 	ok := m.mCache.UpdateCacheEntry(key, cacheEntry)
@@ -204,7 +204,7 @@ func (m *MetricsCommonStruct) prepareAggHisto(mci MetricsCommonInterface, flow c
 		return nil, nil
 	}
 
-	entryLabels, key := extractLabelsAndKey(flow, info.MetricsItem)
+	entryLabels, key := extractLabelsAndKey(flow, info)
 	// Update entry for expiry mechanism (the entry itself is its own cleanup function)
 	cacheEntry := mci.GetChacheEntry(entryLabels, mc)
 	ok = m.mCache.UpdateCacheEntry(key, cacheEntry)
@@ -233,17 +233,18 @@ func (m *MetricsCommonStruct) extractGenericValue(flow config.GenericMap, info *
 	return val
 }
 
-func extractLabelsAndKey(flow config.GenericMap, info *api.MetricsItem) (map[string]string, string) {
-	entryLabels := make(map[string]string, len(info.Labels))
+func extractLabelsAndKey(flow config.GenericMap, info *MetricInfo) (map[string]string, string) {
+	entryLabels := make(map[string]string, len(info.MappedLabels))
 	key := strings.Builder{}
 	key.WriteString(info.Name)
 	key.WriteRune('|')
-	for _, t := range info.Labels {
-		entryLabels[t] = ""
-		if v, ok := flow[t]; ok {
-			entryLabels[t] = utils.ConvertToString(v)
+	for _, t := range info.MappedLabels {
+		value := ""
+		if v, ok := flow[t.Source]; ok {
+			value = utils.ConvertToString(v)
 		}
-		key.WriteString(entryLabels[t])
+		entryLabels[t.Target] = value
+		key.WriteString(value)
 		key.WriteRune('|')
 	}
 	return entryLabels, key.String()
