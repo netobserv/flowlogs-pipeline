@@ -18,25 +18,28 @@ var ipInfo = map[string]*inf.Info{
 			Name:      "pod-1",
 			Namespace: "ns-1",
 		},
-		Type:     "Pod",
-		HostName: "host-1",
-		HostIP:   "100.0.0.1",
+		Type:        "Pod",
+		HostName:    "host-1",
+		HostIP:      "100.0.0.1",
+		NetworkName: "primary",
 	},
 	"10.0.0.2": {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "pod-2",
 			Namespace: "ns-2",
 		},
-		Type:     "Pod",
-		HostName: "host-2",
-		HostIP:   "100.0.0.2",
+		Type:        "Pod",
+		HostName:    "host-2",
+		HostIP:      "100.0.0.2",
+		NetworkName: "primary",
 	},
 	"20.0.0.1": {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "service-1",
 			Namespace: "ns-1",
 		},
-		Type: "Service",
+		Type:        "Service",
+		NetworkName: "primary",
 	},
 }
 
@@ -46,9 +49,10 @@ var customKeysInfo = map[string]*inf.Info{
 			Name:      "pod-1",
 			Namespace: "ns-1",
 		},
-		Type:     "Pod",
-		HostName: "host-1",
-		HostIP:   "100.0.0.1",
+		Type:        "Pod",
+		HostName:    "host-1",
+		HostIP:      "100.0.0.1",
+		NetworkName: "custom-network",
 	},
 }
 
@@ -60,7 +64,8 @@ var nodes = map[string]*inf.Info{
 				nodeZoneLabelName: "us-east-1a",
 			},
 		},
-		Type: "Node",
+		Type:        "Node",
+		NetworkName: "primary",
 	},
 	"host-2": {
 		ObjectMeta: v1.ObjectMeta{
@@ -69,7 +74,8 @@ var nodes = map[string]*inf.Info{
 				nodeZoneLabelName: "us-east-1b",
 			},
 		},
-		Type: "Node",
+		Type:        "Node",
+		NetworkName: "primary",
 	},
 }
 
@@ -106,16 +112,17 @@ func TestEnrich(t *testing.T) {
 		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
-		"DstAddr":          "42.42.42.42",
-		"SrcAddr":          "10.0.0.1",
-		"SrcK8s_HostIP":    "100.0.0.1",
-		"SrcK8s_HostName":  "host-1",
-		"SrcK8s_Name":      "pod-1",
-		"SrcK8s_Namespace": "ns-1",
-		"SrcK8s_OwnerName": "",
-		"SrcK8s_OwnerType": "",
-		"SrcK8s_Type":      "Pod",
-		"SrcK8s_Zone":      "us-east-1a",
+		"DstAddr":            "42.42.42.42",
+		"SrcAddr":            "10.0.0.1",
+		"SrcK8s_HostIP":      "100.0.0.1",
+		"SrcK8s_HostName":    "host-1",
+		"SrcK8s_Name":        "pod-1",
+		"SrcK8s_Namespace":   "ns-1",
+		"SrcK8s_OwnerName":   "",
+		"SrcK8s_OwnerType":   "",
+		"SrcK8s_Type":        "Pod",
+		"SrcK8s_Zone":        "us-east-1a",
+		"SrcK8s_NetworkName": "primary",
 	}, entry)
 
 	// Pod to pod
@@ -127,24 +134,26 @@ func TestEnrich(t *testing.T) {
 		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
-		"DstAddr":          "10.0.0.2",
-		"DstK8s_HostIP":    "100.0.0.2",
-		"DstK8s_HostName":  "host-2",
-		"DstK8s_Name":      "pod-2",
-		"DstK8s_Namespace": "ns-2",
-		"DstK8s_OwnerName": "",
-		"DstK8s_OwnerType": "",
-		"DstK8s_Type":      "Pod",
-		"DstK8s_Zone":      "us-east-1b",
-		"SrcAddr":          "10.0.0.1",
-		"SrcK8s_HostIP":    "100.0.0.1",
-		"SrcK8s_HostName":  "host-1",
-		"SrcK8s_Name":      "pod-1",
-		"SrcK8s_Namespace": "ns-1",
-		"SrcK8s_OwnerName": "",
-		"SrcK8s_OwnerType": "",
-		"SrcK8s_Type":      "Pod",
-		"SrcK8s_Zone":      "us-east-1a",
+		"DstAddr":            "10.0.0.2",
+		"DstK8s_HostIP":      "100.0.0.2",
+		"DstK8s_HostName":    "host-2",
+		"DstK8s_Name":        "pod-2",
+		"DstK8s_Namespace":   "ns-2",
+		"DstK8s_OwnerName":   "",
+		"DstK8s_OwnerType":   "",
+		"DstK8s_Type":        "Pod",
+		"DstK8s_Zone":        "us-east-1b",
+		"DstK8s_NetworkName": "primary",
+		"SrcAddr":            "10.0.0.1",
+		"SrcK8s_HostIP":      "100.0.0.1",
+		"SrcK8s_HostName":    "host-1",
+		"SrcK8s_Name":        "pod-1",
+		"SrcK8s_Namespace":   "ns-1",
+		"SrcK8s_OwnerName":   "",
+		"SrcK8s_OwnerType":   "",
+		"SrcK8s_Type":        "Pod",
+		"SrcK8s_Zone":        "us-east-1a",
+		"SrcK8s_NetworkName": "primary",
 	}, entry)
 
 	// Pod to service
@@ -156,21 +165,23 @@ func TestEnrich(t *testing.T) {
 		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
-		"DstAddr":          "20.0.0.1",
-		"DstK8s_Name":      "service-1",
-		"DstK8s_Namespace": "ns-1",
-		"DstK8s_OwnerName": "",
-		"DstK8s_OwnerType": "",
-		"DstK8s_Type":      "Service",
-		"SrcAddr":          "10.0.0.2",
-		"SrcK8s_HostIP":    "100.0.0.2",
-		"SrcK8s_HostName":  "host-2",
-		"SrcK8s_Name":      "pod-2",
-		"SrcK8s_Namespace": "ns-2",
-		"SrcK8s_OwnerName": "",
-		"SrcK8s_OwnerType": "",
-		"SrcK8s_Type":      "Pod",
-		"SrcK8s_Zone":      "us-east-1b",
+		"DstAddr":            "20.0.0.1",
+		"DstK8s_Name":        "service-1",
+		"DstK8s_Namespace":   "ns-1",
+		"DstK8s_OwnerName":   "",
+		"DstK8s_OwnerType":   "",
+		"DstK8s_Type":        "Service",
+		"DstK8s_NetworkName": "primary",
+		"SrcAddr":            "10.0.0.2",
+		"SrcK8s_HostIP":      "100.0.0.2",
+		"SrcK8s_HostName":    "host-2",
+		"SrcK8s_Name":        "pod-2",
+		"SrcK8s_Namespace":   "ns-2",
+		"SrcK8s_OwnerName":   "",
+		"SrcK8s_OwnerType":   "",
+		"SrcK8s_Type":        "Pod",
+		"SrcK8s_Zone":        "us-east-1b",
+		"SrcK8s_NetworkName": "primary",
 	}, entry)
 }
 
@@ -432,18 +443,19 @@ func TestEnrichUsingMac(t *testing.T) {
 		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
-		"SrcAddr":          "8.8.8.8",
-		"SrcMAC":           "AA:BB:CC:DD:EE:FF",
-		"DstAddr":          "9.9.9.9",
-		"DstMAC":           "GG:HH:II:JJ:KK:LL",
-		"SrcK8s_HostIP":    "100.0.0.1",
-		"SrcK8s_HostName":  "host-1",
-		"SrcK8s_Name":      "pod-1",
-		"SrcK8s_Namespace": "ns-1",
-		"SrcK8s_OwnerName": "",
-		"SrcK8s_OwnerType": "",
-		"SrcK8s_Type":      "Pod",
-		"SrcK8s_Zone":      "us-east-1a",
+		"SrcAddr":            "8.8.8.8",
+		"SrcMAC":             "AA:BB:CC:DD:EE:FF",
+		"DstAddr":            "9.9.9.9",
+		"DstMAC":             "GG:HH:II:JJ:KK:LL",
+		"SrcK8s_HostIP":      "100.0.0.1",
+		"SrcK8s_HostName":    "host-1",
+		"SrcK8s_Name":        "pod-1",
+		"SrcK8s_Namespace":   "ns-1",
+		"SrcK8s_OwnerName":   "",
+		"SrcK8s_OwnerType":   "",
+		"SrcK8s_Type":        "Pod",
+		"SrcK8s_Zone":        "us-east-1a",
+		"SrcK8s_NetworkName": "custom-network",
 	}, entry)
 
 	// remove the MAC rules and retry

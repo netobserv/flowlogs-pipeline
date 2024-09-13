@@ -53,21 +53,23 @@ func TestGetInfo(t *testing.T) {
 		HostName:         "node1",
 		HostIP:           "10.0.0.1",
 		Owner:            Owner{Name: "pod1", Type: "Pod"},
+		NetworkName:      "primary",
 		ips:              []string{"1.2.3.4"},
 		secondaryNetKeys: []string{"~~AA:BB:CC:DD:EE:FF"},
 	}
-	require.Equal(t, *info, pod1)
+	require.Equal(t, pod1, *info)
 
 	// Test get same pod by mac
-	info, err = kubeData.GetInfo([]cni.SecondaryNetKey{{Key: "~~AA:BB:CC:DD:EE:FF"}}, "")
+	info, err = kubeData.GetInfo([]cni.SecondaryNetKey{{NetworkName: "custom-network", Key: "~~AA:BB:CC:DD:EE:FF"}}, "")
 	require.NoError(t, err)
-	require.Equal(t, *info, pod1)
+	pod1.NetworkName = "custom-network"
+	require.Equal(t, pod1, *info)
 
 	// Test get pod owned
 	info, err = kubeData.GetInfo(nil, "1.2.3.5")
 	require.NoError(t, err)
 
-	require.Equal(t, *info, Info{
+	require.Equal(t, Info{
 		Type: "Pod",
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "pod2",
@@ -80,36 +82,39 @@ func TestGetInfo(t *testing.T) {
 		HostName:         "node1",
 		HostIP:           "10.0.0.1",
 		Owner:            Owner{Name: "dep1", Type: "Deployment"},
+		NetworkName:      "primary",
 		ips:              []string{"1.2.3.5"},
 		secondaryNetKeys: []string{},
-	})
+	}, *info)
 
 	// Test get node
 	info, err = kubeData.GetInfo(nil, "10.0.0.1")
 	require.NoError(t, err)
 
-	require.Equal(t, *info, Info{
+	require.Equal(t, Info{
 		Type: "Node",
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "node1",
 		},
-		Owner: Owner{Name: "node1", Type: "Node"},
-		ips:   []string{"10.0.0.1"},
-	})
+		Owner:       Owner{Name: "node1", Type: "Node"},
+		NetworkName: "primary",
+		ips:         []string{"10.0.0.1"},
+	}, *info)
 
 	// Test get service
 	info, err = kubeData.GetInfo(nil, "1.2.3.100")
 	require.NoError(t, err)
 
-	require.Equal(t, *info, Info{
+	require.Equal(t, Info{
 		Type: "Service",
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "svc1",
 			Namespace: "svcNamespace",
 		},
-		Owner: Owner{Name: "svc1", Type: "Service"},
-		ips:   []string{"1.2.3.100"},
-	})
+		Owner:       Owner{Name: "svc1", Type: "Service"},
+		NetworkName: "primary",
+		ips:         []string{"1.2.3.100"},
+	}, *info)
 
 	// Test no match
 	info, err = kubeData.GetInfo(nil, "1.2.3.200")

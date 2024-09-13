@@ -85,6 +85,7 @@ var (
 		"Counter of hits per secondary network index for Kubernetes enrichment",
 		TypeCounter,
 		"kind",
+		"namespace",
 		"network",
 		"warning",
 	)

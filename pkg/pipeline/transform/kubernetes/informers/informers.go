@@ -98,6 +98,7 @@ type Info struct {
 	Owner            Owner
 	HostName         string
 	HostIP           string
+	NetworkName      string
 	ips              []string
 	secondaryNetKeys []string
 }
@@ -136,12 +137,12 @@ func (k *Informers) fetchInformers(potentialKeys []cni.SecondaryNetKey, ip strin
 		}
 		return info, true
 	}
-	// Services are only indexed by IP
-	if info, ok := k.infoForIP(k.nodes.GetIndexer(), "Service", ip); ok {
+	// Nodes are only indexed by IP
+	if info, ok := k.infoForIP(k.nodes.GetIndexer(), "Node", ip); ok {
 		return info, true
 	}
-	// Nodes are only indexed by IP
-	if info, ok := k.infoForIP(k.services.GetIndexer(), "Node", ip); ok {
+	// Services are only indexed by IP
+	if info, ok := k.infoForIP(k.services.GetIndexer(), "Service", ip); ok {
 		return info, true
 	}
 	return nil, false
@@ -156,23 +157,29 @@ func (k *Informers) fetchPodInformer(potentialKeys []cni.SecondaryNetKey, ip str
 	return k.infoForIP(k.pods.GetIndexer(), "Pod", ip)
 }
 
+func (k *Informers) increaseIndexerHits(kind, namespace, network, warn string) {
+	k.indexerHitMetric.WithLabelValues(kind, namespace, network, warn).Inc()
+}
+
 func (k *Informers) infoForCustomKeys(idx cache.Indexer, kind string, potentialKeys []cni.SecondaryNetKey) (*Info, bool) {
 	for _, key := range potentialKeys {
 		objs, err := idx.ByIndex(IndexCustom, key.Key)
 		if err != nil {
-			k.indexerHitMetric.WithLabelValues(kind, key.NetworkName, "informer error").Inc()
+			k.increaseIndexerHits(kind, "", key.NetworkName, "informer error")
 			log.WithError(err).WithField("key", key).Debug("error accessing unique key index, ignoring")
 			return nil, false
 		}
 		if len(objs) > 0 {
+			info := objs[0].(*Info)
+			info.NetworkName = key.NetworkName
 			if len(objs) > 1 {
-				k.indexerHitMetric.WithLabelValues(kind, key.NetworkName, "multiple matches").Inc()
+				k.increaseIndexerHits(kind, info.Namespace, key.NetworkName, "multiple matches")
 				log.WithField("key", key).Debugf("found %d objects matching this key, returning first", len(objs))
 			} else {
-				k.indexerHitMetric.WithLabelValues(kind, key.NetworkName, "").Inc()
+				k.increaseIndexerHits(kind, info.Namespace, key.NetworkName, "")
 			}
-			log.Tracef("infoForUniqueKey found key %v", objs[0].(*Info))
-			return objs[0].(*Info), true
+			log.Tracef("infoForUniqueKey found key %v", info)
+			return info, true
 		}
 	}
 	return nil, false
@@ -181,19 +188,21 @@ func (k *Informers) infoForCustomKeys(idx cache.Indexer, kind string, potentialK
 func (k *Informers) infoForIP(idx cache.Indexer, kind string, ip string) (*Info, bool) {
 	objs, err := idx.ByIndex(IndexIP, ip)
 	if err != nil {
-		k.indexerHitMetric.WithLabelValues(kind, "primary", "informer error").Inc()
+		k.increaseIndexerHits(kind, "", "primary", "informer error")
 		log.WithError(err).WithField("ip", ip).Debug("error accessing IP index, ignoring")
 		return nil, false
 	}
 	if len(objs) > 0 {
+		info := objs[0].(*Info)
+		info.NetworkName = "primary"
 		if len(objs) > 1 {
-			k.indexerHitMetric.WithLabelValues(kind, "primary", "multiple matches").Inc()
+			k.increaseIndexerHits(kind, info.Namespace, "primary", "multiple matches")
 			log.WithField("ip", ip).Debugf("found %d objects matching this IP, returning first", len(objs))
 		} else {
-			k.indexerHitMetric.WithLabelValues(kind, "primary", "").Inc()
+			k.increaseIndexerHits(kind, info.Namespace, "primary", "")
 		}
-		log.Tracef("infoForIP found ip %v", objs[0].(*Info))
-		return objs[0].(*Info), true
+		log.Tracef("infoForIP found ip %v", info)
+		return info, true
 	}
 	return nil, false
 }

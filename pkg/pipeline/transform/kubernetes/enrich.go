@@ -42,6 +42,7 @@ func Enrich(outputEntry config.GenericMap, rule *api.K8sRule) {
 		outputEntry[rule.Output+"_Type"] = kubeInfo.Type
 		outputEntry[rule.Output+"_OwnerName"] = kubeInfo.Owner.Name
 		outputEntry[rule.Output+"_OwnerType"] = kubeInfo.Owner.Type
+		outputEntry[rule.Output+"_NetworkName"] = kubeInfo.NetworkName
 		if rule.LabelsPrefix != "" {
 			for labelKey, labelValue := range kubeInfo.Labels {
 				outputEntry[rule.LabelsPrefix+"_"+labelKey] = labelValue
