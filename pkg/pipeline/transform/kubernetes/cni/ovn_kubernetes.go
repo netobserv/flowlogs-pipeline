@@ -47,11 +47,6 @@ func (o *OVNPlugin) GetNodeIPs(node *v1.Node) []string {
 	return nil
 }
 
-func (o *OVNPlugin) GetPodIPsAndMACs(_ *v1.Pod) ([]string, []string) {
-	// No CNI-specific logic needed for pods
-	return nil, nil
-}
-
 func unmarshalOVNAnnotation(annot []byte) (string, error) {
 	// Depending on OVN (OCP) version, the annotation might be JSON-encoded as a string (legacy), or an array of strings
 	var subnetsAsArray map[string][]string

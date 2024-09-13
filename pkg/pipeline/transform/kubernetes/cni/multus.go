@@ -5,59 +5,120 @@ import (
 	"fmt"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	v1 "k8s.io/api/core/v1"
 )
 
 const (
 	statusAnnotation = "k8s.v1.cni.cncf.io/network-status"
+	// Index names
+	indexIP        = "ip"
+	indexMAC       = "mac"
+	indexInterface = "interface"
 )
 
-type MultusPlugin struct {
-	Plugin
+type MultusHandler struct {
 }
 
-func (m *MultusPlugin) GetNodeIPs(_ *v1.Node) []string {
-	// No CNI-specific logic needed for pods
-	return nil
+type SecondaryNetKey struct {
+	NetworkName string
+	Key         string
 }
 
-func (m *MultusPlugin) GetPodIPsAndMACs(pod *v1.Pod) ([]string, []string) {
-	// Cf https://k8snetworkplumbingwg.github.io/multus-cni/docs/quickstart.html#network-status-annotations
-	ips, macs, err := extractNetStatusIPsAndMACs(pod.Annotations)
-	if err != nil {
-		// Log the error as Info, do not block other ips indexing
-		log.Infof("failed to index IPs from network-status annotation: %v", err)
+func (m *MultusHandler) BuildKeys(flow config.GenericMap, rule *api.K8sRule, secNets []api.SecondaryNetwork) []SecondaryNetKey {
+	if len(secNets) == 0 {
+		return nil
 	}
-	log.Tracef("GetPodIPsAndMACs found ips: %v macs: %v for pod %s", ips, macs, pod.Name)
-	return ips, macs
-}
+	var keys []SecondaryNetKey
 
-type netStatItem struct {
-	IPs []string `json:"ips"`
-	MAC string   `json:"mac"`
-}
-
-func extractNetStatusIPsAndMACs(annotations map[string]string) ([]string, []string, error) {
-	if statusAnnotationJSON, ok := annotations[statusAnnotation]; ok {
-		var ips, macs []string
-		var networks []netStatItem
-		err := json.Unmarshal([]byte(statusAnnotationJSON), &networks)
-		if err == nil {
-			for _, network := range networks {
-				if len(network.IPs) > 0 {
-					ips = append(ips, network.IPs...)
-				}
-
-				if len(network.MAC) > 0 {
-					macs = append(macs, strings.ToUpper(network.MAC))
-				}
+	for _, sn := range secNets {
+		var ip, mac string
+		var interfaces []string
+		if _, ok := sn.Index[indexIP]; ok && len(rule.IPField) > 0 {
+			ip, ok = flow.LookupString(rule.IPField)
+			if !ok {
+				return nil
 			}
-			return ips, macs, nil
+		}
+		if _, ok := sn.Index[indexMAC]; ok && len(rule.MACField) > 0 {
+			mac, ok = flow.LookupString(rule.MACField)
+			if !ok {
+				return nil
+			}
+		}
+		if _, ok := sn.Index[indexInterface]; ok && len(rule.InterfacesField) > 0 {
+			v, ok := flow[rule.InterfacesField]
+			if !ok {
+				return nil
+			}
+			interfaces, ok = v.([]string)
+			if !ok {
+				return nil
+			}
 		}
 
-		return nil, nil, fmt.Errorf("cannot read annotation %s: %w", statusAnnotation, err)
+		macIP := "~" + ip + "~" + mac
+		if interfaces == nil {
+			return []SecondaryNetKey{{NetworkName: sn.Name, Key: macIP}}
+		}
+		for _, intf := range interfaces {
+			keys = append(keys, SecondaryNetKey{NetworkName: sn.Name, Key: intf + macIP})
+		}
+	}
+	return keys
+}
+
+func (m *MultusHandler) GetPodUniqueKeys(pod *v1.Pod, secNets []api.SecondaryNetwork) ([]string, error) {
+	if len(secNets) == 0 {
+		return nil, nil
+	}
+	// Cf https://k8snetworkplumbingwg.github.io/multus-cni/docs/quickstart.html#network-status-annotations
+	if statusAnnotationJSON, ok := pod.Annotations[statusAnnotation]; ok {
+		var networks []NetStatItem
+		if err := json.Unmarshal([]byte(statusAnnotationJSON), &networks); err != nil {
+			return nil, fmt.Errorf("failed to index from network-status annotation, cannot read annotation %s: %w", statusAnnotation, err)
+		}
+		var keys []string
+		for _, network := range networks {
+			for _, snConfig := range secNets {
+				if snConfig.Name == network.Name {
+					keys = append(keys, network.Keys(snConfig)...)
+				}
+			}
+		}
+		return keys, nil
 	}
 	// Annotation not present => just ignore, no error
-	return nil, nil, nil
+	return nil, nil
+}
+
+type NetStatItem struct {
+	Name      string   `json:"name"`
+	Interface string   `json:"interface"`
+	IPs       []string `json:"ips"`
+	MAC       string   `json:"mac"`
+}
+
+func (n *NetStatItem) Keys(snConfig api.SecondaryNetwork) []string {
+	var mac, intf string
+	if _, ok := snConfig.Index[indexMAC]; ok {
+		mac = n.MAC
+	}
+	if _, ok := snConfig.Index[indexInterface]; ok {
+		intf = n.Interface
+	}
+	if _, ok := snConfig.Index[indexIP]; ok {
+		var keys []string
+		for _, ip := range n.IPs {
+			keys = append(keys, key(intf, ip, mac))
+		}
+		return keys
+	}
+	// Ignore IP
+	return []string{key(intf, "", mac)}
+}
+
+func key(intf, ip, mac string) string {
+	return intf + "~" + ip + "~" + strings.ToUpper(mac)
 }

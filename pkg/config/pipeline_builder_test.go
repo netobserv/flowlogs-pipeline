@@ -31,14 +31,14 @@ func TestLokiPipeline(t *testing.T) {
 	pl = pl.TransformNetwork("enrich", api.TransformNetwork{Rules: api.NetworkTransformRules{{
 		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
-			Input:  "SrcAddr",
-			Output: "SrcK8S",
+			IPField: "SrcAddr",
+			Output:  "SrcK8S",
 		},
 	}, {
 		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
-			Input:  "DstAddr",
-			Output: "DstK8S",
+			IPField: "DstAddr",
+			Output:  "DstK8S",
 		},
 	}}})
 	pl = pl.WriteLoki("loki", api.WriteLoki{URL: "http://loki:3100/"})
@@ -58,7 +58,7 @@ func TestLokiPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"enrich","transform":{"type":"network","network":{"directionInfo":{},"kubeConfig":{},"rules":[{"kubernetes":{"input":"SrcAddr","output":"SrcK8S"},"type":"add_kubernetes"},{"kubernetes":{"input":"DstAddr","output":"DstK8S"},"type":"add_kubernetes"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"enrich","transform":{"type":"network","network":{"directionInfo":{},"kubeConfig":{},"rules":[{"kubernetes":{"ipField":"SrcAddr","output":"SrcK8S"},"type":"add_kubernetes"},{"kubernetes":{"ipField":"DstAddr","output":"DstK8S"},"type":"add_kubernetes"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
@@ -206,14 +206,14 @@ func TestIPFIXPipeline(t *testing.T) {
 	pl = pl.TransformNetwork("enrich", api.TransformNetwork{Rules: api.NetworkTransformRules{{
 		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
-			Input:  "SrcAddr",
-			Output: "SrcK8S",
+			IPField: "SrcAddr",
+			Output:  "SrcK8S",
 		},
 	}, {
 		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
-			Input:  "DstAddr",
-			Output: "DstK8S",
+			IPField: "DstAddr",
+			Output:  "DstK8S",
 		},
 	}}})
 	pl = pl.WriteIpfix("ipfix", api.WriteIpfix{
@@ -238,7 +238,7 @@ func TestIPFIXPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"enrich","transform":{"type":"network","network":{"directionInfo":{},"kubeConfig":{},"rules":[{"kubernetes":{"input":"SrcAddr","output":"SrcK8S"},"type":"add_kubernetes"},{"kubernetes":{"input":"DstAddr","output":"DstK8S"},"type":"add_kubernetes"}]}}}`, string(b))
+	require.JSONEq(t, `{"name":"enrich","transform":{"type":"network","network":{"directionInfo":{},"kubeConfig":{},"rules":[{"kubernetes":{"ipField":"SrcAddr","output":"SrcK8S"},"type":"add_kubernetes"},{"kubernetes":{"ipField":"DstAddr","output":"DstK8S"},"type":"add_kubernetes"}]}}}`, string(b))
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)

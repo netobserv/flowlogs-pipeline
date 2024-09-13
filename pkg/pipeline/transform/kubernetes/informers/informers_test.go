@@ -20,15 +20,19 @@ package informers
 import (
 	"testing"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/cni"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestGetInfo(t *testing.T) {
-	kubeData := Informers{}
+	metrics := operational.NewMetrics(&config.MetricsSettings{})
+	kubeData := Informers{indexerHitMetric: metrics.CreateIndexerHitCounter()}
 	pidx, hidx, sidx, ridx := SetupIndexerMocks(&kubeData)
-	pidx.MockPod("1.2.3.4", "AA:BB:CC:DD:EE:FF", "pod1", "podNamespace", "10.0.0.1", nil)
-	pidx.MockPod("1.2.3.5", "", "pod2", "podNamespace", "10.0.0.1", &Owner{Name: "rs1", Type: "ReplicaSet"})
+	pidx.MockPod("1.2.3.4", "AA:BB:CC:DD:EE:FF", "eth0", "pod1", "podNamespace", "10.0.0.1", nil)
+	pidx.MockPod("1.2.3.5", "", "", "pod2", "podNamespace", "10.0.0.1", &Owner{Name: "rs1", Type: "ReplicaSet"})
 	pidx.FallbackNotFound()
 	ridx.MockReplicaSet("rs1", "podNamespace", Owner{Name: "dep1", Type: "Deployment"})
 	ridx.FallbackNotFound()
@@ -38,7 +42,7 @@ func TestGetInfo(t *testing.T) {
 	hidx.FallbackNotFound()
 
 	// Test get orphan pod
-	info, err := kubeData.GetInfo("1.2.3.4", "")
+	info, err := kubeData.GetInfo(nil, "1.2.3.4")
 	require.NoError(t, err)
 	pod1 := Info{
 		Type: "Pod",
@@ -46,21 +50,21 @@ func TestGetInfo(t *testing.T) {
 			Name:      "pod1",
 			Namespace: "podNamespace",
 		},
-		HostName: "node1",
-		HostIP:   "10.0.0.1",
-		Owner:    Owner{Name: "pod1", Type: "Pod"},
-		ips:      []string{"1.2.3.4"},
-		macs:     []string{"AA:BB:CC:DD:EE:FF"},
+		HostName:         "node1",
+		HostIP:           "10.0.0.1",
+		Owner:            Owner{Name: "pod1", Type: "Pod"},
+		ips:              []string{"1.2.3.4"},
+		secondaryNetKeys: []string{"~~AA:BB:CC:DD:EE:FF"},
 	}
 	require.Equal(t, *info, pod1)
 
 	// Test get same pod by mac
-	info, err = kubeData.GetInfo("", "AA:BB:CC:DD:EE:FF")
+	info, err = kubeData.GetInfo([]cni.SecondaryNetKey{{Key: "~~AA:BB:CC:DD:EE:FF"}}, "")
 	require.NoError(t, err)
 	require.Equal(t, *info, pod1)
 
 	// Test get pod owned
-	info, err = kubeData.GetInfo("1.2.3.5", "")
+	info, err = kubeData.GetInfo(nil, "1.2.3.5")
 	require.NoError(t, err)
 
 	require.Equal(t, *info, Info{
@@ -73,15 +77,15 @@ func TestGetInfo(t *testing.T) {
 				Name: "rs1",
 			}},
 		},
-		HostName: "node1",
-		HostIP:   "10.0.0.1",
-		Owner:    Owner{Name: "dep1", Type: "Deployment"},
-		ips:      []string{"1.2.3.5"},
-		macs:     []string{},
+		HostName:         "node1",
+		HostIP:           "10.0.0.1",
+		Owner:            Owner{Name: "dep1", Type: "Deployment"},
+		ips:              []string{"1.2.3.5"},
+		secondaryNetKeys: []string{},
 	})
 
 	// Test get node
-	info, err = kubeData.GetInfo("10.0.0.1", "")
+	info, err = kubeData.GetInfo(nil, "10.0.0.1")
 	require.NoError(t, err)
 
 	require.Equal(t, *info, Info{
@@ -91,11 +95,10 @@ func TestGetInfo(t *testing.T) {
 		},
 		Owner: Owner{Name: "node1", Type: "Node"},
 		ips:   []string{"10.0.0.1"},
-		macs:  []string{},
 	})
 
 	// Test get service
-	info, err = kubeData.GetInfo("1.2.3.100", "")
+	info, err = kubeData.GetInfo(nil, "1.2.3.100")
 	require.NoError(t, err)
 
 	require.Equal(t, *info, Info{
@@ -106,11 +109,10 @@ func TestGetInfo(t *testing.T) {
 		},
 		Owner: Owner{Name: "svc1", Type: "Service"},
 		ips:   []string{"1.2.3.100"},
-		macs:  []string{},
 	})
 
 	// Test no match
-	info, err = kubeData.GetInfo("1.2.3.200", "")
+	info, err = kubeData.GetInfo(nil, "1.2.3.200")
 	require.NotNil(t, err)
 	require.Nil(t, info)
 }
