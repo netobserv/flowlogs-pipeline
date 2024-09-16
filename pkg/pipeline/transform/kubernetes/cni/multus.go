@@ -31,41 +31,51 @@ func (m *MultusHandler) BuildKeys(flow config.GenericMap, rule *api.K8sRule, sec
 		return nil
 	}
 	var keys []SecondaryNetKey
-
 	for _, sn := range secNets {
-		var ip, mac string
-		var interfaces []string
-		if _, ok := sn.Index[indexIP]; ok && len(rule.IPField) > 0 {
-			ip, ok = flow.LookupString(rule.IPField)
-			if !ok {
-				return nil
-			}
-		}
-		if _, ok := sn.Index[indexMAC]; ok && len(rule.MACField) > 0 {
-			mac, ok = flow.LookupString(rule.MACField)
-			if !ok {
-				return nil
-			}
-		}
-		if _, ok := sn.Index[indexInterface]; ok && len(rule.InterfacesField) > 0 {
-			v, ok := flow[rule.InterfacesField]
-			if !ok {
-				return nil
-			}
-			interfaces, ok = v.([]string)
-			if !ok {
-				return nil
-			}
-		}
-
-		macIP := "~" + ip + "~" + mac
-		if interfaces == nil {
-			return []SecondaryNetKey{{NetworkName: sn.Name, Key: macIP}}
-		}
-		for _, intf := range interfaces {
-			keys = append(keys, SecondaryNetKey{NetworkName: sn.Name, Key: intf + macIP})
+		snKeys := m.buildSNKeys(flow, rule, &sn)
+		if snKeys != nil {
+			keys = append(keys, snKeys...)
 		}
 	}
+	return keys
+}
+
+func (m *MultusHandler) buildSNKeys(flow config.GenericMap, rule *api.K8sRule, sn *api.SecondaryNetwork) []SecondaryNetKey {
+	var keys []SecondaryNetKey
+
+	var ip, mac string
+	var interfaces []string
+	if _, ok := sn.Index[indexIP]; ok && len(rule.IPField) > 0 {
+		ip, ok = flow.LookupString(rule.IPField)
+		if !ok {
+			return nil
+		}
+	}
+	if _, ok := sn.Index[indexMAC]; ok && len(rule.MACField) > 0 {
+		mac, ok = flow.LookupString(rule.MACField)
+		if !ok {
+			return nil
+		}
+	}
+	if _, ok := sn.Index[indexInterface]; ok && len(rule.InterfacesField) > 0 {
+		v, ok := flow[rule.InterfacesField]
+		if !ok {
+			return nil
+		}
+		interfaces, ok = v.([]string)
+		if !ok {
+			return nil
+		}
+	}
+
+	macIP := "~" + ip + "~" + mac
+	if interfaces == nil {
+		return []SecondaryNetKey{{NetworkName: sn.Name, Key: macIP}}
+	}
+	for _, intf := range interfaces {
+		keys = append(keys, SecondaryNetKey{NetworkName: sn.Name, Key: intf + macIP})
+	}
+
 	return keys
 }
 
