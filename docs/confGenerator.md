@@ -33,7 +33,7 @@ Flags:
 ```
 
 > Note: confgenerator is available also from `netobserv/flowlogs-pipeline` quay image. To use execute:  
-> `docker run --entrypoint /app/confgenerator quay.io/netobserv/flowlogs-pipeline:latest --help` 
+> `docker run --entrypoint /app/confgenerator quay.io/netobserv/flowlogs-pipeline:main --help` 
 
 > Note: The default location for network definitions in flowlogs-pipeline is `/network_definitions` folder
 

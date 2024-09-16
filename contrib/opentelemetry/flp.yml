@@ -68,7 +68,7 @@ spec:
       serviceAccountName: netobserv
       containers:
         - name: packet-counter
-          image: quay.io/netobserv/flowlogs-pipeline:latest
+          image: quay.io/netobserv/flowlogs-pipeline:main
           ports:
             - containerPort: 9999
               hostPort: 9999
