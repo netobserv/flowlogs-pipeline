@@ -898,10 +898,10 @@ The `suppressGoMetrics` parameter may be set to `true` in order to suppress the 
   # compile project
   make build
 
-  # build the default image (quay.io/netobserv/flowlogs-pipeline:latest):
+  # build the default image (quay.io/netobserv/flowlogs-pipeline:main):
   make image-build
 
-  # push the default image (quay.io/netobserv/flowlogs-pipeline:latest):
+  # push the default image (quay.io/netobserv/flowlogs-pipeline:main):
   make image-push
 
   # build and push on your own quay.io account (quay.io/myuser/flowlogs-pipeline:dev):
