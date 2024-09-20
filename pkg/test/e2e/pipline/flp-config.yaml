@@ -69,7 +69,7 @@ data:
                   subnet_mask: /16
               - type: add_kubernetes
                 kubernetes:
-                  input: srcIP
+                  ipField: srcIP
                   output: srcK8S
                   labels_prefix: srcK8S_labels
               - type: add_location

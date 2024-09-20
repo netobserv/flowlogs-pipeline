@@ -250,8 +250,9 @@ Following is the supported API format for network transformations:
                              name: name of the object
                              namespace: namespace of the object
                  kubernetes: Kubernetes rule configuration
-                     input: entry IP input field
-                     mac-input: Optional entry MAC input field
+                     ipField: entry IP input field
+                     interfacesField: entry Interfaces input field
+                     macField: entry MAC input field
                      output: entry output field
                      assignee: value needs to assign to output field
                      labels_prefix: labels prefix to use to copy input lables, if empty labels will not be copied
@@ -272,7 +273,10 @@ Following is the supported API format for network transformations:
                      protocol: entry protocol field
          kubeConfig: global configuration related to Kubernetes (optional)
              configPath: path to kubeconfig file (optional)
-             managedCNI: a list of CNI (network plugins) to manage, for detecting additional interfaces. Currently supported: ovn, multus
+             secondaryNetworks: configuration for secondary networks
+                     name: name of the secondary network, as mentioned in the annotation 'k8s.v1.cni.cncf.io/network-status'
+                     index: fields to use for indexing, must be any combination of 'mac', 'ip', 'interface'
+             managedCNI: a list of CNI (network plugins) to manage, for detecting additional interfaces. Currently supported: ovn
          servicesFile: path to services file (optional, default: /etc/services)
          protocolsFile: path to protocols file (optional, default: /etc/protocols)
          subnetLabels: configure subnet and IPs custom labels

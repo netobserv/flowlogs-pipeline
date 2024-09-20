@@ -5,6 +5,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	inf "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
 	"github.com/sirupsen/logrus"
 )
@@ -16,23 +17,19 @@ func MockInformers() {
 	informers = inf.NewInformersMock()
 }
 
-func InitFromConfig(config api.NetworkTransformKubeConfig) error {
-	return informers.InitFromConfig(config)
+func InitFromConfig(config api.NetworkTransformKubeConfig, opMetrics *operational.Metrics) error {
+	return informers.InitFromConfig(config, opMetrics)
 }
 
 func Enrich(outputEntry config.GenericMap, rule *api.K8sRule) {
-	ip, _ := outputEntry.LookupString(rule.Input)
-	var mac string
-	if len(rule.MacInput) > 0 {
-		mac, _ = outputEntry.LookupString(rule.MacInput)
-	}
-	logrus.Tracef("Enrich IP %s MAC %s", ip, mac)
-	if ip == "" && mac == "" {
+	ip, ok := outputEntry.LookupString(rule.IPField)
+	if !ok {
 		return
 	}
-	kubeInfo, err := informers.GetInfo(ip, mac)
+	potentialKeys := informers.BuildSecondaryNetworkKeys(outputEntry, rule)
+	kubeInfo, err := informers.GetInfo(potentialKeys, ip)
 	if err != nil {
-		logrus.WithError(err).Tracef("can't find kubernetes info for IP %v", outputEntry[rule.Input])
+		logrus.WithError(err).Tracef("can't find kubernetes info for keys %v and IP %s", potentialKeys, ip)
 		return
 	}
 	if rule.Assignee != "otel" {
@@ -45,6 +42,7 @@ func Enrich(outputEntry config.GenericMap, rule *api.K8sRule) {
 		outputEntry[rule.Output+"_Type"] = kubeInfo.Type
 		outputEntry[rule.Output+"_OwnerName"] = kubeInfo.Owner.Name
 		outputEntry[rule.Output+"_OwnerType"] = kubeInfo.Owner.Type
+		outputEntry[rule.Output+"_NetworkName"] = kubeInfo.NetworkName
 		if rule.LabelsPrefix != "" {
 			for labelKey, labelValue := range kubeInfo.Labels {
 				outputEntry[rule.LabelsPrefix+"_"+labelKey] = labelValue

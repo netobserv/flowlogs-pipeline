@@ -422,7 +422,7 @@ parameters:
               output: dstLocation
           - type: add_kubernetes
             kubernetes:
-              input: srcIP
+              ipField: srcIP
               output: srcK8S
 ```
 
@@ -443,7 +443,7 @@ All the geo-location fields will be named by appending `output` value
 (e.g., `CountryName`, `CountryLongName`, `RegionName`, `CityName` , `Longitude` and `Latitude`)
 
 The rule `add_kubernetes` generates new fields with kubernetes information by
-matching the `input` value (`srcIP` in the example above) with kubernetes `nodes`, `pods` and `services` IPs.
+matching the `ipField` value (`srcIP` in the example above) with kubernetes `nodes`, `pods` and `services` IPs.
 All the kubernetes fields will be named by appending `output` value
 (`srcK8S` in the example above) to the kubernetes metadata field names
 (e.g., `Namespace`, `Name`, `Type`, `HostIP`, `OwnerName`, `OwnerType` )

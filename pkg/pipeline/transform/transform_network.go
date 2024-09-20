@@ -26,6 +26,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
@@ -166,7 +167,7 @@ func (n *Network) applySubnetLabel(strIP string) string {
 // NewTransformNetwork create a new transform
 //
 //nolint:cyclop
-func NewTransformNetwork(params config.StageParam) (Transformer, error) {
+func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metrics) (Transformer, error) {
 	var needToInitLocationDB = false
 	var needToInitKubeData = false
 	var needToInitNetworkServices = false
@@ -205,7 +206,7 @@ func NewTransformNetwork(params config.StageParam) (Transformer, error) {
 	}
 
 	if needToInitKubeData {
-		err := kubernetes.InitFromConfig(jsonNetworkTransform.KubeConfig)
+		err := kubernetes.InitFromConfig(jsonNetworkTransform.KubeConfig, opMetrics)
 		if err != nil {
 			return nil, err
 		}

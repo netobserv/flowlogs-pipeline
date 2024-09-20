@@ -211,7 +211,7 @@ func InitNewTransformNetwork(t *testing.T, configFile string) Transformer {
 	v, cfg := test.InitConfig(t, configFile)
 	require.NotNil(t, v)
 	config := cfg.Parameters[0]
-	newTransform, err := NewTransformNetwork(config)
+	newTransform, err := NewTransformNetwork(config, nil)
 	require.NoError(t, err)
 	return newTransform
 }
@@ -246,7 +246,7 @@ func Test_Categorize(t *testing.T) {
 		},
 	}
 
-	tr, err := NewTransformNetwork(cfg)
+	tr, err := NewTransformNetwork(cfg, nil)
 	require.NoError(t, err)
 
 	output, ok := tr.Transform(entry)
@@ -280,7 +280,7 @@ func Test_ReinterpretDirection(t *testing.T) {
 		},
 	}
 
-	tr, err := NewTransformNetwork(cfg)
+	tr, err := NewTransformNetwork(cfg, nil)
 	require.NoError(t, err)
 
 	output, ok := tr.Transform(config.GenericMap{
@@ -430,7 +430,7 @@ func Test_ValidateReinterpretDirection(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, nil)
 	require.Contains(t, err.Error(), "missing ReporterIPField")
 
 	// Missing src field
@@ -448,7 +448,7 @@ func Test_ValidateReinterpretDirection(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, nil)
 	require.Contains(t, err.Error(), "missing SrcHostField")
 
 	// Missing dst field
@@ -466,7 +466,7 @@ func Test_ValidateReinterpretDirection(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, nil)
 	require.Contains(t, err.Error(), "missing DstHostField")
 
 	// Missing flow direction field
@@ -484,7 +484,7 @@ func Test_ValidateReinterpretDirection(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, nil)
 	require.Contains(t, err.Error(), "missing FlowDirectionField")
 
 	// Missing if direction field does not trigger an error (this field will just not be populated)
@@ -502,7 +502,7 @@ func Test_ValidateReinterpretDirection(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	// Test transformation when IfDirection is missing
