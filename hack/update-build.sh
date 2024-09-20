@@ -15,6 +15,7 @@ LABEL maintainer="support@redhat.com"
 LABEL io.openshift.tags="network-observability-flowlogs-pipeline"
 LABEL upstream-vcs-ref="${COMMIT}"
 LABEL upstream-vcs-type="git"
+LABEL description="Flow-Logs Pipeline (a.k.a. FLP) is an observability tool that consumes logs from various inputs, transform them and export logs to loki and / or time series metrics to prometheus."
 EOF
 
 
