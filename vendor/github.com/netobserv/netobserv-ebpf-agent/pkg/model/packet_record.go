@@ -1,4 +1,4 @@
-package flow
+package model
 
 import (
 	"encoding/binary"
@@ -6,10 +6,7 @@ import (
 	"time"
 
 	"github.com/gavv/monotime"
-	"github.com/sirupsen/logrus"
 )
-
-var plog = logrus.WithField("component", "packet/PerfBuffer")
 
 type RawByte byte
 

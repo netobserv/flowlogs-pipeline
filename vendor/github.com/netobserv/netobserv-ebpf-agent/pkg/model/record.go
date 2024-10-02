@@ -1,4 +1,4 @@
-package flow
+package model
 
 import (
 	"encoding/binary"
