@@ -52,7 +52,7 @@ frontend:
       docURL: http://kubernetes.io/docs/user-guide/identifiers#names
       field: SrcK8S_Name
       filter: src_name
-      default: false
+      default: true
       width: 15
     - id: SrcK8S_Type
       group: Source
@@ -66,14 +66,6 @@ frontend:
       filter: src_kind
       default: false
       width: 10
-    - id: SrcVM_Name
-      group: Source
-      name: VM Name
-      tooltip: The source name of the related virtual machine.
-      field: SrcVM_Name
-      filter: src_vmname
-      default: true
-      width: 15
     - id: SrcAddr
       group: Source
       name: IP
@@ -111,7 +103,7 @@ frontend:
       docURL: http://kubernetes.io/docs/user-guide/identifiers#names
       field: DstK8S_Name
       filter: dst_name
-      default: false
+      default: true
       width: 15
     - id: DstK8S_Type
       group: Destination
@@ -125,14 +117,6 @@ frontend:
       filter: dst_kind
       default: false
       width: 10
-    - id: DstVM_Name
-      group: Destination
-      name: VM Name
-      tooltip: The destination name of the related virtual machine.
-      field: DstVM_Name
-      filter: dst_vmname
-      default: true
-      width: 15
     - id: DstAddr
       group: Destination
       name: IP
@@ -391,24 +375,12 @@ frontend:
       autoCompleteAddsQuotes: true
       category: source
       placeholder: 'E.g: Pod, Service'
-    - id: src_vmname
-      name: VM Name
-      component: text
-      autoCompleteAddsQuotes: true
-      category: source
-      placeholder: 'E.g: my-vm'
     - id: dst_kind
       name: Kind
       component: autocomplete
       autoCompleteAddsQuotes: true
       category: destination
       placeholder: 'E.g: Pod, Service'
-    - id: dst_vmname
-      name: VM Name
-      component: text
-      autoCompleteAddsQuotes: true
-      category: destination
-      placeholder: 'E.g: my-vm'
     - id: src_address
       name: IP
       component: text
@@ -578,10 +550,6 @@ frontend:
       type: string
       description: Kind of the source Kubernetes object, such as Pod, Service or Node.
       lokiLabel: true
-    - name: SrcVM_Name
-      type: string
-      description: Name of the vm.
-      lokiLabel: true
     - name: SrcAddr
       type: string
       description: Source IP address (ipv4 or ipv6)
@@ -602,10 +570,6 @@ frontend:
     - name: DstK8S_Type
       type: string
       description: Kind of the destination Kubernetes object, such as Pod, Service or Node.
-      lokiLabel: true
-    - name: DstVM_Name
-      type: string
-      description: Name of the vm.
       lokiLabel: true
     - name: DstK8S_OwnerName
       type: string

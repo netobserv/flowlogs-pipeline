@@ -5,10 +5,12 @@ pipeline:
     follows: ingest
   - name: enrich
     follows: conntrack
+  - name: labels
+    follows: enrich
   - name: logs
-    follows: enrich
+    follows: labels
   - name: write
-    follows: enrich
+    follows: labels
 parameters:
   - name: ingest
     ingest: # use nflow generator to simulate flows: ./nflow-generator -t localhost -p 2055
@@ -76,11 +78,11 @@ parameters:
           - type: add_subnet_label
             add_subnet_label:
               input: SrcAddr
-              output: SrcVM_Name
+              output: SrcK8S_Name
           - type: add_subnet_label
             add_subnet_label:
               input: DstAddr
-              output: DstVM_Name
+              output: DstK8S_Name
         subnetLabels: # enrichment will add names on matching cidrs
           - name: SampleVM1
             cidrs:
@@ -88,6 +90,27 @@ parameters:
           - name: SampleVM2
             cidrs:
               - "77.12.190.0/24"
+  - name: labels
+    transform: 
+      type: filter
+      filter:
+        rules: 
+          - type: add_field
+            addField: 
+              input: SrcK8S_Namespace
+              value: "virtual machines"
+          - type: add_field
+            addField: 
+              input: DstK8S_Namespace
+              value: "virtual machines"
+          - type: add_field
+            addField: 
+              input: SrcK8S_Type
+              value: "VM"
+          - type: add_field
+            addField: 
+              input: DstK8S_Type
+              value: "VM"
   - name: logs
     write:
       type: stdout
@@ -102,11 +125,9 @@ parameters:
           - SrcK8S_Namespace
           - SrcK8S_OwnerName
           - SrcK8S_Type
-          - SrcVM_Name
           - DstK8S_Namespace
           - DstK8S_OwnerName
           - DstK8S_Type
-          - DstVM_Name
           - FlowDirection
           - _RecordType
         staticLabels:
