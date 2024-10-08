@@ -18,7 +18,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/netobserv/gopipes v0.3.0
 	github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500
-	github.com/netobserv/netobserv-ebpf-agent v1.6.1-crc2.0.20241001154044-8c6c4c91c326
+	github.com/netobserv/netobserv-ebpf-agent v1.6.1-crc2.0.20241008130234-a20397fb8f88
 	github.com/netsampler/goflow2 v1.3.7
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.3
@@ -42,7 +42,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.29.0
 	go.opentelemetry.io/otel/sdk/metric v1.29.0
 	golang.org/x/net v0.28.0
-	google.golang.org/grpc v1.66.0
+	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.31.1
