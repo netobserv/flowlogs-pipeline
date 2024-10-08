@@ -313,7 +313,7 @@ github.com/netobserv/loki-client-go/pkg/labelutil
 github.com/netobserv/loki-client-go/pkg/logproto
 github.com/netobserv/loki-client-go/pkg/metric
 github.com/netobserv/loki-client-go/pkg/urlutil
-# github.com/netobserv/netobserv-ebpf-agent v1.6.1-crc2.0.20241001154044-8c6c4c91c326
+# github.com/netobserv/netobserv-ebpf-agent v1.6.1-crc2.0.20241008130234-a20397fb8f88
 ## explicit; go 1.22.3
 github.com/netobserv/netobserv-ebpf-agent/pkg/decode
 github.com/netobserv/netobserv-ebpf-agent/pkg/ebpf
@@ -755,7 +755,7 @@ google.golang.org/genproto/googleapis/api/httpbody
 ## explicit; go 1.21
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.66.0
+# google.golang.org/grpc v1.67.1
 ## explicit; go 1.21
 google.golang.org/grpc
 google.golang.org/grpc/attributes
