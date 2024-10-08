@@ -1,0 +1,134 @@
+log-level: info
+pipeline:
+  - name: ingest
+  - name: conntrack
+    follows: ingest
+  - name: enrich
+    follows: conntrack
+  - name: labels
+    follows: enrich
+  - name: logs
+    follows: labels
+  - name: write
+    follows: labels
+parameters:
+  - name: ingest
+    ingest: # use nflow generator to simulate flows: ./nflow-generator -t localhost -p 2055
+      type: collector
+      collector:
+        hostName: localhost
+        port: 4739 # Use this for IPFIX / netflow v9
+        portLegacy: 2055 # Use this for legacy v5 netflow
+  - name: conntrack
+    extract:
+      type: conntrack
+      conntrack:
+        keyDefinition:
+          fieldGroups:
+          - name: src
+            fields:
+            - SrcAddr
+            - SrcPort
+          - name: dst
+            fields:
+            - DstAddr
+            - DstPort
+          - name: protocol
+            fields:
+            - Proto
+          hash:
+            fieldGroupRefs:
+            - protocol
+            fieldGroupARef: src
+            fieldGroupBRef: dst
+        outputRecordTypes:
+        - newConnection
+        - endConnection
+        - heartbeat
+        - flowLog
+        outputFields:
+        - name: Bytes_total
+          operation: sum
+          input: Bytes
+        - name: Bytes
+          operation: sum
+          splitAB: true
+        - name: numFlowLogs
+          operation: count
+        - name: TimeFlowStartMs
+          operation: min
+          input: TimeFlowStartMs
+        - name: TimeFlowEndMs
+          operation: max
+          input: TimeFlowEndMs
+        scheduling:
+        - selector: {} # Default group
+          endConnectionTimeout: 10s
+          heartbeatInterval: 30s
+          terminatingTimeout: 5s
+        tcpFlags:
+          fieldName: Flags
+          detectEndConnection: true
+          swapAB: true
+  - name: enrich # enrich captured flow with additionnal fields
+    transform:
+      type: network
+      network:
+        rules: 
+          - type: add_subnet_label
+            add_subnet_label:
+              input: SrcAddr
+              output: SrcK8S_Name
+          - type: add_subnet_label
+            add_subnet_label:
+              input: DstAddr
+              output: DstK8S_Name
+        subnetLabels: # enrichment will add names on matching cidrs
+          - name: SampleVM1
+            cidrs:
+              - "10.154.20.0/24"
+          - name: SampleVM2
+            cidrs:
+              - "77.12.190.0/24"
+  - name: labels
+    transform: 
+      type: filter
+      filter:
+        rules: 
+          - type: add_field
+            addField: 
+              input: SrcK8S_Namespace
+              value: "virtual machines"
+          - type: add_field
+            addField: 
+              input: DstK8S_Namespace
+              value: "virtual machines"
+          - type: add_field
+            addField: 
+              input: SrcK8S_Type
+              value: "VM"
+          - type: add_field
+            addField: 
+              input: DstK8S_Type
+              value: "VM"
+  - name: logs
+    write:
+      type: stdout
+      stdout: 
+        format: json
+  - name: write
+    write:
+      type: loki
+      loki: 
+        url: "http://localhost:3100"
+        labels: 
+          - SrcK8S_Namespace
+          - SrcK8S_OwnerName
+          - SrcK8S_Type
+          - DstK8S_Namespace
+          - DstK8S_OwnerName
+          - DstK8S_Type
+          - FlowDirection
+          - _RecordType
+        staticLabels:
+          app: netobserv-flowcollector

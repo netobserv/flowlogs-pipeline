@@ -138,6 +138,10 @@ ocp-deploy: ocp-cleanup deploy-prometheus deploy-loki deploy-grafana deploy ## D
 	@loki_url=$$(oc get route loki -o jsonpath='{.spec.host}'); \
 	echo -e "\nAccess loki on OCP using: http://"$$loki_url"\n"
 
+.PHONY: ipfix-capture
+ipfix-capture: 
+	./hack/docker-ipfix.sh
+
 .PHONY: ocp-cleanup
 ocp-cleanup: undeploy undeploy-loki undeploy-prometheus undeploy-grafana ## Undeploy from OCP
 
