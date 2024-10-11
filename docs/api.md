@@ -30,6 +30,7 @@ Following is the supported API format for prometheus encode:
                  valueKey: entry key from which to resolve metric value
                  labels: labels to be associated with the metric
                  remap: optional remapping of labels
+                 flatten: list fields to be flattened
                  buckets: histogram buckets
                  valueScale: scale factor of the value (MetricVal := FlowVal / Scale)
          prefix: prefix added to each metric name
@@ -444,6 +445,7 @@ Following is the supported API format for writing metrics to an OpenTelemetry co
                  valueKey: entry key from which to resolve metric value
                  labels: labels to be associated with the metric
                  remap: optional remapping of labels
+                 flatten: list fields to be flattened
                  buckets: histogram buckets
                  valueScale: scale factor of the value (MetricVal := FlowVal / Scale)
          pushTimeInterval: how often should metrics be sent to collector:

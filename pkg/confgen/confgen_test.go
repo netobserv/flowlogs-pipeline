@@ -152,6 +152,7 @@ func Test_RunShortConfGen(t *testing.T) {
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 			Remap:    map[string]string{},
+			Flatten:  []string{},
 			Buckets:  []float64{},
 		}},
 	}, out.Parameters[3].Encode.Prom)
@@ -234,6 +235,7 @@ func Test_RunConfGenNoAgg(t *testing.T) {
 			ValueKey: "Bytes",
 			Labels:   []string{"service"},
 			Remap:    map[string]string{},
+			Flatten:  []string{},
 			Buckets:  []float64{},
 		}},
 	}, out.Parameters[2].Encode.Prom)
@@ -339,6 +341,7 @@ func Test_RunLongConfGen(t *testing.T) {
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 			Remap:    map[string]string{},
+			Flatten:  []string{},
 			Buckets:  []float64{},
 		}, {
 			Name:     "test_histo",
@@ -347,6 +350,7 @@ func Test_RunLongConfGen(t *testing.T) {
 			ValueKey: "test_aggregates_value",
 			Labels:   []string{"groupByKeys", "aggregate"},
 			Remap:    map[string]string{},
+			Flatten:  []string{},
 			Buckets:  []float64{},
 		}},
 	}, out.Parameters[4].Encode.Prom)
