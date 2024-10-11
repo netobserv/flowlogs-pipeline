@@ -27,6 +27,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 
 	logAdapter "github.com/go-kit/kit/log/logrus"
 	jsonIter "github.com/json-iterator/go"
@@ -173,7 +174,7 @@ func (l *Loki) addLabels(record config.GenericMap, labels model.LabelSet) {
 		if !ok {
 			continue
 		}
-		lv := model.LabelValue(fmt.Sprint(val))
+		lv := model.LabelValue(utils.ConvertToString(val))
 		if !lv.IsValid() {
 			log.WithFields(logrus.Fields{"key": label, "value": val}).
 				Debug("Invalid label value. Ignoring it")

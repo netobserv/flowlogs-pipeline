@@ -543,9 +543,6 @@ func Test_MissingLabels(t *testing.T) {
 		},
 	}
 	params := api.PromEncode{
-		ExpiryTime: api.Duration{
-			Duration: time.Duration(60 * time.Second),
-		},
 		Metrics: []api.MetricsItem{
 			{
 				Name:     "my_counter",
@@ -588,9 +585,6 @@ func Test_Remap(t *testing.T) {
 		},
 	}
 	params := api.PromEncode{
-		ExpiryTime: api.Duration{
-			Duration: time.Duration(60 * time.Second),
-		},
 		Metrics: []api.MetricsItem{
 			{
 				Name:     "my_counter",
@@ -614,6 +608,204 @@ func Test_Remap(t *testing.T) {
 	require.Contains(t, exposed, `my_counter{ip="10.0.0.1",namespace="A"} 7`)
 	require.Contains(t, exposed, `my_counter{ip="10.0.0.2",namespace="A"} 1`)
 	require.Contains(t, exposed, `my_counter{ip="10.0.0.3",namespace="B"} 4`)
+}
+
+func Test_WithListField(t *testing.T) {
+	metrics := []config.GenericMap{
+		{
+			"namespace":  "A",
+			"interfaces": []string{"eth0", "123456"},
+			"bytes":      7,
+		},
+		{
+			"namespace":  "A",
+			"interfaces": []any{"eth0", "abcdef"},
+			"bytes":      1,
+		},
+		{
+			"namespace":  "A",
+			"interfaces": []any{"eth0", "xyz"},
+			"bytes":      10,
+		},
+		{
+			"namespace": "B",
+			"bytes":     2,
+		},
+		{
+			"namespace":  "C",
+			"interfaces": []string{},
+			"bytes":      3,
+		},
+	}
+	params := api.PromEncode{
+		Metrics: []api.MetricsItem{
+			{
+				Name:     "my_counter",
+				Type:     "counter",
+				ValueKey: "bytes",
+				Filters: []api.MetricsFilter{
+					{Key: "interfaces", Value: "xyz", Type: api.MetricFilterNotEqual},
+				},
+				Flatten: []string{"interfaces"},
+				Labels:  []string{"namespace", "interfaces"},
+				Remap:   map[string]string{"interfaces": "interface"},
+			},
+		},
+	}
+
+	encodeProm, err := initProm(&params)
+	require.NoError(t, err)
+	for _, metric := range metrics {
+		encodeProm.Encode(metric)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
+
+	require.Contains(t, exposed, `my_counter{interface="eth0",namespace="A"} 18`)
+	require.Contains(t, exposed, `my_counter{interface="123456",namespace="A"} 7`)
+	require.Contains(t, exposed, `my_counter{interface="abcdef",namespace="A"} 1`)
+	require.Contains(t, exposed, `my_counter{interface="",namespace="B"} 2`)
+	require.Contains(t, exposed, `my_counter{interface="",namespace="C"} 3`)
+	require.NotContains(t, exposed, `"xyz"`)
+}
+
+func Test_WithObjectListField(t *testing.T) {
+	metrics := []config.GenericMap{
+		{
+			"namespace": "A",
+			"events": []any{
+				config.GenericMap{"type": "acl", "name": "my_policy"},
+			},
+			"bytes": 1,
+		},
+		{
+			"namespace": "A",
+			"events": []any{
+				config.GenericMap{"type": "egress", "name": "my_egress"},
+				config.GenericMap{"type": "acl", "name": "my_policy"},
+			},
+			"bytes": 10,
+		},
+		{
+			"namespace": "B",
+			"bytes":     2,
+		},
+		{
+			"namespace": "C",
+			"events":    []string{},
+			"bytes":     3,
+		},
+	}
+	params := api.PromEncode{
+		Metrics: []api.MetricsItem{
+			{
+				Name:     "policy_counter",
+				Type:     "counter",
+				ValueKey: "bytes",
+				Filters: []api.MetricsFilter{
+					{Key: "events>type", Value: "acl", Type: api.MetricFilterEqual},
+				},
+				Labels:  []string{"namespace", "events>name"},
+				Flatten: []string{"events"},
+				Remap:   map[string]string{"events>name": "name"},
+			},
+		},
+	}
+
+	encodeProm, err := initProm(&params)
+	require.NoError(t, err)
+	for _, metric := range metrics {
+		encodeProm.Encode(metric)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
+
+	require.Contains(t, exposed, `policy_counter{name="my_policy",namespace="A"} 11`)
+	require.NotContains(t, exposed, `"my_egress"`)
+	require.NotContains(t, exposed, `"B"`)
+	require.NotContains(t, exposed, `"C"`)
+}
+
+func Test_WithObjectListField_bis(t *testing.T) {
+	metrics := []config.GenericMap{
+		{
+			"namespace": "A",
+			"events": []any{
+				config.GenericMap{"type": "egress", "name": "my_egress"},
+				config.GenericMap{"type": "acl", "name": "my_policy"},
+			},
+			"bytes": 10,
+		},
+	}
+	params := api.PromEncode{
+		Metrics: []api.MetricsItem{
+			{
+				Name:     "policy_counter",
+				Type:     "counter",
+				ValueKey: "bytes",
+				Filters: []api.MetricsFilter{
+					{Key: "events>type", Value: "acl", Type: api.MetricFilterEqual},
+				},
+				Flatten: []string{"events"},
+				Labels:  []string{"namespace"},
+			},
+		},
+	}
+
+	encodeProm, err := initProm(&params)
+	require.NoError(t, err)
+	for _, metric := range metrics {
+		encodeProm.Encode(metric)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
+
+	require.Contains(t, exposed, `policy_counter{namespace="A"} 10`)
+	require.NotContains(t, exposed, `"my_egress"`)
+	require.NotContains(t, exposed, `"B"`)
+	require.NotContains(t, exposed, `"C"`)
+}
+
+func Test_WithObjectListField_ter(t *testing.T) {
+	metrics := []config.GenericMap{
+		{
+			"namespace": "A",
+			"events": []any{
+				config.GenericMap{"type": "egress", "name": "my_egress"},
+				config.GenericMap{"type": "acl", "name": "my_policy"},
+			},
+			"bytes": 10,
+		},
+	}
+	params := api.PromEncode{
+		Metrics: []api.MetricsItem{
+			{
+				Name:     "policy_counter",
+				Type:     "counter",
+				ValueKey: "bytes",
+				Labels:   []string{"namespace", "events>name"},
+				Flatten:  []string{"events"},
+				Remap:    map[string]string{"events>name": "name"},
+			},
+		},
+	}
+
+	encodeProm, err := initProm(&params)
+	require.NoError(t, err)
+	for _, metric := range metrics {
+		encodeProm.Encode(metric)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	exposed := test.ReadExposedMetrics(t, encodeProm.server)
+
+	require.Contains(t, exposed, `policy_counter{name="my_policy",namespace="A"} 10`)
+	require.Contains(t, exposed, `policy_counter{name="my_egress",namespace="A"} 10`)
+	require.NotContains(t, exposed, `"B"`)
+	require.NotContains(t, exposed, `"C"`)
 }
 
 func buildFlow() config.GenericMap {
@@ -753,13 +945,4 @@ func Test_MultipleProm(t *testing.T) {
 	require.Equal(t, "test3_", encodeProm3.cfg.Prefix)
 
 	// TODO: Add test for different addresses, but need to deal with StartPromServer (ListenAndServe)
-}
-
-func Test_Filters_extractVarLookups(t *testing.T) {
-	variables := extractVarLookups("$(abc)--$(def)")
-
-	require.Equal(t, [][]string{{"$(abc)", "abc"}, {"$(def)", "def"}}, variables)
-
-	variables = extractVarLookups("")
-	require.Empty(t, variables)
 }

@@ -1,4 +1,4 @@
-package encode
+package metrics
 
 import (
 	"fmt"
@@ -7,16 +7,18 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 )
 
-type Predicate func(flow config.GenericMap) bool
+type Predicate func(config.GenericMap) bool
 
 var variableExtractor = regexp.MustCompile(`\$\(([^\)]+)\)`)
 
-type MetricInfo struct {
+type Preprocessed struct {
 	*api.MetricsItem
-	FilterPredicates []Predicate
-	MappedLabels     []MappedLabel
+	filters         []preprocessedFilter
+	MappedLabels    []MappedLabel
+	FlattenedLabels []MappedLabel
 }
 
 type MappedLabel struct {
@@ -24,9 +26,17 @@ type MappedLabel struct {
 	Target string
 }
 
-func (m *MetricInfo) TargetLabels() []string {
+type preprocessedFilter struct {
+	predicate Predicate
+	useFlat   bool
+}
+
+func (p *Preprocessed) TargetLabels() []string {
 	var targetLabels []string
-	for _, l := range m.MappedLabels {
+	for _, l := range p.FlattenedLabels {
+		targetLabels = append(targetLabels, l.Target)
+	}
+	for _, l := range p.MappedLabels {
 		targetLabels = append(targetLabels, l.Target)
 	}
 	return targetLabels
@@ -40,10 +50,8 @@ func Presence(filter api.MetricsFilter) Predicate {
 }
 
 func Absence(filter api.MetricsFilter) Predicate {
-	return func(flow config.GenericMap) bool {
-		_, found := flow[filter.Key]
-		return !found
-	}
+	pred := Presence(filter)
+	return func(flow config.GenericMap) bool { return !pred(flow) }
 }
 
 func Equal(filter api.MetricsFilter) Predicate {
@@ -124,7 +132,7 @@ func injectVars(flow config.GenericMap, filterValue string, varLookups [][]strin
 			if sVal, ok := rawVal.(string); ok {
 				value = sVal
 			} else {
-				value = fmt.Sprint(rawVal)
+				value = utils.ConvertToString(rawVal)
 			}
 		}
 		injected = strings.ReplaceAll(injected, matchGroup[0], value)
@@ -132,8 +140,8 @@ func injectVars(flow config.GenericMap, filterValue string, varLookups [][]strin
 	return injected
 }
 
-func CreateMetricInfo(def *api.MetricsItem) *MetricInfo {
-	mi := MetricInfo{
+func Preprocess(def *api.MetricsItem) *Preprocessed {
+	mi := Preprocessed{
 		MetricsItem: def,
 	}
 	for _, l := range def.Labels {
@@ -141,10 +149,26 @@ func CreateMetricInfo(def *api.MetricsItem) *MetricInfo {
 		if as := def.Remap[l]; as != "" {
 			ml.Target = as
 		}
-		mi.MappedLabels = append(mi.MappedLabels, ml)
+		if mi.isFlattened(l) {
+			mi.FlattenedLabels = append(mi.FlattenedLabels, ml)
+		} else {
+			mi.MappedLabels = append(mi.MappedLabels, ml)
+		}
 	}
 	for _, f := range def.Filters {
-		mi.FilterPredicates = append(mi.FilterPredicates, filterToPredicate(f))
+		mi.filters = append(mi.filters, preprocessedFilter{
+			predicate: filterToPredicate(f),
+			useFlat:   mi.isFlattened(f.Key),
+		})
 	}
 	return &mi
+}
+
+func (p *Preprocessed) isFlattened(fieldPath string) bool {
+	for _, flat := range p.Flatten {
+		if fieldPath == flat || strings.HasPrefix(fieldPath, flat+">") {
+			return true
+		}
+	}
+	return false
 }
