@@ -1,5 +1,6 @@
 ARG TARGETARCH
-FROM brew.registry.redhat.io\/rh-osbs\/openshift-golang-builder:v1.22.5-202407301806.g4c8b32d.el9 as builder
+ARG COMMIT
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.22.5-202407301806.g4c8b32d.el9 as builder
 
 ARG TARGETARCH=amd64
 WORKDIR /app
@@ -22,11 +23,8 @@ RUN GOARCH=$TARGETARCH make build_code
 FROM --platform=linux/$TARGETARCH registry.access.redhat.com/ubi9/ubi-minimal:9.4
 
 COPY --from=builder /app/flowlogs-pipeline /app/
-COPY --from=builder /app/confgenerator /app/
 
 # expose ports
-EXPOSE 2055
-
 ENTRYPOINT ["/app/flowlogs-pipeline"]
 
 LABEL com.redhat.component="network-observability-flowlogs-pipeline-container"
@@ -37,4 +35,5 @@ LABEL summary="Network Observability Flow-Logs Pipeline"
 LABEL maintainer="support@redhat.com"
 LABEL io.openshift.tags="network-observability-flowlogs-pipeline"
 LABEL upstream-vcs-type="git"
+LABEL upstream-vcs-type="$COMMIT"
 LABEL description="Flow-Logs Pipeline (a.k.a. FLP) is an observability tool that consumes logs from various inputs, transform them and export logs to loki and / or time series metrics to prometheus."
