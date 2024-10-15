@@ -25,7 +25,7 @@ spec:
   - name: output-image
     value: quay.io/redhat-user-workloads/ocp-network-observab-tenant/netobserv-operator/flowlogs-pipeline:{{revision}}
   - name: dockerfile
-    value: contrib/docker/Dockerfile
+    value: contrib/docker/Dockerfile.downstream
   pipelineRef:
     name: build-pipeline
   taskRunTemplate: {}
