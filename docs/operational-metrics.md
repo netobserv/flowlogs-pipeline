@@ -148,7 +148,7 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 |:---|:---|
 | **Description** | Counter of hits per secondary network index for Kubernetes enrichment | 
 | **Type** | counter | 
-| **Labels** | kind, network, warning | 
+| **Labels** | kind, namespace, network, warning | 
 
 
 ### stage_duration_ms
