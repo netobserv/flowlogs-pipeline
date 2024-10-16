@@ -162,6 +162,7 @@ Following is the supported API format for filter transformations:
                     remove_entry_if_equal: removes the entry if the field value equals specified value
                     remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
                     remove_entry_all_satisfied: removes the entry if all of the defined rules are satisfied
+                    keep_entry: keeps the entry if the set of rules are all satisfied
                     add_field: adds (input) field to the entry; overrides previous value if present (key=input, value=value)
                     add_field_if_doesnt_exist: adds a field to the entry if the field does not exist
                     add_field_if: add output field set to assignee if input field satisfies criteria from parameters field
@@ -187,6 +188,19 @@ Following is the supported API format for filter transformations:
                              input: entry input field
                              value: specified value of input field:
                              castInt: set true to cast the value field as an int (numeric values are float64 otherwise)
+                 keepEntryAllSatisfied: configuration for keep_entry rule
+                         type: (enum) one of the following:
+                            keep_entry_if_exists: keeps the entry if the field exists
+                            keep_entry_if_doesnt_exist: keeps the entry if the field does not exist
+                            keep_entry_if_equal: keeps the entry if the field value equals specified value
+                            keep_entry_if_not_equal: keeps the entry if the field value does not equal specified value
+                            keep_entry_if_regex_match: keeps the entry if the field value matches the specified regex
+                            keep_entry_if_not_regex_match: keeps the entry if the field value does not match the specified regex
+                         keepEntry: configuration for keep_entry_* rules
+                             input: entry input field
+                             value: specified value of input field:
+                             castInt: set true to cast the value field as an int (numeric values are float64 otherwise)
+                 keepEntrySampling: sampling value for keep_entry type: 1 flow on <sampling> is kept
                  addField: configuration for add_field rule
                      input: entry input field
                      value: specified value of input field:

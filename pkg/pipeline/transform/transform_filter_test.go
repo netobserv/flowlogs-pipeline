@@ -548,7 +548,7 @@ func Test_AddField(t *testing.T) {
 }
 
 func Test_Transform_RemoveEntryAllSatisfied(t *testing.T) {
-	newFilter := Filter{
+	newFilter := api.TransformFilter{
 		Rules: []api.TransformFilterRule{
 			{
 				Type: api.RemoveEntryAllSatisfied,
@@ -571,7 +571,10 @@ func Test_Transform_RemoveEntryAllSatisfied(t *testing.T) {
 		},
 	}
 
-	_, keep := newFilter.Transform(config.GenericMap{
+	tf, err := NewTransformFilter(config.StageParam{Transform: &config.Transform{Filter: &newFilter}})
+	require.NoError(t, err)
+
+	_, keep := tf.Transform(config.GenericMap{
 		"FlowDirection":    0,
 		"SrcK8S_OwnerName": "my-deployment",
 		"DstK8S_OwnerName": "my-service",
@@ -579,7 +582,7 @@ func Test_Transform_RemoveEntryAllSatisfied(t *testing.T) {
 	}) // Ingress and internal => keep
 	require.True(t, keep)
 
-	_, keep = newFilter.Transform(config.GenericMap{
+	_, keep = tf.Transform(config.GenericMap{
 		"FlowDirection":    1,
 		"SrcK8S_OwnerName": "my-deployment",
 		"DstK8S_OwnerName": "my-service",
@@ -587,14 +590,14 @@ func Test_Transform_RemoveEntryAllSatisfied(t *testing.T) {
 	}) // Egress and internal => remove
 	require.False(t, keep)
 
-	_, keep = newFilter.Transform(config.GenericMap{
+	_, keep = tf.Transform(config.GenericMap{
 		"FlowDirection":    1,
 		"SrcK8S_OwnerName": "my-deployment",
 		"Bytes":            10,
 	}) // Egress and external => keep
 	require.True(t, keep)
 
-	_, keep = newFilter.Transform(config.GenericMap{
+	_, keep = tf.Transform(config.GenericMap{
 		"FlowDirection":    0,
 		"DstK8S_OwnerName": "my-deployment",
 		"Bytes":            10,
@@ -603,7 +606,7 @@ func Test_Transform_RemoveEntryAllSatisfied(t *testing.T) {
 }
 
 func Test_Transform_Sampling(t *testing.T) {
-	newFilter := Filter{
+	newFilter := api.TransformFilter{
 		Rules: []api.TransformFilterRule{
 			{
 				Type: api.ConditionalSampling,
@@ -631,6 +634,9 @@ func Test_Transform_Sampling(t *testing.T) {
 		},
 	}
 
+	tf, err := NewTransformFilter(config.StageParam{Transform: &config.Transform{Filter: &newFilter}})
+	require.NoError(t, err)
+
 	input := []config.GenericMap{}
 	for i := 0; i < 1000; i++ {
 		input = append(input, config.GenericMap{
@@ -651,7 +657,7 @@ func Test_Transform_Sampling(t *testing.T) {
 	countEgress := 0
 
 	for _, flow := range input {
-		if out, ok := newFilter.Transform(flow); ok {
+		if out, ok := tf.Transform(flow); ok {
 			switch out["FlowDirection"] {
 			case 0:
 				countIngress++
@@ -664,4 +670,133 @@ func Test_Transform_Sampling(t *testing.T) {
 	assert.Equal(t, countIngress, 1000)
 	assert.Less(t, countEgress, 300)
 	assert.Greater(t, countEgress, 30)
+}
+
+func Test_Transform_KeepEntry(t *testing.T) {
+	newFilter := api.TransformFilter{
+		Rules: []api.TransformFilterRule{
+			{
+				Type: api.KeepEntry,
+				KeepEntryAllSatisfied: []*api.KeepEntryRule{
+					{
+						Type: api.KeepEntryIfEqual,
+						KeepEntry: &api.TransformFilterGenericRule{
+							Input: "namespace",
+							Value: "A",
+						},
+					},
+					{
+						Type: api.KeepEntryIfExists,
+						KeepEntry: &api.TransformFilterGenericRule{
+							Input: "workload",
+						},
+					},
+				},
+			},
+			{
+				Type: api.KeepEntry,
+				KeepEntryAllSatisfied: []*api.KeepEntryRule{
+					{
+						Type: api.KeepEntryIfRegexMatch,
+						KeepEntry: &api.TransformFilterGenericRule{
+							Input: "service",
+							Value: "abc.+",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tf, err := NewTransformFilter(config.StageParam{Transform: &config.Transform{Filter: &newFilter}})
+	require.NoError(t, err)
+
+	_, keep := tf.Transform(config.GenericMap{
+		"namespace": "A",
+		"workload":  "my-deployment",
+		"service":   "xyz",
+	})
+	require.True(t, keep)
+
+	_, keep = tf.Transform(config.GenericMap{
+		"namespace": "B",
+		"workload":  "my-deployment",
+		"service":   "xyz",
+	})
+	require.False(t, keep)
+
+	_, keep = tf.Transform(config.GenericMap{
+		"namespace": "A",
+		"service":   "xyz",
+	})
+	require.False(t, keep)
+
+	_, keep = tf.Transform(config.GenericMap{
+		"namespace": "A",
+		"service":   "abcd",
+	})
+	require.True(t, keep)
+}
+
+func Test_Transform_KeepEntrySampling(t *testing.T) {
+	newFilter := api.TransformFilter{
+		Rules: []api.TransformFilterRule{
+			{
+				Type: api.KeepEntry,
+				KeepEntryAllSatisfied: []*api.KeepEntryRule{
+					{
+						Type: api.KeepEntryIfEqual,
+						KeepEntry: &api.TransformFilterGenericRule{
+							Input: "namespace",
+							Value: "A",
+						},
+					},
+				},
+				KeepEntrySampling: 10,
+			},
+			{
+				Type: api.KeepEntry,
+				KeepEntryAllSatisfied: []*api.KeepEntryRule{
+					{
+						Type: api.KeepEntryIfEqual,
+						KeepEntry: &api.TransformFilterGenericRule{
+							Input: "namespace",
+							Value: "B",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tf, err := NewTransformFilter(config.StageParam{Transform: &config.Transform{Filter: &newFilter}})
+	require.NoError(t, err)
+
+	input := []config.GenericMap{}
+	for i := 0; i < 1000; i++ {
+		input = append(input, config.GenericMap{
+			"namespace": "A",
+		})
+		input = append(input, config.GenericMap{
+			"namespace": "B",
+		})
+	}
+
+	countA := 0
+	countB := 0
+
+	for _, flow := range input {
+		if out, ok := tf.Transform(flow); ok {
+			switch out["namespace"] {
+			case "A":
+				countA++
+			case "B":
+				countB++
+			}
+		}
+	}
+
+	assert.Less(t, countA, 300)
+	assert.Greater(t, countA, 30)
+	assert.Equal(t, countB, 1000)
 }
