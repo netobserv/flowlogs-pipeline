@@ -37,7 +37,8 @@ var (
 )
 
 type Filter struct {
-	Rules []api.TransformFilterRule
+	Rules     []api.TransformFilterRule
+	KeepRules []api.TransformFilterRule
 }
 
 // Transform transforms a flow; if false is returned as a second argument, the entry is dropped
@@ -45,6 +46,19 @@ func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 	tlog.Tracef("f = %v", f)
 	outputEntry := entry.Copy()
 	labels := make(map[string]string)
+	if len(f.KeepRules) > 0 {
+		keep := false
+		for i := range f.KeepRules {
+			tlog.Tracef("keep rule = %v", f.KeepRules[i])
+			if applyRule(outputEntry, labels, &f.KeepRules[i]) {
+				keep = true
+				break
+			}
+		}
+		if !keep {
+			return nil, false
+		}
+	}
 	for i := range f.Rules {
 		tlog.Tracef("rule = %v", f.Rules[i])
 		if cont := applyRule(outputEntry, labels, &f.Rules[i]); !cont {
@@ -143,6 +157,8 @@ func applyRule(entry config.GenericMap, labels map[string]string, rule *api.Tran
 		return !isRemoveEntrySatisfied(entry, rule.RemoveEntryAllSatisfied)
 	case api.ConditionalSampling:
 		return sample(entry, rule.ConditionalSampling)
+	case api.KeepEntry:
+		return rollSampling(rule.KeepEntrySampling) && isKeepEntrySatisfied(entry, rule.KeepEntryAllSatisfied)
 	default:
 		tlog.Panicf("unknown type %s for transform.Filter rule: %v", rule.Type, rule)
 	}
@@ -159,25 +175,91 @@ func isRemoveEntrySatisfied(entry config.GenericMap, rules []*api.RemoveEntryRul
 	return true
 }
 
-func sample(entry config.GenericMap, rules []*api.SamplingCondition) bool {
+func isKeepEntrySatisfied(entry config.GenericMap, rules []*api.KeepEntryRule) bool {
 	for _, r := range rules {
-		if isRemoveEntrySatisfied(entry, r.Rules) {
-			return r.Value == 0 || (rndgen.Intn(int(r.Value)) == 0)
+		val, ok := entry[r.KeepEntry.Input]
+		switch r.Type {
+		case api.KeepEntryIfExists:
+			if !ok {
+				return false
+			}
+		case api.KeepEntryIfDoesntExist:
+			if ok {
+				return false
+			}
+		case api.KeepEntryIfEqual:
+			if !ok || val != r.KeepEntry.Value {
+				return false
+			}
+		case api.KeepEntryIfNotEqual:
+			if ok && val == r.KeepEntry.Value {
+				return false
+			}
+		case api.KeepEntryIfRegexMatch:
+			if ok {
+				match, ok := checkRegex(r.KeepEntry.Value, val)
+				if !ok || !match {
+					return false
+				}
+			} else {
+				return false
+			}
+		case api.KeepEntryIfNotRegexMatch:
+			if ok {
+				match, ok := checkRegex(r.KeepEntry.Value, val)
+				if !ok || match {
+					return false
+				}
+			} else {
+				return false
+			}
 		}
 	}
 	return true
 }
 
+// Returns (valid, match)
+func checkRegex(maybeReg any, value any) (bool, bool) {
+	reg, ok := maybeReg.(*regexp.Regexp)
+	if !ok {
+		return false, false
+	}
+	return true, reg.MatchString(utils.ConvertToString(value))
+}
+
+func sample(entry config.GenericMap, rules []*api.SamplingCondition) bool {
+	for _, r := range rules {
+		if isRemoveEntrySatisfied(entry, r.Rules) {
+			return rollSampling(r.Value)
+		}
+	}
+	return true
+}
+
+func rollSampling(value uint16) bool {
+	return value == 0 || (rndgen.Intn(int(value)) == 0)
+}
+
 // NewTransformFilter create a new filter transform
 func NewTransformFilter(params config.StageParam) (Transformer, error) {
 	tlog.Debugf("entering NewTransformFilter")
+	keepRules := []api.TransformFilterRule{}
 	rules := []api.TransformFilterRule{}
 	if params.Transform != nil && params.Transform.Filter != nil {
-		params.Transform.Filter.Preprocess()
-		rules = params.Transform.Filter.Rules
+		if err := params.Transform.Filter.Preprocess(); err != nil {
+			return nil, err
+		}
+		for i := range params.Transform.Filter.Rules {
+			if params.Transform.Filter.Rules[i].Type == api.KeepEntry {
+				keepRules = append(keepRules, params.Transform.Filter.Rules[i])
+			} else {
+				rules = append(rules, params.Transform.Filter.Rules[i])
+			}
+		}
 	}
 	transformFilter := &Filter{
-		Rules: rules,
+		Rules:     rules,
+		KeepRules: keepRules,
 	}
 	return transformFilter, nil
 }
