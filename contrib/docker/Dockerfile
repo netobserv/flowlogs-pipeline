@@ -2,29 +2,21 @@ ARG TARGETARCH
 FROM docker.io/library/golang:1.22 as builder
 
 ARG TARGETARCH=amd64
+ARG LDFLAGS
 WORKDIR /app
 
 # Copy source code
 COPY go.mod .
 COPY go.sum .
-COPY Makefile .
-COPY .mk/ .mk/
-COPY .bingo/ .bingo/
 COPY vendor/ vendor/
-COPY .git/ .git/
 COPY cmd/ cmd/
 COPY pkg/ pkg/
 
-RUN git status --porcelain
-RUN GOARCH=$TARGETARCH make build_code
+RUN GOARCH=$TARGETARCH go build -ldflags "$LDFLAGS" -mod vendor -o flowlogs-pipeline cmd/flowlogs-pipeline/main.go
 
 # final stage
 FROM --platform=linux/$TARGETARCH registry.access.redhat.com/ubi9/ubi-minimal:9.4
 
 COPY --from=builder /app/flowlogs-pipeline /app/
-COPY --from=builder /app/confgenerator /app/
-
-# expose ports
-EXPOSE 2055
 
 ENTRYPOINT ["/app/flowlogs-pipeline"]

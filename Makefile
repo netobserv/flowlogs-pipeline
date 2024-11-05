@@ -15,17 +15,6 @@ export GOOS=linux
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
 VERSION ?= main
-BUILD_DATE := $(shell date +%Y-%m-%d\ %H:%M)
-TAG_COMMIT := $(shell git rev-list --abbrev-commit --tags --max-count=1)
-TAG := $(shell git describe --abbrev=0 --tags ${TAG_COMMIT} 2>/dev/null || true)
-BUILD_SHA := $(shell git rev-parse --short HEAD)
-BUILD_VERSION := $(TAG:v%=%)
-ifneq ($(COMMIT), $(TAG_COMMIT))
-	BUILD_VERSION := $(BUILD_VERSION)-$(BUILD_SHA)
-endif
-ifneq ($(shell git status --porcelain),)
-	BUILD_VERSION := $(BUILD_VERSION)-dirty
-endif
 
 # Go architecture and targets images to build
 GOARCH ?= amd64
@@ -39,13 +28,18 @@ IMAGE_TAG_BASE ?= quay.io/$(IMAGE_ORG)/flowlogs-pipeline
 
 # Image URL to use all building/pushing image targets
 IMAGE ?= $(IMAGE_TAG_BASE):$(VERSION)
-OCI_BUILD_OPTS ?=
 
 # Image building tool (docker / podman) - docker is preferred in CI
 OCI_BIN_PATH = $(shell which docker 2>/dev/null || which podman)
 OCI_BIN ?= $(shell basename ${OCI_BIN_PATH})
+OCI_BUILD_OPTS ?=
 
-MIN_GO_VERSION := 1.20.0
+ifneq ($(CLEAN_BUILD),)
+	BUILD_DATE := $(shell date +%Y-%m-%d\ %H:%M)
+	BUILD_SHA := $(shell git rev-parse --short HEAD)
+	LDFLAGS ?= -X 'main.buildVersion=${VERSION}-${BUILD_SHA}' -X 'main.buildDate=${BUILD_DATE}'
+endif
+
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
 NETFLOW_GENERATOR=nflow-generator
@@ -60,7 +54,7 @@ FORCE: ;
 # build a single arch target provided as argument
 define build_target
 	echo 'building image for arch $(1)'; \
-	DOCKER_BUILDKIT=1 $(OCI_BIN) buildx build --load --build-arg TARGETARCH=$(1) ${OCI_BUILD_OPTS} -t ${IMAGE}-$(1) -f contrib/docker/Dockerfile .;
+	DOCKER_BUILDKIT=1 $(OCI_BIN) buildx build --load --build-arg LDFLAGS="${LDFLAGS}" --build-arg TARGETARCH=$(1) ${OCI_BUILD_OPTS} -t ${IMAGE}-$(1) -f contrib/docker/Dockerfile .;
 endef
 
 # push a single arch target image
@@ -97,25 +91,19 @@ vendors: ## Check go vendors
 	@echo "### Checking vendors"
 	go mod tidy && go mod vendor
 
-.PHONY: validate_go
-validate_go:
-	@current_ver=$$(go version | { read _ _ v _; echo $${v#go}; }); \
-	required_ver=${MIN_GO_VERSION}; min_ver=$$(echo -e "$$current_ver\n$$required_ver" | sort -V | head -n 1); \
-	if [[ $$min_ver == $$current_ver ]]; then echo -e "\n!!! golang version > $$required_ver required !!!\n"; exit 7;fi
-
 ##@ Develop
 
-.PHONY: validate_go lint
+.PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint the code
 	$(GOLANGCI_LINT) run ./... --timeout=3m
 
-.PHONY: build_code
-build_code:
-	GOARCH=${GOARCH} go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${FLP_BIN_FILE}"
-	GOARCH=${GOARCH} go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" "${CMD_DIR}${CG_BIN_FILE}"
+.PHONY: compile
+compile: ## Compile main flowlogs-pipeline and config generator
+	GOARCH=${GOARCH} go build "${CMD_DIR}${FLP_BIN_FILE}"
+	GOARCH=${GOARCH} go build "${CMD_DIR}${CG_BIN_FILE}"
 
 .PHONY: build
-build: validate_go lint build_code docs ## Build flowlogs-pipeline executable and update the docs
+build: lint compile docs ## Build flowlogs-pipeline executable and update the docs
 
 .PHONY: docs
 docs: FORCE ## Update flowlogs-pipeline documentation
@@ -131,7 +119,7 @@ clean: ## Clean
 
 TEST_OPTS := -race -coverpkg=./... -covermode=atomic -coverprofile cover.out
 .PHONY: tests-unit
-tests-unit: validate_go ## Unit tests
+tests-unit: ## Unit tests
 	# tests may rely on non-thread safe libs such as go-ipfix => no -race flag
 	go test $$(go list ./... | grep /testnorace)
 	# enabling CGO is required for -race flag
@@ -152,15 +140,15 @@ tests-fast: TEST_OPTS=
 tests-fast: tests-unit ## Fast unit tests (no race tests / coverage)
 
 .PHONY: tests-e2e
-tests-e2e: validate_go $(KIND)  ## End-to-end tests
+tests-e2e: $(KIND)  ## End-to-end tests
 	go test -p 1 -v -timeout 20m $$(go list ./... | grep  /e2e)
 
 .PHONY: tests-all
-tests-all: validate_go tests-unit tests-e2e ## All tests
+tests-all: tests-unit tests-e2e ## All tests
 
 # note: to review profile execute: go tool pprof -web /tmp/flowlogs-pipeline-cpu-profile.out (make sure graphviz is installed)
 .PHONY: benchmarks
-benchmarks: $(BENCHSTAT) validate_go ## Benchmark
+benchmarks: $(BENCHSTAT) ## Benchmark
 	go test -bench=. ./cmd/flowlogs-pipeline -o=/tmp/flowlogs-pipeline.test \
 	-cpuprofile /tmp/flowlogs-pipeline-cpu-profile.out \
 	-run=^# -count=10 -parallel=1 -cpu=1 -benchtime=100x \
@@ -187,7 +175,7 @@ image-push: ## Push MULTIARCH_TARGETS images
 .PHONY: manifest-build
 manifest-build: ## Build MULTIARCH_TARGETS manifest
 	@echo 'building manifest $(IMAGE)'
-	DOCKER_BUILDKIT=1 $(OCI_BIN) rmi ${IMAGE} -f
+	DOCKER_BUILDKIT=1 $(OCI_BIN) rmi ${IMAGE} -f || true
 	DOCKER_BUILDKIT=1 $(OCI_BIN) manifest create ${IMAGE} $(foreach target,$(MULTIARCH_TARGETS), --amend ${IMAGE}-$(target));
 
 .PHONY: manifest-push
