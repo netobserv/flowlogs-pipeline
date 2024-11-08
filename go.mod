@@ -2,8 +2,6 @@ module github.com/netobserv/flowlogs-pipeline
 
 go 1.22.3
 
-toolchain go1.22.5
-
 require (
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
 	github.com/agoda-com/opentelemetry-logs-go v0.5.0

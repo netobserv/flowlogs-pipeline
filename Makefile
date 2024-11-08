@@ -1,8 +1,6 @@
 export GOBIN=$(CURDIR)/bin
 export PATH:=$(GOBIN):$(PATH)
 
-include .bingo/Variables.mk
-
 export GOROOT=$(shell go env GOROOT)
 export GOFLAGS=-mod=vendor
 export GO111MODULE=on
@@ -39,6 +37,8 @@ ifneq ($(CLEAN_BUILD),)
 	BUILD_SHA := $(shell git rev-parse --short HEAD)
 	LDFLAGS ?= -X 'main.buildVersion=${VERSION}-${BUILD_SHA}' -X 'main.buildDate=${BUILD_DATE}'
 endif
+
+GOLANGCI_LINT_VERSION = v1.56.2
 
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
@@ -86,6 +86,16 @@ endef
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
+.PHONY: prereqs
+prereqs: ## Check if prerequisites are met, and install missing dependencies
+	@echo "### Checking if prerequisites are met, and installing missing dependencies"
+	GOFLAGS="" go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}
+
+.PHONY: prereqs-kind
+prereqs-kind: ## Check if prerequisites are met for running kind, and install missing dependencies
+	@echo "### Checking if KIND prerequisites are met, and installing missing dependencies"
+	test -f $(shell go env GOPATH)/bin/kind || GOFLAGS="" go install sigs.k8s.io/kind@latest
+
 .PHONY: vendors
 vendors: ## Check go vendors
 	@echo "### Checking vendors"
@@ -94,8 +104,8 @@ vendors: ## Check go vendors
 ##@ Develop
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT) ## Lint the code
-	$(GOLANGCI_LINT) run ./... --timeout=3m
+lint: prereqs ## Lint the code
+	golangci-lint run ./... --timeout=3m
 
 .PHONY: compile
 compile: ## Compile main flowlogs-pipeline and config generator
@@ -140,7 +150,7 @@ tests-fast: TEST_OPTS=
 tests-fast: tests-unit ## Fast unit tests (no race tests / coverage)
 
 .PHONY: tests-e2e
-tests-e2e: $(KIND)  ## End-to-end tests
+tests-e2e: prereqs-kind  ## End-to-end tests
 	go test -p 1 -v -timeout 20m $$(go list ./... | grep  /e2e)
 
 .PHONY: tests-all
