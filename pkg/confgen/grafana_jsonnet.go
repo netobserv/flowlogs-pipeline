@@ -359,7 +359,7 @@ func (cg *ConfGen) GenerateGrafanaJSON() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		panelsJSON = panelsJSON + jsonStr
+		panelsJSON += jsonStr
 	}
 	return panelsJSON, nil
 }

@@ -11,7 +11,7 @@ import (
 
 type Predicate func(flow config.GenericMap) bool
 
-var variableExtractor, _ = regexp.Compile(`\$\(([^\)]+)\)`)
+var variableExtractor = regexp.MustCompile(`\$\(([^\)]+)\)`)
 
 type MetricInfo struct {
 	*api.MetricsItem

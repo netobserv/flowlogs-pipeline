@@ -245,7 +245,7 @@ func (e *EncodeProm) checkConfUpdate() {
 			break
 		}
 	default:
-		//Nothing to do
+		// Nothing to do
 		return
 	}
 }

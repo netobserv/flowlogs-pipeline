@@ -38,7 +38,7 @@ ifneq ($(CLEAN_BUILD),)
 	LDFLAGS ?= -X 'main.buildVersion=${VERSION}-${BUILD_SHA}' -X 'main.buildDate=${BUILD_DATE}'
 endif
 
-GOLANGCI_LINT_VERSION = v1.56.2
+GOLANGCI_LINT_VERSION = v1.61.0
 
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator

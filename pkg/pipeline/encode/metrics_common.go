@@ -179,7 +179,7 @@ func (m *MetricsCommonStruct) prepareMetric(mci MetricsCommonInterface, flow con
 		return nil, 0, ""
 	}
 	if info.ValueScale != 0 {
-		floatVal = floatVal / info.ValueScale
+		floatVal /= info.ValueScale
 	}
 
 	entryLabels, key := extractLabelsAndKey(flow, info)

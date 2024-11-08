@@ -128,7 +128,7 @@ func Test_GetLocation(t *testing.T) {
 }
 
 func Test_unzip(t *testing.T) {
-	//success
+	// success
 	buf := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(buf)
 	_, _ = zipWriter.Create("test_file_in_zip")
@@ -137,29 +137,29 @@ func Test_unzip(t *testing.T) {
 	err := unzip("/tmp/test_zip.zip", "/tmp/")
 	require.Nil(t, err)
 
-	//failed unzip
+	// failed unzip
 	err = unzip("fake_test", "fake_test")
 	require.Error(t, err)
 
-	//failed os.MkdirAll
+	// failed os.MkdirAll
 	_osio.MkdirAll = func(string, os.FileMode) error { return fmt.Errorf("test") }
 	err = unzip("/tmp/test_zip.zip", "/tmp/")
 	require.Error(t, err)
 	_osio.MkdirAll = os.MkdirAll
 
-	//failed os.OpenFile
+	// failed os.OpenFile
 	_osio.OpenFile = func(string, int, os.FileMode) (*os.File, error) { return nil, fmt.Errorf("test") }
 	err = unzip("/tmp/test_zip.zip", "/tmp/")
 	require.Error(t, err)
 	_osio.OpenFile = os.OpenFile
 
-	//failed io.Copy
+	// failed io.Copy
 	_osio.Copy = func(io.Writer, io.Reader) (int64, error) { return 0, fmt.Errorf("test") }
 	err = unzip("/tmp/test_zip.zip", "/tmp/")
 	require.Error(t, err)
 	_osio.Copy = io.Copy
 
-	//failed os.MkdirAll dir
+	// failed os.MkdirAll dir
 	_osio.MkdirAll = func(string, os.FileMode) error { return fmt.Errorf("test") }
 	buf = new(bytes.Buffer)
 	zipWriter = zip.NewWriter(buf)
