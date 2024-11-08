@@ -31,7 +31,7 @@ func (cg *ConfGen) generateVisualizeText(vgs []VisualizationGrafana) string {
 	for _, vs := range vgs {
 		title := vs.Title
 		dashboard := vs.Dashboard
-		section = section + fmt.Sprintf("| **Visualized as** | \"%s\" on dashboard `%s` |\n", title, dashboard)
+		section += fmt.Sprintf("| **Visualized as** | \"%s\" on dashboard `%s` |\n", title, dashboard)
 	}
 
 	return section
@@ -42,7 +42,7 @@ func (cg *ConfGen) generatePromEncodeText(metrics api.MetricsItems) string {
 	for i := range metrics {
 		mType := metrics[i].Type
 		name := cg.config.Encode.Prom.Prefix + metrics[i].Name
-		section = section + fmt.Sprintf("| **Exposed as** | `%s` of type `%s` |\n", name, mType)
+		section += fmt.Sprintf("| **Exposed as** | `%s` of type `%s` |\n", name, mType)
 	}
 
 	return section
@@ -57,7 +57,7 @@ func (cg *ConfGen) generateOperationText(definitions api.AggregateDefinitions) s
 		if operationKey != "" {
 			operationKey = fmt.Sprintf("field `%s`", operationKey)
 		}
-		section = section + fmt.Sprintf("| **OperationType** | aggregate by `%s` and `%s` %s |\n", by, operation, operationKey)
+		section += fmt.Sprintf("| **OperationType** | aggregate by `%s` and `%s` %s |\n", by, operation, operationKey)
 	}
 
 	return section
@@ -70,7 +70,7 @@ func (cg *ConfGen) generateDoc(fileName string) error {
 		replacer := strings.NewReplacer("-", " ", "_", " ")
 		name := replacer.Replace(filepath.Base(metric.FileName[:len(metric.FileName)-len(filepath.Ext(metric.FileName))]))
 
-		labels := strings.Join(metric.Tags[:], ", ")
+		labels := strings.Join(metric.Tags, ", ")
 		// TODO: add support for multiple operations
 		operation := cg.generateOperationText(metric.Aggregates.Rules)
 		expose := cg.generatePromEncodeText(metric.PromEncode.Metrics)

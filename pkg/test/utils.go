@@ -135,7 +135,7 @@ func RunCommand(command string) string {
 		fmt.Printf("error in running command: %v \n", err)
 	}
 	output := outBuf.Bytes()
-	//strip newline from end of output
+	// strip newline from end of output
 	if len(output) > 0 && output[len(output)-1] == '\n' {
 		output = output[0 : len(output)-1]
 	}

@@ -119,7 +119,8 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 	cp.CloseMsgChan()
 	cp.Stop()
 
-	expectedFields := append(write.IPv4IANAFields, write.KubeFields...)
+	expectedFields := write.IPv4IANAFields
+	expectedFields = append(expectedFields, write.KubeFields...)
 	expectedFields = append(expectedFields, write.CustomNetworkFields...)
 
 	// Check template
@@ -180,7 +181,8 @@ func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 	cp.CloseMsgChan()
 	cp.Stop()
 
-	expectedFields := append(write.IPv4IANAFields, write.KubeFields...)
+	expectedFields := write.IPv4IANAFields
+	expectedFields = append(expectedFields, write.KubeFields...)
 	expectedFields = append(expectedFields, write.CustomNetworkFields...)
 
 	// Check template

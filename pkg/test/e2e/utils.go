@@ -153,7 +153,7 @@ func e2eRecreateNamespace(name string) env.Func {
 			}
 		}
 
-		//create namespace
+		// create namespace
 		namespace = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
 		if err = client.Resources().Create(ctx, namespace); err != nil {
 			return ctx, fmt.Errorf("create namespace func: %w", err)

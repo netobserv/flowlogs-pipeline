@@ -921,10 +921,13 @@ Usage:
   
 General  
   help                  Display this help.  
+  prereqs               Check if prerequisites are met, and install missing dependencies  
+  prereqs-kind          Check if prerequisites are met for running kind, and install missing dependencies  
   vendors               Check go vendors  
   
 Develop  
   lint                  Lint the code  
+  compile               Compile main flowlogs-pipeline and config generator  
   build                 Build flowlogs-pipeline executable and update the docs  
   docs                  Update flowlogs-pipeline documentation  
   clean                 Clean  

@@ -161,7 +161,7 @@ func (cg *ConfGen) ParseDefinition(name string, bytes []byte) error {
 		return err
 	}
 
-	//skip if their skip tag match
+	// skip if their skip tag match
 	for _, skipTag := range cg.opts.SkipWithTags {
 		for _, tag := range defFile.Tags {
 			if skipTag == tag {

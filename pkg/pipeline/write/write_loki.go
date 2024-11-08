@@ -117,7 +117,8 @@ func (l *Loki) ProcessRecord(in config.GenericMap) error {
 	l.addLabels(in, labels)
 
 	// Remove labels and configured ignore list from record
-	ignoreList := append(l.apiConfig.IgnoreList, l.apiConfig.Labels...)
+	ignoreList := l.apiConfig.IgnoreList
+	ignoreList = append(ignoreList, l.apiConfig.Labels...)
 	for _, label := range ignoreList {
 		delete(out, label)
 	}

@@ -36,12 +36,14 @@ func iterate(output io.Writer, data interface{}, indent int) {
 	if err != nil {
 		dataTypeName = "(unknown)"
 	}
-	if dataType == reflect.Slice || dataType == reflect.Map {
+	//nolint:exhaustive
+	switch dataType {
+	case reflect.Slice, reflect.Map:
 		// DEBUG code: fmt.Fprintf(output, "%s %s <-- %s \n",strings.Repeat(" ",4*indent),dataTypeName,dataType )
 		zeroElement := reflect.Zero(reflect.ValueOf(data).Type().Elem()).Interface()
 		iterate(output, zeroElement, newIndent)
 		return
-	} else if dataType == reflect.Struct {
+	case reflect.Struct:
 		// DEBUG code: fmt.Fprintf(output,"%s %s <-- %s \n",strings.Repeat(" ",4*indent),dataTypeName,dataType )
 		for i := 0; i < d.NumField(); i++ {
 			val := reflect.Indirect(reflect.ValueOf(data))
@@ -63,16 +65,18 @@ func iterate(output io.Writer, data interface{}, indent int) {
 			}
 		}
 		return
-	} else if dataType == reflect.Ptr {
+	case reflect.Ptr:
 		// DEBUG code: fmt.Fprintf(output, "%s %s <-- %s \n", strings.Repeat(" ", 4*indent), dataTypeName, dataType)
 		elemType := reflect.TypeOf(data).Elem()
 		zeroElement := reflect.Zero(elemType).Interface()
 		// Since we only "converted" Ptr to Struct and the actual output is done in the next iteration, we call
 		// iterate() with the same `indent` as the current level
 		iterate(output, zeroElement, indent)
-	} else if strings.HasPrefix(dataTypeName, "api.") && strings.HasSuffix(dataTypeName, "Enum") {
-		// set placeholder for enum
-		fmt.Fprintf(output, "placeholder @%s:%d@\n", strings.TrimPrefix(dataTypeName, "api."), 4*newIndent)
+	default:
+		if strings.HasPrefix(dataTypeName, "api.") && strings.HasSuffix(dataTypeName, "Enum") {
+			// set placeholder for enum
+			fmt.Fprintf(output, "placeholder @%s:%d@\n", strings.TrimPrefix(dataTypeName, "api."), 4*newIndent)
+		}
 	}
 }
 

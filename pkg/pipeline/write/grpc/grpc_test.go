@@ -55,7 +55,7 @@ func TestGRPCCommunication(t *testing.T) {
 	case rs = <-serverOut:
 		assert.Failf(t, "shouldn't have received any flow", "Got: %#v", rs)
 	default:
-		//ok!
+		// ok!
 	}
 }
 
