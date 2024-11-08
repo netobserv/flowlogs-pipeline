@@ -23,9 +23,6 @@ spec:
     value: '{{revision}}'
   - name: output-image
     value: quay.io/redhat-user-workloads/ocp-network-observab-tenant/flowlogs-pipeline-1-7:{{revision}}
-  - name: build-platforms
-    value:
-    - linux/x86_64
   - name: dockerfile
     value: contrib/docker/Dockerfile.downstream
   pipelineRef:
