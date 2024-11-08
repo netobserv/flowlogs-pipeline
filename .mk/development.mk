@@ -69,32 +69,32 @@ undeploy-netflow-simulator: ## Undeploy netflow simulator
 ##@ kind
 
 .PHONY: create-kind-cluster
-create-kind-cluster: $(KIND) ## Create cluster
-	$(KIND) create cluster --name $(KIND_CLUSTER_NAME) --config contrib/kubernetes/kind/kind.config.yaml
+create-kind-cluster: prereqs-kind ## Create cluster
+	kind create cluster --name $(KIND_CLUSTER_NAME) --config contrib/kubernetes/kind/kind.config.yaml
 	kubectl cluster-info --context kind-kind
 
 .PHONY: delete-kind-cluster
-delete-kind-cluster: $(KIND) ## Delete cluster
-	$(KIND) delete cluster --name $(KIND_CLUSTER_NAME)
+delete-kind-cluster: prereqs-kind ## Delete cluster
+	kind delete cluster --name $(KIND_CLUSTER_NAME)
 
 .PHONY: kind-load-image
 kind-load-image: ## Load image to kind
 ifeq ($(OCI_BIN),$(shell which docker 2>/dev/null))
 # This is an optimization for docker provider. "kind load docker-image" can load an image directly from docker's
 # local registry. For other providers (i.e. podman), we must use "kind load image-archive" instead.
-	$(KIND) load --name $(KIND_CLUSTER_NAME) docker-image $(IMAGE)-${GOARCH}
+	kind load --name $(KIND_CLUSTER_NAME) docker-image $(IMAGE)-${GOARCH}
 else
 	$(eval tmpfile="/tmp/flp.tar")
 	-rm $(tmpfile)
 	$(OCI_BIN) save $(IMAGE)-$(GOARCH) -o $(tmpfile)
-	$(KIND) load --name $(KIND_CLUSTER_NAME) image-archive $(tmpfile)
+	kind load --name $(KIND_CLUSTER_NAME) image-archive $(tmpfile)
 	-rm $(tmpfile)
 endif
 
 ##@ metrics
 
 .PHONY: generate-configuration
-generate-configuration: $(KIND) ## Generate metrics configuration
+generate-configuration: prereqs-kind ## Generate metrics configuration
 	go build "${CMD_DIR}${CG_BIN_FILE}"
 	./${CG_BIN_FILE} --log-level debug --srcFolder network_definitions \
 					--destConfFile $(FLP_CONF_FILE) \
@@ -104,19 +104,19 @@ generate-configuration: $(KIND) ## Generate metrics configuration
 ##@ End2End
 
 .PHONY: local-deployments-deploy
-local-deployments-deploy: $(KIND) deploy-prometheus deploy-loki deploy-grafana build-image kind-load-image deploy deploy-netflow-simulator
+local-deployments-deploy: prereqs-kind deploy-prometheus deploy-loki deploy-grafana build-image kind-load-image deploy deploy-netflow-simulator
 	kubectl get pods
 	kubectl rollout status -w deployment/flowlogs-pipeline
 	kubectl logs -l app=flowlogs-pipeline
 
 .PHONY: local-deploy
-local-deploy: $(KIND) local-cleanup create-kind-cluster local-deployments-deploy ## Deploy locally on kind (with simulated flowlogs)
+local-deploy: prereqs-kind local-cleanup create-kind-cluster local-deployments-deploy ## Deploy locally on kind (with simulated flowlogs)
 
 .PHONY: local-deployments-cleanup
-local-deployments-cleanup: $(KIND) undeploy-netflow-simulator undeploy undeploy-grafana undeploy-loki undeploy-prometheus
+local-deployments-cleanup: prereqs-kind undeploy-netflow-simulator undeploy undeploy-grafana undeploy-loki undeploy-prometheus
 
 .PHONY: local-cleanup
-local-cleanup: $(KIND) local-deployments-cleanup delete-kind-cluster ## Undeploy from local kind
+local-cleanup: prereqs-kind local-deployments-cleanup delete-kind-cluster ## Undeploy from local kind
 
 .PHONY: local-redeploy
 local-redeploy:  local-deployments-cleanup local-deployments-deploy ## Redeploy locally (on current kind)

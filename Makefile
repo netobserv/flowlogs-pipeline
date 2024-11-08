@@ -38,7 +38,7 @@ ifneq ($(CLEAN_BUILD),)
 	LDFLAGS ?= -X 'main.buildVersion=${VERSION}-${BUILD_SHA}' -X 'main.buildDate=${BUILD_DATE}'
 endif
 
-GOLANGCI_LINT_VERSION = v1.61.0
+GOLANGCI_LINT_VERSION = v1.56.2
 
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
@@ -94,7 +94,7 @@ prereqs: ## Check if prerequisites are met, and install missing dependencies
 .PHONY: prereqs-kind
 prereqs-kind: ## Check if prerequisites are met for running kind, and install missing dependencies
 	@echo "### Checking if KIND prerequisites are met, and installing missing dependencies"
-	test -f $(shell go env GOPATH)/bin/kind || go install sigs.k8s.io/kind@latest
+	test -f $(shell go env GOPATH)/bin/kind || GOFLAGS="" go install sigs.k8s.io/kind@latest
 
 .PHONY: vendors
 vendors: ## Check go vendors
@@ -150,7 +150,7 @@ tests-fast: TEST_OPTS=
 tests-fast: tests-unit ## Fast unit tests (no race tests / coverage)
 
 .PHONY: tests-e2e
-tests-e2e: $(KIND)  ## End-to-end tests
+tests-e2e: prereqs-kind  ## End-to-end tests
 	go test -p 1 -v -timeout 20m $$(go list ./... | grep  /e2e)
 
 .PHONY: tests-all
