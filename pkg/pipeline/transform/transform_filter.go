@@ -28,6 +28,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils/filters"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,7 +39,12 @@ var (
 
 type Filter struct {
 	Rules     []api.TransformFilterRule
-	KeepRules []api.TransformFilterRule
+	KeepRules []predicatesRule
+}
+
+type predicatesRule struct {
+	predicates []filters.Predicate
+	sampling   uint16
 }
 
 // Transform transforms a flow; if false is returned as a second argument, the entry is dropped
@@ -48,9 +54,8 @@ func (f *Filter) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 	labels := make(map[string]string)
 	if len(f.KeepRules) > 0 {
 		keep := false
-		for i := range f.KeepRules {
-			tlog.Tracef("keep rule = %v", f.KeepRules[i])
-			if applyRule(outputEntry, labels, &f.KeepRules[i]) {
+		for _, r := range f.KeepRules {
+			if applyPredicates(outputEntry, r) {
 				keep = true
 				break
 			}
@@ -158,7 +163,8 @@ func applyRule(entry config.GenericMap, labels map[string]string, rule *api.Tran
 	case api.ConditionalSampling:
 		return sample(entry, rule.ConditionalSampling)
 	case api.KeepEntryAllSatisfied:
-		return rollSampling(rule.KeepEntrySampling) && isKeepEntrySatisfied(entry, rule.KeepEntryAllSatisfied)
+		// This should be processed only in "applyPredicates". Failure to do so is a bug.
+		tlog.Panicf("unexpected KeepEntryAllSatisfied: %v", rule)
 	default:
 		tlog.Panicf("unknown type %s for transform.Filter rule: %v", rule.Type, rule)
 	}
@@ -175,56 +181,16 @@ func isRemoveEntrySatisfied(entry config.GenericMap, rules []*api.RemoveEntryRul
 	return true
 }
 
-func isKeepEntrySatisfied(entry config.GenericMap, rules []*api.KeepEntryRule) bool {
-	for _, r := range rules {
-		val, ok := entry[r.KeepEntry.Input]
-		switch r.Type {
-		case api.KeepEntryIfExists:
-			if !ok {
-				return false
-			}
-		case api.KeepEntryIfDoesntExist:
-			if ok {
-				return false
-			}
-		case api.KeepEntryIfEqual:
-			if !ok || val != r.KeepEntry.Value {
-				return false
-			}
-		case api.KeepEntryIfNotEqual:
-			if ok && val == r.KeepEntry.Value {
-				return false
-			}
-		case api.KeepEntryIfRegexMatch:
-			if ok {
-				match, ok := checkRegex(r.KeepEntry.Value, val)
-				if !ok || !match {
-					return false
-				}
-			} else {
-				return false
-			}
-		case api.KeepEntryIfNotRegexMatch:
-			if ok {
-				match, ok := checkRegex(r.KeepEntry.Value, val)
-				if !ok || match {
-					return false
-				}
-			} else {
-				return false
-			}
+func applyPredicates(entry config.GenericMap, rule predicatesRule) bool {
+	if !rollSampling(rule.sampling) {
+		return false
+	}
+	for _, p := range rule.predicates {
+		if !p(entry) {
+			return false
 		}
 	}
 	return true
-}
-
-// Returns (valid, match)
-func checkRegex(maybeReg any, value any) (bool, bool) {
-	reg, ok := maybeReg.(*regexp.Regexp)
-	if !ok {
-		return false, false
-	}
-	return true, reg.MatchString(utils.ConvertToString(value))
 }
 
 func sample(entry config.GenericMap, rules []*api.SamplingCondition) bool {
@@ -243,17 +209,24 @@ func rollSampling(value uint16) bool {
 // NewTransformFilter create a new filter transform
 func NewTransformFilter(params config.StageParam) (Transformer, error) {
 	tlog.Debugf("entering NewTransformFilter")
-	keepRules := []api.TransformFilterRule{}
+	keepRules := []predicatesRule{}
 	rules := []api.TransformFilterRule{}
 	if params.Transform != nil && params.Transform.Filter != nil {
-		if err := params.Transform.Filter.Preprocess(); err != nil {
-			return nil, err
-		}
+		params.Transform.Filter.Preprocess()
 		for i := range params.Transform.Filter.Rules {
-			if params.Transform.Filter.Rules[i].Type == api.KeepEntryAllSatisfied {
-				keepRules = append(keepRules, params.Transform.Filter.Rules[i])
+			baseRules := &params.Transform.Filter.Rules[i]
+			if baseRules.Type == api.KeepEntryAllSatisfied {
+				pr := predicatesRule{sampling: baseRules.KeepEntrySampling}
+				for _, keepRule := range baseRules.KeepEntryAllSatisfied {
+					pred, err := filters.FromKeepEntry(keepRule)
+					if err != nil {
+						return nil, err
+					}
+					pr.predicates = append(pr.predicates, pred)
+				}
+				keepRules = append(keepRules, pr)
 			} else {
-				rules = append(rules, params.Transform.Filter.Rules[i])
+				rules = append(rules, *baseRules)
 			}
 		}
 	}

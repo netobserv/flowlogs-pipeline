@@ -8,11 +8,8 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils/filters"
 )
-
-type Predicate func(config.GenericMap) bool
-
-var variableExtractor = regexp.MustCompile(`\$\(([^\)]+)\)`)
 
 type Preprocessed struct {
 	*api.MetricsItem
@@ -99,17 +96,19 @@ func NotRegex(filter api.MetricsFilter) Predicate {
 func filterToPredicate(filter api.MetricsFilter) Predicate {
 	switch filter.Type {
 	case api.MetricFilterEqual:
-		return Equal(filter)
+		return filters.Equal(filter.Key, filter.Value, true)
 	case api.MetricFilterNotEqual:
-		return NotEqual(filter)
+		return filters.NotEqual(filter.Key, filter.Value, true)
 	case api.MetricFilterPresence:
-		return Presence(filter)
+		return filters.Presence(filter.Key)
 	case api.MetricFilterAbsence:
-		return Absence(filter)
+		return filters.Absence(filter.Key)
 	case api.MetricFilterRegex:
-		return Regex(filter)
+		r, _ := regexp.Compile(filter.Value)
+		return filters.Regex(filter.Key, r)
 	case api.MetricFilterNotRegex:
-		return NotRegex(filter)
+		r, _ := regexp.Compile(filter.Value)
+		return filters.NotRegex(filter.Key, r)
 	}
 	// Default = Exact
 	return Equal(filter)
