@@ -9,7 +9,7 @@ func (p *Preprocessed) GenerateFlatParts(flow config.GenericMap) []config.Generi
 		return nil
 	}
 	// Want to generate sub-flows from {A=foo, B=[{B1=x, B2=y},{B1=z}], C=[foo,bar]}
-	//=> {B>B1=x, B>B2=y, C=foo}, {B>B1=z, C=foo}, {B>B1=x, B>B2=y, C=bar}, {B>B1=z, C=bar}
+	// => {B>B1=x, B>B2=y, C=foo}, {B>B1=z, C=foo}, {B>B1=x, B>B2=y, C=bar}, {B>B1=z, C=bar}
 	var partsPerLabel [][]config.GenericMap
 	for _, fl := range p.MetricsItem.Flatten {
 		if anyVal, ok := flow[fl]; ok {
