@@ -676,7 +676,7 @@ func Test_Transform_KeepEntry(t *testing.T) {
 	newFilter := api.TransformFilter{
 		Rules: []api.TransformFilterRule{
 			{
-				Type: api.KeepEntry,
+				Type: api.KeepEntryAllSatisfied,
 				KeepEntryAllSatisfied: []*api.KeepEntryRule{
 					{
 						Type: api.KeepEntryIfEqual,
@@ -694,7 +694,7 @@ func Test_Transform_KeepEntry(t *testing.T) {
 				},
 			},
 			{
-				Type: api.KeepEntry,
+				Type: api.KeepEntryAllSatisfied,
 				KeepEntryAllSatisfied: []*api.KeepEntryRule{
 					{
 						Type: api.KeepEntryIfRegexMatch,
@@ -742,7 +742,7 @@ func Test_Transform_KeepEntrySampling(t *testing.T) {
 	newFilter := api.TransformFilter{
 		Rules: []api.TransformFilterRule{
 			{
-				Type: api.KeepEntry,
+				Type: api.KeepEntryAllSatisfied,
 				KeepEntryAllSatisfied: []*api.KeepEntryRule{
 					{
 						Type: api.KeepEntryIfEqual,
@@ -755,7 +755,7 @@ func Test_Transform_KeepEntrySampling(t *testing.T) {
 				KeepEntrySampling: 10,
 			},
 			{
-				Type: api.KeepEntry,
+				Type: api.KeepEntryAllSatisfied,
 				KeepEntryAllSatisfied: []*api.KeepEntryRule{
 					{
 						Type: api.KeepEntryIfEqual,

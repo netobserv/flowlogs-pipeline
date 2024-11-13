@@ -157,7 +157,7 @@ func applyRule(entry config.GenericMap, labels map[string]string, rule *api.Tran
 		return !isRemoveEntrySatisfied(entry, rule.RemoveEntryAllSatisfied)
 	case api.ConditionalSampling:
 		return sample(entry, rule.ConditionalSampling)
-	case api.KeepEntry:
+	case api.KeepEntryAllSatisfied:
 		return rollSampling(rule.KeepEntrySampling) && isKeepEntrySatisfied(entry, rule.KeepEntryAllSatisfied)
 	default:
 		tlog.Panicf("unknown type %s for transform.Filter rule: %v", rule.Type, rule)
@@ -250,7 +250,7 @@ func NewTransformFilter(params config.StageParam) (Transformer, error) {
 			return nil, err
 		}
 		for i := range params.Transform.Filter.Rules {
-			if params.Transform.Filter.Rules[i].Type == api.KeepEntry {
+			if params.Transform.Filter.Rules[i].Type == api.KeepEntryAllSatisfied {
 				keepRules = append(keepRules, params.Transform.Filter.Rules[i])
 			} else {
 				rules = append(rules, params.Transform.Filter.Rules[i])
