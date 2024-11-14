@@ -22,7 +22,6 @@ import (
 	"net"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -146,7 +145,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			if anyFlags, ok := outputEntry[rule.DecodeTCPFlags.Input]; ok && anyFlags != nil {
 				if flags, ok := anyFlags.(uint16); ok {
 					flags := util.DecodeTCPFlags(flags)
-					outputEntry[rule.DecodeTCPFlags.Output] = strings.Join(flags, ",")
+					outputEntry[rule.DecodeTCPFlags.Output] = flags
 				}
 			}
 
