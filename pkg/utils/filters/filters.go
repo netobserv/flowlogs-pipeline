@@ -10,7 +10,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 )
 
-type Predicate func(flow config.GenericMap) bool
+type Predicate func(config.GenericMap) bool
 
 var variableExtractor = regexp.MustCompile(`\$\(([^\)]+)\)`)
 
@@ -106,7 +106,7 @@ func injectVars(flow config.GenericMap, filterValue string, varLookups [][]strin
 			if sVal, ok := rawVal.(string); ok {
 				value = sVal
 			} else {
-				value = fmt.Sprint(rawVal)
+				value = utils.ConvertToString(rawVal)
 			}
 		}
 		injected = strings.ReplaceAll(injected, matchGroup[0], value)
