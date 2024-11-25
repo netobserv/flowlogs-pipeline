@@ -196,7 +196,9 @@ spec:
     - name: BUILD_ARGS
       value:
       - $(params.build-args[*])
-      - "COMMIT=tasks.clone-repository.results.commit"
+      - "COMMIT=$(tasks.clone-repository.results.commit)"
+      - "BUILDVERSION=1.7.1"
+      - "DATE=$(tasks.clone-repository.results.commit-timestamp)"
     - name: BUILD_ARGS_FILE
       value: $(params.build-args-file)
     - name: SOURCE_ARTIFACT
