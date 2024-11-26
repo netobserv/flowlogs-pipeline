@@ -8,15 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Filters_extractVarLookups(t *testing.T) {
-	variables := extractVarLookups("$(abc)--$(def)")
-
-	assert.Equal(t, [][]string{{"$(abc)", "abc"}, {"$(def)", "def"}}, variables)
-
-	variables = extractVarLookups("")
-	assert.Empty(t, variables)
-}
-
 func Test_Flatten(t *testing.T) {
 	pp := Preprocess(&api.MetricsItem{Flatten: []string{"interfaces", "events"}})
 	fl := pp.GenerateFlatParts(config.GenericMap{

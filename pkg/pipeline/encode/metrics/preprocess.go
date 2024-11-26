@@ -1,18 +1,12 @@
 package metrics
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils/filters"
 )
-
-type Predicate func(config.GenericMap) bool
-
-var variableExtractor = regexp.MustCompile(`\$\(([^\)]+)\)`)
 
 type Preprocessed struct {
 	*api.MetricsItem
@@ -27,7 +21,7 @@ type MappedLabel struct {
 }
 
 type preprocessedFilter struct {
-	predicate Predicate
+	predicate filters.Predicate
 	useFlat   bool
 }
 
@@ -42,102 +36,25 @@ func (p *Preprocessed) TargetLabels() []string {
 	return targetLabels
 }
 
-func Presence(filter api.MetricsFilter) Predicate {
-	return func(flow config.GenericMap) bool {
-		_, found := flow[filter.Key]
-		return found
-	}
-}
-
-func Absence(filter api.MetricsFilter) Predicate {
-	pred := Presence(filter)
-	return func(flow config.GenericMap) bool { return !pred(flow) }
-}
-
-func Equal(filter api.MetricsFilter) Predicate {
-	varLookups := extractVarLookups(filter.Value)
-	return func(flow config.GenericMap) bool {
-		if val, found := flow[filter.Key]; found {
-			sVal, ok := val.(string)
-			if !ok {
-				sVal = fmt.Sprint(val)
-			}
-			value := filter.Value
-			if len(varLookups) > 0 {
-				value = injectVars(flow, value, varLookups)
-			}
-			return sVal == value
-		}
-		return false
-	}
-}
-
-func NotEqual(filter api.MetricsFilter) Predicate {
-	pred := Equal(filter)
-	return func(flow config.GenericMap) bool { return !pred(flow) }
-}
-
-func Regex(filter api.MetricsFilter) Predicate {
-	r, _ := regexp.Compile(filter.Value)
-	return func(flow config.GenericMap) bool {
-		if val, found := flow[filter.Key]; found {
-			sVal, ok := val.(string)
-			if !ok {
-				sVal = fmt.Sprint(val)
-			}
-			return r.MatchString(sVal)
-		}
-		return false
-	}
-}
-
-func NotRegex(filter api.MetricsFilter) Predicate {
-	pred := Regex(filter)
-	return func(flow config.GenericMap) bool { return !pred(flow) }
-}
-
-func filterToPredicate(filter api.MetricsFilter) Predicate {
+func filterToPredicate(filter api.MetricsFilter) filters.Predicate {
 	switch filter.Type {
 	case api.MetricFilterEqual:
-		return Equal(filter)
+		return filters.Equal(filter.Key, filter.Value, true)
 	case api.MetricFilterNotEqual:
-		return NotEqual(filter)
+		return filters.NotEqual(filter.Key, filter.Value, true)
 	case api.MetricFilterPresence:
-		return Presence(filter)
+		return filters.Presence(filter.Key)
 	case api.MetricFilterAbsence:
-		return Absence(filter)
+		return filters.Absence(filter.Key)
 	case api.MetricFilterRegex:
-		return Regex(filter)
+		r, _ := regexp.Compile(filter.Value)
+		return filters.Regex(filter.Key, r)
 	case api.MetricFilterNotRegex:
-		return NotRegex(filter)
+		r, _ := regexp.Compile(filter.Value)
+		return filters.NotRegex(filter.Key, r)
 	}
 	// Default = Exact
-	return Equal(filter)
-}
-
-func extractVarLookups(value string) [][]string {
-	// Extract list of variables to lookup
-	// E.g: filter "$(SrcAddr):$(SrcPort)" would return [SrcAddr,SrcPort]
-	if len(value) > 0 {
-		return variableExtractor.FindAllStringSubmatch(value, -1)
-	}
-	return nil
-}
-
-func injectVars(flow config.GenericMap, filterValue string, varLookups [][]string) string {
-	injected := filterValue
-	for _, matchGroup := range varLookups {
-		var value string
-		if rawVal, found := flow[matchGroup[1]]; found {
-			if sVal, ok := rawVal.(string); ok {
-				value = sVal
-			} else {
-				value = utils.ConvertToString(rawVal)
-			}
-		}
-		injected = strings.ReplaceAll(injected, matchGroup[0], value)
-	}
-	return injected
+	return filters.Equal(filter.Key, filter.Value, true)
 }
 
 func Preprocess(def *api.MetricsItem) *Preprocessed {
