@@ -255,6 +255,7 @@ Following is the supported API format for network transformations:
                     add_kubernetes_infra: add output kubernetes isInfra field from input
                     reinterpret_direction: reinterpret flow direction at the node level (instead of net interface), to ease the deduplication process
                     add_subnet_label: categorize IPs based on known subnets configuration
+                    decode_tcp_flags: decode bitwise TCP flags into a string
                  kubernetes_infra: Kubernetes infra rule configuration
                      namespaceNameFields: entries for namespace and name input fields
                              name: name of the object
@@ -286,6 +287,9 @@ Following is the supported API format for network transformations:
                      input: entry input field
                      output: entry output field
                      protocol: entry protocol field
+                 decode_tcp_flags: Decode bitwise TCP flags into a string
+                     input: entry input field
+                     output: entry output field
          kubeConfig: global configuration related to Kubernetes (optional)
              configPath: path to kubeconfig file (optional)
              secondaryNetworks: configuration for secondary networks
