@@ -182,6 +182,7 @@ parameters:
 				{
 					Interface: "eth0",
 					Direction: pbflow.Direction_EGRESS,
+					Udn:       "udn-1",
 				},
 			},
 			EthProtocol:   2048,
@@ -249,6 +250,7 @@ parameters:
 		"TimeFlowStartMs":        float64(startTime.UnixMilli()),
 		"TimeFlowEndMs":          float64(endTime.UnixMilli()),
 		"Interfaces":             []interface{}{"eth0"},
+		"Udns":                   []interface{}{"udn-1"},
 		"AgentIP":                "10.11.12.13",
 		"PktDropBytes":           float64(100),
 		"PktDropPackets":         float64(10),
