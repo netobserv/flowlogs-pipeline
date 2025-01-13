@@ -934,8 +934,8 @@ github.com/vishvananda/netlink v1.3.0 h1:X7l42GfcV4S6E4vHTsw48qbrV+9PVojNfIhZcwQ
 github.com/vishvananda/netlink v1.3.0/go.mod h1:i6NetklAujEcC6fK0JPjT8qSwWyO0HLn4UKG+hGqeJs=
 github.com/vishvananda/netns v0.0.4 h1:Oeaw1EM2JMxD51g9uhtC0D7erkIjgmj8+JZc26m1YX8=
 github.com/vishvananda/netns v0.0.4/go.mod h1:SpkAiCQRtJ6TvvxPnOSyH3BMl6unz3xZlaprSwhNNJM=
-github.com/vladimirvivien/gexe v0.3.0 h1:4xwiOwGrDob5OMR6E92B9olDXYDglXdHhzR1ggYtWJM=
-github.com/vladimirvivien/gexe v0.3.0/go.mod h1:fp7cy60ON1xjhtEI/+bfSEIXX35qgmI+iRYlGOqbBFM=
+github.com/vladimirvivien/gexe v0.4.1 h1:W9gWkp8vSPjDoXDu04Yp4KljpVMaSt8IQuHswLDd5LY=
+github.com/vladimirvivien/gexe v0.4.1/go.mod h1:3gjgTqE2c0VyHnU5UOIwk7gyNzZDGulPb/DJPgcw64E=
 github.com/vmware/go-ipfix v0.9.0 h1:4/N5eFliqULEaCUQV0lafOpN/1bItPE9OTAPGhrIXus=
 github.com/vmware/go-ipfix v0.9.0/go.mod h1:MYEdL6Uel2ufOZyVCKvIAaw9hwnewK8aPr7rnwRbxMY=
 github.com/willf/bitset v1.1.3/go.mod h1:RjeCKbqT1RxIR/KWY6phxZiaY1IyutSBfGjNPySAYV4=
