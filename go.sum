@@ -693,8 +693,8 @@ github.com/netobserv/gopipes v0.3.0 h1:IYmPnnAVCdSK7VmHmpFhrVBOEm45qpgbZmJz1sSW+
 github.com/netobserv/gopipes v0.3.0/go.mod h1:N7/Gz05EOF0CQQSKWsv3eof22Cj2PB08Pbttw98YFYU=
 github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500 h1:RmnoJe/ci5q+QdM7upFdxiU+D8F3L3qTd5wXCwwHefw=
 github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500/go.mod h1:LHXpc5tjKvsfZn0pwLKrvlgEhZcCaw3Di9mUEZGAI4E=
-github.com/netobserv/netobserv-ebpf-agent v1.7.0-community.0.20241213165959-7e7f8c42a3f6 h1:ZuEAJ7Ui0fsMX8tGSz70cXDjlzRnviHjzqlJfWJh9VY=
-github.com/netobserv/netobserv-ebpf-agent v1.7.0-community.0.20241213165959-7e7f8c42a3f6/go.mod h1:20e1OPAs7h3k9PvNZWS9D6BnXEtkTk2LlfzD66uhvxY=
+github.com/netobserv/netobserv-ebpf-agent v1.7.0-community.0.20250115132126-73256abeed31 h1:fQB0tCcX0Fkk+I2lvzzVj2cQpeAYlh8UFmL45s3Nh5w=
+github.com/netobserv/netobserv-ebpf-agent v1.7.0-community.0.20250115132126-73256abeed31/go.mod h1:2UT/wN+zmU+pCajg0crx8+0KOmzS8pBNql5VqXAGY5I=
 github.com/netsampler/goflow2 v1.3.7 h1:XZaTy8kkMnGXpJ9hS3KbO1McyrFTpVNhVFEx9rNhMmc=
 github.com/netsampler/goflow2 v1.3.7/go.mod h1:4UZsVGVAs//iMCptUHn3WNScztJeUhZH7kDW2+/vDdQ=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
