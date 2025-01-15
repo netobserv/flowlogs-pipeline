@@ -177,7 +177,13 @@ parameters:
 	someDuration := endTime.Sub(startTime)
 	_, err = flowSender.Client().Send(context.Background(), &pbflow.Records{
 		Entries: []*pbflow.Record{{
-			Interface:     "eth0",
+			Interface: "eth0",
+			DupList: []*pbflow.DupMapEntry{
+				{
+					Interface: "eth0",
+					Direction: pbflow.Direction_EGRESS,
+				},
+			},
 			EthProtocol:   2048,
 			Bytes:         456,
 			Packets:       123,
@@ -213,7 +219,7 @@ parameters:
 			DnsLatency:             durationpb.New(someDuration),
 			DnsId:                  1,
 			DnsFlags:               0x80,
-			DnsErrno:               1,
+			DnsErrno:               22,
 			TimeFlowRtt:            durationpb.New(someDuration),
 		}},
 	})
@@ -252,7 +258,7 @@ parameters:
 		"DnsLatencyMs":           float64(someDuration.Milliseconds()),
 		"DnsId":                  float64(1),
 		"DnsFlags":               float64(0x80),
-		"DnsErrno":               float64(1),
+		"DnsErrno":               float64(22),
 		"DnsFlagsResponseCode":   "NoError",
 		"TimeFlowRttNs":          float64(someDuration.Nanoseconds()),
 	}, capturedRecord)
