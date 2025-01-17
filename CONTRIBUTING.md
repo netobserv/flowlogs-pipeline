@@ -1,5 +1,7 @@
 # Contributing to flowlogs-pipeline
 
+_See also: [NetObserv projects contribution guide](https://github.com/netobserv/documents/blob/main/CONTRIBUTING.md)_
+
 :fire: A big welcome and thank you for considering contributing to flowlogs-pipeline open source project! :fire:  
 
 We want to make contributing to this project as easy and transparent as possible. 
@@ -102,5 +104,3 @@ members of the project's leadership.
 
 This Code of Conduct is adapted from the [Contributor Covenant][homepage], version 1.4,
 available at [http://contributor-covenant.org/version/1/4][version]
-
-
