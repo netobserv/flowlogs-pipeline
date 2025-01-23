@@ -472,3 +472,63 @@ func TestEnrichUsingMac(t *testing.T) {
 		"SrcMAC": "AA:BB:CC:DD:EE:FF",
 	}, entry)
 }
+
+func TestEnrichUsingUDN(t *testing.T) {
+	udnRules := api.NetworkTransformRules{
+		{
+			Type: api.NetworkAddKubernetes,
+			Kubernetes: &api.K8sRule{
+				IPField:   "SrcAddr",
+				UDNsField: "Udns",
+				Output:    "SrcK8s",
+				AddZone:   true,
+			},
+		},
+		{
+			Type: api.NetworkAddKubernetes,
+			Kubernetes: &api.K8sRule{
+				IPField:   "DstAddr",
+				UDNsField: "Udns",
+				Output:    "DstK8s",
+				AddZone:   true,
+			},
+		},
+	}
+	udnInfo := map[string]*inf.Info{
+		"ns-1/primary-udn~10.200.200.12": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "pod-1",
+				Namespace: "ns-1",
+			},
+			Type:        "Pod",
+			HostName:    "host-1",
+			HostIP:      "100.0.0.1",
+			NetworkName: "ns-1/primary-udn",
+		},
+	}
+	informers = inf.SetupStubs(ipInfo, udnInfo, nodes)
+
+	// Pod to unknown using UDN
+	entry := config.GenericMap{
+		"SrcAddr": "8.8.8.8",
+		"DstAddr": "10.200.200.12",
+		"Udns":    []string{"", "default", "ns-1/primary-udn"},
+	}
+	for _, r := range udnRules {
+		Enrich(entry, r.Kubernetes)
+	}
+	assert.Equal(t, config.GenericMap{
+		"SrcAddr":            "8.8.8.8",
+		"DstAddr":            "10.200.200.12",
+		"Udns":               []string{"", "default", "ns-1/primary-udn"},
+		"DstK8s_HostIP":      "100.0.0.1",
+		"DstK8s_HostName":    "host-1",
+		"DstK8s_Name":        "pod-1",
+		"DstK8s_Namespace":   "ns-1",
+		"DstK8s_OwnerName":   "",
+		"DstK8s_OwnerType":   "",
+		"DstK8s_Type":        "Pod",
+		"DstK8s_Zone":        "us-east-1a",
+		"DstK8s_NetworkName": "ns-1/primary-udn",
+	}, entry)
+}
