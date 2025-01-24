@@ -472,3 +472,88 @@ func TestEnrichUsingMac(t *testing.T) {
 		"SrcMAC": "AA:BB:CC:DD:EE:FF",
 	}, entry)
 }
+
+func TestEnrichUsingUDN(t *testing.T) {
+	udnRules := api.NetworkTransformRules{
+		{
+			Type: api.NetworkAddKubernetes,
+			Kubernetes: &api.K8sRule{
+				IPField:   "SrcAddr",
+				MACField:  "SrcMAC",
+				UDNsField: "Udns",
+				Output:    "SrcK8s",
+				AddZone:   true,
+			},
+		},
+		{
+			Type: api.NetworkAddKubernetes,
+			Kubernetes: &api.K8sRule{
+				IPField:   "DstAddr",
+				MACField:  "DstMAC",
+				UDNsField: "Udns",
+				Output:    "DstK8s",
+				AddZone:   true,
+			},
+		},
+	}
+	customIndexes := map[string]*inf.Info{
+		"~~AA:BB:CC:DD:EE:FF": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "pod-1",
+				Namespace: "ns-1",
+			},
+			Type:        "Pod",
+			HostName:    "host-1",
+			HostIP:      "100.0.0.1",
+			NetworkName: "custom-network",
+		},
+		"ns-2/primary-udn~10.200.200.12": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "pod-2",
+				Namespace: "ns-2",
+			},
+			Type:        "Pod",
+			HostName:    "host-2",
+			HostIP:      "100.0.0.2",
+			NetworkName: "ns-2/primary-udn",
+		},
+	}
+	informers = inf.SetupStubs(ipInfo, customIndexes, nodes)
+
+	// MAC-indexed Pod 1 to UDN-indexed Pod 2
+	entry := config.GenericMap{
+		"SrcAddr": "8.8.8.8",
+		"SrcMAC":  "AA:BB:CC:DD:EE:FF", // pod-1
+		"DstAddr": "10.200.200.12",     // pod-2 (UDN)
+		"DstMAC":  "GG:HH:II:JJ:KK:LL", // unknown
+		"Udns":    []string{"", "default", "ns-2/primary-udn"},
+	}
+	for _, r := range udnRules {
+		Enrich(entry, r.Kubernetes)
+	}
+	assert.Equal(t, config.GenericMap{
+		"SrcAddr":            "8.8.8.8",
+		"SrcMAC":             "AA:BB:CC:DD:EE:FF",
+		"DstAddr":            "10.200.200.12",
+		"DstMAC":             "GG:HH:II:JJ:KK:LL",
+		"Udns":               []string{"", "default", "ns-2/primary-udn"},
+		"SrcK8s_HostIP":      "100.0.0.1",
+		"SrcK8s_HostName":    "host-1",
+		"SrcK8s_Name":        "pod-1",
+		"SrcK8s_Namespace":   "ns-1",
+		"SrcK8s_OwnerName":   "",
+		"SrcK8s_OwnerType":   "",
+		"SrcK8s_Type":        "Pod",
+		"SrcK8s_Zone":        "us-east-1a",
+		"SrcK8s_NetworkName": "custom-network",
+		"DstK8s_HostIP":      "100.0.0.2",
+		"DstK8s_HostName":    "host-2",
+		"DstK8s_Name":        "pod-2",
+		"DstK8s_Namespace":   "ns-2",
+		"DstK8s_OwnerName":   "",
+		"DstK8s_OwnerType":   "",
+		"DstK8s_Type":        "Pod",
+		"DstK8s_Zone":        "us-east-1b",
+		"DstK8s_NetworkName": "ns-2/primary-udn",
+	}, entry)
+}
