@@ -116,7 +116,6 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 	<-cp.GetMsgChan()
 	// 3rd = data record
 	dataMsg := <-cp.GetMsgChan()
-	cp.CloseMsgChan()
 	cp.Stop()
 
 	expectedFields := write.IPv4IANAFields
@@ -178,7 +177,6 @@ func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 	<-cp.GetMsgChan()
 	// 3rd = data record
 	dataMsg := <-cp.GetMsgChan()
-	cp.CloseMsgChan()
 	cp.Stop()
 
 	expectedFields := write.IPv4IANAFields
@@ -237,7 +235,6 @@ func TestBasicIPFIXFlow(t *testing.T) {
 	<-cp.GetMsgChan()
 	// 3rd = data record
 	dataMsg := <-cp.GetMsgChan()
-	cp.CloseMsgChan()
 	cp.Stop()
 
 	// Check template
