@@ -18,20 +18,20 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/netobserv/gopipes v0.3.0
 	github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500
-	github.com/netobserv/netobserv-ebpf-agent v1.7.0-community.0.20250121105617-5110b52b3be7
+	github.com/netobserv/netobserv-ebpf-agent v1.7.0-community.0.20250128120438-528ec8c1eb42
 	github.com/netsampler/goflow2 v1.3.7
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/client_model v0.6.1
-	github.com/prometheus/common v0.55.0
+	github.com/prometheus/common v0.59.1
 	github.com/segmentio/kafka-go v0.4.47
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0
-	github.com/vladimirvivien/gexe v0.3.0
-	github.com/vmware/go-ipfix v0.9.0
+	github.com/vladimirvivien/gexe v0.4.1
+	github.com/vmware/go-ipfix v0.12.0
 	go.opentelemetry.io/otel v1.33.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.32.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.29.0
@@ -43,12 +43,12 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.32.0
 	golang.org/x/net v0.34.0
 	google.golang.org/grpc v1.70.0
-	google.golang.org/protobuf v1.35.2
+	google.golang.org/protobuf v1.36.4
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.32.0
-	k8s.io/apimachinery v0.32.0
-	k8s.io/client-go v0.32.0
-	sigs.k8s.io/e2e-framework v0.4.0
+	k8s.io/api v0.32.1
+	k8s.io/apimachinery v0.32.1
+	k8s.io/client-go v0.32.1
+	sigs.k8s.io/e2e-framework v0.6.0
 )
 
 require (
@@ -67,7 +67,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
-	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/gavv/monotime v0.0.0-20190418164738-30dba4353424 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
@@ -106,11 +106,10 @@ require (
 	github.com/ovn-org/libovsdb v0.7.1-0.20240820095311-ce1951614a20 // indirect
 	github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250116185920-20e7a0e40c93 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
-	github.com/pierrec/lz4/v4 v4.1.17 // indirect
-	github.com/pion/dtls/v2 v2.2.4 // indirect
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
+	github.com/pion/dtls/v2 v2.2.12 // indirect
 	github.com/pion/logging v0.2.2 // indirect
-	github.com/pion/transport/v2 v2.0.0 // indirect
-	github.com/pion/udp v0.1.4 // indirect
+	github.com/pion/transport/v2 v2.2.10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/prometheus/prometheus v1.8.2-0.20201028100903-3245b3267b24 // indirect
@@ -126,7 +125,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/urfave/cli/v2 v2.27.2 // indirect
 	github.com/vishvananda/netlink v1.3.0 // indirect
-	github.com/vishvananda/netns v0.0.4 // indirect
+	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
@@ -138,7 +137,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
-	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
@@ -153,12 +152,12 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/component-base v0.31.1 // indirect
+	k8s.io/component-base v0.32.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect
-	sigs.k8s.io/controller-runtime v0.19.0 // indirect
+	sigs.k8s.io/controller-runtime v0.20.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
