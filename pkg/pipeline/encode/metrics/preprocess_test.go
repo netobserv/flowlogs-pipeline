@@ -14,8 +14,8 @@ func Test_Flatten(t *testing.T) {
 		"namespace":  "A",
 		"interfaces": []string{"eth0", "123456"},
 		"events": []any{
-			config.GenericMap{"type": "egress", "name": "my_egress"},
-			config.GenericMap{"type": "acl", "name": "my_policy"},
+			map[string]string{"type": "egress", "name": "my_egress"},
+			map[string]string{"type": "acl", "name": "my_policy"},
 		},
 		"bytes": 7,
 	})
