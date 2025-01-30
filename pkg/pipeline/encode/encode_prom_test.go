@@ -675,15 +675,15 @@ func Test_WithObjectListField(t *testing.T) {
 		{
 			"namespace": "A",
 			"events": []any{
-				config.GenericMap{"type": "acl", "name": "my_policy"},
+				map[string]string{"type": "acl", "name": "my_policy"},
 			},
 			"bytes": 1,
 		},
 		{
 			"namespace": "A",
 			"events": []any{
-				config.GenericMap{"type": "egress", "name": "my_egress"},
-				config.GenericMap{"type": "acl", "name": "my_policy"},
+				map[string]string{"type": "egress", "name": "my_egress"},
+				map[string]string{"type": "acl", "name": "my_policy"},
 			},
 			"bytes": 10,
 		},
@@ -733,8 +733,8 @@ func Test_WithObjectListField_bis(t *testing.T) {
 		{
 			"namespace": "A",
 			"events": []any{
-				config.GenericMap{"type": "egress", "name": "my_egress"},
-				config.GenericMap{"type": "acl", "name": "my_policy"},
+				map[string]string{"type": "egress", "name": "my_egress"},
+				map[string]string{"type": "acl", "name": "my_policy"},
 			},
 			"bytes": 10,
 		},
@@ -774,8 +774,8 @@ func Test_WithObjectListField_ter(t *testing.T) {
 		{
 			"namespace": "A",
 			"events": []any{
-				config.GenericMap{"type": "egress", "name": "my_egress"},
-				config.GenericMap{"type": "acl", "name": "my_policy"},
+				map[string]string{"type": "egress", "name": "my_egress"},
+				map[string]string{"type": "acl", "name": "my_policy"},
 			},
 			"bytes": 10,
 		},

@@ -18,7 +18,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/netobserv/gopipes v0.3.0
 	github.com/netobserv/loki-client-go v0.0.0-20220927092034-f37122a54500
-	github.com/netobserv/netobserv-ebpf-agent v1.7.0-community.0.20250128120438-528ec8c1eb42
+	github.com/netobserv/netobserv-ebpf-agent v1.7.0-community.0.20250130135234-c2d377a18f1b
 	github.com/netsampler/goflow2 v1.3.7
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.5
