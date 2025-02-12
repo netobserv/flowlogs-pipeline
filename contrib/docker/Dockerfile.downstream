@@ -19,7 +19,8 @@ COPY cmd/ cmd/
 COPY pkg/ pkg/
 
 RUN git status --porcelain
-RUN GOARCH=$TARGETARCH go build -ldflags "-X main.BuildVersion=$BUILDVERSION -X main.BuildDate=$DATE" "./cmd/flowlogs-pipeline"
+ENV GOEXPERIMENT strictfipsruntime
+RUN GOARCH=$TARGETARCH go build -tags strictfipsruntime -ldflags "-X main.BuildVersion=$BUILDVERSION -X main.BuildDate=$DATE" "./cmd/flowlogs-pipeline"
 
 # final stage
 FROM --platform=linux/$TARGETARCH registry.access.redhat.com/ubi9/ubi-minimal:9.5-1738816775
