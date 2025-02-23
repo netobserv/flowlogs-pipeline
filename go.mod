@@ -13,7 +13,7 @@ require (
 	github.com/heptiolabs/healthcheck v0.0.0-20211123025425-613501dd5deb
 	github.com/ip2location/ip2location-go/v9 v9.7.1
 	github.com/json-iterator/go v1.1.12
-	github.com/mariomac/guara v0.0.0-20220523124851-5fc279816f1f
+	github.com/mariomac/guara v0.0.0-20230621100729-42bd7716e524
 	github.com/minio/minio-go/v7 v7.0.82
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/netobserv/gopipes v0.3.0
