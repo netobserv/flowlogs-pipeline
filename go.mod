@@ -73,6 +73,7 @@ require (
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
+	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
@@ -82,6 +83,7 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-jsonnet v0.20.0
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
@@ -145,6 +147,7 @@ require (
 	golang.org/x/time v0.7.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250115164207-1a7da9e5054f // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
+	gopkg.in/DATA-DOG/go-sqlmock.v1 v1.3.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/gcfg.v1 v1.2.3 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -163,10 +166,4 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-require (
-	github.com/go-logr/logr v1.4.2 // indirect
-	github.com/google/go-jsonnet v0.20.0
-	gopkg.in/DATA-DOG/go-sqlmock.v1 v1.3.0 // indirect
-)
-
-replace github.com/prometheus/common v0.46.0 => github.com/netobserv/prometheus-common v0.46.0-netobserv
+replace github.com/prometheus/common => github.com/netobserv/prometheus-common v0.59.1-netobserv
