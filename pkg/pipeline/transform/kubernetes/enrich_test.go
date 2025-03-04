@@ -5,20 +5,22 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/datasource"
 	inf "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/model"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var ipInfo = map[string]*inf.Info{
+var ipInfo = map[string]*model.ResourceMetaData{
 	"1.2.3.4": nil,
 	"10.0.0.1": {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "pod-1",
 			Namespace: "ns-1",
 		},
-		Type:        "Pod",
+		Kind:        "Pod",
 		HostName:    "host-1",
 		HostIP:      "100.0.0.1",
 		NetworkName: "primary",
@@ -28,7 +30,7 @@ var ipInfo = map[string]*inf.Info{
 			Name:      "pod-2",
 			Namespace: "ns-2",
 		},
-		Type:        "Pod",
+		Kind:        "Pod",
 		HostName:    "host-2",
 		HostIP:      "100.0.0.2",
 		NetworkName: "primary",
@@ -38,25 +40,25 @@ var ipInfo = map[string]*inf.Info{
 			Name:      "service-1",
 			Namespace: "ns-1",
 		},
-		Type:        "Service",
+		Kind:        "Service",
 		NetworkName: "primary",
 	},
 }
 
-var customKeysInfo = map[string]*inf.Info{
+var customKeysInfo = map[string]*model.ResourceMetaData{
 	"~~AA:BB:CC:DD:EE:FF": {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "pod-1",
 			Namespace: "ns-1",
 		},
-		Type:        "Pod",
+		Kind:        "Pod",
 		HostName:    "host-1",
 		HostIP:      "100.0.0.1",
 		NetworkName: "custom-network",
 	},
 }
 
-var nodes = map[string]*inf.Info{
+var nodes = map[string]*model.ResourceMetaData{
 	"host-1": {
 		ObjectMeta: v1.ObjectMeta{
 			Name: "host-1",
@@ -64,7 +66,7 @@ var nodes = map[string]*inf.Info{
 				nodeZoneLabelName: "us-east-1a",
 			},
 		},
-		Type:        "Node",
+		Kind:        "Node",
 		NetworkName: "primary",
 	},
 	"host-2": {
@@ -74,7 +76,7 @@ var nodes = map[string]*inf.Info{
 				nodeZoneLabelName: "us-east-1b",
 			},
 		},
-		Type:        "Node",
+		Kind:        "Node",
 		NetworkName: "primary",
 	},
 }
@@ -100,8 +102,14 @@ var rules = api.NetworkTransformRules{
 	},
 }
 
+func setupStubs(ipInfo, customKeysInfo, nodes map[string]*model.ResourceMetaData) {
+	cfg, informers := inf.SetupStubs(ipInfo, customKeysInfo, nodes)
+	ds = &datasource.Datasource{Informers: informers}
+	infConfig = cfg
+}
+
 func TestEnrich(t *testing.T) {
-	informers = inf.SetupStubs(ipInfo, customKeysInfo, nodes)
+	setupStubs(ipInfo, customKeysInfo, nodes)
 
 	// Pod to unknown
 	entry := config.GenericMap{
@@ -207,7 +215,7 @@ var otelRules = api.NetworkTransformRules{
 }
 
 func TestEnrich_Otel(t *testing.T) {
-	informers = inf.SetupStubs(ipInfo, customKeysInfo, nodes)
+	setupStubs(ipInfo, customKeysInfo, nodes)
 
 	// Pod to unknown
 	entry := config.GenericMap{
@@ -297,7 +305,7 @@ func TestEnrich_Otel(t *testing.T) {
 }
 
 func TestEnrich_EmptyNamespace(t *testing.T) {
-	informers = inf.SetupStubs(ipInfo, customKeysInfo, nodes)
+	setupStubs(ipInfo, customKeysInfo, nodes)
 
 	// We need to check that, whether it returns NotFound or just an empty namespace,
 	// there is no map entry for that namespace (an empty-valued map entry is not valid)
@@ -430,7 +438,7 @@ func TestEnrichLayer(t *testing.T) {
 }
 
 func TestEnrichUsingMac(t *testing.T) {
-	informers = inf.SetupStubs(ipInfo, customKeysInfo, nodes)
+	setupStubs(ipInfo, customKeysInfo, nodes)
 
 	// Pod to unknown using MAC
 	entry := config.GenericMap{
@@ -496,13 +504,13 @@ func TestEnrichUsingUDN(t *testing.T) {
 			},
 		},
 	}
-	customIndexes := map[string]*inf.Info{
+	customIndexes := map[string]*model.ResourceMetaData{
 		"~~AA:BB:CC:DD:EE:FF": {
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "pod-1",
 				Namespace: "ns-1",
 			},
-			Type:        "Pod",
+			Kind:        "Pod",
 			HostName:    "host-1",
 			HostIP:      "100.0.0.1",
 			NetworkName: "custom-network",
@@ -512,13 +520,13 @@ func TestEnrichUsingUDN(t *testing.T) {
 				Name:      "pod-2",
 				Namespace: "ns-2",
 			},
-			Type:        "Pod",
+			Kind:        "Pod",
 			HostName:    "host-2",
 			HostIP:      "100.0.0.2",
 			NetworkName: "ns-2/primary-udn",
 		},
 	}
-	informers = inf.SetupStubs(ipInfo, customIndexes, nodes)
+	setupStubs(ipInfo, customIndexes, nodes)
 
 	// MAC-indexed Pod 1 to UDN-indexed Pod 2
 	entry := config.GenericMap{
