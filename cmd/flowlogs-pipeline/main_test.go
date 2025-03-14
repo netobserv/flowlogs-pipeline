@@ -26,9 +26,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
 )
 
 func TestTheMain(t *testing.T) {
@@ -48,7 +50,10 @@ func TestTheMain(t *testing.T) {
 
 func TestPipelineConfigSetup(t *testing.T) {
 	// Kube init mock
-	kubernetes.MockInformers()
+	kubernetes.ResetGlobals(
+		informers.NewInformersMock(),
+		informers.NewConfig(api.NetworkTransformKubeConfig{}),
+	)
 
 	js := `{
     "PipeLine": "[{\"name\":\"grpc\"},{\"follows\":\"grpc\",\"name\":\"enrich\"},{\"follows\":\"enrich\",\"name\":\"loki\"},{\"follows\":\"enrich\",\"name\":\"prometheus\"}]",
