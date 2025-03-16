@@ -24,7 +24,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const (
