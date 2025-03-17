@@ -1,6 +1,9 @@
 package model
 
 import (
+	"bytes"
+	"encoding/gob"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,4 +29,36 @@ type ResourceMetaData struct {
 	NetworkName      string
 	IPs              []string
 	SecondaryNetKeys []string
+}
+
+type Operation string
+
+const (
+	OperationAdd    Operation = "add"
+	OperationDelete Operation = "delete"
+	OperationUpdate Operation = "update"
+)
+
+type KafkaCacheMessage struct {
+	Operation Operation
+	Resource  *ResourceMetaData
+}
+
+func (i *KafkaCacheMessage) ToBytes() ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	if err := enc.Encode(i); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func MessageFromBytes(b []byte) (*KafkaCacheMessage, error) {
+	var msg KafkaCacheMessage
+	buf := bytes.NewReader(b)
+	dec := gob.NewDecoder(buf)
+	if err := dec.Decode(&msg); err != nil {
+		return nil, err
+	}
+	return &msg, nil
 }
