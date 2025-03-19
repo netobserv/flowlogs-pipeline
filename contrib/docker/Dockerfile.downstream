@@ -1,8 +1,6 @@
-ARG TARGETARCH
 ARG BUILDVERSION
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.23 as builder
 
-ARG TARGETARCH=amd64
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.23 as builder
 ARG BUILDVERSION
 
 WORKDIR /app
@@ -15,10 +13,10 @@ COPY cmd/ cmd/
 COPY pkg/ pkg/
 
 ENV GOEXPERIMENT strictfipsruntime
-RUN GOARCH=$TARGETARCH go build -tags strictfipsruntime -ldflags "-X main.BuildVersion=$BUILDVERSION -X main.BuildDate=`date +%Y-%m-%d\ %H:%M`" "./cmd/flowlogs-pipeline"
+RUN go build -tags strictfipsruntime -ldflags "-X main.BuildVersion=$BUILDVERSION -X main.BuildDate=`date +%Y-%m-%d\ %H:%M`" "./cmd/flowlogs-pipeline"
 
 # final stage
-FROM --platform=linux/$TARGETARCH registry.access.redhat.com/ubi9/ubi-minimal:9.5-1741599792
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5-1741599792
 ARG BUILDVERSION
 
 WORKDIR /
