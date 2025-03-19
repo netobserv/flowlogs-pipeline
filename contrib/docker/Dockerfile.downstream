@@ -23,7 +23,8 @@ WORKDIR /
 COPY --from=builder /app/flowlogs-pipeline .
 COPY LICENSE /licenses/
 
-# expose ports
+USER 65532:65532
+
 ENTRYPOINT ["/flowlogs-pipeline"]
 
 LABEL com.redhat.component="network-observability-flowlogs-pipeline-container"
