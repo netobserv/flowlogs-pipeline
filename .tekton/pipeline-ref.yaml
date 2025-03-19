@@ -25,10 +25,6 @@ spec:
     description: Revision of the Source Repository
     name: revision
     type: string
-  - default: "main"
-    description: Version to build
-    name: build-version
-    type: string
   - description: Fully Qualified Output Image
     name: output-image
     type: string
@@ -197,9 +193,6 @@ spec:
     - name: BUILD_ARGS
       value:
       - $(params.build-args[*])
-      - "COMMIT=$(tasks.clone-repository.results.commit)"
-      - "BUILDVERSION=$(params.build-version)"
-      - "DATE=$(tasks.clone-repository.results.commit-timestamp)"
     - name: BUILD_ARGS_FILE
       value: $(params.build-args-file)
     - name: SOURCE_ARTIFACT
