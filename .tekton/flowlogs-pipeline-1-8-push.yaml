@@ -24,8 +24,6 @@ spec:
     value: '{{revision}}'
   - name: output-image
     value: quay.io/redhat-user-workloads/ocp-network-observab-tenant/netobserv-operator/flowlogs-pipeline:{{revision}}
-  - name: image-expires-after
-    value: 14d
   - name: build-args-file
     value: contrib/docker/Dockerfile-args.downstream
   - name: dockerfile
