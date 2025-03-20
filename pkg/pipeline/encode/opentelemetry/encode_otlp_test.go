@@ -92,8 +92,10 @@ func Test_EncodeOtlpLogs(t *testing.T) {
 	require.Len(t, otlpReceivedData, 2)
 	expected1, _ := json.Marshal(entry1)
 	expected2, _ := json.Marshal(entry2)
-	require.Equal(t, string(expected1), *otlpReceivedData[0].Body())
-	require.Equal(t, string(expected2), *otlpReceivedData[1].Body())
+	body1 := otlpReceivedData[0].Body()
+	body2 := otlpReceivedData[1].Body()
+	require.Equal(t, string(expected1), body1.(string))
+	require.Equal(t, string(expected2), body2.(string))
 }
 
 func Test_EncodeOtlpTLSConfigEmpty(t *testing.T) {
