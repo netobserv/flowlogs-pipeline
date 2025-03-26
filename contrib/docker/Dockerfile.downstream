@@ -1,36 +1,31 @@
-ARG TARGETARCH
-ARG COMMIT
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.23 as builder
-
-ARG TARGETARCH=amd64
 ARG BUILDVERSION
-ARG DATE
+
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.23 as builder
+ARG BUILDVERSION
 
 WORKDIR /app
 
 # Copy source code
 COPY go.mod .
 COPY go.sum .
-COPY Makefile .
-COPY .mk/ .mk/
 COPY vendor/ vendor/
-COPY .git/ .git/
 COPY cmd/ cmd/
 COPY pkg/ pkg/
 
-RUN git status --porcelain
 ENV GOEXPERIMENT strictfipsruntime
-RUN GOARCH=$TARGETARCH go build -tags strictfipsruntime -ldflags "-X main.BuildVersion=$BUILDVERSION -X main.BuildDate=$DATE" "./cmd/flowlogs-pipeline"
+RUN go build -tags strictfipsruntime -ldflags "-X 'main.BuildVersion=$BUILDVERSION' -X 'main.BuildDate=`date +%Y-%m-%d\ %H:%M`'" "./cmd/flowlogs-pipeline"
 
 # final stage
-FROM --platform=linux/$TARGETARCH registry.access.redhat.com/ubi9/ubi-minimal:9.5-1739420147
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5-1742914212
+ARG BUILDVERSION
 
-ARG COMMIT
+WORKDIR /
+COPY --from=builder /app/flowlogs-pipeline .
+COPY LICENSE /licenses/
 
-COPY --from=builder /app/flowlogs-pipeline /app/
+USER 65532:65532
 
-# expose ports
-ENTRYPOINT ["/app/flowlogs-pipeline"]
+ENTRYPOINT ["/flowlogs-pipeline"]
 
 LABEL com.redhat.component="network-observability-flowlogs-pipeline-container"
 LABEL name="network-observability-flowlogs-pipeline"
@@ -39,7 +34,5 @@ LABEL io.k8s.description="Network Observability Flow-Logs Pipeline"
 LABEL summary="Network Observability Flow-Logs Pipeline"
 LABEL maintainer="support@redhat.com"
 LABEL io.openshift.tags="network-observability-flowlogs-pipeline"
-LABEL upstream-vcs-type="git"
-LABEL upstream-vcs-ref="$COMMIT"
-LABEL description="Flow-Logs Pipeline (a.k.a. FLP) is an observability tool that consumes logs from various inputs, transform them and export logs to loki and / or time series metrics to prometheus."
-LABEL version="1.9.0"
+LABEL description="Flow-Logs Pipeline is an observability tool that consumes logs from various inputs, transforms them and exports logs to Loki and metrics to Prometheus."
+LABEL version=$BUILDVERSION
