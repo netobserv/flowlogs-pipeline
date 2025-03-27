@@ -11,10 +11,10 @@ metadata:
       == "main"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: netobserv-operator
-    appstudio.openshift.io/component: flowlogs-pipeline
+    appstudio.openshift.io/application: netobserv-ystream
+    appstudio.openshift.io/component: flowlogs-pipeline-ystream
     pipelines.appstudio.openshift.io/type: build
-  name: flowlogs-pipeline-on-push
+  name: flowlogs-pipeline-ystream-on-push
   namespace: ocp-network-observab-tenant
 spec:
   params:
