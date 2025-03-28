@@ -23,7 +23,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/ocp-network-observab-tenant/netobserv-operator/flowlogs-pipeline:{{revision}}
+    value: quay.io/redhat-user-workloads/ocp-network-observab-tenant/flowlogs-pipeline-ystream:{{revision}}
   - name: build-args-file
     value: contrib/docker/Dockerfile-args.downstream
   - name: dockerfile
