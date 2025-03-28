@@ -95,6 +95,32 @@ parameters:
 	assert.Equal(t, loki.apiConfig.BatchSize, loki.lokiConfig.BatchSize)
 }
 
+func Test_buildLokiConfig_ClientDeserialization(t *testing.T) {
+	var yamlConfig = `
+log-level: debug
+pipeline:
+  - name: write1
+parameters:
+  - name: write1
+    write:
+      type: loki
+      loki:
+        url: "https://foo:8888/"
+        clientConfig: {"tls_config":{"insecure_skip_verify":true},"follow_redirects":false,"enable_http2":false,"proxy_url":null}
+`
+	v, cfg := test.InitConfig(t, yamlConfig)
+	require.NotNil(t, v)
+
+	// Due to an issue in prometheus/common HTTP client serde, a null proxy_url ends up as ""
+	// see also https://github.com/netobserv/prometheus-common/commit/df8298253f033b910644548b6902df9d34baa752 (won't be merged upstream)
+	// However now this shouldn't have any bad effect anymore, as the proxyFunc is now nil
+	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
+	require.NoError(t, err)
+
+	proxyFunc := loki.lokiConfig.Client.Proxy()
+	assert.Nil(t, proxyFunc)
+}
+
 func TestLoki_ProcessRecord(t *testing.T) {
 	var yamlConfig = `
 log-level: debug
