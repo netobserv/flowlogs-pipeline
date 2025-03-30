@@ -28,7 +28,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func Test_checkHeader(t *testing.T) {
