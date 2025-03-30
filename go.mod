@@ -167,4 +167,4 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-replace github.com/prometheus/common => github.com/netobserv/prometheus-common v0.59.1-netobserv
+replace github.com/prometheus/common => github.com/netobserv/prometheus-common v0.62.0
