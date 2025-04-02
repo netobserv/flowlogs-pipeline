@@ -91,7 +91,8 @@ func (ke *IPFIXClient) sendMessage(set entities.Set) error {
 	index := entities.MsgHeaderLength + entities.SetHeaderLen
 	for _, record := range set.GetRecords() {
 		l := record.GetRecordLength()
-		copy(bytesSlice[index:index+l], record.GetBuffer())
+		s, _ := record.GetBuffer()
+		copy(bytesSlice[index:index+l], s)
 		index += l
 	}
 	_, err := ke.conn.Write(bytesSlice)
