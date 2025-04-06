@@ -22,9 +22,7 @@ type BpfAdditionalMetrics struct {
 	TranslatedFlow   BpfTranslatedFlowT
 	EthProtocol      uint16
 	NetworkEventsIdx uint8
-	FlowEncrypted    bool
-	FlowEncryptedRet uint8
-	_                [5]byte
+	_                [7]byte
 }
 
 type BpfDirectionT uint32
@@ -219,30 +217,25 @@ func LoadBpfObjects(obj interface{}, opts *ebpf.CollectionOptions) error {
 type BpfSpecs struct {
 	BpfProgramSpecs
 	BpfMapSpecs
-	BpfVariableSpecs
 }
 
-// BpfProgramSpecs contains programs before they are loaded into the kernel.
+// BpfSpecs contains programs before they are loaded into the kernel.
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type BpfProgramSpecs struct {
-	KfreeSkb                *ebpf.ProgramSpec `ebpf:"kfree_skb"`
-	NetworkEventsMonitoring *ebpf.ProgramSpec `ebpf:"network_events_monitoring"`
-	TcEgressFlowParse       *ebpf.ProgramSpec `ebpf:"tc_egress_flow_parse"`
-	TcEgressPcaParse        *ebpf.ProgramSpec `ebpf:"tc_egress_pca_parse"`
-	TcIngressFlowParse      *ebpf.ProgramSpec `ebpf:"tc_ingress_flow_parse"`
-	TcIngressPcaParse       *ebpf.ProgramSpec `ebpf:"tc_ingress_pca_parse"`
-	TcpRcvFentry            *ebpf.ProgramSpec `ebpf:"tcp_rcv_fentry"`
-	TcpRcvKprobe            *ebpf.ProgramSpec `ebpf:"tcp_rcv_kprobe"`
-	TcxEgressFlowParse      *ebpf.ProgramSpec `ebpf:"tcx_egress_flow_parse"`
-	TcxEgressPcaParse       *ebpf.ProgramSpec `ebpf:"tcx_egress_pca_parse"`
-	TcxIngressFlowParse     *ebpf.ProgramSpec `ebpf:"tcx_ingress_flow_parse"`
-	TcxIngressPcaParse      *ebpf.ProgramSpec `ebpf:"tcx_ingress_pca_parse"`
-	TrackNatManipPkt        *ebpf.ProgramSpec `ebpf:"track_nat_manip_pkt"`
-	XfrmInputKprobe         *ebpf.ProgramSpec `ebpf:"xfrm_input_kprobe"`
-	XfrmInputKretprobe      *ebpf.ProgramSpec `ebpf:"xfrm_input_kretprobe"`
-	XfrmOutputKprobe        *ebpf.ProgramSpec `ebpf:"xfrm_output_kprobe"`
-	XfrmOutputKretprobe     *ebpf.ProgramSpec `ebpf:"xfrm_output_kretprobe"`
+	KfreeSkb                  *ebpf.ProgramSpec `ebpf:"kfree_skb"`
+	RhNetworkEventsMonitoring *ebpf.ProgramSpec `ebpf:"rh_network_events_monitoring"`
+	TcEgressFlowParse         *ebpf.ProgramSpec `ebpf:"tc_egress_flow_parse"`
+	TcEgressPcaParse          *ebpf.ProgramSpec `ebpf:"tc_egress_pca_parse"`
+	TcIngressFlowParse        *ebpf.ProgramSpec `ebpf:"tc_ingress_flow_parse"`
+	TcIngressPcaParse         *ebpf.ProgramSpec `ebpf:"tc_ingress_pca_parse"`
+	TcpRcvFentry              *ebpf.ProgramSpec `ebpf:"tcp_rcv_fentry"`
+	TcpRcvKprobe              *ebpf.ProgramSpec `ebpf:"tcp_rcv_kprobe"`
+	TcxEgressFlowParse        *ebpf.ProgramSpec `ebpf:"tcx_egress_flow_parse"`
+	TcxEgressPcaParse         *ebpf.ProgramSpec `ebpf:"tcx_egress_pca_parse"`
+	TcxIngressFlowParse       *ebpf.ProgramSpec `ebpf:"tcx_ingress_flow_parse"`
+	TcxIngressPcaParse        *ebpf.ProgramSpec `ebpf:"tcx_ingress_pca_parse"`
+	TrackNatManipPkt          *ebpf.ProgramSpec `ebpf:"track_nat_manip_pkt"`
 }
 
 // BpfMapSpecs contains maps before they are loaded into the kernel.
@@ -255,32 +248,8 @@ type BpfMapSpecs struct {
 	DnsFlows              *ebpf.MapSpec `ebpf:"dns_flows"`
 	FilterMap             *ebpf.MapSpec `ebpf:"filter_map"`
 	GlobalCounters        *ebpf.MapSpec `ebpf:"global_counters"`
-	IpsecEgressMap        *ebpf.MapSpec `ebpf:"ipsec_egress_map"`
-	IpsecIngressMap       *ebpf.MapSpec `ebpf:"ipsec_ingress_map"`
 	PacketRecord          *ebpf.MapSpec `ebpf:"packet_record"`
 	PeerFilterMap         *ebpf.MapSpec `ebpf:"peer_filter_map"`
-}
-
-// BpfVariableSpecs contains global variables before they are loaded into the kernel.
-//
-// It can be passed ebpf.CollectionSpec.Assign.
-type BpfVariableSpecs struct {
-	DnsPort                        *ebpf.VariableSpec `ebpf:"dns_port"`
-	EnableDnsTracking              *ebpf.VariableSpec `ebpf:"enable_dns_tracking"`
-	EnableFlowsFiltering           *ebpf.VariableSpec `ebpf:"enable_flows_filtering"`
-	EnableIpsec                    *ebpf.VariableSpec `ebpf:"enable_ipsec"`
-	EnableNetworkEventsMonitoring  *ebpf.VariableSpec `ebpf:"enable_network_events_monitoring"`
-	EnablePca                      *ebpf.VariableSpec `ebpf:"enable_pca"`
-	EnablePktTranslationTracking   *ebpf.VariableSpec `ebpf:"enable_pkt_translation_tracking"`
-	EnableRtt                      *ebpf.VariableSpec `ebpf:"enable_rtt"`
-	FilterKey                      *ebpf.VariableSpec `ebpf:"filter_key"`
-	FilterValue                    *ebpf.VariableSpec `ebpf:"filter_value"`
-	HasFilterSampling              *ebpf.VariableSpec `ebpf:"has_filter_sampling"`
-	NetworkEventsMonitoringGroupid *ebpf.VariableSpec `ebpf:"network_events_monitoring_groupid"`
-	Sampling                       *ebpf.VariableSpec `ebpf:"sampling"`
-	TraceMessages                  *ebpf.VariableSpec `ebpf:"trace_messages"`
-	Unused8                        *ebpf.VariableSpec `ebpf:"unused8"`
-	Unused9                        *ebpf.VariableSpec `ebpf:"unused9"`
 }
 
 // BpfObjects contains all objects after they have been loaded into the kernel.
@@ -289,7 +258,6 @@ type BpfVariableSpecs struct {
 type BpfObjects struct {
 	BpfPrograms
 	BpfMaps
-	BpfVariables
 }
 
 func (o *BpfObjects) Close() error {
@@ -309,8 +277,6 @@ type BpfMaps struct {
 	DnsFlows              *ebpf.Map `ebpf:"dns_flows"`
 	FilterMap             *ebpf.Map `ebpf:"filter_map"`
 	GlobalCounters        *ebpf.Map `ebpf:"global_counters"`
-	IpsecEgressMap        *ebpf.Map `ebpf:"ipsec_egress_map"`
-	IpsecIngressMap       *ebpf.Map `ebpf:"ipsec_ingress_map"`
 	PacketRecord          *ebpf.Map `ebpf:"packet_record"`
 	PeerFilterMap         *ebpf.Map `ebpf:"peer_filter_map"`
 }
@@ -323,62 +289,34 @@ func (m *BpfMaps) Close() error {
 		m.DnsFlows,
 		m.FilterMap,
 		m.GlobalCounters,
-		m.IpsecEgressMap,
-		m.IpsecIngressMap,
 		m.PacketRecord,
 		m.PeerFilterMap,
 	)
-}
-
-// BpfVariables contains all global variables after they have been loaded into the kernel.
-//
-// It can be passed to LoadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
-type BpfVariables struct {
-	DnsPort                        *ebpf.Variable `ebpf:"dns_port"`
-	EnableDnsTracking              *ebpf.Variable `ebpf:"enable_dns_tracking"`
-	EnableFlowsFiltering           *ebpf.Variable `ebpf:"enable_flows_filtering"`
-	EnableIpsec                    *ebpf.Variable `ebpf:"enable_ipsec"`
-	EnableNetworkEventsMonitoring  *ebpf.Variable `ebpf:"enable_network_events_monitoring"`
-	EnablePca                      *ebpf.Variable `ebpf:"enable_pca"`
-	EnablePktTranslationTracking   *ebpf.Variable `ebpf:"enable_pkt_translation_tracking"`
-	EnableRtt                      *ebpf.Variable `ebpf:"enable_rtt"`
-	FilterKey                      *ebpf.Variable `ebpf:"filter_key"`
-	FilterValue                    *ebpf.Variable `ebpf:"filter_value"`
-	HasFilterSampling              *ebpf.Variable `ebpf:"has_filter_sampling"`
-	NetworkEventsMonitoringGroupid *ebpf.Variable `ebpf:"network_events_monitoring_groupid"`
-	Sampling                       *ebpf.Variable `ebpf:"sampling"`
-	TraceMessages                  *ebpf.Variable `ebpf:"trace_messages"`
-	Unused8                        *ebpf.Variable `ebpf:"unused8"`
-	Unused9                        *ebpf.Variable `ebpf:"unused9"`
 }
 
 // BpfPrograms contains all programs after they have been loaded into the kernel.
 //
 // It can be passed to LoadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type BpfPrograms struct {
-	KfreeSkb                *ebpf.Program `ebpf:"kfree_skb"`
-	NetworkEventsMonitoring *ebpf.Program `ebpf:"network_events_monitoring"`
-	TcEgressFlowParse       *ebpf.Program `ebpf:"tc_egress_flow_parse"`
-	TcEgressPcaParse        *ebpf.Program `ebpf:"tc_egress_pca_parse"`
-	TcIngressFlowParse      *ebpf.Program `ebpf:"tc_ingress_flow_parse"`
-	TcIngressPcaParse       *ebpf.Program `ebpf:"tc_ingress_pca_parse"`
-	TcpRcvFentry            *ebpf.Program `ebpf:"tcp_rcv_fentry"`
-	TcpRcvKprobe            *ebpf.Program `ebpf:"tcp_rcv_kprobe"`
-	TcxEgressFlowParse      *ebpf.Program `ebpf:"tcx_egress_flow_parse"`
-	TcxEgressPcaParse       *ebpf.Program `ebpf:"tcx_egress_pca_parse"`
-	TcxIngressFlowParse     *ebpf.Program `ebpf:"tcx_ingress_flow_parse"`
-	TcxIngressPcaParse      *ebpf.Program `ebpf:"tcx_ingress_pca_parse"`
-	TrackNatManipPkt        *ebpf.Program `ebpf:"track_nat_manip_pkt"`
-	XfrmInputKprobe         *ebpf.Program `ebpf:"xfrm_input_kprobe"`
-	XfrmInputKretprobe      *ebpf.Program `ebpf:"xfrm_input_kretprobe"`
-	XfrmOutputKprobe        *ebpf.Program `ebpf:"xfrm_output_kprobe"`
-	XfrmOutputKretprobe     *ebpf.Program `ebpf:"xfrm_output_kretprobe"`
+	KfreeSkb                  *ebpf.Program `ebpf:"kfree_skb"`
+	RhNetworkEventsMonitoring *ebpf.Program `ebpf:"rh_network_events_monitoring"`
+	TcEgressFlowParse         *ebpf.Program `ebpf:"tc_egress_flow_parse"`
+	TcEgressPcaParse          *ebpf.Program `ebpf:"tc_egress_pca_parse"`
+	TcIngressFlowParse        *ebpf.Program `ebpf:"tc_ingress_flow_parse"`
+	TcIngressPcaParse         *ebpf.Program `ebpf:"tc_ingress_pca_parse"`
+	TcpRcvFentry              *ebpf.Program `ebpf:"tcp_rcv_fentry"`
+	TcpRcvKprobe              *ebpf.Program `ebpf:"tcp_rcv_kprobe"`
+	TcxEgressFlowParse        *ebpf.Program `ebpf:"tcx_egress_flow_parse"`
+	TcxEgressPcaParse         *ebpf.Program `ebpf:"tcx_egress_pca_parse"`
+	TcxIngressFlowParse       *ebpf.Program `ebpf:"tcx_ingress_flow_parse"`
+	TcxIngressPcaParse        *ebpf.Program `ebpf:"tcx_ingress_pca_parse"`
+	TrackNatManipPkt          *ebpf.Program `ebpf:"track_nat_manip_pkt"`
 }
 
 func (p *BpfPrograms) Close() error {
 	return _BpfClose(
 		p.KfreeSkb,
-		p.NetworkEventsMonitoring,
+		p.RhNetworkEventsMonitoring,
 		p.TcEgressFlowParse,
 		p.TcEgressPcaParse,
 		p.TcIngressFlowParse,
@@ -390,10 +328,6 @@ func (p *BpfPrograms) Close() error {
 		p.TcxIngressFlowParse,
 		p.TcxIngressPcaParse,
 		p.TrackNatManipPkt,
-		p.XfrmInputKprobe,
-		p.XfrmInputKretprobe,
-		p.XfrmOutputKprobe,
-		p.XfrmOutputKretprobe,
 	)
 }
 

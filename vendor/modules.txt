@@ -317,7 +317,7 @@ github.com/netobserv/loki-client-go/pkg/labelutil
 github.com/netobserv/loki-client-go/pkg/logproto
 github.com/netobserv/loki-client-go/pkg/metric
 github.com/netobserv/loki-client-go/pkg/urlutil
-# github.com/netobserv/netobserv-ebpf-agent v1.7.0-community.0.20250402134204-4b40d242d157
+# github.com/netobserv/netobserv-ebpf-agent v1.8.2-community
 ## explicit; go 1.23.0
 github.com/netobserv/netobserv-ebpf-agent/pkg/decode
 github.com/netobserv/netobserv-ebpf-agent/pkg/ebpf
@@ -351,7 +351,7 @@ github.com/ovn-org/libovsdb/model
 github.com/ovn-org/libovsdb/ovsdb
 github.com/ovn-org/libovsdb/ovsdb/serverdb
 github.com/ovn-org/libovsdb/updates
-# github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250227173154-57a2590a1d16
+# github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250314182307-95b6ca544bdf
 ## explicit; go 1.22.0
 github.com/ovn-org/ovn-kubernetes/go-controller/observability-lib/model
 github.com/ovn-org/ovn-kubernetes/go-controller/observability-lib/ovsdb
