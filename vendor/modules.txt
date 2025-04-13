@@ -666,8 +666,8 @@ go.opentelemetry.io/otel/sdk/internal/env
 go.opentelemetry.io/otel/sdk/internal/x
 go.opentelemetry.io/otel/sdk/resource
 go.opentelemetry.io/otel/sdk/trace
-# go.opentelemetry.io/otel/sdk/metric v1.32.0
-## explicit; go 1.22
+# go.opentelemetry.io/otel/sdk/metric v1.34.0
+## explicit; go 1.22.0
 go.opentelemetry.io/otel/sdk/metric
 go.opentelemetry.io/otel/sdk/metric/exemplar
 go.opentelemetry.io/otel/sdk/metric/internal
@@ -761,20 +761,21 @@ golang.org/x/text/unicode/norm
 # golang.org/x/time v0.7.0
 ## explicit; go 1.18
 golang.org/x/time/rate
-# google.golang.org/genproto/googleapis/api v0.0.0-20250207221924-e9438ea467c6
-## explicit; go 1.22
+# google.golang.org/genproto/googleapis/api v0.0.0-20250409194420-de1ac958c67a
+## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/api/httpbody
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20250207221924-e9438ea467c6
-## explicit; go 1.22
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20250404141209-ee84b53bf3d0
+## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.70.0
-## explicit; go 1.22
+# google.golang.org/grpc v1.71.0
+## explicit; go 1.22.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
 google.golang.org/grpc/backoff
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/base
+google.golang.org/grpc/balancer/endpointsharding
 google.golang.org/grpc/balancer/grpclb/state
 google.golang.org/grpc/balancer/pickfirst
 google.golang.org/grpc/balancer/pickfirst/internal
@@ -808,7 +809,9 @@ google.golang.org/grpc/internal/grpcutil
 google.golang.org/grpc/internal/idle
 google.golang.org/grpc/internal/metadata
 google.golang.org/grpc/internal/pretty
+google.golang.org/grpc/internal/proxyattributes
 google.golang.org/grpc/internal/resolver
+google.golang.org/grpc/internal/resolver/delegatingresolver
 google.golang.org/grpc/internal/resolver/dns
 google.golang.org/grpc/internal/resolver/dns/internal
 google.golang.org/grpc/internal/resolver/passthrough
@@ -833,8 +836,8 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.36.5
-## explicit; go 1.21
+# google.golang.org/protobuf v1.36.6
+## explicit; go 1.22
 google.golang.org/protobuf/encoding/protodelim
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
