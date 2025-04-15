@@ -6,7 +6,7 @@
   "labels": ["dependencies"],
   "gomod": {
     "schedule": [
-      "after 9am on tuesday"
+      "after 5am on wednesday"
     ],
     "postUpdateOptions": [
       "gomodUpdateImportPaths",
@@ -15,6 +15,7 @@
     "packageRules": [
       {
         "matchManagers": ["gomod"],
+        "matchDepTypes": ["indirect"],
         "enabled": true
       },
       {
