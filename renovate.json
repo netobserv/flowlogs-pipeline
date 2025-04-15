@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>konflux-ci/mintmaker//config/renovate/renovate.json"
+  ],
+  "labels": ["dependencies"],
+  "gomod": {
+    "schedule": [
+      "after 9am on tuesday"
+    ],
+    "postUpdateOptions": [
+      "gomodUpdateImportPaths",
+      "gomodTidy"
+    ],
+    "packageRules": [
+      {
+        "matchManagers": ["gomod"],
+        "enabled": true
+      },
+      {
+        "matchPackageNames": ["**"],
+        "groupName": "Go modules"
+      }
+    ]
+  }
+}
