@@ -9,7 +9,7 @@ require (
 	github.com/agoda-com/opentelemetry-logs-go v0.6.0
 	github.com/benbjohnson/clock v1.3.5
 	github.com/go-kit/kit v0.13.0
-	github.com/golang/snappy v0.0.4
+	github.com/golang/snappy v1.0.0
 	github.com/heptiolabs/healthcheck v0.0.0-20211123025425-613501dd5deb
 	github.com/ip2location/ip2location-go/v9 v9.7.1
 	github.com/json-iterator/go v1.1.12
