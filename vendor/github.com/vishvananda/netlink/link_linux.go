@@ -2670,9 +2670,38 @@ func (h *Handle) LinkSetGroup(link Link, group int) error {
 	return err
 }
 
+// LinkSetIP6AddrGenMode sets the IPv6 address generation mode of the link device.
+// Equivalent to: `ip link set $link addrgenmode $mode`
+func LinkSetIP6AddrGenMode(link Link, mode int) error {
+	return pkgHandle.LinkSetIP6AddrGenMode(link, mode)
+}
+
+// LinkSetIP6AddrGenMode sets the IPv6 address generation mode of the link device.
+// Equivalent to: `ip link set $link addrgenmode $mode`
+func (h *Handle) LinkSetIP6AddrGenMode(link Link, mode int) error {
+	base := link.Attrs()
+	h.ensureIndex(base)
+	req := h.newNetlinkRequest(unix.RTM_SETLINK, unix.NLM_F_ACK)
+
+	msg := nl.NewIfInfomsg(unix.AF_UNSPEC)
+	msg.Index = int32(base.Index)
+	req.AddData(msg)
+
+	b := make([]byte, 1)
+	b[0] = uint8(mode)
+
+	data := nl.NewRtAttr(unix.IFLA_INET6_ADDR_GEN_MODE, b)
+	af := nl.NewRtAttr(unix.AF_INET6, data.Serialize())
+	spec := nl.NewRtAttr(unix.IFLA_AF_SPEC, af.Serialize())
+	req.AddData(spec)
+
+	_, err := req.Execute(unix.NETLINK_ROUTE, 0)
+	return err
+}
+
 func addNetkitAttrs(nk *Netkit, linkInfo *nl.RtAttr, flag int) error {
-	if nk.peerLinkAttrs.HardwareAddr != nil || nk.HardwareAddr != nil {
-		return fmt.Errorf("netkit doesn't support setting Ethernet")
+	if nk.Mode != NETKIT_MODE_L2 && (nk.LinkAttrs.HardwareAddr != nil || nk.peerLinkAttrs.HardwareAddr != nil) {
+		return fmt.Errorf("netkit only allows setting Ethernet in L2 mode")
 	}
 
 	data := linkInfo.AddRtAttr(nl.IFLA_INFO_DATA, nil)
@@ -2723,6 +2752,9 @@ func addNetkitAttrs(nk *Netkit, linkInfo *nl.RtAttr, flag int) error {
 		case NsFd:
 			peer.AddRtAttr(unix.IFLA_NET_NS_FD, nl.Uint32Attr(uint32(ns)))
 		}
+	}
+	if nk.peerLinkAttrs.HardwareAddr != nil {
+		peer.AddRtAttr(unix.IFLA_ADDRESS, []byte(nk.peerLinkAttrs.HardwareAddr))
 	}
 	return nil
 }
@@ -2821,7 +2853,7 @@ func parseVxlanData(link Link, data []syscall.NetlinkRouteAttr) {
 		case nl.IFLA_VXLAN_PORT_RANGE:
 			buf := bytes.NewBuffer(datum.Value[0:4])
 			var pr vxlanPortRange
-			if binary.Read(buf, binary.BigEndian, &pr) != nil {
+			if binary.Read(buf, binary.BigEndian, &pr) == nil {
 				vxlan.PortLow = int(pr.Lo)
 				vxlan.PortHigh = int(pr.Hi)
 			}
@@ -3900,11 +3932,27 @@ func parseTuntapData(link Link, data []syscall.NetlinkRouteAttr) {
 			tuntap.Group = native.Uint32(datum.Value)
 		case nl.IFLA_TUN_TYPE:
 			tuntap.Mode = TuntapMode(uint8(datum.Value[0]))
+		case nl.IFLA_TUN_PI:
+			if datum.Value[0] == 0 {
+				tuntap.Flags |= TUNTAP_NO_PI
+			}
+		case nl.IFLA_TUN_VNET_HDR:
+			if datum.Value[0] == 1 {
+				tuntap.Flags |= TUNTAP_VNET_HDR
+			}
 		case nl.IFLA_TUN_PERSIST:
 			tuntap.NonPersist = false
 			if uint8(datum.Value[0]) == 0 {
 				tuntap.NonPersist = true
 			}
+		case nl.IFLA_TUN_MULTI_QUEUE:
+			if datum.Value[0] == 1 {
+				tuntap.Flags |= TUNTAP_MULTI_QUEUE
+			}
+		case nl.IFLA_TUN_NUM_QUEUES:
+			tuntap.Queues = int(native.Uint32(datum.Value))
+		case nl.IFLA_TUN_NUM_DISABLED_QUEUES:
+			tuntap.DisabledQueues = int(native.Uint32(datum.Value))
 		}
 	}
 }
