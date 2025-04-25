@@ -431,7 +431,7 @@ github.com/prometheus/common/version
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/prometheus/prometheus v1.8.2-0.20201028100903-3245b3267b24 => github.com/prometheus/prometheus v0.303.0
+# github.com/prometheus/prometheus v0.303.0
 ## explicit; go 1.23.0
 github.com/prometheus/prometheus/model/exemplar
 github.com/prometheus/prometheus/model/histogram
@@ -1380,4 +1380,3 @@ sigs.k8s.io/structured-merge-diff/v4/value
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v2
-# github.com/prometheus/prometheus => github.com/prometheus/prometheus v0.303.0

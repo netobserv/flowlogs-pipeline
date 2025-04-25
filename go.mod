@@ -116,7 +116,7 @@ require (
 	github.com/pion/transport/v2 v2.2.10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/procfs v0.16.0 // indirect
-	github.com/prometheus/prometheus v1.8.2-0.20201028100903-3245b3267b24 // indirect
+	github.com/prometheus/prometheus v0.303.0 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/safchain/ethtool v0.5.10 // indirect
@@ -166,5 +166,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
-
-replace github.com/prometheus/prometheus => github.com/prometheus/prometheus v0.303.0
