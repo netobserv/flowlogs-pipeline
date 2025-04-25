@@ -14,7 +14,8 @@
 package labels
 
 import (
-	"fmt"
+	"bytes"
+	"strconv"
 )
 
 // MatchType is an enum for label matching types.
@@ -28,17 +29,18 @@ const (
 	MatchNotRegexp
 )
 
+var matchTypeToStr = [...]string{
+	MatchEqual:     "=",
+	MatchNotEqual:  "!=",
+	MatchRegexp:    "=~",
+	MatchNotRegexp: "!~",
+}
+
 func (m MatchType) String() string {
-	typeToStr := map[MatchType]string{
-		MatchEqual:     "=",
-		MatchNotEqual:  "!=",
-		MatchRegexp:    "=~",
-		MatchNotRegexp: "!~",
+	if m < MatchEqual || m > MatchNotRegexp {
+		panic("unknown match type")
 	}
-	if str, ok := typeToStr[m]; ok {
-		return str
-	}
-	panic("unknown match type")
+	return matchTypeToStr[m]
 }
 
 // Matcher models the matching of a label.
@@ -77,7 +79,29 @@ func MustNewMatcher(mt MatchType, name, val string) *Matcher {
 }
 
 func (m *Matcher) String() string {
-	return fmt.Sprintf("%s%s%q", m.Name, m.Type, m.Value)
+	// Start a buffer with a pre-allocated size on stack to cover most needs.
+	var bytea [1024]byte
+	b := bytes.NewBuffer(bytea[:0])
+
+	if m.shouldQuoteName() {
+		b.Write(strconv.AppendQuote(b.AvailableBuffer(), m.Name))
+	} else {
+		b.WriteString(m.Name)
+	}
+	b.WriteString(m.Type.String())
+	b.Write(strconv.AppendQuote(b.AvailableBuffer(), m.Value))
+
+	return b.String()
+}
+
+func (m *Matcher) shouldQuoteName() bool {
+	for i, c := range m.Name {
+		if c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (i > 0 && c >= '0' && c <= '9') {
+			continue
+		}
+		return true
+	}
+	return len(m.Name) == 0
 }
 
 // Matches returns whether the matcher matches the given string value.
@@ -116,4 +140,31 @@ func (m *Matcher) GetRegexString() string {
 		return ""
 	}
 	return m.re.GetRegexString()
+}
+
+// SetMatches returns a set of equality matchers for the current regex matchers if possible.
+// For examples the regexp `a(b|f)` will returns "ab" and "af".
+// Returns nil if we can't replace the regexp by only equality matchers.
+func (m *Matcher) SetMatches() []string {
+	if m.re == nil {
+		return nil
+	}
+	return m.re.SetMatches()
+}
+
+// Prefix returns the required prefix of the value to match, if possible.
+// It will be empty if it's an equality matcher or if the prefix can't be determined.
+func (m *Matcher) Prefix() string {
+	if m.re == nil {
+		return ""
+	}
+	return m.re.prefix
+}
+
+// IsRegexOptimized returns whether regex is optimized.
+func (m *Matcher) IsRegexOptimized() bool {
+	if m.re == nil {
+		return false
+	}
+	return m.re.IsOptimized()
 }
