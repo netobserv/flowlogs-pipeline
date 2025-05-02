@@ -211,5 +211,11 @@ extract-binaries: ## Extract all MULTIARCH_TARGETS binaries
 	mkdir -p release-assets; \
 	$(foreach target,$(MULTIARCH_TARGETS),$(call extract_target,$(target)))
 
+.PHONY: goyacc
+goyacc: ## Regenerate filters query langage
+	@echo "### Regenerate filters query langage"
+	GOFLAGS="" go install golang.org/x/tools/cmd/goyacc@v0.32.0
+	goyacc -o pkg/dsl/expr.y.go pkg/dsl/expr.y
+
 include .mk/development.mk
 include .mk/shortcuts.mk

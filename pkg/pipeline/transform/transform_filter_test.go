@@ -676,34 +676,8 @@ func Test_Transform_KeepEntry(t *testing.T) {
 	newFilter := api.TransformFilter{
 		Rules: []api.TransformFilterRule{
 			{
-				Type: api.KeepEntryAllSatisfied,
-				KeepEntryAllSatisfied: []*api.KeepEntryRule{
-					{
-						Type: api.KeepEntryIfEqual,
-						KeepEntry: &api.TransformFilterGenericRule{
-							Input: "namespace",
-							Value: "A",
-						},
-					},
-					{
-						Type: api.KeepEntryIfExists,
-						KeepEntry: &api.TransformFilterGenericRule{
-							Input: "workload",
-						},
-					},
-				},
-			},
-			{
-				Type: api.KeepEntryAllSatisfied,
-				KeepEntryAllSatisfied: []*api.KeepEntryRule{
-					{
-						Type: api.KeepEntryIfRegexMatch,
-						KeepEntry: &api.TransformFilterGenericRule{
-							Input: "service",
-							Value: "abc.+",
-						},
-					},
-				},
+				Type:           api.KeepEntryQuery,
+				KeepEntryQuery: `(namespace="A" and with(workload)) or service=~"abc.+"`,
 			},
 		},
 	}
@@ -742,29 +716,13 @@ func Test_Transform_KeepEntrySampling(t *testing.T) {
 	newFilter := api.TransformFilter{
 		Rules: []api.TransformFilterRule{
 			{
-				Type: api.KeepEntryAllSatisfied,
-				KeepEntryAllSatisfied: []*api.KeepEntryRule{
-					{
-						Type: api.KeepEntryIfEqual,
-						KeepEntry: &api.TransformFilterGenericRule{
-							Input: "namespace",
-							Value: "A",
-						},
-					},
-				},
+				Type:              api.KeepEntryQuery,
+				KeepEntryQuery:    `namespace="A"`,
 				KeepEntrySampling: 10,
 			},
 			{
-				Type: api.KeepEntryAllSatisfied,
-				KeepEntryAllSatisfied: []*api.KeepEntryRule{
-					{
-						Type: api.KeepEntryIfEqual,
-						KeepEntry: &api.TransformFilterGenericRule{
-							Input: "namespace",
-							Value: "B",
-						},
-					},
-				},
+				Type:           api.KeepEntryQuery,
+				KeepEntryQuery: `namespace="B"`,
 			},
 		},
 	}

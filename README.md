@@ -386,6 +386,16 @@ removal of only the `SrcPort` key and value
 Using `remove_entry_if_equal` will remove the entry if the specified field exists and is equal to the specified value.
 Using `remove_entry_if_not_equal` will remove the entry if the specified field exists and is not equal to the specified value.
 
+#### Transform Filter: query language
+
+Alternatively, a query language allows to filter flows, keeping entries rather than removing them.
+
+```
+(srcnamespace="netobserv" OR (srcnamespace="ingress" AND dstnamespace="netobserv")) AND srckind!="service"
+```
+
+[See here](./docs/filtering.md) for more information about this language.
+
 ### Transform Network
 
 `transform network` provides specific functionality that is useful for transformation of network flow-logs:
@@ -945,6 +955,7 @@ Images
   image-push            Push MULTIARCH_TARGETS images  
   manifest-build        Build MULTIARCH_TARGETS manifest  
   manifest-push         Push MULTIARCH_TARGETS manifest  
+  goyacc                Regenerate filters query langage  
   
 kubernetes  
   deploy                Deploy the image  
