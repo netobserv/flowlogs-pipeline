@@ -714,6 +714,7 @@ func Test_Transform_KeepEntry(t *testing.T) {
 
 func Test_Transform_KeepEntrySampling(t *testing.T) {
 	newFilter := api.TransformFilter{
+		SamplingField: "sampling",
 		Rules: []api.TransformFilterRule{
 			{
 				Type:              api.KeepEntryQuery,
@@ -723,6 +724,11 @@ func Test_Transform_KeepEntrySampling(t *testing.T) {
 			{
 				Type:           api.KeepEntryQuery,
 				KeepEntryQuery: `namespace="B"`,
+			},
+			{
+				Type:              api.KeepEntryQuery,
+				KeepEntryQuery:    `namespace="C"`,
+				KeepEntrySampling: 10,
 			},
 		},
 	}
@@ -738,18 +744,33 @@ func Test_Transform_KeepEntrySampling(t *testing.T) {
 		input = append(input, config.GenericMap{
 			"namespace": "B",
 		})
+		input = append(input, config.GenericMap{
+			"namespace": "C",
+			"sampling":  50, // First-pass sampling already exists
+		})
 	}
 
 	countA := 0
 	countB := 0
+	countC := 0
 
 	for _, flow := range input {
 		if out, ok := tf.Transform(flow); ok {
 			switch out["namespace"] {
 			case "A":
 				countA++
+				sampling, ok := out["sampling"]
+				assert.True(t, ok)
+				assert.Equal(t, 10, sampling)
 			case "B":
 				countB++
+				_, ok := out["sampling"]
+				assert.False(t, ok)
+			case "C":
+				countC++
+				sampling, ok := out["sampling"]
+				assert.True(t, ok)
+				assert.Equal(t, 500, sampling)
 			}
 		}
 	}
@@ -757,4 +778,6 @@ func Test_Transform_KeepEntrySampling(t *testing.T) {
 	assert.Less(t, countA, 300)
 	assert.Greater(t, countA, 30)
 	assert.Equal(t, countB, 1000)
+	assert.Less(t, countC, 300)
+	assert.Greater(t, countC, 30)
 }
