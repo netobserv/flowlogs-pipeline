@@ -53,6 +53,7 @@ func TestIngest(t *testing.T) {
 	assert.EqualValues(t, 12345678, flow["TimeFlowStart"])
 	assert.EqualValues(t, 12345678, flow["TimeFlowEnd"])
 	assert.Equal(t, "1.2.3.4", flow["SrcAddr"])
+	assert.Equal(t, "127.0.0.1", flow["SamplerAddress"])
 }
 
 // The IPFIX client might send information before the Ingester is actually listening,
