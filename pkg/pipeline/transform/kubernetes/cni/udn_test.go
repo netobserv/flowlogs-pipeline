@@ -1,6 +1,7 @@
 package cni
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -29,7 +30,7 @@ func udnConfigAnnotation(ip string) string {
 
 func TestExtractUDNStatusKeys(t *testing.T) {
 	// Annotation not found => no error, no key
-	keys, err := udnHandler.GetPodUniqueKeys(&udnPod)
+	keys, err := udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
 	require.NoError(t, err)
 	require.Empty(t, keys)
 
@@ -37,7 +38,7 @@ func TestExtractUDNStatusKeys(t *testing.T) {
 	udnPod.Annotations = map[string]string{
 		ovnAnnotation: udnConfigAnnotation("10.200.200.12"),
 	}
-	keys, err = udnHandler.GetPodUniqueKeys(&udnPod)
+	keys, err = udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
 	require.NoError(t, err)
 	require.Equal(t, []string{"mesh-arena/primary-udn~10.200.200.12"}, keys)
 
@@ -45,7 +46,7 @@ func TestExtractUDNStatusKeys(t *testing.T) {
 	udnPod.Annotations = map[string]string{
 		ovnAnnotation: udnConfigAnnotation("10.200.200.12/24"),
 	}
-	keys, err = udnHandler.GetPodUniqueKeys(&udnPod)
+	keys, err = udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
 	require.NoError(t, err)
 	require.Equal(t, []string{"mesh-arena/primary-udn~10.200.200.12"}, keys)
 
@@ -53,7 +54,7 @@ func TestExtractUDNStatusKeys(t *testing.T) {
 	udnPod.Annotations = map[string]string{
 		ovnAnnotation: udnConfigAnnotation("2001:0db8::1111"),
 	}
-	keys, err = udnHandler.GetPodUniqueKeys(&udnPod)
+	keys, err = udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
 	require.NoError(t, err)
 	require.Equal(t, []string{"mesh-arena/primary-udn~2001:0db8::1111"}, keys)
 
@@ -61,7 +62,7 @@ func TestExtractUDNStatusKeys(t *testing.T) {
 	udnPod.Annotations = map[string]string{
 		ovnAnnotation: udnConfigAnnotation("2001:0db8::1111/24"),
 	}
-	keys, err = udnHandler.GetPodUniqueKeys(&udnPod)
+	keys, err = udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
 	require.NoError(t, err)
 	require.Equal(t, []string{"mesh-arena/primary-udn~2001:0db8::1111"}, keys)
 }
