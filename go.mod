@@ -14,7 +14,7 @@ require (
 	github.com/ip2location/ip2location-go/v9 v9.7.1
 	github.com/json-iterator/go v1.1.12
 	github.com/mariomac/guara v0.0.0-20250408105519-1e4dbdfb7136
-	github.com/minio/minio-go/v7 v7.0.91
+	github.com/minio/minio-go/v7 v7.0.92
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/netobserv/gopipes v0.3.0
 	github.com/netobserv/loki-client-go v0.0.0-20250425113517-526b43e51847
@@ -49,6 +49,11 @@ require (
 	k8s.io/apimachinery v0.32.3
 	k8s.io/client-go v0.32.3
 	sigs.k8s.io/e2e-framework v0.6.0
+)
+
+require (
+	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
+	github.com/tinylib/msgp v1.3.0 // indirect
 )
 
 require (
