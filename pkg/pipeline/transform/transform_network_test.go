@@ -526,33 +526,36 @@ func Test_DecodeTCPFlags(t *testing.T) {
 	tr, err := NewTransformNetwork(config.StageParam{
 		Transform: &config.Transform{
 			Network: &api.TransformNetwork{
-				Rules: []api.NetworkTransformRule{{
-					Type: "decode_tcp_flags",
-					DecodeTCPFlags: &api.NetworkGenericRule{
-						Input:  "TcpFlags",
-						Output: "TcpFlagsString",
+				Rules: []api.NetworkTransformRule{
+					{
+						Type: "decode_tcp_flags",
+						DecodeTCPFlags: &api.NetworkGenericRule{
+							Input:  "TcpFlagsU16",
+							Output: "TcpFlagsU16String",
+						},
 					},
-				}},
+					{
+						Type: "decode_tcp_flags",
+						DecodeTCPFlags: &api.NetworkGenericRule{
+							Input:  "TcpFlagsU32",
+							Output: "TcpFlagsU32String",
+						},
+					},
+				},
 			},
 		},
 	}, nil)
 	require.NoError(t, err)
 
 	output, ok := tr.Transform(config.GenericMap{
-		"TcpFlags": uint16(17),
+		"TcpFlagsU16": uint16(17),
+		"TcpFlagsU32": uint32(18),
 	})
 	require.True(t, ok)
 	require.Equal(t, config.GenericMap{
-		"TcpFlags":       uint16(17),
-		"TcpFlagsString": []string{"FIN", "ACK"},
-	}, output)
-
-	output, ok = tr.Transform(config.GenericMap{
-		"TcpFlags": uint32(17),
-	})
-	require.True(t, ok)
-	require.Equal(t, config.GenericMap{
-		"TcpFlags":       uint32(17),
-		"TcpFlagsString": []string{"FIN", "ACK"},
+		"TcpFlagsU16":       uint16(17),
+		"TcpFlagsU16String": []string{"FIN", "ACK"},
+		"TcpFlagsU32":       uint32(18),
+		"TcpFlagsU32String": []string{"SYN", "ACK"},
 	}, output)
 }
