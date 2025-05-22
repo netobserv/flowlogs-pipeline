@@ -1,6 +1,9 @@
 log-level: info
 health:
   port: 8080
+metricsSettings:
+  suppressDefaultMetrics: true
+  prefix: flp_
 pipeline:
   - name: ingest
   - name: conntrack
