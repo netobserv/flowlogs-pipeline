@@ -22,4 +22,6 @@ type IngestCollector struct {
 	Port        int    `yaml:"port,omitempty" json:"port,omitempty" doc:"the port number to listen on, for IPFIX/NetFlow v9. Omit or set to 0 to disable IPFIX/NetFlow v9 ingestion"`
 	PortLegacy  int    `yaml:"portLegacy,omitempty" json:"portLegacy,omitempty" doc:"the port number to listen on, for legacy NetFlow v5. Omit or set to 0 to disable NetFlow v5 ingestion"`
 	BatchMaxLen int    `yaml:"batchMaxLen,omitempty" json:"batchMaxLen,omitempty" doc:"the number of accumulated flows before being forwarded for processing"`
+	Workers     int    `yaml:"workers,omitempty" json:"workers,omitempty" doc:"the number of netflow/ipfix decoding workers"`
+	Sockets     int    `yaml:"sockets,omitempty" json:"sockets,omitempty" doc:"the number of listening sockets"`
 }
