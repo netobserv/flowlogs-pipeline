@@ -144,7 +144,10 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 		case api.NetworkDecodeTCPFlags:
 			if anyFlags, ok := outputEntry[rule.DecodeTCPFlags.Input]; ok && anyFlags != nil {
 				if flags, ok := anyFlags.(uint16); ok {
-					flags := util.DecodeTCPFlags(flags)
+					flags := util.DecodeTCPFlagsU16(flags)
+					outputEntry[rule.DecodeTCPFlags.Output] = flags
+				} else if flags, ok := anyFlags.(uint32); ok {
+					flags := util.DecodeTCPFlagsU32(flags)
 					outputEntry[rule.DecodeTCPFlags.Output] = flags
 				}
 			}

@@ -521,3 +521,38 @@ func Test_ValidateReinterpretDirection(t *testing.T) {
 		"FlowDirection": 1,
 	}, output)
 }
+
+func Test_DecodeTCPFlags(t *testing.T) {
+	tr, err := NewTransformNetwork(config.StageParam{
+		Transform: &config.Transform{
+			Network: &api.TransformNetwork{
+				Rules: []api.NetworkTransformRule{{
+					Type: "decode_tcp_flags",
+					DecodeTCPFlags: &api.NetworkGenericRule{
+						Input:  "TcpFlags",
+						Output: "TcpFlagsString",
+					},
+				}},
+			},
+		},
+	}, nil)
+	require.NoError(t, err)
+
+	output, ok := tr.Transform(config.GenericMap{
+		"TcpFlags": uint16(17),
+	})
+	require.True(t, ok)
+	require.Equal(t, config.GenericMap{
+		"TcpFlags":       uint16(17),
+		"TcpFlagsString": []string{"FIN", "ACK"},
+	}, output)
+
+	output, ok = tr.Transform(config.GenericMap{
+		"TcpFlags": uint32(17),
+	})
+	require.True(t, ok)
+	require.Equal(t, config.GenericMap{
+		"TcpFlags":       uint32(17),
+		"TcpFlagsString": []string{"FIN", "ACK"},
+	}, output)
+}
