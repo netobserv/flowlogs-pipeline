@@ -52,7 +52,7 @@ Flags:
       --config string              config file (default is $HOME/.flowlogs-pipeline)  
       --dynamicParameters string   json of configmap location for dynamic parameters  
       --health.address string      Health server address (default "0.0.0.0")  
-      --health.port string         Health server port (default "8080")  
+      --health.port int            Health server port (default: disable health server)   
   -h, --help                       help for flowlogs-pipeline  
       --log-level string           Log level: debug, info, warning, error (default "error")  
       --metricsSettings string     json for global metrics settings  
