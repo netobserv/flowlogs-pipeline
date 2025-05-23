@@ -20,17 +20,13 @@ package write
 import (
 	"testing"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/stretchr/testify/require"
 )
 
-func Test_WriteStdout(_ *testing.T) {
-	ws := writeStdout{}
-	ws.Write(config.GenericMap{"key": "test"})
-}
-
 func Test_NewWriteStdout(t *testing.T) {
-	writer, err := NewWriteStdout(config.StageParam{})
-	require.Nil(t, err)
-	require.Equal(t, writer, &writeStdout{})
+	writer, err := NewWriteStdout(config.StageParam{Write: &config.Write{Stdout: &api.WriteStdout{}}})
+	require.NoError(t, err)
+	writer.Write(config.GenericMap{"key": "test"})
 }
