@@ -229,6 +229,7 @@ Following is the supported API format for filter transformations:
                                      input: entry input field
                                      value: specified value of input field:
                                      castInt: set true to cast the value field as an int (numeric values are float64 otherwise)
+         samplingField: sampling field name to be set when sampling is used; if the field already exists in flows, its value is multiplied with the new sampling
 </pre>
 ## Transform Network API
 Following is the supported API format for network transformations:

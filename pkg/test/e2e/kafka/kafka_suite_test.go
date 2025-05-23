@@ -31,7 +31,7 @@ var TestEnv env.Environment
 
 var manifestDeployDefinitions = e2e.ManifestDeployDefinitions{
 	e2e.ManifestDeployDefinition{
-		YamlFile: "strimzi-cluster-operator-0.31.0.yaml",
+		YamlFile: "strimzi-cluster-operator-0.43.0.yaml",
 		PostFunction: func(_ context.Context, _ *envconf.Config, _ string) error {
 			// Wait few seconds to allow the CRD to be registered so the next step does not fail
 			time.Sleep(5 * time.Second)
@@ -42,12 +42,16 @@ var manifestDeployDefinitions = e2e.ManifestDeployDefinitions{
 		YamlFile:     "kafka.strimzi.yaml",
 		PostFunction: postStrimziDeploy,
 	},
+	e2e.ManifestDeployDefinition{YamlFile: "topic.yaml"},
+	e2e.ManifestDeployDefinition{YamlFile: "flp-configs.yaml"},
+	// flp-2 receives from flp-1 (which starts producing immediately), so start the receiver first
 	e2e.ManifestDeployDefinition{
-		YamlFile: "flp-config.yaml",
+		YamlFile:     "flp-2.yaml",
+		PostFunction: postFLP2Deploy,
 	},
 	e2e.ManifestDeployDefinition{
-		YamlFile:     "flp.yaml",
-		PostFunction: postFLPDeploy,
+		YamlFile:     "flp-1.yaml",
+		PostFunction: postFLP1Deploy,
 	},
 }
 

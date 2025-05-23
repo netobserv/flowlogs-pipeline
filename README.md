@@ -955,6 +955,7 @@ Images
   image-push            Push MULTIARCH_TARGETS images  
   manifest-build        Build MULTIARCH_TARGETS manifest  
   manifest-push         Push MULTIARCH_TARGETS manifest  
+  extract-binaries      Extract all MULTIARCH_TARGETS binaries  
   goyacc                Regenerate filters query langage  
   
 kubernetes  

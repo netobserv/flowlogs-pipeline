@@ -42,6 +42,7 @@ ifneq ($(CLEAN_BUILD),)
 endif
 
 GOLANGCI_LINT_VERSION = v1.61.0
+KIND_VERSION = v0.22.0
 
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
@@ -105,7 +106,7 @@ prereqs: ## Check if prerequisites are met, and install missing dependencies
 .PHONY: prereqs-kind
 prereqs-kind: ## Check if prerequisites are met for running kind, and install missing dependencies
 	@echo "### Checking if KIND prerequisites are met, and installing missing dependencies"
-	test -f $(shell go env GOPATH)/bin/kind || GOFLAGS="" go install sigs.k8s.io/kind@latest
+	GOFLAGS="" go install sigs.k8s.io/kind@${KIND_VERSION}
 
 .PHONY: vendors
 vendors: ## Check go vendors

@@ -1,12 +1,12 @@
 # Based on
-# https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.31.0/examples/kafka/kafka-ephemeral.yaml
+# https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.43.0/examples/kafka/kafka-ephemeral.yaml
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
   name: my-cluster
 spec:
   kafka:
-    version: 3.2.1
+    version: 3.8.0
     replicas: 1
     listeners:
       - name: plain
@@ -27,7 +27,7 @@ spec:
       transaction.state.log.min.isr: 1
       default.replication.factor: 1
       min.insync.replicas: 1
-      inter.broker.protocol.version: "3.2"
+      inter.broker.protocol.version: "3.8"
     storage:
       type: ephemeral
   zookeeper:
