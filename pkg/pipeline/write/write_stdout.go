@@ -73,6 +73,11 @@ func formatter(format string, reorder bool) func(config.GenericMap) string {
 // NewWriteStdout create a new write
 func NewWriteStdout(params config.StageParam) (Writer, error) {
 	logrus.Debugf("entering NewWriteStdout")
-	f := formatter(params.Write.Stdout.Format, false)
-	return &writeStdout{formatter: f}, nil
+	var format string
+	if params.Write.Stdout != nil {
+		format = params.Write.Stdout.Format
+	}
+	return &writeStdout{
+		formatter: formatter(format, false),
+	}, nil
 }
