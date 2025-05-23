@@ -143,7 +143,7 @@ func initFlags() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", fmt.Sprintf("config file (default is $HOME/%s)", defaultLogFileName))
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "error", "Log level: debug, info, warning, error")
 	rootCmd.PersistentFlags().StringVar(&opts.Health.Address, "health.address", "0.0.0.0", "Health server address")
-	rootCmd.PersistentFlags().StringVar(&opts.Health.Port, "health.port", "8080", "Health server port")
+	rootCmd.PersistentFlags().IntVar(&opts.Health.Port, "health.port", 0, "Health server port (default: disable health server) ")
 	rootCmd.PersistentFlags().IntVar(&opts.Profile.Port, "profile.port", 0, "Go pprof tool port (default: disabled)")
 	rootCmd.PersistentFlags().StringVar(&opts.PipeLine, "pipeline", "", "json of config file pipeline field")
 	rootCmd.PersistentFlags().StringVar(&opts.Parameters, "parameters", "", "json of config file parameters field")
@@ -199,7 +199,10 @@ func run() {
 	}
 
 	// Start health report server
-	healthServer := operational.NewHealthServer(&opts, mainPipeline.IsAlive, mainPipeline.IsReady)
+	var healthServer *http.Server
+	if opts.Health.Port > 0 {
+		healthServer = operational.NewHealthServer(&opts, mainPipeline.IsAlive, mainPipeline.IsReady)
+	}
 
 	// Starts the flows pipeline
 	mainPipeline.Run()
@@ -207,7 +210,9 @@ func run() {
 	if promServer != nil {
 		_ = promServer.Shutdown(context.Background())
 	}
-	_ = healthServer.Shutdown(context.Background())
+	if healthServer != nil {
+		_ = healthServer.Shutdown(context.Background())
+	}
 
 	// Give all threads a chance to exit and then exit the process
 	time.Sleep(time.Second)

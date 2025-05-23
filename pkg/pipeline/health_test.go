@@ -35,7 +35,7 @@ func TestNewHealthServer(t *testing.T) {
 
 	type args struct {
 		pipeline Pipeline
-		port     string
+		port     int
 		address  string
 	}
 	type want struct {
@@ -47,15 +47,15 @@ func TestNewHealthServer(t *testing.T) {
 		args args
 		want want
 	}{
-		{name: "pipeline running", args: args{pipeline: Pipeline{IsRunning: true}, port: "7000", address: "0.0.0.0"}, want: want{statusCode: 200}},
-		{name: "pipeline not running", args: args{pipeline: Pipeline{IsRunning: false}, port: "7001", address: "0.0.0.0"}, want: want{statusCode: 503}},
+		{name: "pipeline running", args: args{pipeline: Pipeline{IsRunning: true}, port: 7000, address: "0.0.0.0"}, want: want{statusCode: 200}},
+		{name: "pipeline not running", args: args{pipeline: Pipeline{IsRunning: false}, port: 7001, address: "0.0.0.0"}, want: want{statusCode: 503}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
 			opts := config.Options{Health: config.Health{Port: tt.args.port, Address: tt.args.address}}
-			expectedAddr := fmt.Sprintf("%s:%s", opts.Health.Address, opts.Health.Port)
+			expectedAddr := fmt.Sprintf("%s:%d", opts.Health.Address, opts.Health.Port)
 			server := operational.NewHealthServer(&opts, tt.args.pipeline.IsAlive, tt.args.pipeline.IsReady)
 			require.NotNil(t, server)
 			require.Equal(t, expectedAddr, server.Addr)
