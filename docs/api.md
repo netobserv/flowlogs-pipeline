@@ -271,6 +271,7 @@ Following is the supported API format for network transformations:
                  add_location: Add location rule configuration
                      input: entry input field
                      output: entry output field
+                     file_path: path of the location DB file (zip archive), from ip2location.com (Lite DB9); leave unset to try downloading the file at startup
                  add_subnet_label: Add subnet label rule configuration
                      input: entry input field
                      output: entry output field

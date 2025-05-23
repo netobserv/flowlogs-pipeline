@@ -35,7 +35,7 @@ func Test_InitLocationDB(t *testing.T) {
 	// fail in os.Create
 	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
 	_osio.Create = func(_ string) (*os.File, error) { return nil, fmt.Errorf("test") }
-	err := InitLocationDB()
+	err := InitLocationDB("")
 	require.Contains(t, err.Error(), "os.Create")
 	_osio.Stat = os.Stat
 	_osio.Create = os.Create
@@ -44,7 +44,7 @@ func Test_InitLocationDB(t *testing.T) {
 	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
 	_osio.Create = func(_ string) (*os.File, error) { return nil, nil }
 	_dbURL = "test_fake"
-	err = InitLocationDB()
+	err = InitLocationDB("")
 	require.Contains(t, err.Error(), "http.Get")
 	_dbURL = dbURL
 	_osio.Stat = os.Stat
@@ -57,7 +57,7 @@ func Test_InitLocationDB(t *testing.T) {
 		_, _ = res.Write([]byte("test"))
 	}))
 	_dbURL = testServer.URL
-	err = InitLocationDB()
+	err = InitLocationDB("")
 	require.Contains(t, err.Error(), "io.Copy")
 	testServer.Close()
 	_dbURL = dbURL
@@ -71,7 +71,7 @@ func Test_InitLocationDB(t *testing.T) {
 		res.WriteHeader(http.StatusOK)
 	}))
 	_dbURL = testServer.URL
-	err = InitLocationDB()
+	err = InitLocationDB("")
 	require.Contains(t, err.Error(), "io.Copy")
 	testServer.Close()
 	_dbURL = dbURL
@@ -85,7 +85,7 @@ func Test_InitLocationDB(t *testing.T) {
 		res.WriteHeader(http.StatusOK)
 	}))
 	_dbURL = testServer.URL
-	err = InitLocationDB()
+	err = InitLocationDB("")
 	require.Contains(t, err.Error(), "failed unzip")
 	testServer.Close()
 	_dbURL = dbURL
@@ -102,7 +102,7 @@ func Test_InitLocationDB(t *testing.T) {
 		res.WriteHeader(http.StatusOK)
 	}))
 	_dbURL = testServer.URL
-	err = InitLocationDB()
+	err = InitLocationDB("")
 	require.Error(t, err)
 	testServer.Close()
 	_dbURL = dbURL
@@ -111,7 +111,7 @@ func Test_InitLocationDB(t *testing.T) {
 	// NOTE:: Downloading the DB is a long operation, about 30 seconds, and this delays the tests
 	// TODO: Consider remove this test
 	os.RemoveAll(dbFileLocation)
-	initLocationDBErr := InitLocationDB()
+	initLocationDBErr := InitLocationDB("")
 	require.Nil(t, initLocationDBErr)
 }
 
