@@ -47,6 +47,8 @@ type ingestCollector struct {
 	hostname   string
 	port       int
 	portLegacy int
+	workers    int
+	sockets    int
 	in         chan map[string]interface{}
 	exitChan   <-chan struct{}
 	metrics    *metrics
@@ -126,30 +128,34 @@ func (c *ingestCollector) initCollectorListener(ctx context.Context) {
 		}
 		defer tpl.Close(ctx)
 
-		go func() {
-			sNF := utils.NewStateNetFlow()
-			sNF.Format = formatter
-			sNF.Transport = transporter
-			sNF.Logger = log.StandardLogger()
-			sNF.TemplateSystem = tpl
+		log.Infof("listening for netflow on host %s, port = %d", c.hostname, c.port)
+		for i := 0; i < c.sockets; i++ {
+			go func() {
+				sNF := utils.NewStateNetFlow()
+				sNF.Format = formatter
+				sNF.Transport = transporter
+				sNF.Logger = log.StandardLogger()
+				sNF.TemplateSystem = tpl
 
-			log.Infof("listening for netflow on host %s, port = %d", c.hostname, c.port)
-			err = sNF.FlowRoutine(1, c.hostname, c.port, false)
-			log.Fatal(err)
-		}()
+				err = sNF.FlowRoutine(c.workers, c.hostname, c.port, c.sockets > 1)
+				log.Fatal(err)
+			}()
+		}
 	}
 
 	if c.portLegacy > 0 {
-		go func() {
-			sLegacyNF := utils.NewStateNFLegacy()
-			sLegacyNF.Format = formatter
-			sLegacyNF.Transport = transporter
-			sLegacyNF.Logger = log.StandardLogger()
+		log.Infof("listening for legacy netflow on host %s, port = %d", c.hostname, c.portLegacy)
+		for i := 0; i < c.sockets; i++ {
+			go func() {
+				sLegacyNF := utils.NewStateNFLegacy()
+				sLegacyNF.Format = formatter
+				sLegacyNF.Transport = transporter
+				sLegacyNF.Logger = log.StandardLogger()
 
-			log.Infof("listening for legacy netflow on host %s, port = %d", c.hostname, c.portLegacy)
-			err = sLegacyNF.FlowRoutine(1, c.hostname, c.portLegacy, false)
-			log.Fatal(err)
-		}()
+				err = sLegacyNF.FlowRoutine(c.workers, c.hostname, c.portLegacy, c.sockets > 1)
+				log.Fatal(err)
+			}()
+		}
 	}
 }
 
@@ -177,10 +183,18 @@ func NewIngestCollector(opMetrics *operational.Metrics, params config.StageParam
 	if jsonIngestCollector.Port == 0 && jsonIngestCollector.PortLegacy == 0 {
 		return nil, fmt.Errorf("no ingest port specified")
 	}
+	if jsonIngestCollector.Workers == 0 {
+		jsonIngestCollector.Workers = 1
+	}
+	if jsonIngestCollector.Sockets == 0 {
+		jsonIngestCollector.Sockets = 1
+	}
 
 	log.Infof("hostname = %s", jsonIngestCollector.HostName)
 	log.Infof("port = %d", jsonIngestCollector.Port)
 	log.Infof("portLegacy = %d", jsonIngestCollector.PortLegacy)
+	log.Infof("workers = %d", jsonIngestCollector.Workers)
+	log.Infof("sockets = %d", jsonIngestCollector.Sockets)
 
 	in := make(chan map[string]interface{}, channelSize)
 	metrics := newMetrics(opMetrics, params.Name, params.Ingest.Type, func() int { return len(in) })
@@ -189,6 +203,8 @@ func NewIngestCollector(opMetrics *operational.Metrics, params config.StageParam
 		hostname:   jsonIngestCollector.HostName,
 		port:       jsonIngestCollector.Port,
 		portLegacy: jsonIngestCollector.PortLegacy,
+		workers:    jsonIngestCollector.Workers,
+		sockets:    jsonIngestCollector.Sockets,
 		exitChan:   pUtils.ExitChannel(),
 		in:         in,
 		metrics:    metrics,
