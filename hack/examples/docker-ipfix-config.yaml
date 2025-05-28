@@ -1,4 +1,7 @@
 log-level: info
+metricsSettings:
+  suppressDefaultMetrics: true
+  prefix: flp_
 pipeline:
   - name: ingest
   - name: conntrack
