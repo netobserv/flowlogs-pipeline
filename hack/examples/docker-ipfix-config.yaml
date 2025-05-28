@@ -1,4 +1,6 @@
 log-level: info
+health:
+  port: 8080
 pipeline:
   - name: ingest
   - name: conntrack
