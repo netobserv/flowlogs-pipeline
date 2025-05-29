@@ -1,7 +1,7 @@
 package utils
 
 type tcpFlag struct {
-	value uint16
+	value uint
 	name  string
 }
 
@@ -19,7 +19,7 @@ var tcpFlags = []tcpFlag{
 	{value: 1024, name: "RST_ACK"},
 }
 
-func DecodeTCPFlags(bitfield uint16) []string {
+func DecodeTCPFlags(bitfield uint) []string {
 	var values []string
 	for _, flag := range tcpFlags {
 		if bitfield&flag.value != 0 {
