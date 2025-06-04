@@ -41,19 +41,24 @@ const timeout = 5 * time.Second
 
 type fakeEmitter struct {
 	mock.Mock
+	reorderJSON bool
 }
 
 func (f *fakeEmitter) Handle(labels model.LabelSet, timestamp time.Time, record string) error {
-	// sort alphabetically records just for simplifying testing verification with JSON strings
-	recordMap := map[string]interface{}{}
-	if err := json.Unmarshal([]byte(record), &recordMap); err != nil {
-		panic("expected JSON: " + err.Error())
+	if f.reorderJSON {
+		// sort alphabetically records just for simplifying testing verification with JSON strings
+		recordMap := map[string]interface{}{}
+		if err := json.Unmarshal([]byte(record), &recordMap); err != nil {
+			panic("expected JSON: " + err.Error())
+		}
+		recordBytes, err := json.Marshal(recordMap)
+		if err != nil {
+			panic("error unmarshaling: " + err.Error())
+		}
+		a := f.Mock.Called(labels, timestamp, string(recordBytes))
+		return a.Error(0)
 	}
-	recordBytes, err := json.Marshal(recordMap)
-	if err != nil {
-		panic("error unmarshaling: " + err.Error())
-	}
-	a := f.Mock.Called(labels, timestamp, string(recordBytes))
+	a := f.Mock.Called(labels, timestamp, record)
 	return a.Error(0)
 }
 
@@ -122,32 +127,17 @@ parameters:
 }
 
 func TestLoki_ProcessRecord(t *testing.T) {
-	var yamlConfig = `
-log-level: debug
-pipeline:
-  - name: write1
-parameters:
-  - name: write1
-    write:
-      type: loki
-      loki:
-        url: http://loki:3100/
-        timestampLabel: ts
-        ignoreList:
-        - ignored
-        staticLabels:
-          static: label
-        labels:
-          - foo
-          - bar
-`
-	v, cfg := test.InitConfig(t, yamlConfig)
-	require.NotNil(t, v)
-
-	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
+	params := api.WriteLoki{
+		URL:            "http://loki:3100/",
+		TimestampLabel: "ts",
+		IgnoreList:     []string{"ignored"},
+		StaticLabels:   model.LabelSet{"static": "label"},
+		Labels:         []string{"foo", "bar"},
+	}
+	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), config.StageParam{Write: &config.Write{Loki: &params}})
 	require.NoError(t, err)
 
-	fe := fakeEmitter{}
+	fe := fakeEmitter{reorderJSON: true}
 	fe.On("Handle", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	loki.client = &fe
 
@@ -169,6 +159,49 @@ parameters:
 		"foo":    "fooLabel2",
 		"static": "label",
 	}, time.Unix(124567, 0), `{"other":"val","ts":124567,"value":5678}`)
+}
+
+func TestLoki_ProcessRecordOrdered(t *testing.T) {
+	params := api.WriteLoki{
+		URL:            "http://loki:3100/",
+		TimestampLabel: "ts",
+		Reorder:        true,
+	}
+	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), config.StageParam{Write: &config.Write{Loki: &params}})
+	require.NoError(t, err)
+
+	fe := fakeEmitter{reorderJSON: false}
+	fe.On("Handle", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	loki.client = &fe
+
+	require.NoError(t, loki.ProcessRecord(map[string]interface{}{"ts": 123456, "c": "c", "e": "e", "a": "a", "d": "d", "b": "b"}))
+
+	fe.AssertCalled(t, "Handle", model.LabelSet{}, time.Unix(123456, 0), `{"a":"a","b":"b","c":"c","d":"d","e":"e","ts":123456}`)
+}
+
+func TestLoki_ProcessRecordGoFormat(t *testing.T) {
+	params := api.WriteLoki{
+		URL:            "http://loki:3100/",
+		TimestampLabel: "ts",
+		Labels:         []string{"foo"},
+		Format:         "printf",
+	}
+	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), config.StageParam{Write: &config.Write{Loki: &params}})
+	require.NoError(t, err)
+
+	fe := fakeEmitter{}
+	fe.On("Handle", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	loki.client = &fe
+
+	// WHEN it processes input records
+	require.NoError(t, loki.ProcessRecord(map[string]interface{}{
+		"ts": 123456, "foo": "fooLabel", "bar": "barLabel", "value": 1234}))
+	require.NoError(t, loki.ProcessRecord(map[string]interface{}{
+		"ts": 124567, "foo": "fooLabel2", "bar": "barLabel2", "value": 5678, "other": "val"}))
+
+	// THEN it forwards the records extracting the timestamp and labels from the configuration
+	fe.AssertCalled(t, "Handle", model.LabelSet{"foo": "fooLabel"}, time.Unix(123456, 0), `map[bar:barLabel ts:123456 value:1234]`)
+	fe.AssertCalled(t, "Handle", model.LabelSet{"foo": "fooLabel2"}, time.Unix(124567, 0), `map[bar:barLabel2 other:val ts:124567 value:5678]`)
 }
 
 func TestTimestampScale(t *testing.T) {
@@ -262,26 +295,12 @@ func TestTimestampExtraction_LocalTime(t *testing.T) {
 // Tests that labels are sanitized before being sent to loki.
 // Labels that are invalid even if sanitized are ignored
 func TestSanitizedLabels(t *testing.T) {
-	var yamlConfig = `
-log-level: debug
-pipeline:
-  - name: write1
-parameters:
-  - name: write1
-    write:
-      type: loki
-      loki:
-        url: http://loki:3100/
-        labels:
-          - "fo.o"
-          - "ba-r"
-          - "ba/z"
-          - "ignored?"
-`
-	v, cfg := test.InitConfig(t, yamlConfig)
-	require.NotNil(t, v)
-
-	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
+	params := api.WriteLoki{
+		URL:            "http://loki:3100/",
+		TimestampLabel: "ts",
+		Labels:         []string{"fo.o", "ba-r", "ba/z", "ignored?"},
+	}
+	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), config.StageParam{Write: &config.Write{Loki: &params}})
 	require.NoError(t, err)
 
 	fe := fakeEmitter{}
