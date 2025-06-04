@@ -1,5 +1,5 @@
 ARG TARGETARCH
-FROM docker.io/library/golang:1.23 as builder
+FROM docker.io/library/golang:1.24 as builder
 
 ARG TARGETARCH=amd64
 ARG LDFLAGS
