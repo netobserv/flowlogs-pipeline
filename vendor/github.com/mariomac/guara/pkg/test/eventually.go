@@ -4,8 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"runtime"
-	"sync/atomic"
+	"sync"
 	"testing"
 	"time"
 
@@ -47,16 +46,9 @@ func Eventually(t *testing.T, timeout time.Duration, testFunc func(_ require.Tes
 
 	go func() {
 		for ctx.Err() == nil {
-			result := testResult{errorCh: errorCh, fatalCh: failCh}
+			result := testResult{failed: false, errorCh: errorCh, failCh: failCh}
 			// Executing the function to test
-			// since FailNow interrupts the running goroutine to avoid executing the
-			// later tests, we need to run the test function in a different goroutine each time
-			finished := make(chan struct{})
-			go func() {
-				defer close(finished)
-				testFunc(&result)
-			}()
-			<-finished
+			testFunc(&result)
 			// If the function didn't reported failure and didn't reached timeout
 			if !result.HasFailed() && ctx.Err() == nil {
 				success <- 1
@@ -68,22 +60,18 @@ func Eventually(t *testing.T, timeout time.Duration, testFunc func(_ require.Tes
 	}()
 
 	// Wait for success or timeout
-	var err, fatal error
+	var err, fail error
 	for {
 		select {
 		case <-success:
 			return
 		case err = <-errorCh:
-		case fatal = <-failCh:
+		case fail = <-failCh:
 		case <-ctx.Done():
-			if fatal != nil {
-				if err != nil {
-					t.Fatal(err)
-				} else {
-					t.Fatal()
-				}
-			} else if err != nil {
+			if err != nil {
 				t.Error(err)
+			} else if fail != nil {
+				t.Error(fail)
 			} else {
 				t.Error("timeout while waiting for test to complete")
 			}
@@ -94,25 +82,28 @@ func Eventually(t *testing.T, timeout time.Duration, testFunc func(_ require.Tes
 
 // util class for Eventually
 type testResult struct {
-	failed atomic.Bool
-	// anything received by the errorCh will mark the test as failed, but continuing its execution
+	sync.RWMutex
+	failed  bool
 	errorCh chan<- error
-	// anything received by the fatalCh will mark the test as failed and stopping its execution
-	fatalCh chan<- error
+	failCh  chan<- error
 }
 
 func (te *testResult) Errorf(format string, args ...interface{}) {
-	te.failed.Store(true)
+	te.Lock()
+	te.failed = true
+	te.Unlock()
 	te.errorCh <- fmt.Errorf(format, args...)
 }
 
 func (te *testResult) FailNow() {
-	te.failed.Store(true)
-	te.fatalCh <- errors.New("test failed")
-	// stops the current goroutine
-	runtime.Goexit()
+	te.Lock()
+	te.failed = true
+	te.Unlock()
+	te.failCh <- errors.New("test failed")
 }
 
 func (te *testResult) HasFailed() bool {
-	return te.failed.Load()
+	te.RLock()
+	defer te.RUnlock()
+	return te.failed
 }

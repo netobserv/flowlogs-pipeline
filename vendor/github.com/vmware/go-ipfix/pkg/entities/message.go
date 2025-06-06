@@ -123,5 +123,6 @@ func (m *Message) GetMsgHeader() []byte {
 }
 
 func (m *Message) ResetMsgHeader() {
-	clear(m.msgHeader)
+	m.msgHeader = nil
+	m.msgHeader = make([]byte, MsgHeaderLength)
 }

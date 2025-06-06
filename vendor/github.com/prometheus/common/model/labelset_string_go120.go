@@ -11,35 +11,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build go1.21
+//go:build !go1.21
 
 package model
 
 import (
-	"bytes"
-	"slices"
-	"strconv"
+	"fmt"
+	"sort"
+	"strings"
 )
 
-// String will look like `{foo="bar", more="less"}`. Names are sorted alphabetically.
+// String was optimized using functions not available for go 1.20
+// or lower. We keep the old implementation for compatibility with client_golang.
+// Once client golang drops support for go 1.20 (scheduled for August 2024), this
+// file can be removed.
 func (l LabelSet) String() string {
-	var lna [32]string // On stack to avoid memory allocation for sorting names.
-	labelNames := lna[:0]
+	labelNames := make([]string, 0, len(l))
 	for name := range l {
 		labelNames = append(labelNames, string(name))
 	}
-	slices.Sort(labelNames)
-	var bytea [1024]byte // On stack to avoid memory allocation while building the output.
-	b := bytes.NewBuffer(bytea[:0])
-	b.WriteByte('{')
-	for i, name := range labelNames {
-		if i > 0 {
-			b.WriteString(", ")
-		}
-		b.WriteString(name)
-		b.WriteByte('=')
-		b.Write(strconv.AppendQuote(b.AvailableBuffer(), string(l[LabelName(name)])))
+	sort.Strings(labelNames)
+	lstrs := make([]string, 0, len(l))
+	for _, name := range labelNames {
+		lstrs = append(lstrs, fmt.Sprintf("%s=%q", name, l[LabelName(name)]))
 	}
-	b.WriteByte('}')
-	return b.String()
+	return fmt.Sprintf("{%s}", strings.Join(lstrs, ", "))
 }
