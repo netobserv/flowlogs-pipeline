@@ -168,10 +168,6 @@ func ByteSliceToString(s []byte) string {
 	return linux.ByteSliceToString(s)
 }
 
-func ByteSliceFromString(s string) ([]byte, error) {
-	return linux.ByteSliceFromString(s)
-}
-
 func Renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags uint) error {
 	return linux.Renameat2(olddirfd, oldpath, newdirfd, newpath, flags)
 }

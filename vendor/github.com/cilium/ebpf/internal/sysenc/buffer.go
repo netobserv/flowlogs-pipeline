@@ -63,7 +63,7 @@ func (b Buffer) AppendTo(dst []byte) []byte {
 func (b Buffer) Pointer() sys.Pointer {
 	// NB: This deliberately ignores b.length to support zero-copy
 	// marshaling / unmarshaling using unsafe.Pointer.
-	return sys.UnsafePointer(b.ptr)
+	return sys.NewPointer(b.ptr)
 }
 
 // Unmarshal the buffer into the provided value.

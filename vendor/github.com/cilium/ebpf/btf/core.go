@@ -11,8 +11,6 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf/asm"
-	"github.com/cilium/ebpf/internal"
-	"github.com/cilium/ebpf/internal/platform"
 )
 
 // Code in this file is derived from libbpf, which is available under a BSD
@@ -48,10 +46,6 @@ func (f *COREFixup) String() string {
 }
 
 func (f *COREFixup) Apply(ins *asm.Instruction) error {
-	if !platform.IsLinux {
-		return fmt.Errorf("CO-RE fixup: %w", internal.ErrNotSupportedOnOS)
-	}
-
 	if f.poison {
 		// Relocation is poisoned, replace the instruction with an invalid one.
 		if ins.OpCode.IsDWordLoad() {

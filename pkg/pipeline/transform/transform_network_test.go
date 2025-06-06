@@ -82,7 +82,7 @@ func getMockNetworkTransformRules() api.NetworkTransformRules {
 		},
 		api.NetworkTransformRule{
 			Type: "add_location",
-			AddLocation: &api.NetworkAddLocationRule{
+			AddLocation: &api.NetworkGenericRule{
 				Input:  "8888IP",
 				Output: "8888IP_location",
 			},
@@ -142,29 +142,7 @@ func Test_Transform(t *testing.T) {
 		svcNames: getServicesDB(t),
 	}
 
-	err := location.InitLocationDB("")
-	require.NoError(t, err)
-
-	output, ok := networkTransform.Transform(entry)
-	require.True(t, ok)
-	require.Equal(t, expectedOutput, output)
-}
-
-func Test_TransformProvidedLocationDB(t *testing.T) {
-	entry := test.GetIngestMockEntry(false)
-	rules := getMockNetworkTransformRules()
-	expectedOutput := getExpectedOutput()
-	err := location.CleanupLocationDB()
-	require.NoError(t, err)
-
-	var networkTransform = Network{
-		TransformNetwork: api.TransformNetwork{
-			Rules: rules,
-		},
-		svcNames: getServicesDB(t),
-	}
-
-	err = location.InitLocationDB("../../../contrib/location/location.db")
+	err := location.InitLocationDB()
 	require.NoError(t, err)
 
 	output, ok := networkTransform.Transform(entry)
@@ -188,7 +166,7 @@ func Test_TransformAddSubnetParseCIDRFailure(t *testing.T) {
 		svcNames: getServicesDB(t),
 	}
 
-	err := location.InitLocationDB("")
+	err := location.InitLocationDB()
 	require.NoError(t, err)
 
 	output, ok := networkTransform.Transform(entry)

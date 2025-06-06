@@ -7,12 +7,10 @@ import (
 	"math"
 	"os"
 	"runtime"
-	"strings"
 
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/ebpf/internal"
 	"github.com/cilium/ebpf/internal/linux"
-	"github.com/cilium/ebpf/internal/platform"
 	"github.com/cilium/ebpf/internal/sys"
 	"github.com/cilium/ebpf/internal/tracefs"
 	"github.com/cilium/ebpf/internal/unix"
@@ -27,41 +25,25 @@ var (
 	sysErrNotSupported = sys.Error(ErrNotSupported, sys.ENOTSUPP)
 )
 
-// sanitizeName replaces all invalid characters in name with replacement.
-// Passing a negative value for replacement will delete characters instead
-// of replacing them.
-//
-// The set of allowed characters may change over time.
-func sanitizeName(name string, replacement rune) string {
-	return strings.Map(func(char rune) rune {
-		switch {
-		case char >= 'A' && char <= 'Z':
-			return char
-		case char >= 'a' && char <= 'z':
-			return char
-		case char >= '0' && char <= '9':
-			return char
-		case char == '.':
-			return char
-		case char == '_':
-			return char
-		default:
-			return replacement
-		}
-	}, name)
-}
+// invalidBPFObjNameChar returns true if char may not appear in
+// a BPF object name.
+func invalidBPFObjNameChar(char rune) bool {
+	dotAllowed := objNameAllowsDot() == nil
 
-func maybeFillObjName(name string) sys.ObjName {
-	if errors.Is(haveObjName(), ErrNotSupported) {
-		return sys.ObjName{}
+	switch {
+	case char >= 'A' && char <= 'Z':
+		return false
+	case char >= 'a' && char <= 'z':
+		return false
+	case char >= '0' && char <= '9':
+		return false
+	case dotAllowed && char == '.':
+		return false
+	case char == '_':
+		return false
+	default:
+		return true
 	}
-
-	name = sanitizeName(name, -1)
-	if errors.Is(objNameAllowsDot(), ErrNotSupported) {
-		name = strings.ReplaceAll(name, ".", "")
-	}
-
-	return sys.NewObjName(name)
 }
 
 func progLoad(insns asm.Instructions, typ ProgramType, license string) (*sys.FD, error) {
@@ -74,17 +56,12 @@ func progLoad(insns asm.Instructions, typ ProgramType, license string) (*sys.FD,
 	return sys.ProgLoad(&sys.ProgLoadAttr{
 		ProgType: sys.ProgType(typ),
 		License:  sys.NewStringPointer(license),
-		Insns:    sys.SlicePointer(bytecode),
+		Insns:    sys.NewSlicePointer(bytecode),
 		InsnCnt:  uint32(len(bytecode) / asm.InstructionSize),
 	})
 }
 
 var haveNestedMaps = internal.NewFeatureTest("nested maps", func() error {
-	if platform.IsWindows {
-		// We only support efW versions which have this feature, no need to probe.
-		return nil
-	}
-
 	_, err := sys.MapCreate(&sys.MapCreateAttr{
 		MapType:    sys.MapType(ArrayOfMaps),
 		KeySize:    4,
@@ -100,7 +77,7 @@ var haveNestedMaps = internal.NewFeatureTest("nested maps", func() error {
 		return nil
 	}
 	return err
-}, "4.12", "windows:0.20.0")
+}, "4.12")
 
 var haveMapMutabilityModifiers = internal.NewFeatureTest("read- and write-only maps", func() error {
 	// This checks BPF_F_RDONLY_PROG and BPF_F_WRONLY_PROG. Since
@@ -194,11 +171,6 @@ func wrapMapError(err error) error {
 }
 
 var haveObjName = internal.NewFeatureTest("object names", func() error {
-	if platform.IsWindows {
-		// We only support efW versions which have this feature, no need to probe.
-		return nil
-	}
-
 	attr := sys.MapCreateAttr{
 		MapType:    sys.MapType(Array),
 		KeySize:    4,
@@ -207,21 +179,24 @@ var haveObjName = internal.NewFeatureTest("object names", func() error {
 		MapName:    sys.NewObjName("feature_test"),
 	}
 
+	// Tolerate EPERM as this runs during ELF loading which is potentially
+	// unprivileged. Only EINVAL is conclusive, thrown from CHECK_ATTR.
 	fd, err := sys.MapCreate(&attr)
-	if err != nil {
+	if errors.Is(err, unix.EPERM) {
+		return nil
+	}
+	if errors.Is(err, unix.EINVAL) {
 		return internal.ErrNotSupported
+	}
+	if err != nil {
+		return err
 	}
 
 	_ = fd.Close()
 	return nil
-}, "4.15", "windows:0.20.0")
+}, "4.15")
 
 var objNameAllowsDot = internal.NewFeatureTest("dot in object names", func() error {
-	if platform.IsWindows {
-		// We only support efW versions which have this feature, no need to probe.
-		return nil
-	}
-
 	if err := haveObjName(); err != nil {
 		return err
 	}
@@ -234,14 +209,23 @@ var objNameAllowsDot = internal.NewFeatureTest("dot in object names", func() err
 		MapName:    sys.NewObjName(".test"),
 	}
 
+	// Tolerate EPERM, otherwise MapSpec.Name has its dots removed when run by
+	// unprivileged tools. (bpf2go, other code gen). Only EINVAL is conclusive,
+	// thrown from bpf_obj_name_cpy().
 	fd, err := sys.MapCreate(&attr)
-	if err != nil {
+	if errors.Is(err, unix.EPERM) {
+		return nil
+	}
+	if errors.Is(err, unix.EINVAL) {
 		return internal.ErrNotSupported
+	}
+	if err != nil {
+		return err
 	}
 
 	_ = fd.Close()
 	return nil
-}, "5.2", "windows:0.20.0")
+}, "5.2")
 
 var haveBatchAPI = internal.NewFeatureTest("map batch api", func() error {
 	var maxEntries uint32 = 2
@@ -353,7 +337,7 @@ var haveProgramExtInfos = internal.NewFeatureTest("program ext_infos", func() er
 	_, err := sys.ProgLoad(&sys.ProgLoadAttr{
 		ProgType:    sys.ProgType(SocketFilter),
 		License:     sys.NewStringPointer("MIT"),
-		Insns:       sys.SlicePointer(bytecode),
+		Insns:       sys.NewSlicePointer(bytecode),
 		InsnCnt:     uint32(len(bytecode) / asm.InstructionSize),
 		FuncInfoCnt: 1,
 		ProgBtfFd:   math.MaxUint32,

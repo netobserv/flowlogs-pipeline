@@ -243,27 +243,28 @@ func (b *Builder) addString(str string) (uint32, error) {
 	return b.strings.Add(str)
 }
 
-func (e *encoder) allocateIDs(root Type) error {
-	for typ := range postorder(root, e.visited) {
+func (e *encoder) allocateIDs(root Type) (err error) {
+	visitInPostorder(root, e.visited, func(typ Type) bool {
 		if _, ok := typ.(*Void); ok {
-			continue
+			return true
 		}
 
 		if _, ok := e.ids[typ]; ok {
-			continue
+			return true
 		}
 
 		id := e.lastID + 1
 		if id < e.lastID {
-			return errors.New("type ID overflow")
+			err = errors.New("type ID overflow")
+			return false
 		}
 
 		e.pending.Push(typ)
 		e.ids[typ] = id
 		e.lastID = id
-	}
-
-	return nil
+		return true
+	})
+	return
 }
 
 // id returns the ID for the given type or panics with an error.

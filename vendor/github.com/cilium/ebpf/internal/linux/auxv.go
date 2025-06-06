@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/cilium/ebpf/internal"
-	"github.com/cilium/ebpf/internal/platform"
 	"github.com/cilium/ebpf/internal/unix"
 )
 
@@ -47,7 +46,7 @@ func (r *auxvRuntimeReader) ReadAuxvPair() (uint64, uint64, error) {
 }
 
 func newAuxvRuntimeReader() (auxvPairReader, error) {
-	if !platform.IsLinux {
+	if !internal.OnLinux {
 		return nil, fmt.Errorf("read auxv from runtime: %w", internal.ErrNotSupportedOnOS)
 	}
 

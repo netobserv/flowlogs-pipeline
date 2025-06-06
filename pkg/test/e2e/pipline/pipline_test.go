@@ -52,7 +52,7 @@ func printLogsFromPods(t *testing.T, cfg *envconf.Config) {
 		t.Fatal(err)
 	}
 
-	logs := e2e.LogsFromPods(pods.Items, coreV1Client, cfg.Namespace())
+	logs := e2e.LogsFromPods(&pods, coreV1Client, cfg.Namespace())
 	fmt.Print(logs)
 
 }
@@ -89,7 +89,7 @@ func TestPipeline_Basic(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			logs := e2e.LogsFromPods(pods.Items, coreV1Client, cfg.Namespace())
+			logs := e2e.LogsFromPods(&pods, coreV1Client, cfg.Namespace())
 			fmt.Print(logs)
 			startExist := strings.Contains(logs, "Starting flowlogs-pipeline")
 			if !startExist {

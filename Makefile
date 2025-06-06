@@ -21,11 +21,8 @@ MULTIARCH_TARGETS ?= amd64
 # In CI, to be replaced by `netobserv`
 IMAGE_ORG ?= $(USER)
 
-# Image registry such as quay or docker
-IMAGE_REGISTRY ?= quay.io
-
 # IMAGE_TAG_BASE defines the namespace and part of the image name for remote images.
-IMAGE_TAG_BASE ?= $(IMAGE_REGISTRY)/$(IMAGE_ORG)/flowlogs-pipeline
+IMAGE_TAG_BASE ?= quay.io/$(IMAGE_ORG)/flowlogs-pipeline
 
 # Image URL to use all building/pushing image targets
 IMAGE ?= $(IMAGE_TAG_BASE):$(VERSION)
@@ -42,7 +39,6 @@ ifneq ($(CLEAN_BUILD),)
 endif
 
 GOLANGCI_LINT_VERSION = v1.61.0
-KIND_VERSION = v0.22.0
 
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
@@ -73,14 +69,6 @@ define manifest_add_target
 	DOCKER_BUILDKIT=1 $(OCI_BIN) manifest add ${IMAGE} ${IMAGE}-$(1);
 endef
 
-# extract a single arch target binary
-define extract_target
-	echo 'extracting binary from ${IMAGE}-$(1)'; \
-	$(OCI_BIN) create --name flp ${IMAGE}-$(1); \
-	$(OCI_BIN) cp flp:/app/flowlogs-pipeline ./release-assets/flowlogs-pipeline-${VERSION}-linux-$(1); \
-	$(OCI_BIN) rm -f flp;
-endef
-
 ##@ General
 
 # The help target prints out all targets with their descriptions organized
@@ -106,7 +94,7 @@ prereqs: ## Check if prerequisites are met, and install missing dependencies
 .PHONY: prereqs-kind
 prereqs-kind: ## Check if prerequisites are met for running kind, and install missing dependencies
 	@echo "### Checking if KIND prerequisites are met, and installing missing dependencies"
-	GOFLAGS="" go install sigs.k8s.io/kind@${KIND_VERSION}
+	test -f $(shell go env GOPATH)/bin/kind || GOFLAGS="" go install sigs.k8s.io/kind@latest
 
 .PHONY: vendors
 vendors: ## Check go vendors
@@ -208,18 +196,6 @@ ifeq (${OCI_BIN}, docker)
 else
 	DOCKER_BUILDKIT=1 $(OCI_BIN) manifest push ${IMAGE} docker://${IMAGE};
 endif
-
-.PHONY: extract-binaries
-extract-binaries: ## Extract all MULTIARCH_TARGETS binaries
-	trap 'exit' INT; \
-	mkdir -p release-assets; \
-	$(foreach target,$(MULTIARCH_TARGETS),$(call extract_target,$(target)))
-
-.PHONY: goyacc
-goyacc: ## Regenerate filters query langage
-	@echo "### Regenerate filters query langage"
-	GOFLAGS="" go install golang.org/x/tools/cmd/goyacc@v0.32.0
-	goyacc -o pkg/dsl/expr.y.go pkg/dsl/expr.y
 
 include .mk/development.mk
 include .mk/shortcuts.mk

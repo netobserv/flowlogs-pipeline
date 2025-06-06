@@ -17,14 +17,12 @@
 
 package minio
 
-import (
-	"iter"
-	"math"
-	"time"
-)
+import "time"
 
 // newRetryTimerContinous creates a timer with exponentially increasing delays forever.
-func (c *Client) newRetryTimerContinous(baseSleep, maxSleep time.Duration, jitter float64) iter.Seq[int] {
+func (c *Client) newRetryTimerContinous(baseSleep, maxSleep time.Duration, jitter float64, doneCh chan struct{}) <-chan int {
+	attemptCh := make(chan int)
+
 	// normalize jitter to the range [0, 1.0]
 	if jitter < NoJitter {
 		jitter = NoJitter
@@ -46,20 +44,26 @@ func (c *Client) newRetryTimerContinous(baseSleep, maxSleep time.Duration, jitte
 		if sleep > maxSleep {
 			sleep = maxSleep
 		}
-		if math.Abs(jitter-NoJitter) > 1e-9 {
+		if jitter != NoJitter {
 			sleep -= time.Duration(c.random.Float64() * float64(sleep) * jitter)
 		}
 		return sleep
 	}
 
-	return func(yield func(int) bool) {
+	go func() {
+		defer close(attemptCh)
 		var nextBackoff int
 		for {
-			if !yield(nextBackoff) {
+			select {
+			// Attempts starts.
+			case attemptCh <- nextBackoff:
+				nextBackoff++
+			case <-doneCh:
+				// Stop the routine.
 				return
 			}
-			nextBackoff++
 			time.Sleep(exponentialBackoffWait(nextBackoff))
 		}
-	}
+	}()
+	return attemptCh
 }
