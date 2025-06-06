@@ -33,52 +33,48 @@ func (c *Client) makeBucket(ctx context.Context, bucketName string, opts MakeBuc
 		return err
 	}
 
-	err = c.doMakeBucket(ctx, bucketName, opts)
+	err = c.doMakeBucket(ctx, bucketName, opts.Region, opts.ObjectLocking)
 	if err != nil && (opts.Region == "" || opts.Region == "us-east-1") {
 		if resp, ok := err.(ErrorResponse); ok && resp.Code == "AuthorizationHeaderMalformed" && resp.Region != "" {
-			opts.Region = resp.Region
-			err = c.doMakeBucket(ctx, bucketName, opts)
+			err = c.doMakeBucket(ctx, bucketName, resp.Region, opts.ObjectLocking)
 		}
 	}
 	return err
 }
 
-func (c *Client) doMakeBucket(ctx context.Context, bucketName string, opts MakeBucketOptions) (err error) {
+func (c *Client) doMakeBucket(ctx context.Context, bucketName, location string, objectLockEnabled bool) (err error) {
 	defer func() {
 		// Save the location into cache on a successful makeBucket response.
 		if err == nil {
-			c.bucketLocCache.Set(bucketName, opts.Region)
+			c.bucketLocCache.Set(bucketName, location)
 		}
 	}()
 
 	// If location is empty, treat is a default region 'us-east-1'.
-	if opts.Region == "" {
-		opts.Region = "us-east-1"
+	if location == "" {
+		location = "us-east-1"
 		// For custom region clients, default
 		// to custom region instead not 'us-east-1'.
 		if c.region != "" {
-			opts.Region = c.region
+			location = c.region
 		}
 	}
 	// PUT bucket request metadata.
 	reqMetadata := requestMetadata{
 		bucketName:     bucketName,
-		bucketLocation: opts.Region,
+		bucketLocation: location,
 	}
 
-	headers := make(http.Header)
-	if opts.ObjectLocking {
+	if objectLockEnabled {
+		headers := make(http.Header)
 		headers.Add("x-amz-bucket-object-lock-enabled", "true")
+		reqMetadata.customHeader = headers
 	}
-	if opts.ForceCreate {
-		headers.Add("x-minio-force-create", "true")
-	}
-	reqMetadata.customHeader = headers
 
 	// If location is not 'us-east-1' create bucket location config.
-	if opts.Region != "us-east-1" && opts.Region != "" {
+	if location != "us-east-1" && location != "" {
 		createBucketConfig := createBucketConfiguration{}
-		createBucketConfig.Location = opts.Region
+		createBucketConfig.Location = location
 		var createBucketConfigBytes []byte
 		createBucketConfigBytes, err = xml.Marshal(createBucketConfig)
 		if err != nil {
@@ -113,9 +109,6 @@ type MakeBucketOptions struct {
 	Region string
 	// Enable object locking
 	ObjectLocking bool
-
-	// ForceCreate - this is a MinIO specific extension.
-	ForceCreate bool
 }
 
 // MakeBucket creates a new bucket with bucketName with a context to control cancellations and timeouts.

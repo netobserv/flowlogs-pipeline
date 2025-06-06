@@ -25,6 +25,7 @@ import (
 	"errors"
 	"hash"
 	"hash/crc32"
+	"hash/crc64"
 	"io"
 	"math/bits"
 	"net/http"
@@ -184,7 +185,7 @@ func (c ChecksumType) RawByteLen() int {
 	case ChecksumSHA256:
 		return sha256.Size
 	case ChecksumCRC64NVME:
-		return crc64nvme.Size
+		return crc64.Size
 	}
 	return 0
 }

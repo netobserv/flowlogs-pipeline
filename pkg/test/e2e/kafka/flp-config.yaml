@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flowlogs-pipeline-configuration
+data:
+  flowlogs-pipeline.conf.yaml: |
+    pipeline:
+      - name: kafka_ingest
+      - name: transform_none
+        follows: kafka_ingest
+      - name: kafka_encode
+        follows: transform_none
+    parameters:
+      - name: kafka_ingest
+        ingest:
+          type: kafka
+          kafka:
+            brokers: [my-cluster-kafka-bootstrap.default.svc:9092]
+            topic: test_topic_in
+            groupid: group_test_in
+            decoder:
+              type: json
+      - name: transform_none
+        transform:
+          type: none
+      - name: kafka_encode
+        encode:
+          type: kafka
+          kafka:
+            address: my-cluster-kafka-bootstrap.default.svc:9092
+            topic: test_topic_out

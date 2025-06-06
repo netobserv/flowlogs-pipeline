@@ -446,7 +446,11 @@ service name of `dstPort` port and `protocol` protocol. Unrecognized ports are i
 > Note: optionally supports custom network services resolution by defining configuration parameters 
 > `servicesFile` and `protocolsFile` with paths to custom services/protocols files respectively  
 
-The rule `add_location` generates new fields with the geo-location information. It uses the [IP2Location LITE database](https://lite.ip2location.com/) in that purpose. All the geo-location fields will be named by prefixing the `output` value to their names in the IP2Location DB (e.g., `CountryName`, `CountryLongName`, `RegionName`, `CityName` , `Longitude` and `Latitude`).
+The rule `add_location` generates new fields with the geo-location information retrieved 
+from DB [ip2location](https://lite.ip2location.com/) based on `dstIP` IP. 
+All the geo-location fields will be named by appending `output` value 
+(`dstLocation` in the example above) to their names in the [ip2location](https://lite.ip2location.com/ DB 
+(e.g., `CountryName`, `CountryLongName`, `RegionName`, `CityName` , `Longitude` and `Latitude`)
 
 The rule `add_kubernetes` generates new fields with kubernetes information by
 matching the `ipField` value (`srcIP` in the example above) with kubernetes `nodes`, `pods` and `services` IPs.
@@ -699,6 +703,8 @@ we can assume that it is the second step of the TCP handshake,
 the direction is from the server (source) to the client (destination) and we can swap them in the connection so the client will be the source and the server will be the destination.  
 
 
+
+
 ### Timebased TopK
 
 It is sometimes desirable to return only a subset of records, such as those connections that use the most bandwidth.
@@ -949,7 +955,6 @@ Images
   image-push            Push MULTIARCH_TARGETS images  
   manifest-build        Build MULTIARCH_TARGETS manifest  
   manifest-push         Push MULTIARCH_TARGETS manifest  
-  extract-binaries      Extract all MULTIARCH_TARGETS binaries  
   goyacc                Regenerate filters query langage  
   
 kubernetes  

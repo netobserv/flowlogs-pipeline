@@ -28,7 +28,7 @@ update-animated-gif() {
 
 main() {
   update-readme
-#  update-animated-gif
+  update-animated-gif
 }
 
 main

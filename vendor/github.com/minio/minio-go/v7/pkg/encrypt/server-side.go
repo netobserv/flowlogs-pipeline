@@ -23,7 +23,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/minio/minio-go/v7/internal/json"
+	"github.com/goccy/go-json"
 	"golang.org/x/crypto/argon2"
 )
 
