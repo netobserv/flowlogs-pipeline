@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/minio/minio-go/v7/internal/json"
+	"github.com/goccy/go-json"
 )
 
 // StringSet - uses map as set of strings.
@@ -34,30 +34,6 @@ func (set StringSet) ToSlice() []string {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	return keys
-}
-
-// ToByteSlices - returns StringSet as a sorted
-// slice of byte slices, using only one allocation.
-func (set StringSet) ToByteSlices() [][]byte {
-	length := 0
-	for k := range set {
-		length += len(k)
-	}
-	// Preallocate the slice with the total length of all strings
-	// to avoid multiple allocations.
-	dst := make([]byte, length)
-
-	// Add keys to this...
-	keys := make([][]byte, 0, len(set))
-	for k := range set {
-		n := copy(dst, k)
-		keys = append(keys, dst[:n])
-		dst = dst[n:]
-	}
-	sort.Slice(keys, func(i, j int) bool {
-		return string(keys[i]) < string(keys[j])
-	})
 	return keys
 }
 
@@ -202,7 +178,7 @@ func NewStringSet() StringSet {
 
 // CreateStringSet - creates new string set with given string values.
 func CreateStringSet(sl ...string) StringSet {
-	set := make(StringSet, len(sl))
+	set := make(StringSet)
 	for _, k := range sl {
 		set.Add(k)
 	}
@@ -211,7 +187,7 @@ func CreateStringSet(sl ...string) StringSet {
 
 // CopyStringSet - returns copy of given set.
 func CopyStringSet(set StringSet) StringSet {
-	nset := make(StringSet, len(set))
+	nset := NewStringSet()
 	for k, v := range set {
 		nset[k] = v
 	}

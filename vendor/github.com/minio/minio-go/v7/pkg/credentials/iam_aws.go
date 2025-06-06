@@ -31,7 +31,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/minio/minio-go/v7/internal/json"
+	"github.com/goccy/go-json"
 )
 
 // DefaultExpiryWindow - Default expiry window.

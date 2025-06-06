@@ -643,7 +643,6 @@ should be canceled.
 
 ### Triagers
 
-- [Alex Kats](https://github.com/akats7), Capital One
 - [Cheng-Zhen Yang](https://github.com/scorpionknifes), Independent
 
 ### Approvers

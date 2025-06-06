@@ -35,7 +35,7 @@ type DescribeClientQuotasRequestComponent struct {
 	Match string
 }
 
-// DescribeClientQuotasResponse represents a response from a kafka broker to a describe client quota request.
+// DescribeClientQuotasReesponse represents a response from a kafka broker to a describe client quota request.
 type DescribeClientQuotasResponse struct {
 	// The amount of time that the broker throttled the request.
 	Throttle time.Duration

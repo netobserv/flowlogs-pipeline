@@ -74,52 +74,45 @@ func init() {
 	locationDBMutex = &sync.Mutex{}
 }
 
-func InitLocationDB(filepath string) error {
+func InitLocationDB() error {
 	locationDBMutex.Lock()
 	defer locationDBMutex.Unlock()
 
 	if _, statErr := _osio.Stat(dbFileLocation); errors.Is(statErr, os.ErrNotExist) {
-		if filepath == "" {
-			log.Infof("Downloading location DB into local file %s ", dbFileLocation)
-			out, createErr := _osio.Create(dbZIPFileLocation)
-			if createErr != nil {
-				return fmt.Errorf("failed os.Create %w ", createErr)
-			}
-
-			timeout := time.Minute
-			tr := &http.Transport{IdleConnTimeout: timeout}
-			client := &http.Client{Transport: tr, Timeout: timeout}
-			resp, getErr := client.Get(_dbURL)
-			if getErr != nil {
-				return fmt.Errorf("failed http.Get %w ", getErr)
-			}
-
-			log.Infof("Got response %s", resp.Status)
-
-			written, copyErr := io.Copy(out, resp.Body)
-			if copyErr != nil {
-				return fmt.Errorf("failed io.Copy %w ", copyErr)
-			}
-
-			log.Infof("Wrote %d bytes to %s", written, dbZIPFileLocation)
-
-			bodyCloseErr := resp.Body.Close()
-			if bodyCloseErr != nil {
-				return fmt.Errorf("failed resp.Body.Close %w ", bodyCloseErr)
-			}
-
-			outCloseErr := out.Close()
-			if outCloseErr != nil {
-				return fmt.Errorf("failed out.Close %w ", outCloseErr)
-			}
-
-			filepath = dbZIPFileLocation
-			log.Infof("Download completed successfully")
-		} else {
-			log.Infof("Using provided location DB: %s", filepath)
+		log.Infof("Downloading location DB into local file %s ", dbFileLocation)
+		out, createErr := _osio.Create(dbZIPFileLocation)
+		if createErr != nil {
+			return fmt.Errorf("failed os.Create %w ", createErr)
 		}
 
-		unzipErr := unzip(filepath, dbFileLocation)
+		timeout := time.Minute
+		tr := &http.Transport{IdleConnTimeout: timeout}
+		client := &http.Client{Transport: tr, Timeout: timeout}
+		resp, getErr := client.Get(_dbURL)
+		if getErr != nil {
+			return fmt.Errorf("failed http.Get %w ", getErr)
+		}
+
+		log.Infof("Got response %s", resp.Status)
+
+		written, copyErr := io.Copy(out, resp.Body)
+		if copyErr != nil {
+			return fmt.Errorf("failed io.Copy %w ", copyErr)
+		}
+
+		log.Infof("Wrote %d bytes to %s", written, dbZIPFileLocation)
+
+		bodyCloseErr := resp.Body.Close()
+		if bodyCloseErr != nil {
+			return fmt.Errorf("failed resp.Body.Close %w ", bodyCloseErr)
+		}
+
+		outCloseErr := out.Close()
+		if outCloseErr != nil {
+			return fmt.Errorf("failed out.Close %w ", outCloseErr)
+		}
+
+		unzipErr := unzip(dbZIPFileLocation, dbFileLocation)
 		if unzipErr != nil {
 			file, openErr := os.Open(dbFileLocation + "/" + dbFilename)
 			if openErr == nil {
@@ -143,8 +136,8 @@ func InitLocationDB(filepath string) error {
 
 			return fmt.Errorf("failed unzip %w ", unzipErr)
 		}
-	} else {
-		log.Infof("Location DB already exists in %s, using it", dbFileLocation)
+
+		log.Infof("Download completed successfully")
 	}
 
 	log.Debugf("Loading location DB")
@@ -155,10 +148,6 @@ func InitLocationDB(filepath string) error {
 
 	locationDB = db
 	return nil
-}
-
-func CleanupLocationDB() error {
-	return os.RemoveAll(dbFileLocation)
 }
 
 func GetLocation(ip string) (*Info, error) {
