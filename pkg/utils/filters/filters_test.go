@@ -12,7 +12,6 @@ var flow = config.GenericMap{
 	"namespace":       "foo",
 	"name":            "bar",
 	"bytes":           15,
-	"int32_bytes":     int32(15),
 	"other_namespace": "foo",
 }
 
@@ -128,41 +127,4 @@ func Test_Filters_extractVarLookups(t *testing.T) {
 
 	variables = extractVarLookups("")
 	assert.Empty(t, variables)
-}
-
-func TestFilterNumeric(t *testing.T) {
-	// LessThan
-	pred := LessThan("bytes", 20)
-	assert.True(t, pred(flow))
-
-	pred = LessThan("bytes", 10)
-	assert.False(t, pred(flow))
-
-	// int32
-	pred = LessThan("int32_bytes", 20)
-	assert.True(t, pred(flow))
-
-	pred = LessThan("int32_bytes", 10)
-	assert.False(t, pred(flow))
-
-	// GreaterThan
-	pred = GreaterThan("bytes", 20)
-	assert.False(t, pred(flow))
-
-	pred = GreaterThan("bytes", 10)
-	assert.True(t, pred(flow))
-
-	// NumEquals
-	pred = NumEquals("bytes", 15)
-	assert.True(t, pred(flow))
-
-	pred = NumEquals("bytes", 10)
-	assert.False(t, pred(flow))
-
-	// NumNotEquals
-	pred = NumNotEquals("bytes", 10)
-	assert.True(t, pred(flow))
-
-	pred = NumNotEquals("bytes", 15)
-	assert.False(t, pred(flow))
 }

@@ -6,13 +6,13 @@ import (
 	"github.com/cilium/ebpf/internal/unix"
 )
 
-// UnsafePointer creates a 64-bit pointer from an unsafe Pointer.
-func UnsafePointer(ptr unsafe.Pointer) Pointer {
+// NewPointer creates a 64-bit pointer from an unsafe Pointer.
+func NewPointer(ptr unsafe.Pointer) Pointer {
 	return Pointer{ptr: ptr}
 }
 
-// UnsafeSlicePointer creates an untyped [Pointer] from a slice.
-func UnsafeSlicePointer[T comparable](buf []T) Pointer {
+// NewSlicePointer creates a 64-bit pointer from a slice.
+func NewSlicePointer[T comparable](buf []T) Pointer {
 	if len(buf) == 0 {
 		return Pointer{}
 	}
@@ -20,39 +20,21 @@ func UnsafeSlicePointer[T comparable](buf []T) Pointer {
 	return Pointer{ptr: unsafe.Pointer(unsafe.SliceData(buf))}
 }
 
-// TypedPointer points to typed memory.
+// NewSlicePointerLen creates a 64-bit pointer from a byte slice.
 //
-// It is like a *T except that it accounts for the BPF syscall interface.
-type TypedPointer[T any] struct {
-	_   [0]*T // prevent TypedPointer[a] to be convertible to TypedPointer[b]
-	ptr Pointer
+// Useful to assign both the pointer and the length in one go.
+func NewSlicePointerLen(buf []byte) (Pointer, uint32) {
+	return NewSlicePointer(buf), uint32(len(buf))
 }
 
-// SlicePointer creates a [TypedPointer] from a slice.
-func SlicePointer[T comparable](s []T) TypedPointer[T] {
-	return TypedPointer[T]{ptr: UnsafeSlicePointer(s)}
-}
-
-// StringPointer points to a null-terminated string.
-type StringPointer struct {
-	_   [0]string
-	ptr Pointer
-}
-
-// NewStringPointer creates a [StringPointer] from a string.
-func NewStringPointer(str string) StringPointer {
-	slice, err := unix.ByteSliceFromString(str)
+// NewStringPointer creates a 64-bit pointer from a string.
+func NewStringPointer(str string) Pointer {
+	p, err := unix.BytePtrFromString(str)
 	if err != nil {
-		return StringPointer{}
+		return Pointer{}
 	}
 
-	return StringPointer{ptr: Pointer{ptr: unsafe.Pointer(&slice[0])}}
-}
-
-// StringSlicePointer points to a slice of [StringPointer].
-type StringSlicePointer struct {
-	_   [0][]string
-	ptr Pointer
+	return Pointer{ptr: unsafe.Pointer(p)}
 }
 
 // NewStringSlicePointer allocates an array of Pointers to each string in the
@@ -60,11 +42,11 @@ type StringSlicePointer struct {
 // resulting array.
 //
 // Use this function to pass arrays of strings as syscall arguments.
-func NewStringSlicePointer(strings []string) StringSlicePointer {
-	sp := make([]StringPointer, 0, len(strings))
+func NewStringSlicePointer(strings []string) Pointer {
+	sp := make([]Pointer, 0, len(strings))
 	for _, s := range strings {
 		sp = append(sp, NewStringPointer(s))
 	}
 
-	return StringSlicePointer{ptr: Pointer{ptr: unsafe.Pointer(&sp[0])}}
+	return Pointer{ptr: unsafe.Pointer(&sp[0])}
 }

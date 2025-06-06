@@ -11,8 +11,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cilium/ebpf/internal"
-	"github.com/cilium/ebpf/internal/platform"
 	"github.com/cilium/ebpf/internal/sys"
 )
 
@@ -44,10 +42,10 @@ type Instruction struct {
 }
 
 // Unmarshal decodes a BPF instruction.
-func (ins *Instruction) Unmarshal(r io.Reader, bo binary.ByteOrder, platform string) error {
+func (ins *Instruction) Unmarshal(r io.Reader, bo binary.ByteOrder) (uint64, error) {
 	data := make([]byte, InstructionSize)
 	if _, err := io.ReadFull(r, data); err != nil {
-		return err
+		return 0, err
 	}
 
 	ins.OpCode = OpCode(data[0])
@@ -62,13 +60,7 @@ func (ins *Instruction) Unmarshal(r io.Reader, bo binary.ByteOrder, platform str
 
 	ins.Offset = int16(bo.Uint16(data[2:4]))
 
-	if ins.IsBuiltinCall() {
-		fn, err := BuiltinFuncForPlatform(platform, uint32(ins.Constant))
-		if err != nil {
-			return err
-		}
-		ins.Constant = int64(fn)
-	} else if ins.OpCode.Class().IsALU() {
+	if ins.OpCode.Class().IsALU() {
 		switch ins.OpCode.ALUOp() {
 		case Div:
 			if ins.Offset == 1 {
@@ -100,26 +92,26 @@ func (ins *Instruction) Unmarshal(r io.Reader, bo binary.ByteOrder, platform str
 	ins.Constant = int64(int32(bo.Uint32(data[4:8])))
 
 	if !ins.OpCode.IsDWordLoad() {
-		return nil
+		return InstructionSize, nil
 	}
 
 	// Pull another instruction from the stream to retrieve the second
 	// half of the 64-bit immediate value.
 	if _, err := io.ReadFull(r, data); err != nil {
 		// No Wrap, to avoid io.EOF clash
-		return errors.New("64bit immediate is missing second half")
+		return 0, errors.New("64bit immediate is missing second half")
 	}
 
 	// Require that all fields other than the value are zero.
 	if bo.Uint32(data[0:4]) != 0 {
-		return errors.New("64bit immediate has non-zero fields")
+		return 0, errors.New("64bit immediate has non-zero fields")
 	}
 
 	cons1 := uint32(ins.Constant)
 	cons2 := int32(bo.Uint32(data[4:8]))
 	ins.Constant = int64(cons2)<<32 | int64(cons1)
 
-	return nil
+	return 2 * InstructionSize, nil
 }
 
 // Marshal encodes a BPF instruction.
@@ -141,14 +133,7 @@ func (ins Instruction) Marshal(w io.Writer, bo binary.ByteOrder) (uint64, error)
 		return 0, fmt.Errorf("can't marshal registers: %s", err)
 	}
 
-	if ins.IsBuiltinCall() {
-		fn := BuiltinFunc(ins.Constant)
-		plat, value := platform.DecodeConstant(fn)
-		if plat != platform.Native {
-			return 0, fmt.Errorf("function %s (%s): %w", fn, plat, internal.ErrNotSupportedOnOS)
-		}
-		cons = int32(value)
-	} else if ins.OpCode.Class().IsALU() {
+	if ins.OpCode.Class().IsALU() {
 		newOffset := int16(0)
 		switch ins.OpCode.ALUOp() {
 		case SDiv:
@@ -544,24 +529,29 @@ type FDer interface {
 // Instructions is an eBPF program.
 type Instructions []Instruction
 
-// AppendInstructions decodes [Instruction] from r and appends them to insns.
-func AppendInstructions(insns Instructions, r io.Reader, bo binary.ByteOrder, platform string) (Instructions, error) {
+// Unmarshal unmarshals an Instructions from a binary instruction stream.
+// All instructions in insns are replaced by instructions decoded from r.
+func (insns *Instructions) Unmarshal(r io.Reader, bo binary.ByteOrder) error {
+	if len(*insns) > 0 {
+		*insns = nil
+	}
+
 	var offset uint64
 	for {
 		var ins Instruction
-		err := ins.Unmarshal(r, bo, platform)
+		n, err := ins.Unmarshal(r, bo)
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("offset %d: %w", offset, err)
+			return fmt.Errorf("offset %d: %w", offset, err)
 		}
 
-		insns = append(insns, ins)
-		offset += ins.Size()
+		*insns = append(*insns, ins)
+		offset += n
 	}
 
-	return insns, nil
+	return nil
 }
 
 // Name returns the name of the function insns belongs to, if any.

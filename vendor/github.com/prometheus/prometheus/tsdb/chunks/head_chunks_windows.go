@@ -13,6 +13,8 @@
 
 package chunks
 
-// HeadChunkFilePreallocationSize is the size to which the m-map file should be preallocated when a new file is cut.
-// Windows needs pre-allocation to m-map the file.
-var HeadChunkFilePreallocationSize int64 = MaxHeadChunkFileSize
+var (
+	// HeadChunkFilePreallocationSize is the size to which the m-map file should be preallocated when a new file is cut.
+	// Windows needs pre-allocation to m-map the file.
+	HeadChunkFilePreallocationSize int64 = MaxHeadChunkFileSize
+)

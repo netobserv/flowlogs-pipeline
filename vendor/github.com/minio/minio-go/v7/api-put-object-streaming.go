@@ -805,6 +805,5 @@ func (c *Client) putObjectDo(ctx context.Context, bucketName, objectName string,
 		ChecksumSHA1:      h.Get(ChecksumSHA1.Key()),
 		ChecksumSHA256:    h.Get(ChecksumSHA256.Key()),
 		ChecksumCRC64NVME: h.Get(ChecksumCRC64NVME.Key()),
-		ChecksumMode:      h.Get(ChecksumFullObjectMode.Key()),
 	}, nil
 }

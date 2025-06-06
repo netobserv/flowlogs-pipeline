@@ -65,9 +65,6 @@ type Flower struct {
 	EncSrcIPMask  net.IPMask
 	EncDestPort   uint16
 	EncKeyId      uint32
-	SrcMac        net.HardwareAddr
-	DestMac       net.HardwareAddr
-	VlanId        uint16
 	SkipHw        bool
 	SkipSw        bool
 	IPProto       *nl.IPProto
@@ -138,15 +135,6 @@ func (filter *Flower) encode(parent *nl.RtAttr) error {
 	if filter.EncKeyId != 0 {
 		parent.AddRtAttr(nl.TCA_FLOWER_KEY_ENC_KEY_ID, htonl(filter.EncKeyId))
 	}
-	if filter.SrcMac != nil {
-		parent.AddRtAttr(nl.TCA_FLOWER_KEY_ETH_SRC, filter.SrcMac)
-	}
-	if filter.DestMac != nil {
-		parent.AddRtAttr(nl.TCA_FLOWER_KEY_ETH_DST, filter.DestMac)
-	}
-	if filter.VlanId != 0 {
-		parent.AddRtAttr(nl.TCA_FLOWER_KEY_VLAN_ID, nl.Uint16Attr(filter.VlanId))
-	}
 	if filter.IPProto != nil {
 		ipproto := *filter.IPProto
 		parent.AddRtAttr(nl.TCA_FLOWER_KEY_IP_PROTO, ipproto.Serialize())
@@ -213,13 +201,6 @@ func (filter *Flower) decode(data []syscall.NetlinkRouteAttr) error {
 			filter.EncDestPort = ntohs(datum.Value)
 		case nl.TCA_FLOWER_KEY_ENC_KEY_ID:
 			filter.EncKeyId = ntohl(datum.Value)
-		case nl.TCA_FLOWER_KEY_ETH_SRC:
-			filter.SrcMac = datum.Value
-		case nl.TCA_FLOWER_KEY_ETH_DST:
-			filter.DestMac = datum.Value
-		case nl.TCA_FLOWER_KEY_VLAN_ID:
-			filter.VlanId = native.Uint16(datum.Value[0:2])
-			filter.EthType = unix.ETH_P_8021Q
 		case nl.TCA_FLOWER_KEY_IP_PROTO:
 			val := new(nl.IPProto)
 			*val = nl.IPProto(datum.Value[0])
@@ -424,20 +405,14 @@ func (h *Handle) filterModify(filter Filter, proto, flags int) error {
 
 // FilterList gets a list of filters in the system.
 // Equivalent to: `tc filter show`.
-//
 // Generally returns nothing if link and parent are not specified.
-// If the returned error is [ErrDumpInterrupted], results may be inconsistent
-// or incomplete.
 func FilterList(link Link, parent uint32) ([]Filter, error) {
 	return pkgHandle.FilterList(link, parent)
 }
 
 // FilterList gets a list of filters in the system.
 // Equivalent to: `tc filter show`.
-//
 // Generally returns nothing if link and parent are not specified.
-// If the returned error is [ErrDumpInterrupted], results may be inconsistent
-// or incomplete.
 func (h *Handle) FilterList(link Link, parent uint32) ([]Filter, error) {
 	req := h.newNetlinkRequest(unix.RTM_GETTFILTER, unix.NLM_F_DUMP)
 	msg := &nl.TcMsg{
@@ -451,9 +426,9 @@ func (h *Handle) FilterList(link Link, parent uint32) ([]Filter, error) {
 	}
 	req.AddData(msg)
 
-	msgs, executeErr := req.Execute(unix.NETLINK_ROUTE, unix.RTM_NEWTFILTER)
-	if executeErr != nil && !errors.Is(executeErr, ErrDumpInterrupted) {
-		return nil, executeErr
+	msgs, err := req.Execute(unix.NETLINK_ROUTE, unix.RTM_NEWTFILTER)
+	if err != nil {
+		return nil, err
 	}
 
 	var res []Filter
@@ -541,7 +516,7 @@ func (h *Handle) FilterList(link Link, parent uint32) ([]Filter, error) {
 		}
 	}
 
-	return res, executeErr
+	return res, nil
 }
 
 func toTcGen(attrs *ActionAttrs, tcgen *nl.TcGen) {
@@ -641,22 +616,6 @@ func EncodeActions(attr *nl.RtAttr, actions []Action) error {
 			}
 			toTcGen(action.Attrs(), &mirred.TcGen)
 			aopts.AddRtAttr(nl.TCA_MIRRED_PARMS, mirred.Serialize())
-		case *VlanAction:
-			table := attr.AddRtAttr(tabIndex, nil)
-			tabIndex++
-			table.AddRtAttr(nl.TCA_ACT_KIND, nl.ZeroTerminated("vlan"))
-			aopts := table.AddRtAttr(nl.TCA_ACT_OPTIONS, nil)
-			vlan := nl.TcVlan{
-				Action: int32(action.Action),
-			}
-			toTcGen(action.Attrs(), &vlan.TcGen)
-			aopts.AddRtAttr(nl.TCA_VLAN_PARMS, vlan.Serialize())
-			if action.Action == TCA_VLAN_ACT_PUSH && action.VlanID == 0 {
-				return fmt.Errorf("vlan id is required for push action")
-			}
-			if action.VlanID != 0 {
-				aopts.AddRtAttr(nl.TCA_VLAN_PUSH_VLAN_ID, nl.Uint16Attr(action.VlanID))
-			}
 		case *TunnelKeyAction:
 			table := attr.AddRtAttr(tabIndex, nil)
 			tabIndex++
@@ -740,17 +699,6 @@ func EncodeActions(attr *nl.RtAttr, actions []Action) error {
 			aopts.AddRtAttr(nl.TCA_ACT_BPF_PARMS, gen.Serialize())
 			aopts.AddRtAttr(nl.TCA_ACT_BPF_FD, nl.Uint32Attr(uint32(action.Fd)))
 			aopts.AddRtAttr(nl.TCA_ACT_BPF_NAME, nl.ZeroTerminated(action.Name))
-		case *SampleAction:
-			table := attr.AddRtAttr(tabIndex, nil)
-			tabIndex++
-			table.AddRtAttr(nl.TCA_ACT_KIND, nl.ZeroTerminated("sample"))
-			aopts := table.AddRtAttr(nl.TCA_ACT_OPTIONS, nil)
-			gen := nl.TcGen{}
-			toTcGen(action.Attrs(), &gen)
-			aopts.AddRtAttr(nl.TCA_ACT_SAMPLE_PARMS, gen.Serialize())
-			aopts.AddRtAttr(nl.TCA_ACT_SAMPLE_RATE, nl.Uint32Attr(action.Rate))
-			aopts.AddRtAttr(nl.TCA_ACT_SAMPLE_PSAMPLE_GROUP, nl.Uint32Attr(action.Group))
-			aopts.AddRtAttr(nl.TCA_ACT_SAMPLE_TRUNC_SIZE, nl.Uint32Attr(action.TruncSize))
 		case *GenericAction:
 			table := attr.AddRtAttr(tabIndex, nil)
 			tabIndex++
@@ -763,7 +711,6 @@ func EncodeActions(attr *nl.RtAttr, actions []Action) error {
 			table := attr.AddRtAttr(tabIndex, nil)
 			tabIndex++
 			pedit := nl.TcPedit{}
-			toTcGen(action.Attrs(), &pedit.Sel.TcGen)
 			if action.SrcMacAddr != nil {
 				pedit.SetEthSrc(action.SrcMacAddr)
 			}
@@ -837,12 +784,8 @@ func parseActions(tables []syscall.NetlinkRouteAttr) ([]Action, error) {
 					action = &ConnmarkAction{}
 				case "csum":
 					action = &CsumAction{}
-				case "sample":
-					action = &SampleAction{}
 				case "gact":
 					action = &GenericAction{}
-				case "vlan":
-					action = &VlanAction{}
 				case "tunnel_key":
 					action = &TunnelKeyAction{}
 				case "skbedit":
@@ -873,17 +816,7 @@ func parseActions(tables []syscall.NetlinkRouteAttr) ([]Action, error) {
 							tcTs := nl.DeserializeTcf(adatum.Value)
 							actionTimestamp = toTimeStamp(tcTs)
 						}
-					case "vlan":
-						switch adatum.Attr.Type {
-						case nl.TCA_VLAN_PARMS:
-							vlan := *nl.DeserializeTcVlan(adatum.Value)
-							action.(*VlanAction).ActionAttrs = ActionAttrs{}
-							toAttrs(&vlan.TcGen, action.Attrs())
-							action.(*VlanAction).Action = VlanAct(vlan.Action)
-						case nl.TCA_VLAN_PUSH_VLAN_ID:
-							vlanId := native.Uint16(adatum.Value[0:2])
-							action.(*VlanAction).VlanID = vlanId
-						}
+
 					case "tunnel_key":
 						switch adatum.Attr.Type {
 						case nl.TCA_TUNNEL_KEY_PARMS:
@@ -963,18 +896,6 @@ func parseActions(tables []syscall.NetlinkRouteAttr) ([]Action, error) {
 							tcTs := nl.DeserializeTcf(adatum.Value)
 							actionTimestamp = toTimeStamp(tcTs)
 						}
-					case "sample":
-						switch adatum.Attr.Type {
-						case nl.TCA_ACT_SAMPLE_PARMS:
-							gen := *nl.DeserializeTcGen(adatum.Value)
-							toAttrs(&gen, action.Attrs())
-						case nl.TCA_ACT_SAMPLE_RATE:
-							action.(*SampleAction).Rate = native.Uint32(adatum.Value[0:4])
-						case nl.TCA_ACT_SAMPLE_PSAMPLE_GROUP:
-							action.(*SampleAction).Group = native.Uint32(adatum.Value[0:4])
-						case nl.TCA_ACT_SAMPLE_TRUNC_SIZE:
-							action.(*SampleAction).TruncSize = native.Uint32(adatum.Value[0:4])
-						}
 					case "gact":
 						switch adatum.Attr.Type {
 						case nl.TCA_GACT_PARMS:
@@ -999,11 +920,9 @@ func parseActions(tables []syscall.NetlinkRouteAttr) ([]Action, error) {
 				actionnStatistic = (*ActionStatistic)(s)
 			}
 		}
-		if action != nil {
-			action.Attrs().Statistics = actionnStatistic
-			action.Attrs().Timestamp = actionTimestamp
-			actions = append(actions, action)
-		}
+		action.Attrs().Statistics = actionnStatistic
+		action.Attrs().Timestamp = actionTimestamp
+		actions = append(actions, action)
 	}
 	return actions, nil
 }

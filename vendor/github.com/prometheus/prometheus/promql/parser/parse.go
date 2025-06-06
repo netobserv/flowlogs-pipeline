@@ -14,9 +14,7 @@
 package parser
 
 import (
-	"errors"
 	"fmt"
-	"math"
 	"os"
 	"runtime"
 	"strconv"
@@ -24,12 +22,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/prometheus/common/model"
 
-	"github.com/prometheus/prometheus/model/histogram"
-	"github.com/prometheus/prometheus/model/labels"
-	"github.com/prometheus/prometheus/model/timestamp"
-	"github.com/prometheus/prometheus/promql/parser/posrange"
+	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/prometheus/prometheus/util/strutil"
 )
 
@@ -39,23 +35,15 @@ var parserPool = sync.Pool{
 	},
 }
 
-type Parser interface {
-	ParseExpr() (Expr, error)
-	Close()
-}
-
 type parser struct {
 	lex Lexer
 
 	inject    ItemType
 	injecting bool
 
-	// functions contains all functions supported by the parser instance.
-	functions map[string]*Function
-
 	// Everytime an Item is lexed that could be the end
 	// of certain expressions its end position is stored here.
-	lastClosing posrange.Pos
+	lastClosing Pos
 
 	yyParser yyParserImpl
 
@@ -63,38 +51,60 @@ type parser struct {
 	parseErrors           ParseErrors
 }
 
-type Opt func(p *parser)
+// ParseErr wraps a parsing error with line and position context.
+type ParseErr struct {
+	PositionRange PositionRange
+	Err           error
+	Query         string
 
-func WithFunctions(functions map[string]*Function) Opt {
-	return func(p *parser) {
-		p.functions = functions
-	}
+	// LineOffset is an additional line offset to be added. Only used inside unit tests.
+	LineOffset int
 }
 
-// NewParser returns a new parser.
-func NewParser(input string, opts ...Opt) *parser { //nolint:revive // unexported-return
-	p := parserPool.Get().(*parser)
+func (e *ParseErr) Error() string {
+	pos := int(e.PositionRange.Start)
+	lastLineBreak := -1
+	line := e.LineOffset + 1
 
-	p.functions = Functions
-	p.injecting = false
-	p.parseErrors = nil
-	p.generatedParserResult = nil
+	var positionStr string
 
-	// Clear lexer struct before reusing.
-	p.lex = Lexer{
-		input: input,
-		state: lexStatements,
+	if pos < 0 || pos > len(e.Query) {
+		positionStr = "invalid position:"
+	} else {
+
+		for i, c := range e.Query[:pos] {
+			if c == '\n' {
+				lastLineBreak = i
+				line++
+			}
+		}
+
+		col := pos - lastLineBreak
+		positionStr = fmt.Sprintf("%d:%d:", line, col)
 	}
-
-	// Apply user define options.
-	for _, opt := range opts {
-		opt(p)
-	}
-
-	return p
+	return fmt.Sprintf("%s parse error: %s", positionStr, e.Err)
 }
 
-func (p *parser) ParseExpr() (expr Expr, err error) {
+type ParseErrors []ParseErr
+
+// Since producing multiple error messages might look weird when combined with error wrapping,
+// only the first error produced by the parser is included in the error string.
+// If getting the full error list is desired, it is recommended to typecast the error returned
+// by the parser to ParseErrors and work with the underlying slice.
+func (errs ParseErrors) Error() string {
+	if len(errs) != 0 {
+		return errs[0].Error()
+	}
+	// Should never happen
+	// Panicking while printing an error seems like a bad idea, so the
+	// situation is explained in the error message instead.
+	return "error contains no error message"
+}
+
+// ParseExpr returns the expression parsed from the input.
+func ParseExpr(input string) (expr Expr, err error) {
+	p := newParser(input)
+	defer parserPool.Put(p)
 	defer p.recover(&err)
 
 	parseResult := p.parseGenerated(START_EXPRESSION)
@@ -115,66 +125,10 @@ func (p *parser) ParseExpr() (expr Expr, err error) {
 	return expr, err
 }
 
-func (p *parser) Close() {
-	defer parserPool.Put(p)
-}
-
-// ParseErr wraps a parsing error with line and position context.
-type ParseErr struct {
-	PositionRange posrange.PositionRange
-	Err           error
-	Query         string
-
-	// LineOffset is an additional line offset to be added. Only used inside unit tests.
-	LineOffset int
-}
-
-func (e *ParseErr) Error() string {
-	return fmt.Sprintf("%s: parse error: %s", e.PositionRange.StartPosInput(e.Query, e.LineOffset), e.Err)
-}
-
-type ParseErrors []ParseErr
-
-// Since producing multiple error messages might look weird when combined with error wrapping,
-// only the first error produced by the parser is included in the error string.
-// If getting the full error list is desired, it is recommended to typecast the error returned
-// by the parser to ParseErrors and work with the underlying slice.
-func (errs ParseErrors) Error() string {
-	if len(errs) != 0 {
-		return errs[0].Error()
-	}
-	// Should never happen
-	// Panicking while printing an error seems like a bad idea, so the
-	// situation is explained in the error message instead.
-	return "error contains no error message"
-}
-
-// EnrichParseError enriches a single or list of parse errors (used for unit tests and promtool).
-func EnrichParseError(err error, enrich func(parseErr *ParseErr)) {
-	var parseErr *ParseErr
-	if errors.As(err, &parseErr) {
-		enrich(parseErr)
-	}
-	var parseErrors ParseErrors
-	if errors.As(err, &parseErrors) {
-		for i, e := range parseErrors {
-			enrich(&e)
-			parseErrors[i] = e
-		}
-	}
-}
-
-// ParseExpr returns the expression parsed from the input.
-func ParseExpr(input string) (expr Expr, err error) {
-	p := NewParser(input)
-	defer p.Close()
-	return p.ParseExpr()
-}
-
-// ParseMetric parses the input into a metric.
+// ParseMetric parses the input into a metric
 func ParseMetric(input string) (m labels.Labels, err error) {
-	p := NewParser(input)
-	defer p.Close()
+	p := newParser(input)
+	defer parserPool.Put(p)
 	defer p.recover(&err)
 
 	parseResult := p.parseGenerated(START_METRIC)
@@ -192,8 +146,8 @@ func ParseMetric(input string) (m labels.Labels, err error) {
 // ParseMetricSelector parses the provided textual metric selector into a list of
 // label matchers.
 func ParseMetricSelector(input string) (m []*labels.Matcher, err error) {
-	p := NewParser(input)
-	defer p.Close()
+	p := newParser(input)
+	defer parserPool.Put(p)
 	defer p.recover(&err)
 
 	parseResult := p.parseGenerated(START_METRIC_SELECTOR)
@@ -208,33 +162,31 @@ func ParseMetricSelector(input string) (m []*labels.Matcher, err error) {
 	return m, err
 }
 
-// ParseMetricSelectors parses a list of provided textual metric selectors into lists of
-// label matchers.
-func ParseMetricSelectors(matchers []string) (m [][]*labels.Matcher, err error) {
-	var matcherSets [][]*labels.Matcher
-	for _, s := range matchers {
-		matchers, err := ParseMetricSelector(s)
-		if err != nil {
-			return nil, err
-		}
-		matcherSets = append(matcherSets, matchers)
+// newParser returns a new parser.
+func newParser(input string) *parser {
+	p := parserPool.Get().(*parser)
+
+	p.injecting = false
+	p.parseErrors = nil
+	p.generatedParserResult = nil
+
+	// Clear lexer struct before reusing.
+	p.lex = Lexer{
+		input: input,
+		state: lexStatements,
 	}
-	return matcherSets, nil
+	return p
 }
 
 // SequenceValue is an omittable value in a sequence of time series values.
 type SequenceValue struct {
-	Value     float64
-	Omitted   bool
-	Histogram *histogram.FloatHistogram
+	Value   float64
+	Omitted bool
 }
 
 func (v SequenceValue) String() string {
 	if v.Omitted {
 		return "_"
-	}
-	if v.Histogram != nil {
-		return v.Histogram.String()
 	}
 	return fmt.Sprintf("%f", v.Value)
 }
@@ -244,13 +196,12 @@ type seriesDescription struct {
 	values []SequenceValue
 }
 
-// ParseSeriesDesc parses the description of a time series. It is only used in
-// the PromQL testing framework code.
+// ParseSeriesDesc parses the description of a time series.
 func ParseSeriesDesc(input string) (labels labels.Labels, values []SequenceValue, err error) {
-	p := NewParser(input)
+	p := newParser(input)
 	p.lex.seriesDesc = true
 
-	defer p.Close()
+	defer parserPool.Put(p)
 	defer p.recover(&err)
 
 	parseResult := p.parseGenerated(START_SERIES_DESCRIPTION)
@@ -259,6 +210,7 @@ func ParseSeriesDesc(input string) (labels labels.Labels, values []SequenceValue
 
 		labels = result.labels
 		values = result.values
+
 	}
 
 	if len(p.parseErrors) != 0 {
@@ -269,12 +221,12 @@ func ParseSeriesDesc(input string) (labels labels.Labels, values []SequenceValue
 }
 
 // addParseErrf formats the error and appends it to the list of parsing errors.
-func (p *parser) addParseErrf(positionRange posrange.PositionRange, format string, args ...interface{}) {
-	p.addParseErr(positionRange, fmt.Errorf(format, args...))
+func (p *parser) addParseErrf(positionRange PositionRange, format string, args ...interface{}) {
+	p.addParseErr(positionRange, errors.Errorf(format, args...))
 }
 
 // addParseErr appends the provided error to the list of parsing errors.
-func (p *parser) addParseErr(positionRange posrange.PositionRange, err error) {
+func (p *parser) addParseErr(positionRange PositionRange, err error) {
 	perr := ParseErr{
 		PositionRange: positionRange,
 		Err:           err,
@@ -284,14 +236,10 @@ func (p *parser) addParseErr(positionRange posrange.PositionRange, err error) {
 	p.parseErrors = append(p.parseErrors, perr)
 }
 
-func (p *parser) addSemanticError(err error) {
-	p.addParseErr(p.yyParser.lval.item.PositionRange(), err)
-}
-
 // unexpected creates a parser error complaining about an unexpected lexer item.
 // The item that is presented as unexpected is always the last item produced
 // by the lexer.
-func (p *parser) unexpected(context, expected string) {
+func (p *parser) unexpected(context string, expected string) {
 	var errMsg strings.Builder
 
 	// Do not report lexer errors twice
@@ -320,15 +268,14 @@ var errUnexpected = errors.New("unexpected error")
 // recover is the handler that turns panics into returns from the top level of Parse.
 func (p *parser) recover(errp *error) {
 	e := recover()
-	switch _, ok := e.(runtime.Error); {
-	case ok:
+	if _, ok := e.(runtime.Error); ok {
 		// Print the stack trace but do not inhibit the running application.
 		buf := make([]byte, 64<<10)
 		buf = buf[:runtime.Stack(buf, false)]
 
 		fmt.Fprintf(os.Stderr, "parser panic: %v\n%s", e, buf)
 		*errp = errUnexpected
-	case e != nil:
+	} else if e != nil {
 		*errp = e.(error)
 	}
 }
@@ -341,7 +288,7 @@ func (p *parser) recover(errp *error) {
 // the generated and non-generated parts to work together with regards to lookahead
 // and error handling.
 //
-// For more information, see https://pkg.go.dev/golang.org/x/tools/cmd/goyacc.
+// For more information, see https://godoc.org/golang.org/x/tools/cmd/goyacc.
 func (p *parser) Lex(lval *yySymType) int {
 	var typ ItemType
 
@@ -360,9 +307,9 @@ func (p *parser) Lex(lval *yySymType) int {
 
 	switch typ {
 	case ERROR:
-		pos := posrange.PositionRange{
+		pos := PositionRange{
 			Start: p.lex.start,
-			End:   posrange.Pos(len(p.lex.input)),
+			End:   Pos(len(p.lex.input)),
 		}
 		p.addParseErr(pos, errors.New(p.yyParser.lval.item.Val))
 
@@ -371,8 +318,8 @@ func (p *parser) Lex(lval *yySymType) int {
 	case EOF:
 		lval.item.Typ = EOF
 		p.InjectItem(0)
-	case RIGHT_BRACE, RIGHT_PAREN, RIGHT_BRACKET, DURATION, NUMBER:
-		p.lastClosing = lval.item.Pos + posrange.Pos(len(lval.item.Val))
+	case RIGHT_BRACE, RIGHT_PAREN, RIGHT_BRACKET, DURATION:
+		p.lastClosing = lval.item.Pos + Pos(len(lval.item.Val))
 	}
 
 	return int(typ)
@@ -382,8 +329,8 @@ func (p *parser) Lex(lval *yySymType) int {
 //
 // It is a no-op since the parsers error routines are triggered
 // by mechanisms that allow more fine-grained control
-// For more information, see https://pkg.go.dev/golang.org/x/tools/cmd/goyacc.
-func (p *parser) Error(string) {
+// For more information, see https://godoc.org/golang.org/x/tools/cmd/goyacc.
+func (p *parser) Error(e string) {
 }
 
 // InjectItem allows injecting a single Item at the beginning of the token stream
@@ -405,8 +352,7 @@ func (p *parser) InjectItem(typ ItemType) {
 	p.inject = typ
 	p.injecting = true
 }
-
-func (p *parser) newBinaryExpression(lhs Node, op Item, modifiers, rhs Node) *BinaryExpr {
+func (p *parser) newBinaryExpression(lhs Node, op Item, modifiers Node, rhs Node) *BinaryExpr {
 	ret := modifiers.(*BinaryExpr)
 
 	ret.LHS = lhs.(Expr)
@@ -417,8 +363,6 @@ func (p *parser) newBinaryExpression(lhs Node, op Item, modifiers, rhs Node) *Bi
 }
 
 func (p *parser) assembleVectorSelector(vs *VectorSelector) {
-	// If the metric name was set outside the braces, add a matcher for it.
-	// If the metric name was inside the braces we don't need to do anything.
 	if vs.Name != "" {
 		nameMatcher, err := labels.NewMatcher(labels.MatchEqual, labels.MetricName, vs.Name)
 		if err != nil {
@@ -428,11 +372,11 @@ func (p *parser) assembleVectorSelector(vs *VectorSelector) {
 	}
 }
 
-func (p *parser) newAggregateExpr(op Item, modifier, args Node) (ret *AggregateExpr) {
+func (p *parser) newAggregateExpr(op Item, modifier Node, args Node) (ret *AggregateExpr) {
 	ret = modifier.(*AggregateExpr)
 	arguments := args.(Expressions)
 
-	ret.PosRange = posrange.PositionRange{
+	ret.PosRange = PositionRange{
 		Start: op.Pos,
 		End:   p.lastClosing,
 	}
@@ -448,10 +392,6 @@ func (p *parser) newAggregateExpr(op Item, modifier, args Node) (ret *AggregateE
 
 	desiredArgs := 1
 	if ret.Op.IsAggregatorWithParam() {
-		if !EnableExperimentalFunctions && ret.Op.IsExperimentalAggregator() {
-			p.addParseErrf(ret.PositionRange(), "%s() is experimental and must be enabled with --enable-feature=promql-experimental-functions", ret.Op)
-			return
-		}
 		desiredArgs = 2
 
 		ret.Param = arguments[0]
@@ -465,182 +405,6 @@ func (p *parser) newAggregateExpr(op Item, modifier, args Node) (ret *AggregateE
 	ret.Expr = arguments[desiredArgs-1]
 
 	return ret
-}
-
-// newMap is used when building the FloatHistogram from a map.
-func (p *parser) newMap() (ret map[string]interface{}) {
-	return map[string]interface{}{}
-}
-
-// mergeMaps is used to combine maps as they're used to later build the Float histogram.
-// This will merge the right map into the left map.
-func (p *parser) mergeMaps(left, right *map[string]interface{}) (ret *map[string]interface{}) {
-	for key, value := range *right {
-		if _, ok := (*left)[key]; ok {
-			p.addParseErrf(posrange.PositionRange{}, "duplicate key \"%s\" in histogram", key)
-			continue
-		}
-		(*left)[key] = value
-	}
-	return left
-}
-
-func (p *parser) histogramsIncreaseSeries(base, inc *histogram.FloatHistogram, times uint64) ([]SequenceValue, error) {
-	return p.histogramsSeries(base, inc, times, func(a, b *histogram.FloatHistogram) (*histogram.FloatHistogram, error) {
-		return a.Add(b)
-	})
-}
-
-func (p *parser) histogramsDecreaseSeries(base, inc *histogram.FloatHistogram, times uint64) ([]SequenceValue, error) {
-	return p.histogramsSeries(base, inc, times, func(a, b *histogram.FloatHistogram) (*histogram.FloatHistogram, error) {
-		return a.Sub(b)
-	})
-}
-
-func (p *parser) histogramsSeries(base, inc *histogram.FloatHistogram, times uint64,
-	combine func(*histogram.FloatHistogram, *histogram.FloatHistogram) (*histogram.FloatHistogram, error),
-) ([]SequenceValue, error) {
-	ret := make([]SequenceValue, times+1)
-	// Add an additional value (the base) for time 0, which we ignore in tests.
-	ret[0] = SequenceValue{Histogram: base}
-	cur := base
-	for i := uint64(1); i <= times; i++ {
-		if cur.Schema > inc.Schema {
-			return nil, fmt.Errorf("error combining histograms: cannot merge from schema %d to %d", inc.Schema, cur.Schema)
-		}
-
-		var err error
-		cur, err = combine(cur.Copy(), inc)
-		if err != nil {
-			return ret, err
-		}
-		ret[i] = SequenceValue{Histogram: cur}
-	}
-
-	return ret, nil
-}
-
-// buildHistogramFromMap is used in the grammar to take then individual parts of the histogram and complete it.
-func (p *parser) buildHistogramFromMap(desc *map[string]interface{}) *histogram.FloatHistogram {
-	output := &histogram.FloatHistogram{}
-
-	val, ok := (*desc)["schema"]
-	if ok {
-		schema, ok := val.(int64)
-		if ok {
-			output.Schema = int32(schema)
-		} else {
-			p.addParseErrf(p.yyParser.lval.item.PositionRange(), "error parsing schema number: %v", val)
-		}
-	}
-
-	val, ok = (*desc)["sum"]
-	if ok {
-		sum, ok := val.(float64)
-		if ok {
-			output.Sum = sum
-		} else {
-			p.addParseErrf(p.yyParser.lval.item.PositionRange(), "error parsing sum number: %v", val)
-		}
-	}
-	val, ok = (*desc)["count"]
-	if ok {
-		count, ok := val.(float64)
-		if ok {
-			output.Count = count
-		} else {
-			p.addParseErrf(p.yyParser.lval.item.PositionRange(), "error parsing count number: %v", val)
-		}
-	}
-
-	val, ok = (*desc)["z_bucket"]
-	if ok {
-		bucket, ok := val.(float64)
-		if ok {
-			output.ZeroCount = bucket
-		} else {
-			p.addParseErrf(p.yyParser.lval.item.PositionRange(), "error parsing z_bucket number: %v", val)
-		}
-	}
-	val, ok = (*desc)["z_bucket_w"]
-	if ok {
-		bucketWidth, ok := val.(float64)
-		if ok {
-			output.ZeroThreshold = bucketWidth
-		} else {
-			p.addParseErrf(p.yyParser.lval.item.PositionRange(), "error parsing z_bucket_w number: %v", val)
-		}
-	}
-	val, ok = (*desc)["custom_values"]
-	if ok {
-		customValues, ok := val.([]float64)
-		if ok {
-			output.CustomValues = customValues
-		} else {
-			p.addParseErrf(p.yyParser.lval.item.PositionRange(), "error parsing custom_values: %v", val)
-		}
-	}
-
-	val, ok = (*desc)["counter_reset_hint"]
-	if ok {
-		resetHint, ok := val.(Item)
-
-		if ok {
-			switch resetHint.Typ {
-			case UNKNOWN_COUNTER_RESET:
-				output.CounterResetHint = histogram.UnknownCounterReset
-			case COUNTER_RESET:
-				output.CounterResetHint = histogram.CounterReset
-			case NOT_COUNTER_RESET:
-				output.CounterResetHint = histogram.NotCounterReset
-			case GAUGE_TYPE:
-				output.CounterResetHint = histogram.GaugeType
-			default:
-				p.addParseErrf(p.yyParser.lval.item.PositionRange(), "error parsing counter_reset_hint: unknown value %v", resetHint.Typ)
-			}
-		} else {
-			p.addParseErrf(p.yyParser.lval.item.PositionRange(), "error parsing counter_reset_hint: %v", val)
-		}
-	}
-
-	buckets, spans := p.buildHistogramBucketsAndSpans(desc, "buckets", "offset")
-	output.PositiveBuckets = buckets
-	output.PositiveSpans = spans
-
-	buckets, spans = p.buildHistogramBucketsAndSpans(desc, "n_buckets", "n_offset")
-	output.NegativeBuckets = buckets
-	output.NegativeSpans = spans
-
-	return output
-}
-
-func (p *parser) buildHistogramBucketsAndSpans(desc *map[string]interface{}, bucketsKey, offsetKey string,
-) (buckets []float64, spans []histogram.Span) {
-	bucketCount := 0
-	val, ok := (*desc)[bucketsKey]
-	if ok {
-		val, ok := val.([]float64)
-		if ok {
-			buckets = val
-			bucketCount = len(buckets)
-		} else {
-			p.addParseErrf(p.yyParser.lval.item.PositionRange(), "error parsing %s float array: %v", bucketsKey, val)
-		}
-	}
-	offset := int32(0)
-	val, ok = (*desc)[offsetKey]
-	if ok {
-		val, ok := val.(int64)
-		if ok {
-			offset = int32(val)
-		} else {
-			p.addParseErrf(p.yyParser.lval.item.PositionRange(), "error parsing %s number: %v", offsetKey, val)
-		}
-	}
-	if bucketCount > 0 {
-		spans = []histogram.Span{{Offset: offset, Length: uint32(bucketCount)}}
-	}
-	return
 }
 
 // number parses a number.
@@ -665,7 +429,7 @@ func (p *parser) expectType(node Node, want ValueType, context string) {
 	}
 }
 
-// checkAST checks the validity of the provided AST. This includes type checking.
+// checkAST checks the sanity of the provided AST. This includes type checking.
 func (p *parser) checkAST(node Node) (typ ValueType) {
 	// For expressions the type is determined by their Type function.
 	// Lists do not have a type but are not invalid either.
@@ -699,7 +463,7 @@ func (p *parser) checkAST(node Node) (typ ValueType) {
 			p.addParseErrf(n.PositionRange(), "aggregation operator expected in aggregation expression but got %q", n.Op)
 		}
 		p.expectType(n.Expr, ValueTypeVector, "aggregation expression")
-		if n.Op == TOPK || n.Op == BOTTOMK || n.Op == QUANTILE || n.Op == LIMITK || n.Op == LIMIT_RATIO {
+		if n.Op == TOPK || n.Op == BOTTOMK || n.Op == QUANTILE {
 			p.expectType(n.Param, ValueTypeScalar, "aggregation parameter")
 		}
 		if n.Op == COUNT_VALUES {
@@ -712,7 +476,7 @@ func (p *parser) checkAST(node Node) (typ ValueType) {
 
 		// opRange returns the PositionRange of the operator part of the BinaryExpr.
 		// This is made a function instead of a variable, so it is lazily evaluated on demand.
-		opRange := func() (r posrange.PositionRange) {
+		opRange := func() (r PositionRange) {
 			// Remove whitespace at the beginning and end of the range.
 			for r.Start = n.LHS.PositionRange().End; isSpace(rune(p.lex.input[r.Start])); r.Start++ {
 			}
@@ -751,18 +515,20 @@ func (p *parser) checkAST(node Node) (typ ValueType) {
 			p.addParseErrf(n.RHS.PositionRange(), "binary expression must contain only scalar and instant vector types")
 		}
 
-		switch {
-		case (lt != ValueTypeVector || rt != ValueTypeVector) && n.VectorMatching != nil:
+		if (lt != ValueTypeVector || rt != ValueTypeVector) && n.VectorMatching != nil {
 			if len(n.VectorMatching.MatchingLabels) > 0 {
 				p.addParseErrf(n.PositionRange(), "vector matching only allowed between instant vectors")
 			}
 			n.VectorMatching = nil
-		case n.Op.IsSetOperator(): // Both operands are Vectors.
-			if n.VectorMatching.Card == CardOneToMany || n.VectorMatching.Card == CardManyToOne {
-				p.addParseErrf(n.PositionRange(), "no grouping allowed for %q operation", n.Op)
-			}
-			if n.VectorMatching.Card != CardManyToMany {
-				p.addParseErrf(n.PositionRange(), "set operations must always be many-to-many")
+		} else {
+			// Both operands are Vectors.
+			if n.Op.IsSetOperator() {
+				if n.VectorMatching.Card == CardOneToMany || n.VectorMatching.Card == CardManyToOne {
+					p.addParseErrf(n.PositionRange(), "no grouping allowed for %q operation", n.Op)
+				}
+				if n.VectorMatching.Card != CardManyToMany {
+					p.addParseErrf(n.PositionRange(), "set operations must always be many-to-many")
+				}
 			}
 		}
 
@@ -783,19 +549,6 @@ func (p *parser) checkAST(node Node) (typ ValueType) {
 			} else if nargsmax := na + n.Func.Variadic; n.Func.Variadic > 0 && nargsmax < len(n.Args) {
 				p.addParseErrf(n.PositionRange(), "expected at most %d argument(s) in call to %q, got %d", nargsmax, n.Func.Name, len(n.Args))
 			}
-		}
-
-		if n.Func.Name == "info" && len(n.Args) > 1 {
-			// Check the type is correct first
-			if n.Args[1].Type() != ValueTypeVector {
-				p.addParseErrf(node.PositionRange(), "expected type %s in %s, got %s", DocumentedType(ValueTypeVector), fmt.Sprintf("call to function %q", n.Func.Name), DocumentedType(n.Args[1].Type()))
-			}
-			// Check the vector selector in the input doesn't contain a metric name
-			if n.Args[1].(*VectorSelector).Name != "" {
-				p.addParseErrf(n.Args[1].PositionRange(), "expected label selectors only, got vector selector instead")
-			}
-			// Set Vector Selector flag to bypass empty matcher check
-			n.Args[1].(*VectorSelector).BypassEmptyMatcherCheck = true
 		}
 
 		for i, arg := range n.Args {
@@ -824,38 +577,33 @@ func (p *parser) checkAST(node Node) (typ ValueType) {
 	case *SubqueryExpr:
 		ty := p.checkAST(n.Expr)
 		if ty != ValueTypeVector {
-			p.addParseErrf(n.PositionRange(), "subquery is only allowed on instant vector, got %s instead", ty)
+			p.addParseErrf(n.PositionRange(), "subquery is only allowed on instant vector, got %s in %q instead", ty, n.String())
 		}
 	case *MatrixSelector:
 		p.checkAST(n.VectorSelector)
 
 	case *VectorSelector:
+		// A Vector selector must contain at least one non-empty matcher to prevent
+		// implicit selection of all metrics (e.g. by a typo).
+		notEmpty := false
+		for _, lm := range n.LabelMatchers {
+			if lm != nil && !lm.Matches("") {
+				notEmpty = true
+				break
+			}
+		}
+		if !notEmpty {
+			p.addParseErrf(n.PositionRange(), "vector selector must contain at least one non-empty matcher")
+		}
+
 		if n.Name != "" {
 			// In this case the last LabelMatcher is checking for the metric name
 			// set outside the braces. This checks if the name has already been set
-			// previously.
+			// previously
 			for _, m := range n.LabelMatchers[0 : len(n.LabelMatchers)-1] {
 				if m != nil && m.Name == labels.MetricName {
 					p.addParseErrf(n.PositionRange(), "metric name must not be set twice: %q or %q", n.Name, m.Value)
 				}
-			}
-
-			// Skip the check for non-empty matchers because an explicit
-			// metric name is a non-empty matcher.
-			break
-		}
-		if !n.BypassEmptyMatcherCheck {
-			// A Vector selector must contain at least one non-empty matcher to prevent
-			// implicit selection of all metrics (e.g. by a typo).
-			notEmpty := false
-			for _, lm := range n.LabelMatchers {
-				if lm != nil && !lm.Matches("") {
-					notEmpty = true
-					break
-				}
-			}
-			if !notEmpty {
-				p.addParseErrf(n.PositionRange(), "vector selector must contain at least one non-empty matcher")
 			}
 		}
 
@@ -896,9 +644,10 @@ func (p *parser) parseGenerated(startSymbol ItemType) interface{} {
 	p.yyParser.Parse(p)
 
 	return p.generatedParserResult
+
 }
 
-func (p *parser) newLabelMatcher(label, operator, value Item) *labels.Matcher {
+func (p *parser) newLabelMatcher(label Item, operator Item, value Item) *labels.Matcher {
 	op := operator.Typ
 	val := p.unquoteString(value.Val)
 
@@ -927,136 +676,34 @@ func (p *parser) newLabelMatcher(label, operator, value Item) *labels.Matcher {
 	return m
 }
 
-func (p *parser) newMetricNameMatcher(value Item) *labels.Matcher {
-	m, err := labels.NewMatcher(labels.MatchEqual, labels.MetricName, value.Val)
-	if err != nil {
-		p.addParseErr(value.PositionRange(), err)
-	}
-
-	return m
-}
-
-// addOffset is used to set the offset in the generated parser.
 func (p *parser) addOffset(e Node, offset time.Duration) {
-	var orgoffsetp *time.Duration
-	var endPosp *posrange.Pos
+	var offsetp *time.Duration
+	var endPosp *Pos
 
 	switch s := e.(type) {
 	case *VectorSelector:
-		orgoffsetp = &s.OriginalOffset
+		offsetp = &s.Offset
 		endPosp = &s.PosRange.End
 	case *MatrixSelector:
-		vs, ok := s.VectorSelector.(*VectorSelector)
-		if !ok {
-			p.addParseErrf(e.PositionRange(), "ranges only allowed for vector selectors")
-			return
+		if vs, ok := s.VectorSelector.(*VectorSelector); ok {
+			offsetp = &vs.Offset
 		}
-		orgoffsetp = &vs.OriginalOffset
 		endPosp = &s.EndPos
 	case *SubqueryExpr:
-		orgoffsetp = &s.OriginalOffset
+		offsetp = &s.Offset
 		endPosp = &s.EndPos
 	default:
-		p.addParseErrf(e.PositionRange(), "offset modifier must be preceded by an instant vector selector or range vector selector or a subquery")
+		p.addParseErrf(e.PositionRange(), "offset modifier must be preceded by an instant or range selector, but follows a %T instead", e)
 		return
 	}
 
 	// it is already ensured by parseDuration func that there never will be a zero offset modifier
-	switch {
-	case *orgoffsetp != 0:
+	if *offsetp != 0 {
 		p.addParseErrf(e.PositionRange(), "offset may not be set multiple times")
-	case orgoffsetp != nil:
-		*orgoffsetp = offset
+	} else if offsetp != nil {
+		*offsetp = offset
 	}
 
 	*endPosp = p.lastClosing
-}
 
-// setTimestamp is used to set the timestamp from the @ modifier in the generated parser.
-func (p *parser) setTimestamp(e Node, ts float64) {
-	if math.IsInf(ts, -1) || math.IsInf(ts, 1) || math.IsNaN(ts) ||
-		ts >= float64(math.MaxInt64) || ts <= float64(math.MinInt64) {
-		p.addParseErrf(e.PositionRange(), "timestamp out of bounds for @ modifier: %f", ts)
-	}
-	var timestampp **int64
-	var endPosp *posrange.Pos
-
-	timestampp, _, endPosp, ok := p.getAtModifierVars(e)
-	if !ok {
-		return
-	}
-
-	if timestampp != nil {
-		*timestampp = new(int64)
-		**timestampp = timestamp.FromFloatSeconds(ts)
-	}
-
-	*endPosp = p.lastClosing
-}
-
-// setAtModifierPreprocessor is used to set the preprocessor for the @ modifier.
-func (p *parser) setAtModifierPreprocessor(e Node, op Item) {
-	_, preprocp, endPosp, ok := p.getAtModifierVars(e)
-	if !ok {
-		return
-	}
-
-	if preprocp != nil {
-		*preprocp = op.Typ
-	}
-
-	*endPosp = p.lastClosing
-}
-
-func (p *parser) getAtModifierVars(e Node) (**int64, *ItemType, *posrange.Pos, bool) {
-	var (
-		timestampp **int64
-		preprocp   *ItemType
-		endPosp    *posrange.Pos
-	)
-	switch s := e.(type) {
-	case *VectorSelector:
-		timestampp = &s.Timestamp
-		preprocp = &s.StartOrEnd
-		endPosp = &s.PosRange.End
-	case *MatrixSelector:
-		vs, ok := s.VectorSelector.(*VectorSelector)
-		if !ok {
-			p.addParseErrf(e.PositionRange(), "ranges only allowed for vector selectors")
-			return nil, nil, nil, false
-		}
-		preprocp = &vs.StartOrEnd
-		timestampp = &vs.Timestamp
-		endPosp = &s.EndPos
-	case *SubqueryExpr:
-		preprocp = &s.StartOrEnd
-		timestampp = &s.Timestamp
-		endPosp = &s.EndPos
-	default:
-		p.addParseErrf(e.PositionRange(), "@ modifier must be preceded by an instant vector selector or range vector selector or a subquery")
-		return nil, nil, nil, false
-	}
-
-	if *timestampp != nil || (*preprocp) == START || (*preprocp) == END {
-		p.addParseErrf(e.PositionRange(), "@ <timestamp> may not be set multiple times")
-		return nil, nil, nil, false
-	}
-
-	return timestampp, preprocp, endPosp, true
-}
-
-func MustLabelMatcher(mt labels.MatchType, name, val string) *labels.Matcher {
-	m, err := labels.NewMatcher(mt, name, val)
-	if err != nil {
-		panic(err)
-	}
-	return m
-}
-
-func MustGetFunction(name string) *Function {
-	f, ok := getFunction(name, Functions)
-	if !ok {
-		panic(fmt.Errorf("function %q does not exist", name))
-	}
-	return f
 }

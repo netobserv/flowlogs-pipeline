@@ -457,6 +457,5 @@ func (c *Client) completeMultipartUpload(ctx context.Context, bucketName, object
 		ChecksumCRC32:     completeMultipartUploadResult.ChecksumCRC32,
 		ChecksumCRC32C:    completeMultipartUploadResult.ChecksumCRC32C,
 		ChecksumCRC64NVME: completeMultipartUploadResult.ChecksumCRC64NVME,
-		ChecksumMode:      completeMultipartUploadResult.ChecksumType,
 	}, nil
 }

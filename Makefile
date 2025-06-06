@@ -69,14 +69,6 @@ define manifest_add_target
 	DOCKER_BUILDKIT=1 $(OCI_BIN) manifest add ${IMAGE} ${IMAGE}-$(1);
 endef
 
-# extract a single arch target binary
-define extract_target
-	echo 'extracting binary from ${IMAGE}-$(1)'; \
-	$(OCI_BIN) create --name flp ${IMAGE}-$(1); \
-	$(OCI_BIN) cp flp:/app/flowlogs-pipeline ./release-assets/flowlogs-pipeline-${VERSION}-linux-$(1); \
-	$(OCI_BIN) rm -f flp;
-endef
-
 ##@ General
 
 # The help target prints out all targets with their descriptions organized
@@ -204,18 +196,6 @@ ifeq (${OCI_BIN}, docker)
 else
 	DOCKER_BUILDKIT=1 $(OCI_BIN) manifest push ${IMAGE} docker://${IMAGE};
 endif
-
-.PHONY: extract-binaries
-extract-binaries: ## Extract all MULTIARCH_TARGETS binaries
-	trap 'exit' INT; \
-	mkdir -p release-assets; \
-	$(foreach target,$(MULTIARCH_TARGETS),$(call extract_target,$(target)))
-
-.PHONY: goyacc
-goyacc: ## Regenerate filters query langage
-	@echo "### Regenerate filters query langage"
-	GOFLAGS="" go install golang.org/x/tools/cmd/goyacc@v0.32.0
-	goyacc -o pkg/dsl/expr.y.go pkg/dsl/expr.y
 
 include .mk/development.mk
 include .mk/shortcuts.mk

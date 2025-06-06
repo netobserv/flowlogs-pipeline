@@ -17,7 +17,3 @@ func BytePtrFromString(s string) (*byte, error) {
 func ByteSliceToString(s []byte) string {
 	return windows.ByteSliceToString(s)
 }
-
-func ByteSliceFromString(s string) ([]byte, error) {
-	return windows.ByteSliceFromString(s)
-}

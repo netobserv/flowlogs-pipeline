@@ -14,11 +14,9 @@
 package storage
 
 import (
-	"context"
 	"sync"
 
-	"github.com/prometheus/prometheus/model/labels"
-	"github.com/prometheus/prometheus/util/annotations"
+	"github.com/prometheus/prometheus/pkg/labels"
 )
 
 // secondaryQuerier is a wrapper that allows a querier to be treated in a best effort manner.
@@ -49,28 +47,28 @@ func newSecondaryQuerierFromChunk(cq ChunkQuerier) genericQuerier {
 	return &secondaryQuerier{genericQuerier: newGenericQuerierFromChunk(cq)}
 }
 
-func (s *secondaryQuerier) LabelValues(ctx context.Context, name string, hints *LabelHints, matchers ...*labels.Matcher) ([]string, annotations.Annotations, error) {
-	vals, w, err := s.genericQuerier.LabelValues(ctx, name, hints, matchers...)
+func (s *secondaryQuerier) LabelValues(name string) ([]string, Warnings, error) {
+	vals, w, err := s.genericQuerier.LabelValues(name)
 	if err != nil {
-		return nil, w.Add(err), nil
+		return nil, append([]error{err}, w...), nil
 	}
 	return vals, w, nil
 }
 
-func (s *secondaryQuerier) LabelNames(ctx context.Context, hints *LabelHints, matchers ...*labels.Matcher) ([]string, annotations.Annotations, error) {
-	names, w, err := s.genericQuerier.LabelNames(ctx, hints, matchers...)
+func (s *secondaryQuerier) LabelNames() ([]string, Warnings, error) {
+	names, w, err := s.genericQuerier.LabelNames()
 	if err != nil {
-		return nil, w.Add(err), nil
+		return nil, append([]error{err}, w...), nil
 	}
 	return names, w, nil
 }
 
-func (s *secondaryQuerier) Select(ctx context.Context, sortSeries bool, hints *SelectHints, matchers ...*labels.Matcher) genericSeriesSet {
+func (s *secondaryQuerier) Select(sortSeries bool, hints *SelectHints, matchers ...*labels.Matcher) genericSeriesSet {
 	if s.done {
 		panic("secondaryQuerier: Select invoked after first Next of any returned SeriesSet was done")
 	}
 
-	s.asyncSets = append(s.asyncSets, s.genericQuerier.Select(ctx, sortSeries, hints, matchers...))
+	s.asyncSets = append(s.asyncSets, s.genericQuerier.Select(sortSeries, hints, matchers...))
 	curr := len(s.asyncSets) - 1
 	return &lazyGenericSeriesSet{init: func() (genericSeriesSet, bool) {
 		s.once.Do(func() {
@@ -84,7 +82,7 @@ func (s *secondaryQuerier) Select(ctx context.Context, sortSeries bool, hints *S
 				if err := set.Err(); err != nil {
 					// One of the sets failed, ensure current one returning errors as warnings, and rest of the sets return nothing.
 					// (All or nothing logic).
-					s.asyncSets[curr] = warningsOnlySeriesSet(ws.Add(err))
+					s.asyncSets[curr] = warningsOnlySeriesSet(append([]error{err}, ws...))
 					for i := range s.asyncSets {
 						if curr == i {
 							continue

@@ -740,9 +740,10 @@ func copyType(typ Type, ids map[Type]TypeID, copies map[Type]Type, copiedIDs map
 		copiedIDs[cpy] = id
 	}
 
-	for child := range children(cpy) {
+	children(cpy, func(child *Type) bool {
 		*child = copyType(*child, ids, copies, copiedIDs)
-	}
+		return true
+	})
 
 	return cpy
 }
