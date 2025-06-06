@@ -18,6 +18,7 @@
 package fileutil
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +27,7 @@ import (
 // CopyDirs copies all directories, subdirectories and files recursively including the empty folders.
 // Source and destination must be full paths.
 func CopyDirs(src, dest string) error {
-	if err := os.MkdirAll(dest, 0o777); err != nil {
+	if err := os.MkdirAll(dest, 0777); err != nil {
 		return err
 	}
 	files, err := readDirs(src)
@@ -45,7 +46,7 @@ func CopyDirs(src, dest string) error {
 
 		// Empty directories are also created.
 		if stat.IsDir() {
-			if err := os.MkdirAll(dp, 0o777); err != nil {
+			if err := os.MkdirAll(dp, 0777); err != nil {
 				return err
 			}
 			continue
@@ -59,12 +60,12 @@ func CopyDirs(src, dest string) error {
 }
 
 func copyFile(src, dest string) error {
-	data, err := os.ReadFile(src)
+	data, err := ioutil.ReadFile(src)
 	if err != nil {
 		return err
 	}
 
-	err = os.WriteFile(dest, data, 0o666)
+	err = ioutil.WriteFile(dest, data, 0666)
 	if err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ func copyFile(src, dest string) error {
 func readDirs(src string) ([]string, error) {
 	var files []string
 
-	err := filepath.Walk(src, func(path string, _ os.FileInfo, _ error) error {
+	err := filepath.Walk(src, func(path string, f os.FileInfo, err error) error {
 		relativePath := strings.TrimPrefix(path, src)
 		if len(relativePath) > 0 {
 			files = append(files, relativePath)

@@ -51,19 +51,19 @@ func SyscallOutput(dst any, size int) Buffer {
 //
 // Returns the number of copied bytes.
 func (b Buffer) CopyTo(dst []byte) int {
-	return copy(dst, b.Bytes())
+	return copy(dst, b.unsafeBytes())
 }
 
 // AppendTo appends the buffer onto dst.
 func (b Buffer) AppendTo(dst []byte) []byte {
-	return append(dst, b.Bytes()...)
+	return append(dst, b.unsafeBytes()...)
 }
 
 // Pointer returns the location where a syscall should write.
 func (b Buffer) Pointer() sys.Pointer {
 	// NB: This deliberately ignores b.length to support zero-copy
 	// marshaling / unmarshaling using unsafe.Pointer.
-	return sys.UnsafePointer(b.ptr)
+	return sys.NewPointer(b.ptr)
 }
 
 // Unmarshal the buffer into the provided value.
@@ -72,12 +72,10 @@ func (b Buffer) Unmarshal(data any) error {
 		return nil
 	}
 
-	return Unmarshal(data, b.Bytes())
+	return Unmarshal(data, b.unsafeBytes())
 }
 
-// Bytes returns the buffer as a byte slice. Returns nil if the Buffer was
-// created using UnsafeBuffer or by zero-copy unmarshaling.
-func (b Buffer) Bytes() []byte {
+func (b Buffer) unsafeBytes() []byte {
 	if b.size == syscallPointerOnly {
 		return nil
 	}

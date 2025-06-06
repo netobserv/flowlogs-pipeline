@@ -1,8 +1,8 @@
 package ebpf
 
 import (
-	"github.com/cilium/ebpf/internal/platform"
 	"github.com/cilium/ebpf/internal/sys"
+	"github.com/cilium/ebpf/internal/unix"
 )
 
 //go:generate go run golang.org/x/tools/cmd/stringer@latest -output types_string.go -type=MapType,ProgramType,PinType
@@ -13,7 +13,7 @@ type MapType uint32
 
 // All the various map types that can be created
 const (
-	UnspecifiedMap MapType = MapType(platform.LinuxTag | iota)
+	UnspecifiedMap MapType = iota
 	// Hash is a hash map
 	Hash
 	// Array is an array map
@@ -95,50 +95,11 @@ const (
 	InodeStorage
 	// TaskStorage - Specialized local storage map for task_struct.
 	TaskStorage
-	// BloomFilter - Space-efficient data structure to quickly test whether an element exists in a set.
-	BloomFilter
-	// UserRingbuf - The reverse of RingBuf, used to send messages from user space to BPF programs.
-	UserRingbuf
-	// CgroupStorage - Store data keyed on a cgroup. If the cgroup disappears, the key is automatically removed.
-	CgroupStorage
-	// Arena - Sparse shared memory region between a BPF program and user space.
-	Arena
 )
-
-// Map types (Windows).
-const (
-	WindowsHash MapType = MapType(platform.WindowsTag | iota + 1)
-	WindowsArray
-	WindowsProgramArray
-	WindowsPerCPUHash
-	WindowsPerCPUArray
-	WindowsHashOfMaps
-	WindowsArrayOfMaps
-	WindowsLRUHash
-	WindowsLPMTrie
-	WindowsQueue
-	WindowsLRUCPUHash
-	WindowsStack
-	WindowsRingBuf
-)
-
-// MapTypeForPlatform returns a platform specific map type.
-//
-// Use this if the library doesn't provide a constant yet.
-func MapTypeForPlatform(plat string, typ uint32) (MapType, error) {
-	return platform.EncodeConstant[MapType](plat, typ)
-}
 
 // hasPerCPUValue returns true if the Map stores a value per CPU.
 func (mt MapType) hasPerCPUValue() bool {
-	switch mt {
-	case PerCPUHash, PerCPUArray, LRUCPUHash, PerCPUCGroupStorage:
-		return true
-	case WindowsPerCPUHash, WindowsPerCPUArray, WindowsLRUCPUHash:
-		return true
-	default:
-		return false
-	}
+	return mt == PerCPUHash || mt == PerCPUArray || mt == LRUCPUHash || mt == PerCPUCGroupStorage
 }
 
 // canStoreMapOrProgram returns true if the Map stores references to another Map
@@ -150,34 +111,19 @@ func (mt MapType) canStoreMapOrProgram() bool {
 // canStoreMap returns true if the map type accepts a map fd
 // for update and returns a map id for lookup.
 func (mt MapType) canStoreMap() bool {
-	return mt == ArrayOfMaps || mt == HashOfMaps || mt == WindowsArrayOfMaps || mt == WindowsHashOfMaps
+	return mt == ArrayOfMaps || mt == HashOfMaps
 }
 
 // canStoreProgram returns true if the map type accepts a program fd
 // for update and returns a program id for lookup.
 func (mt MapType) canStoreProgram() bool {
-	return mt == ProgramArray || mt == WindowsProgramArray
-}
-
-// canHaveValueSize returns true if the map type supports setting a value size.
-func (mt MapType) canHaveValueSize() bool {
-	switch mt {
-	case RingBuf, Arena:
-		return false
-
-	// Special-case perf events since they require a value size of either 0 or 4
-	// for historical reasons. Let the library fix this up later.
-	case PerfEventArray:
-		return false
-	}
-
-	return true
+	return mt == ProgramArray
 }
 
 // ProgramType of the eBPF program
 type ProgramType uint32
 
-// eBPF program types (Linux).
+// eBPF program types
 const (
 	UnspecifiedProgram    = ProgramType(sys.BPF_PROG_TYPE_UNSPEC)
 	SocketFilter          = ProgramType(sys.BPF_PROG_TYPE_SOCKET_FILTER)
@@ -214,25 +160,6 @@ const (
 	Netfilter             = ProgramType(sys.BPF_PROG_TYPE_NETFILTER)
 )
 
-// eBPF program types (Windows).
-//
-// See https://github.com/microsoft/ebpf-for-windows/blob/main/include/ebpf_structs.h#L170
-const (
-	WindowsXDP ProgramType = ProgramType(platform.WindowsTag) | (iota + 1)
-	WindowsBind
-	WindowsCGroupSockAddr
-	WindowsSockOps
-	WindowsXDPTest ProgramType = ProgramType(platform.WindowsTag) | 998
-	WindowsSample  ProgramType = ProgramType(platform.WindowsTag) | 999
-)
-
-// ProgramTypeForPlatform returns a platform specific program type.
-//
-// Use this if the library doesn't provide a constant yet.
-func ProgramTypeForPlatform(plat string, value uint32) (ProgramType, error) {
-	return platform.EncodeConstant[ProgramType](plat, value)
-}
-
 // AttachType of the eBPF program, needed to differentiate allowed context accesses in
 // some newer program types like CGroupSockAddr. Should be set to AttachNone if not required.
 // Will cause invalid argument (EINVAL) at program load time if set incorrectly.
@@ -243,7 +170,6 @@ type AttachType uint32
 // AttachNone is an alias for AttachCGroupInetIngress for readability reasons.
 const AttachNone AttachType = 0
 
-// Attach types (Linux).
 const (
 	AttachCGroupInetIngress          = AttachType(sys.BPF_CGROUP_INET_INGRESS)
 	AttachCGroupInetEgress           = AttachType(sys.BPF_CGROUP_INET_EGRESS)
@@ -288,7 +214,6 @@ const (
 	AttachSkReuseportSelectOrMigrate = AttachType(sys.BPF_SK_REUSEPORT_SELECT_OR_MIGRATE)
 	AttachPerfEvent                  = AttachType(sys.BPF_PERF_EVENT)
 	AttachTraceKprobeMulti           = AttachType(sys.BPF_TRACE_KPROBE_MULTI)
-	AttachTraceKprobeSession         = AttachType(sys.BPF_TRACE_KPROBE_SESSION)
 	AttachLSMCgroup                  = AttachType(sys.BPF_LSM_CGROUP)
 	AttachStructOps                  = AttachType(sys.BPF_STRUCT_OPS)
 	AttachNetfilter                  = AttachType(sys.BPF_NETFILTER)
@@ -303,28 +228,6 @@ const (
 	AttachNetkitPrimary              = AttachType(sys.BPF_NETKIT_PRIMARY)
 	AttachNetkitPeer                 = AttachType(sys.BPF_NETKIT_PEER)
 )
-
-// Attach types (Windows).
-//
-// See https://github.com/microsoft/ebpf-for-windows/blob/main/include/ebpf_structs.h#L260
-const (
-	AttachWindowsXDP = AttachType(platform.WindowsTag | iota + 1)
-	AttachWindowsBind
-	AttachWindowsCGroupInet4Connect
-	AttachWindowsCGroupInet6Connect
-	AttachWindowsCgroupInet4RecvAccept
-	AttachWindowsCgroupInet6RecvAccept
-	AttachWindowsCGroupSockOps
-	AttachWindowsSample
-	AttachWindowsXDPTest
-)
-
-// AttachTypeForPlatform returns a platform specific attach type.
-//
-// Use this if the library doesn't provide a constant yet.
-func AttachTypeForPlatform(plat string, value uint32) (AttachType, error) {
-	return platform.EncodeConstant[AttachType](plat, value)
-}
 
 // AttachFlags of the eBPF program used in BPF_PROG_ATTACH command
 type AttachFlags uint32
@@ -360,10 +263,10 @@ func (lpo *LoadPinOptions) Marshal() uint32 {
 
 	flags := lpo.Flags
 	if lpo.ReadOnly {
-		flags |= sys.BPF_F_RDONLY
+		flags |= unix.BPF_F_RDONLY
 	}
 	if lpo.WriteOnly {
-		flags |= sys.BPF_F_WRONLY
+		flags |= unix.BPF_F_WRONLY
 	}
 	return flags
 }

@@ -17,22 +17,19 @@
 package storage
 
 import (
-	"context"
-
-	"github.com/prometheus/prometheus/model/labels"
-	"github.com/prometheus/prometheus/util/annotations"
+	"github.com/prometheus/prometheus/pkg/labels"
 )
 
 type genericQuerier interface {
 	LabelQuerier
-	Select(context.Context, bool, *SelectHints, ...*labels.Matcher) genericSeriesSet
+	Select(bool, *SelectHints, ...*labels.Matcher) genericSeriesSet
 }
 
 type genericSeriesSet interface {
 	Next() bool
 	At() Labels
 	Err() error
-	Warnings() annotations.Annotations
+	Warnings() Warnings
 }
 
 type genericSeriesMergeFunc func(...Labels) Labels
@@ -61,11 +58,11 @@ type genericQuerierAdapter struct {
 	cq ChunkQuerier
 }
 
-func (q *genericQuerierAdapter) Select(ctx context.Context, sortSeries bool, hints *SelectHints, matchers ...*labels.Matcher) genericSeriesSet {
+func (q *genericQuerierAdapter) Select(sortSeries bool, hints *SelectHints, matchers ...*labels.Matcher) genericSeriesSet {
 	if q.q != nil {
-		return &genericSeriesSetAdapter{q.q.Select(ctx, sortSeries, hints, matchers...)}
+		return &genericSeriesSetAdapter{q.q.Select(sortSeries, hints, matchers...)}
 	}
-	return &genericChunkSeriesSetAdapter{q.cq.Select(ctx, sortSeries, hints, matchers...)}
+	return &genericChunkSeriesSetAdapter{q.cq.Select(sortSeries, hints, matchers...)}
 }
 
 func newGenericQuerierFrom(q Querier) genericQuerier {
@@ -88,8 +85,8 @@ func (a *seriesSetAdapter) At() Series {
 	return a.genericSeriesSet.At().(Series)
 }
 
-func (q *querierAdapter) Select(ctx context.Context, sortSeries bool, hints *SelectHints, matchers ...*labels.Matcher) SeriesSet {
-	return &seriesSetAdapter{q.genericQuerier.Select(ctx, sortSeries, hints, matchers...)}
+func (q *querierAdapter) Select(sortSeries bool, hints *SelectHints, matchers ...*labels.Matcher) SeriesSet {
+	return &seriesSetAdapter{q.genericQuerier.Select(sortSeries, hints, matchers...)}
 }
 
 type chunkQuerierAdapter struct {
@@ -104,8 +101,8 @@ func (a *chunkSeriesSetAdapter) At() ChunkSeries {
 	return a.genericSeriesSet.At().(ChunkSeries)
 }
 
-func (q *chunkQuerierAdapter) Select(ctx context.Context, sortSeries bool, hints *SelectHints, matchers ...*labels.Matcher) ChunkSeriesSet {
-	return &chunkSeriesSetAdapter{q.genericQuerier.Select(ctx, sortSeries, hints, matchers...)}
+func (q *chunkQuerierAdapter) Select(sortSeries bool, hints *SelectHints, matchers ...*labels.Matcher) ChunkSeriesSet {
+	return &chunkSeriesSetAdapter{q.genericQuerier.Select(sortSeries, hints, matchers...)}
 }
 
 type seriesMergerAdapter struct {
@@ -140,4 +137,4 @@ func (noopGenericSeriesSet) At() Labels { return nil }
 
 func (noopGenericSeriesSet) Err() error { return nil }
 
-func (noopGenericSeriesSet) Warnings() annotations.Annotations { return nil }
+func (noopGenericSeriesSet) Warnings() Warnings { return nil }

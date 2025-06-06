@@ -9,7 +9,6 @@ type BpfFlowContent struct {
 	AdditionalMetrics *ebpf.BpfAdditionalMetrics
 }
 
-// nolint:gocritic // hugeParam: metric is reported as heavy; but it needs to be copied anyway, we don't want a pointer here
 func NewBpfFlowContent(metrics ebpf.BpfFlowMetrics) BpfFlowContent {
 	return BpfFlowContent{BpfFlowMetrics: &metrics}
 }
@@ -116,16 +115,6 @@ func (p *BpfFlowContent) AccumulateAdditional(other *ebpf.BpfAdditionalMetrics) 
 	// Packet Translations
 	if !AllZeroIP(IP(other.TranslatedFlow.Saddr)) && !AllZeroIP(IP(other.TranslatedFlow.Daddr)) {
 		p.AdditionalMetrics.TranslatedFlow = other.TranslatedFlow
-	}
-	// IPSec
-	if p.AdditionalMetrics.IpsecEncryptedRet < other.IpsecEncryptedRet {
-		p.AdditionalMetrics.IpsecEncrypted = other.IpsecEncrypted
-		p.AdditionalMetrics.IpsecEncryptedRet = other.IpsecEncryptedRet
-	}
-	if p.AdditionalMetrics.IpsecEncryptedRet == other.IpsecEncryptedRet {
-		if other.IpsecEncrypted {
-			p.AdditionalMetrics.IpsecEncrypted = other.IpsecEncrypted
-		}
 	}
 }
 

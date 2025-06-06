@@ -8,4 +8,4 @@ ringbuf/ @florianl
 
 btf/ @dylandreimerink
 
-docs/ @ti-mo
+cmd/bpf2go/ @mejedi

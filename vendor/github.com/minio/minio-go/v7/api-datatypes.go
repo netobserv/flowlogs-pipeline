@@ -32,8 +32,6 @@ type BucketInfo struct {
 	Name string `json:"name"`
 	// Date the bucket was created.
 	CreationDate time.Time `json:"creationDate"`
-	// BucketRegion region where the bucket is present
-	BucketRegion string `json:"bucketRegion"`
 }
 
 // StringMap represents map with custom UnmarshalXML
@@ -150,7 +148,6 @@ type UploadInfo struct {
 	ChecksumSHA1      string
 	ChecksumSHA256    string
 	ChecksumCRC64NVME string
-	ChecksumMode      string
 }
 
 // RestoreInfo contains information of the restore operation of an archived object
@@ -226,7 +223,6 @@ type ObjectInfo struct {
 	ChecksumSHA1      string
 	ChecksumSHA256    string
 	ChecksumCRC64NVME string
-	ChecksumMode      string
 
 	Internal *struct {
 		K int // Data blocks

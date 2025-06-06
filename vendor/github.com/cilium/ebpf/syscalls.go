@@ -7,12 +7,9 @@ import (
 	"math"
 	"os"
 	"runtime"
-	"strings"
 
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/ebpf/internal"
-	"github.com/cilium/ebpf/internal/linux"
-	"github.com/cilium/ebpf/internal/platform"
 	"github.com/cilium/ebpf/internal/sys"
 	"github.com/cilium/ebpf/internal/tracefs"
 	"github.com/cilium/ebpf/internal/unix"
@@ -27,41 +24,25 @@ var (
 	sysErrNotSupported = sys.Error(ErrNotSupported, sys.ENOTSUPP)
 )
 
-// sanitizeName replaces all invalid characters in name with replacement.
-// Passing a negative value for replacement will delete characters instead
-// of replacing them.
-//
-// The set of allowed characters may change over time.
-func sanitizeName(name string, replacement rune) string {
-	return strings.Map(func(char rune) rune {
-		switch {
-		case char >= 'A' && char <= 'Z':
-			return char
-		case char >= 'a' && char <= 'z':
-			return char
-		case char >= '0' && char <= '9':
-			return char
-		case char == '.':
-			return char
-		case char == '_':
-			return char
-		default:
-			return replacement
-		}
-	}, name)
-}
+// invalidBPFObjNameChar returns true if char may not appear in
+// a BPF object name.
+func invalidBPFObjNameChar(char rune) bool {
+	dotAllowed := objNameAllowsDot() == nil
 
-func maybeFillObjName(name string) sys.ObjName {
-	if errors.Is(haveObjName(), ErrNotSupported) {
-		return sys.ObjName{}
+	switch {
+	case char >= 'A' && char <= 'Z':
+		return false
+	case char >= 'a' && char <= 'z':
+		return false
+	case char >= '0' && char <= '9':
+		return false
+	case dotAllowed && char == '.':
+		return false
+	case char == '_':
+		return false
+	default:
+		return true
 	}
-
-	name = sanitizeName(name, -1)
-	if errors.Is(objNameAllowsDot(), ErrNotSupported) {
-		name = strings.ReplaceAll(name, ".", "")
-	}
-
-	return sys.NewObjName(name)
 }
 
 func progLoad(insns asm.Instructions, typ ProgramType, license string) (*sys.FD, error) {
@@ -74,17 +55,12 @@ func progLoad(insns asm.Instructions, typ ProgramType, license string) (*sys.FD,
 	return sys.ProgLoad(&sys.ProgLoadAttr{
 		ProgType: sys.ProgType(typ),
 		License:  sys.NewStringPointer(license),
-		Insns:    sys.SlicePointer(bytecode),
+		Insns:    sys.NewSlicePointer(bytecode),
 		InsnCnt:  uint32(len(bytecode) / asm.InstructionSize),
 	})
 }
 
-var haveNestedMaps = internal.NewFeatureTest("nested maps", func() error {
-	if platform.IsWindows {
-		// We only support efW versions which have this feature, no need to probe.
-		return nil
-	}
-
+var haveNestedMaps = internal.NewFeatureTest("nested maps", "4.12", func() error {
 	_, err := sys.MapCreate(&sys.MapCreateAttr{
 		MapType:    sys.MapType(ArrayOfMaps),
 		KeySize:    4,
@@ -100,9 +76,9 @@ var haveNestedMaps = internal.NewFeatureTest("nested maps", func() error {
 		return nil
 	}
 	return err
-}, "4.12", "windows:0.20.0")
+})
 
-var haveMapMutabilityModifiers = internal.NewFeatureTest("read- and write-only maps", func() error {
+var haveMapMutabilityModifiers = internal.NewFeatureTest("read- and write-only maps", "5.2", func() error {
 	// This checks BPF_F_RDONLY_PROG and BPF_F_WRONLY_PROG. Since
 	// BPF_MAP_FREEZE appeared in 5.2 as well we don't do a separate check.
 	m, err := sys.MapCreate(&sys.MapCreateAttr{
@@ -110,39 +86,39 @@ var haveMapMutabilityModifiers = internal.NewFeatureTest("read- and write-only m
 		KeySize:    4,
 		ValueSize:  4,
 		MaxEntries: 1,
-		MapFlags:   sys.BPF_F_RDONLY_PROG,
+		MapFlags:   unix.BPF_F_RDONLY_PROG,
 	})
 	if err != nil {
 		return internal.ErrNotSupported
 	}
 	_ = m.Close()
 	return nil
-}, "5.2")
+})
 
-var haveMmapableMaps = internal.NewFeatureTest("mmapable maps", func() error {
+var haveMmapableMaps = internal.NewFeatureTest("mmapable maps", "5.5", func() error {
 	// This checks BPF_F_MMAPABLE, which appeared in 5.5 for array maps.
 	m, err := sys.MapCreate(&sys.MapCreateAttr{
 		MapType:    sys.MapType(Array),
 		KeySize:    4,
 		ValueSize:  4,
 		MaxEntries: 1,
-		MapFlags:   sys.BPF_F_MMAPABLE,
+		MapFlags:   unix.BPF_F_MMAPABLE,
 	})
 	if err != nil {
 		return internal.ErrNotSupported
 	}
 	_ = m.Close()
 	return nil
-}, "5.5")
+})
 
-var haveInnerMaps = internal.NewFeatureTest("inner maps", func() error {
+var haveInnerMaps = internal.NewFeatureTest("inner maps", "5.10", func() error {
 	// This checks BPF_F_INNER_MAP, which appeared in 5.10.
 	m, err := sys.MapCreate(&sys.MapCreateAttr{
 		MapType:    sys.MapType(Array),
 		KeySize:    4,
 		ValueSize:  4,
 		MaxEntries: 1,
-		MapFlags:   sys.BPF_F_INNER_MAP,
+		MapFlags:   unix.BPF_F_INNER_MAP,
 	})
 
 	if err != nil {
@@ -150,16 +126,16 @@ var haveInnerMaps = internal.NewFeatureTest("inner maps", func() error {
 	}
 	_ = m.Close()
 	return nil
-}, "5.10")
+})
 
-var haveNoPreallocMaps = internal.NewFeatureTest("prealloc maps", func() error {
+var haveNoPreallocMaps = internal.NewFeatureTest("prealloc maps", "4.6", func() error {
 	// This checks BPF_F_NO_PREALLOC, which appeared in 4.6.
 	m, err := sys.MapCreate(&sys.MapCreateAttr{
 		MapType:    sys.MapType(Hash),
 		KeySize:    4,
 		ValueSize:  4,
 		MaxEntries: 1,
-		MapFlags:   sys.BPF_F_NO_PREALLOC,
+		MapFlags:   unix.BPF_F_NO_PREALLOC,
 	})
 
 	if err != nil {
@@ -167,7 +143,7 @@ var haveNoPreallocMaps = internal.NewFeatureTest("prealloc maps", func() error {
 	}
 	_ = m.Close()
 	return nil
-}, "4.6")
+})
 
 func wrapMapError(err error) error {
 	if err == nil {
@@ -193,12 +169,7 @@ func wrapMapError(err error) error {
 	return err
 }
 
-var haveObjName = internal.NewFeatureTest("object names", func() error {
-	if platform.IsWindows {
-		// We only support efW versions which have this feature, no need to probe.
-		return nil
-	}
-
+var haveObjName = internal.NewFeatureTest("object names", "4.15", func() error {
 	attr := sys.MapCreateAttr{
 		MapType:    sys.MapType(Array),
 		KeySize:    4,
@@ -214,14 +185,9 @@ var haveObjName = internal.NewFeatureTest("object names", func() error {
 
 	_ = fd.Close()
 	return nil
-}, "4.15", "windows:0.20.0")
+})
 
-var objNameAllowsDot = internal.NewFeatureTest("dot in object names", func() error {
-	if platform.IsWindows {
-		// We only support efW versions which have this feature, no need to probe.
-		return nil
-	}
-
+var objNameAllowsDot = internal.NewFeatureTest("dot in object names", "5.2", func() error {
 	if err := haveObjName(); err != nil {
 		return err
 	}
@@ -241,9 +207,9 @@ var objNameAllowsDot = internal.NewFeatureTest("dot in object names", func() err
 
 	_ = fd.Close()
 	return nil
-}, "5.2", "windows:0.20.0")
+})
 
-var haveBatchAPI = internal.NewFeatureTest("map batch api", func() error {
+var haveBatchAPI = internal.NewFeatureTest("map batch api", "5.6", func() error {
 	var maxEntries uint32 = 2
 	attr := sys.MapCreateAttr{
 		MapType:    sys.MapType(Hash),
@@ -273,9 +239,9 @@ var haveBatchAPI = internal.NewFeatureTest("map batch api", func() error {
 		return internal.ErrNotSupported
 	}
 	return nil
-}, "5.6")
+})
 
-var haveProbeReadKernel = internal.NewFeatureTest("bpf_probe_read_kernel", func() error {
+var haveProbeReadKernel = internal.NewFeatureTest("bpf_probe_read_kernel", "5.5", func() error {
 	insns := asm.Instructions{
 		asm.Mov.Reg(asm.R1, asm.R10),
 		asm.Add.Imm(asm.R1, -8),
@@ -291,9 +257,9 @@ var haveProbeReadKernel = internal.NewFeatureTest("bpf_probe_read_kernel", func(
 	}
 	_ = fd.Close()
 	return nil
-}, "5.5")
+})
 
-var haveBPFToBPFCalls = internal.NewFeatureTest("bpf2bpf calls", func() error {
+var haveBPFToBPFCalls = internal.NewFeatureTest("bpf2bpf calls", "4.16", func() error {
 	insns := asm.Instructions{
 		asm.Call.Label("prog2").WithSymbol("prog1"),
 		asm.Return(),
@@ -307,10 +273,10 @@ var haveBPFToBPFCalls = internal.NewFeatureTest("bpf2bpf calls", func() error {
 	}
 	_ = fd.Close()
 	return nil
-}, "4.16")
+})
 
-var haveSyscallWrapper = internal.NewFeatureTest("syscall wrapper", func() error {
-	prefix := linux.PlatformPrefix()
+var haveSyscallWrapper = internal.NewFeatureTest("syscall wrapper", "4.17", func() error {
+	prefix := internal.PlatformPrefix()
 	if prefix == "" {
 		return fmt.Errorf("unable to find the platform prefix for (%s)", runtime.GOARCH)
 	}
@@ -336,9 +302,9 @@ var haveSyscallWrapper = internal.NewFeatureTest("syscall wrapper", func() error
 	}
 
 	return evt.Close()
-}, "4.17")
+})
 
-var haveProgramExtInfos = internal.NewFeatureTest("program ext_infos", func() error {
+var haveProgramExtInfos = internal.NewFeatureTest("program ext_infos", "5.0", func() error {
 	insns := asm.Instructions{
 		asm.Mov.Imm(asm.R0, 0),
 		asm.Return(),
@@ -353,7 +319,7 @@ var haveProgramExtInfos = internal.NewFeatureTest("program ext_infos", func() er
 	_, err := sys.ProgLoad(&sys.ProgLoadAttr{
 		ProgType:    sys.ProgType(SocketFilter),
 		License:     sys.NewStringPointer("MIT"),
-		Insns:       sys.SlicePointer(bytecode),
+		Insns:       sys.NewSlicePointer(bytecode),
 		InsnCnt:     uint32(len(bytecode) / asm.InstructionSize),
 		FuncInfoCnt: 1,
 		ProgBtfFd:   math.MaxUint32,
@@ -368,4 +334,4 @@ var haveProgramExtInfos = internal.NewFeatureTest("program ext_infos", func() er
 	}
 
 	return err
-}, "5.0")
+})

@@ -2,6 +2,7 @@ package sys
 
 import (
 	"runtime"
+	"syscall"
 	"unsafe"
 
 	"github.com/cilium/ebpf/internal/unix"
@@ -10,7 +11,37 @@ import (
 // ENOTSUPP is a Linux internal error code that has leaked into UAPI.
 //
 // It is not the same as ENOTSUP or EOPNOTSUPP.
-const ENOTSUPP = unix.Errno(524)
+const ENOTSUPP = syscall.Errno(524)
+
+// BPF wraps SYS_BPF.
+//
+// Any pointers contained in attr must use the Pointer type from this package.
+func BPF(cmd Cmd, attr unsafe.Pointer, size uintptr) (uintptr, error) {
+	// Prevent the Go profiler from repeatedly interrupting the verifier,
+	// which could otherwise lead to a livelock due to receiving EAGAIN.
+	if cmd == BPF_PROG_LOAD || cmd == BPF_PROG_RUN {
+		maskProfilerSignal()
+		defer unmaskProfilerSignal()
+	}
+
+	for {
+		r1, _, errNo := unix.Syscall(unix.SYS_BPF, uintptr(cmd), uintptr(attr), size)
+		runtime.KeepAlive(attr)
+
+		// As of ~4.20 the verifier can be interrupted by a signal,
+		// and returns EAGAIN in that case.
+		if errNo == unix.EAGAIN && cmd == BPF_PROG_LOAD {
+			continue
+		}
+
+		var err error
+		if errNo != 0 {
+			err = wrappedErrno{errNo}
+		}
+
+		return r1, err
+	}
+}
 
 // Info is implemented by all structs that can be passed to the ObjInfo syscall.
 //
@@ -94,7 +125,7 @@ func ObjInfo(fd *FD, info Info) error {
 	err := ObjGetInfoByFd(&ObjGetInfoByFdAttr{
 		BpfFd:   fd.Uint(),
 		InfoLen: len,
-		Info:    UnsafePointer(ptr),
+		Info:    NewPointer(ptr),
 	})
 	runtime.KeepAlive(fd)
 	return err
@@ -102,12 +133,12 @@ func ObjInfo(fd *FD, info Info) error {
 
 // BPFObjName is a null-terminated string made up of
 // 'A-Za-z0-9_' characters.
-type ObjName [BPF_OBJ_NAME_LEN]byte
+type ObjName [unix.BPF_OBJ_NAME_LEN]byte
 
 // NewObjName truncates the result if it is too long.
 func NewObjName(name string) ObjName {
 	var result ObjName
-	copy(result[:BPF_OBJ_NAME_LEN-1], name)
+	copy(result[:unix.BPF_OBJ_NAME_LEN-1], name)
 	return result
 }
 
@@ -120,12 +151,6 @@ const (
 	BPF_LOG_STATS
 )
 
-// MapID uniquely identifies a bpf_map.
-type MapID uint32
-
-// ProgramID uniquely identifies a bpf_map.
-type ProgramID uint32
-
 // LinkID uniquely identifies a bpf_link.
 type LinkID uint32
 
@@ -134,6 +159,29 @@ type BTFID uint32
 
 // TypeID identifies a type in a BTF blob.
 type TypeID uint32
+
+// MapFlags control map behaviour.
+type MapFlags uint32
+
+//go:generate go run golang.org/x/tools/cmd/stringer@latest -type MapFlags
+
+const (
+	BPF_F_NO_PREALLOC MapFlags = 1 << iota
+	BPF_F_NO_COMMON_LRU
+	BPF_F_NUMA_NODE
+	BPF_F_RDONLY
+	BPF_F_WRONLY
+	BPF_F_STACK_BUILD_ID
+	BPF_F_ZERO_SEED
+	BPF_F_RDONLY_PROG
+	BPF_F_WRONLY_PROG
+	BPF_F_CLONE
+	BPF_F_MMAPABLE
+	BPF_F_PRESERVE_ELEMS
+	BPF_F_INNER_MAP
+	BPF_F_LINK
+	BPF_F_PATH_FD
+)
 
 // Flags used by bpf_mprog.
 const (
@@ -144,22 +192,12 @@ const (
 	BPF_F_LINK_MPROG = 1 << 13 // aka BPF_F_LINK
 )
 
-// Flags used by BPF_PROG_LOAD.
-const (
-	BPF_F_SLEEPABLE          = 1 << 4
-	BPF_F_XDP_HAS_FRAGS      = 1 << 5
-	BPF_F_XDP_DEV_BOUND_ONLY = 1 << 6
-)
-
-const BPF_TAG_SIZE = 8
-const BPF_OBJ_NAME_LEN = 16
-
-// wrappedErrno wraps [unix.Errno] to prevent direct comparisons with
+// wrappedErrno wraps syscall.Errno to prevent direct comparisons with
 // syscall.E* or unix.E* constants.
 //
 // You should never export an error of this type.
 type wrappedErrno struct {
-	unix.Errno
+	syscall.Errno
 }
 
 func (we wrappedErrno) Unwrap() error {
@@ -175,10 +213,10 @@ func (we wrappedErrno) Error() string {
 
 type syscallError struct {
 	error
-	errno unix.Errno
+	errno syscall.Errno
 }
 
-func Error(err error, errno unix.Errno) error {
+func Error(err error, errno syscall.Errno) error {
 	return &syscallError{err, errno}
 }
 
