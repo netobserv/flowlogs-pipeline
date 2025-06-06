@@ -26,7 +26,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -42,10 +41,6 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 	"sigs.k8s.io/e2e-framework/support/kind"
-)
-
-var (
-	showPods = atomic.Bool{}
 )
 
 type namespaceContextKey string
@@ -70,7 +65,6 @@ func Main(m *testing.M, manifestDeployDefinitions ManifestDeployDefinitions, tes
 		e2eRecreateKindCluster(kindClusterName),
 		e2eBuildAndLoadImageIntoKind(org, version, arch, kindClusterName),
 		e2eRecreateNamespace(namespace),
-		e2eShowPods(),
 		e2eDeployEnvironmentResources(manifestDeployDefinitions, namespace),
 	)
 
@@ -109,24 +103,6 @@ func e2eBuildAndLoadImageIntoKind(org, version, arch, clusterName string) env.Fu
 			return nil, fmt.Errorf("failed to build or load docker image err=%w result=%v", p.Err(), p.Result())
 		}
 		fmt.Printf("====> Done.\n")
-		return ctx, nil
-	}
-}
-
-func e2eShowPods() env.Func {
-	return func(ctx context.Context, _ *envconf.Config) (context.Context, error) {
-		showPods.Store(true)
-		go func() {
-			for showPods.Load() {
-				cmd := exec.Command("kubectl", "get", "pods")
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				if err := cmd.Run(); err != nil {
-					fmt.Printf("error in running command: %v \n", err)
-				}
-				time.Sleep(10 * time.Second)
-			}
-		}()
 		return ctx, nil
 	}
 }
@@ -210,7 +186,6 @@ func e2eDeployEnvironmentResources(manifestDeployDefinitions ManifestDeployDefin
 			}
 		}
 
-		showPods.Store(false)
 		return ctx, nil
 	}
 }
@@ -246,10 +221,10 @@ func GetCoreV1Client(confFileName string) (*corev1client.CoreV1Client, error) {
 	return clientSet, err
 }
 
-func LogsFromPods(pods []corev1.Pod, coreV1Client *corev1client.CoreV1Client, namespace string) string {
+func LogsFromPods(pods *corev1.PodList, coreV1Client *corev1client.CoreV1Client, namespace string) string {
 	var logsBuilder strings.Builder
-	for i := range pods {
-		pod := pods[i]
+	for i := range pods.Items {
+		pod := &pods.Items[i]
 		req := coreV1Client.Pods(namespace).GetLogs(pod.GetName(), &corev1.PodLogOptions{Follow: false})
 		podLogs, err := req.Stream(context.TODO())
 		if err != nil {

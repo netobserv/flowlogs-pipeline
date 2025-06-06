@@ -40,10 +40,8 @@ import (
 
 	md5simd "github.com/minio/md5-simd"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"github.com/minio/minio-go/v7/pkg/kvcache"
 	"github.com/minio/minio-go/v7/pkg/s3utils"
 	"github.com/minio/minio-go/v7/pkg/signer"
-	"github.com/minio/minio-go/v7/pkg/singleflight"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -70,11 +68,9 @@ type Client struct {
 	secure bool
 
 	// Needs allocation.
-	httpClient         *http.Client
-	httpTrace          *httptrace.ClientTrace
-	bucketLocCache     *kvcache.Cache[string, string]
-	bucketSessionCache *kvcache.Cache[string, credentials.Value]
-	credsGroup         singleflight.Group[string, credentials.Value]
+	httpClient     *http.Client
+	httpTrace      *httptrace.ClientTrace
+	bucketLocCache *bucketLocationCache
 
 	// Advanced functionality.
 	isTraceEnabled  bool
@@ -159,7 +155,7 @@ type Options struct {
 // Global constants.
 const (
 	libraryName    = "minio-go"
-	libraryVersion = "v7.0.92"
+	libraryVersion = "v7.0.91"
 )
 
 // User Agent should always following the below style.
@@ -284,11 +280,8 @@ func privateNew(endpoint string, opts *Options) (*Client, error) {
 	}
 	clnt.region = opts.Region
 
-	// Initialize bucket region cache.
-	clnt.bucketLocCache = &kvcache.Cache[string, string]{}
-
-	// Initialize bucket session cache (s3 express).
-	clnt.bucketSessionCache = &kvcache.Cache[string, credentials.Value]{}
+	// Instantiate bucket location cache.
+	clnt.bucketLocCache = newBucketLocationCache()
 
 	// Introduce a new locked random seed.
 	clnt.random = rand.New(&lockedRandSource{src: rand.NewSource(time.Now().UTC().UnixNano())})
@@ -825,21 +818,14 @@ func (c *Client) newRequest(ctx context.Context, method string, metadata request
 		ctx = httptrace.WithClientTrace(ctx, c.httpTrace)
 	}
 
-	// make sure to de-dup calls to credential services, this reduces
-	// the overall load to the endpoint generating credential service.
-	value, err, _ := c.credsGroup.Do(metadata.bucketName, func() (credentials.Value, error) {
-		if s3utils.IsS3ExpressBucket(metadata.bucketName) && s3utils.IsAmazonEndpoint(*c.endpointURL) {
-			return c.CreateSession(ctx, metadata.bucketName, SessionReadWrite)
-		}
-		// Get credentials from the configured credentials provider.
-		return c.credsProvider.GetWithContext(c.CredContext())
-	})
+	// Initialize a new HTTP request for the method.
+	req, err = http.NewRequestWithContext(ctx, method, targetURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// Initialize a new HTTP request for the method.
-	req, err = http.NewRequestWithContext(ctx, method, targetURL.String(), nil)
+	// Get credentials from the configured credentials provider.
+	value, err := c.credsProvider.GetWithContext(c.CredContext())
 	if err != nil {
 		return nil, err
 	}
@@ -850,10 +836,6 @@ func (c *Client) newRequest(ctx context.Context, method string, metadata request
 		secretAccessKey = value.SecretAccessKey
 		sessionToken    = value.SessionToken
 	)
-
-	if s3utils.IsS3ExpressBucket(metadata.bucketName) && sessionToken != "" {
-		req.Header.Set("x-amz-s3session-token", sessionToken)
-	}
 
 	// Custom signer set then override the behavior.
 	if c.overrideSignerType != credentials.SignatureDefault {
@@ -940,13 +922,8 @@ func (c *Client) newRequest(ctx context.Context, method string, metadata request
 		// Streaming signature is used by default for a PUT object request.
 		// Additionally, we also look if the initialized client is secure,
 		// if yes then we don't need to perform streaming signature.
-		if s3utils.IsAmazonExpressRegionalEndpoint(*c.endpointURL) {
-			req = signer.StreamingSignV4Express(req, accessKeyID,
-				secretAccessKey, sessionToken, location, metadata.contentLength, time.Now().UTC(), c.sha256Hasher())
-		} else {
-			req = signer.StreamingSignV4(req, accessKeyID,
-				secretAccessKey, sessionToken, location, metadata.contentLength, time.Now().UTC(), c.sha256Hasher())
-		}
+		req = signer.StreamingSignV4(req, accessKeyID,
+			secretAccessKey, sessionToken, location, metadata.contentLength, time.Now().UTC(), c.sha256Hasher())
 	default:
 		// Set sha256 sum for signature calculation only with signature version '4'.
 		shaHeader := unsignedPayload
@@ -961,12 +938,8 @@ func (c *Client) newRequest(ctx context.Context, method string, metadata request
 		}
 		req.Header.Set("X-Amz-Content-Sha256", shaHeader)
 
-		if s3utils.IsAmazonExpressRegionalEndpoint(*c.endpointURL) {
-			req = signer.SignV4TrailerExpress(*req, accessKeyID, secretAccessKey, sessionToken, location, metadata.trailer)
-		} else {
-			// Add signature version '4' authorization header.
-			req = signer.SignV4Trailer(*req, accessKeyID, secretAccessKey, sessionToken, location, metadata.trailer)
-		}
+		// Add signature version '4' authorization header.
+		req = signer.SignV4Trailer(*req, accessKeyID, secretAccessKey, sessionToken, location, metadata.trailer)
 	}
 
 	// Return request.
@@ -999,17 +972,8 @@ func (c *Client) makeTargetURL(bucketName, objectName, bucketLocation string, is
 		} else {
 			// Do not change the host if the endpoint URL is a FIPS S3 endpoint or a S3 PrivateLink interface endpoint
 			if !s3utils.IsAmazonFIPSEndpoint(*c.endpointURL) && !s3utils.IsAmazonPrivateLinkEndpoint(*c.endpointURL) {
-				if s3utils.IsAmazonExpressRegionalEndpoint(*c.endpointURL) {
-					if bucketName == "" {
-						host = getS3ExpressEndpoint(bucketLocation, false)
-					} else {
-						// Fetch new host based on the bucket location.
-						host = getS3ExpressEndpoint(bucketLocation, s3utils.IsS3ExpressBucket(bucketName))
-					}
-				} else {
-					// Fetch new host based on the bucket location.
-					host = getS3Endpoint(bucketLocation, c.s3DualstackEnabled)
-				}
+				// Fetch new host based on the bucket location.
+				host = getS3Endpoint(bucketLocation, c.s3DualstackEnabled)
 			}
 		}
 	}

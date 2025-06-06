@@ -18,7 +18,6 @@
 package informers
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"time"
@@ -27,13 +26,12 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/cni"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/model"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
+	"github.com/sirupsen/logrus"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
 	inf "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/metadata"
@@ -255,7 +253,7 @@ func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory, 
 	return nil
 }
 
-func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory, cfg Config, dynClient *dynamic.DynamicClient) error {
+func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory, cfg Config) error {
 	pods := informerFactory.Core().V1().Pods().Informer()
 	// Transform any *v1.Pod instance into a *Info instance to save space
 	// in the informer's cache
@@ -282,7 +280,7 @@ func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory, c
 			}
 		}
 		if cfg.hasUDN {
-			if udnKeys, err := udn.GetPodUniqueKeys(context.Background(), dynClient, pod); err != nil {
+			if udnKeys, err := udn.GetPodUniqueKeys(pod); err != nil {
 				// Log the error as Info, do not block other ips indexing
 				log.WithError(err).Infof("UDNs cannot be identified")
 			} else {
@@ -397,13 +395,8 @@ func (k *Informers) InitFromConfig(kubeconfig string, infConfig Config, opMetric
 		return err
 	}
 
-	dynClient, err := dynamic.NewForConfig(kconf)
-	if err != nil {
-		return err
-	}
-
 	k.indexerHitMetric = opMetrics.CreateIndexerHitCounter()
-	err = k.initInformers(kubeClient, metaKubeClient, dynClient, infConfig)
+	err = k.initInformers(kubeClient, metaKubeClient, infConfig)
 	if err != nil {
 		return err
 	}
@@ -411,14 +404,14 @@ func (k *Informers) InitFromConfig(kubeconfig string, infConfig Config, opMetric
 	return nil
 }
 
-func (k *Informers) initInformers(client kubernetes.Interface, metaClient metadata.Interface, dynClient *dynamic.DynamicClient, cfg Config) error {
+func (k *Informers) initInformers(client kubernetes.Interface, metaClient metadata.Interface, cfg Config) error {
 	informerFactory := inf.NewSharedInformerFactory(client, syncTime)
 	metadataInformerFactory := metadatainformer.NewSharedInformerFactory(metaClient, syncTime)
 	err := k.initNodeInformer(informerFactory, cfg)
 	if err != nil {
 		return err
 	}
-	err = k.initPodInformer(informerFactory, cfg, dynClient)
+	err = k.initPodInformer(informerFactory, cfg)
 	if err != nil {
 		return err
 	}
