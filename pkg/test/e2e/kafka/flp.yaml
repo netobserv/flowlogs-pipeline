@@ -1,0 +1,99 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowlogs-pipeline
+  labels:
+    app: flowlogs-pipeline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flowlogs-pipeline
+  template:
+    metadata:
+      labels:
+        app: flowlogs-pipeline
+    spec:
+      containers:
+        - name: flowlogs-pipeline
+          image: quay.io/netobserv/flowlogs-pipeline:e2e-amd64
+          args:
+            - "--config=/etc/flowlogs-pipeline/flowlogs-pipeline.conf.yaml"
+          ports:
+            - containerPort: 6343
+            - containerPort: 2055
+            - containerPort: 2056
+          imagePullPolicy: Never
+          volumeMounts:
+            - name: configuration
+              mountPath: "/etc/flowlogs-pipeline/"
+      volumes:
+        - name: configuration
+          configMap:
+            name: flowlogs-pipeline-configuration
+      serviceAccountName: flowlogs-pipeline
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flowlogs-pipeline
+  labels:
+    app: flowlogs-pipeline
+spec:
+  ports:
+    - port: 6343
+      targetPort: 6343
+      protocol: UDP
+      name: sflow
+    - port: 2055
+      targetPort: 2055
+      protocol: UDP
+      name: netflow
+    - port: 2056
+      targetPort: 2056
+      protocol: UDP
+      name: netflow-legacy
+  selector:
+    app: flowlogs-pipeline
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flowlogs-pipeline-metrics
+  labels:
+    app: flowlogs-pipeline
+spec:
+  ports:
+    - port: 9102
+      targetPort: 9102
+      name: prometheous
+  selector:
+    app: flowlogs-pipeline
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: flowlogs-pipeline
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flowlogs-pipeline
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flowlogs-pipeline
+subjects:
+  - kind: ServiceAccount
+    name: flowlogs-pipeline
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flowlogs-pipeline
