@@ -179,6 +179,8 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 	if params.Transform != nil && params.Transform.Network != nil {
 		jsonNetworkTransform = *params.Transform.Network
 	}
+	jsonNetworkTransform.Preprocess()
+
 	for _, rule := range jsonNetworkTransform.Rules {
 		switch rule.Type {
 		case api.NetworkAddLocation:
