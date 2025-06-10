@@ -56,6 +56,7 @@ type Loki struct {
 	apiConfig      api.WriteLoki
 	timestampScale float64
 	saneLabels     map[string]model.LabelName
+	ignoreList     map[string]any
 	client         emitter
 	timeNow        func() time.Time
 	exitChan       <-chan struct{}
@@ -107,34 +108,49 @@ func buildLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 }
 
 func (l *Loki) ProcessRecord(in config.GenericMap) error {
-	// copy record before process to avoid alteration on parallel stages
-	out := in.Copy()
-	labels := model.LabelSet{}
+	labels, lines := l.splitLabelsLines(in)
 
-	// Add static labels from config
-	for k, v := range l.apiConfig.StaticLabels {
-		labels[k] = v
-	}
-	l.addLabels(in, labels)
-
-	// Remove labels and configured ignore list from record
-	ignoreList := l.apiConfig.IgnoreList
-	ignoreList = append(ignoreList, l.apiConfig.Labels...)
-	for _, label := range ignoreList {
-		delete(out, label)
-	}
-
-	js, err := jsonEncodingConfig.Marshal(out)
+	js, err := jsonEncodingConfig.Marshal(lines)
 	if err != nil {
 		return err
 	}
 
-	timestamp := l.extractTimestamp(out)
+	timestamp := l.extractTimestamp(lines)
 	err = l.client.Handle(labels, timestamp, string(js))
 	if err == nil {
 		l.metrics.recordsWritten.Inc()
 	}
 	return err
+}
+
+func (l *Loki) splitLabelsLines(in config.GenericMap) (model.LabelSet, config.GenericMap) {
+	// Split the input GenericMap into one map for labels and another for lines / payload
+	nLabels := len(l.apiConfig.StaticLabels) + len(l.saneLabels)
+	labels := make(model.LabelSet, nLabels)
+	lines := make(config.GenericMap, len(in))
+
+	// Add static labels from config
+	for k, v := range l.apiConfig.StaticLabels {
+		labels[k] = v
+	}
+
+	for k, v := range in {
+		if _, ignored := l.ignoreList[k]; ignored {
+			continue
+		}
+		if sanitized, isLabel := l.saneLabels[k]; isLabel {
+			lv := model.LabelValue(utils.ConvertToString(v))
+			if !lv.IsValid() {
+				log.WithFields(logrus.Fields{"key": k, "value": v}).Debug("Invalid label value. Ignoring it")
+				continue
+			}
+			labels[sanitized] = lv
+		} else {
+			lines[k] = v
+		}
+	}
+
+	return labels, lines
 }
 
 func (l *Loki) extractTimestamp(record map[string]interface{}) time.Time {
@@ -161,27 +177,6 @@ func (l *Loki) extractTimestamp(record map[string]interface{}) time.Time {
 
 	tsNanos := int64(ft * l.timestampScale)
 	return time.Unix(tsNanos/int64(time.Second), tsNanos%int64(time.Second))
-}
-
-func (l *Loki) addLabels(record config.GenericMap, labels model.LabelSet) {
-	// Add non-static labels from record
-	for _, label := range l.apiConfig.Labels {
-		val, ok := record[label]
-		if !ok {
-			continue
-		}
-		sanitized, ok := l.saneLabels[label]
-		if !ok {
-			continue
-		}
-		lv := model.LabelValue(utils.ConvertToString(val))
-		if !lv.IsValid() {
-			log.WithFields(logrus.Fields{"key": label, "value": val}).
-				Debug("Invalid label value. Ignoring it")
-			continue
-		}
-		labels[sanitized] = lv
-	}
 }
 
 func getFloat64(timestamp interface{}) (ft float64, ok bool) {
@@ -255,11 +250,18 @@ func NewWriteLoki(opMetrics *operational.Metrics, params config.StageParam) (*Lo
 		}
 	}
 
+	// Ignore list to map
+	ignoreList := make(map[string]any, len(lokiConfigIn.IgnoreList))
+	for _, label := range lokiConfigIn.IgnoreList {
+		ignoreList[label] = nil
+	}
+
 	l := &Loki{
 		lokiConfig:     lokiConfig,
 		apiConfig:      lokiConfigIn,
 		timestampScale: float64(timestampScale),
 		saneLabels:     saneLabels,
+		ignoreList:     ignoreList,
 		client:         client,
 		timeNow:        time.Now,
 		exitChan:       pUtils.ExitChannel(),
