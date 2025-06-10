@@ -16,7 +16,7 @@ ENV GOEXPERIMENT strictfipsruntime
 RUN go build -tags strictfipsruntime -ldflags "-X 'main.BuildVersion=$BUILDVERSION' -X 'main.BuildDate=`date +%Y-%m-%d\ %H:%M`'" "./cmd/flowlogs-pipeline"
 
 # final stage
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.6-1747218906
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.6-1749489516
 ARG BUILDVERSION
 
 WORKDIR /
