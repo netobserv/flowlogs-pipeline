@@ -18,7 +18,6 @@
 package encode
 
 import (
-	"strings"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -53,7 +52,7 @@ type MetricsCommonStruct struct {
 type MetricsCommonInterface interface {
 	GetCacheEntry(entryLabels map[string]string, m interface{}) interface{}
 	ProcessCounter(m interface{}, labels map[string]string, value float64) error
-	ProcessGauge(m interface{}, labels map[string]string, value float64, key string) error
+	ProcessGauge(m interface{}, name string, labels map[string]string, value float64, lvs []string) error
 	ProcessHist(m interface{}, labels map[string]string, value float64) error
 	ProcessAggHist(m interface{}, labels map[string]string, value []float64) error
 }
@@ -132,7 +131,7 @@ func (m *MetricsCommonStruct) MetricCommonEncode(mci MetricsCommonInterface, met
 			continue
 		}
 		for _, labels := range labelSets {
-			err := mci.ProcessGauge(mInfo.genericMetric, labels.lMap, value, labels.key)
+			err := mci.ProcessGauge(mInfo.genericMetric, mInfo.info.Name, labels.lMap, value, labels.values)
 			if err != nil {
 				log.Errorf("labels registering error on %s: %v", mInfo.info.Name, err)
 				m.errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
@@ -201,9 +200,9 @@ func (m *MetricsCommonStruct) prepareMetric(mci MetricsCommonInterface, flow con
 	lkms := make([]labelsKeyAndMap, 0, len(labelSets))
 	for _, ls := range labelSets {
 		// Update entry for expiry mechanism (the entry itself is its own cleanup function)
-		lkm := ls.toKeyAndMap(info)
+		lkm := ls.toKeysAndMap(info)
 		lkms = append(lkms, lkm)
-		ok := m.mCache.UpdateCacheEntry(lkm.key, func() interface{} {
+		ok := m.mCache.UpdateCacheEntry(lkm.values, func() interface{} {
 			return mci.GetCacheEntry(lkm.lMap, mv)
 		})
 		if !ok {
@@ -235,9 +234,9 @@ func (m *MetricsCommonStruct) prepareAggHisto(mci MetricsCommonInterface, flow c
 	lkms := make([]labelsKeyAndMap, 0, len(labelSets))
 	for _, ls := range labelSets {
 		// Update entry for expiry mechanism (the entry itself is its own cleanup function)
-		lkm := ls.toKeyAndMap(info)
+		lkm := ls.toKeysAndMap(info)
 		lkms = append(lkms, lkm)
-		ok := m.mCache.UpdateCacheEntry(lkm.key, func() interface{} {
+		ok := m.mCache.UpdateCacheEntry(lkm.values, func() interface{} {
 			return mci.GetCacheEntry(lkm.lMap, mc)
 		})
 		if !ok {
@@ -269,22 +268,19 @@ type label struct {
 type labelSet []label
 
 type labelsKeyAndMap struct {
-	key  string
-	lMap map[string]string
+	values []string
+	lMap   map[string]string
 }
 
-func (l labelSet) toKeyAndMap(info *metrics.Preprocessed) labelsKeyAndMap {
-	key := strings.Builder{}
-	key.Grow(256) // pre-allocate a decent buffer
-	key.WriteString(info.Name)
-	key.WriteRune('|')
+func (l labelSet) toKeysAndMap(info *metrics.Preprocessed) labelsKeyAndMap {
+	values := make([]string, 0, len(l)+1)
+	values = append(values, info.Name)
 	m := make(map[string]string, len(l))
 	for _, kv := range l {
-		key.WriteString(kv.value)
-		key.WriteRune('|')
+		values = append(values, kv.value)
 		m[kv.key] = kv.value
 	}
-	return labelsKeyAndMap{key: key.String(), lMap: m}
+	return labelsKeyAndMap{values: values, lMap: m}
 }
 
 // extractLabels takes the flow and a single metric definition as input.

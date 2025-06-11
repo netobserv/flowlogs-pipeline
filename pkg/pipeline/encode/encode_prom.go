@@ -66,7 +66,7 @@ func (e *EncodeProm) ProcessCounter(m interface{}, labels map[string]string, val
 	return nil
 }
 
-func (e *EncodeProm) ProcessGauge(m interface{}, labels map[string]string, value float64, _ string) error {
+func (e *EncodeProm) ProcessGauge(m interface{}, _ string, labels map[string]string, value float64, _ []string) error {
 	gauge := m.(*prometheus.GaugeVec)
 	mm, err := gauge.GetMetricWith(labels)
 	if err != nil {
