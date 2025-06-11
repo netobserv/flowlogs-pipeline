@@ -90,6 +90,7 @@ func NewCounter(opts CounterOpts) Counter {
 		opts.Help,
 		nil,
 		opts.ConstLabels,
+		opts.Expiry,
 	)
 	if opts.now == nil {
 		opts.now = time.Now
@@ -205,6 +206,7 @@ func (v2) NewCounterVec(opts CounterVecOpts) *CounterVec {
 		opts.Help,
 		opts.VariableLabels,
 		opts.ConstLabels,
+		opts.Expiry,
 	)
 	if opts.now == nil {
 		opts.now = time.Now
@@ -354,5 +356,6 @@ func NewCounterFunc(opts CounterOpts, function func() float64) CounterFunc {
 		opts.Help,
 		nil,
 		opts.ConstLabels,
+		opts.Expiry,
 	), CounterValue, function)
 }

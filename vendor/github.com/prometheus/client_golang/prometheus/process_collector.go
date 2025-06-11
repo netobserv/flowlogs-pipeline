@@ -70,47 +70,47 @@ func NewProcessCollector(opts ProcessCollectorOpts) Collector {
 		cpuTotal: NewDesc(
 			ns+"process_cpu_seconds_total",
 			"Total user and system CPU time spent in seconds.",
-			nil, nil,
+			nil, nil, nil,
 		),
 		openFDs: NewDesc(
 			ns+"process_open_fds",
 			"Number of open file descriptors.",
-			nil, nil,
+			nil, nil, nil,
 		),
 		maxFDs: NewDesc(
 			ns+"process_max_fds",
 			"Maximum number of open file descriptors.",
-			nil, nil,
+			nil, nil, nil,
 		),
 		vsize: NewDesc(
 			ns+"process_virtual_memory_bytes",
 			"Virtual memory size in bytes.",
-			nil, nil,
+			nil, nil, nil,
 		),
 		maxVsize: NewDesc(
 			ns+"process_virtual_memory_max_bytes",
 			"Maximum amount of virtual memory available in bytes.",
-			nil, nil,
+			nil, nil, nil,
 		),
 		rss: NewDesc(
 			ns+"process_resident_memory_bytes",
 			"Resident memory size in bytes.",
-			nil, nil,
+			nil, nil, nil,
 		),
 		startTime: NewDesc(
 			ns+"process_start_time_seconds",
 			"Start time of the process since unix epoch in seconds.",
-			nil, nil,
+			nil, nil, nil,
 		),
 		inBytes: NewDesc(
 			ns+"process_network_receive_bytes_total",
 			"Number of bytes received by the process over the network.",
-			nil, nil,
+			nil, nil, nil,
 		),
 		outBytes: NewDesc(
 			ns+"process_network_transmit_bytes_total",
 			"Number of bytes sent by the process over the network.",
-			nil, nil,
+			nil, nil, nil,
 		),
 	}
 

@@ -495,6 +495,11 @@ type HistogramOpts struct {
 	// 5m is used. To always delete the oldest exemplar, set it to a negative value.
 	NativeHistogramExemplarTTL time.Duration
 
+	// Expiry is an optional reference to an Expiry,
+	// which provides a mechanism for metrics expiration after receiving no updates
+	// for a configured duration.
+	Expiry *Expiry
+
 	// now is for testing purposes, by default it's time.Now.
 	now func() time.Time
 
@@ -527,6 +532,7 @@ func NewHistogram(opts HistogramOpts) Histogram {
 			opts.Help,
 			nil,
 			opts.ConstLabels,
+			opts.Expiry,
 		),
 		opts,
 	)
@@ -1190,6 +1196,7 @@ func (v2) NewHistogramVec(opts HistogramVecOpts) *HistogramVec {
 		opts.Help,
 		opts.VariableLabels,
 		opts.ConstLabels,
+		opts.Expiry,
 	)
 	return &HistogramVec{
 		MetricVec: NewMetricVec(desc, func(lvs ...string) Metric {

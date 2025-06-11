@@ -220,6 +220,7 @@ func NewGoCollector(opts ...func(o *internal.GoCollectorOptions)) Collector {
 					help,
 					nil,
 					nil,
+					nil,
 				),
 				internal.RuntimeMetricsBucketsForUnit(bucketsMap[d.Name], unit),
 				hasSum,

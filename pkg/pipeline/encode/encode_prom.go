@@ -18,6 +18,7 @@
 package encode
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"time"
@@ -43,6 +44,7 @@ type EncodeProm struct {
 	updateChan   chan config.StageParam
 	server       *promserver.PromServer
 	regName      string
+	exp          *prometheus.Expiry
 }
 
 func (e *EncodeProm) Gatherer() prometheus.Gatherer {
@@ -110,31 +112,26 @@ func (e *EncodeProm) GetChacheEntry(entryLabels map[string]string, m interface{}
 	return nil
 }
 
-// callback function from lru cleanup
-func (e *EncodeProm) Cleanup(cleanupFunc interface{}) {
-	cleanupFunc.(func())()
-}
-
 func (e *EncodeProm) addCounter(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: ""}, mInfo.TargetLabels())
+	counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Expiry: e.exp, Help: ""}, mInfo.TargetLabels())
 	e.metricCommon.AddCounter(fullMetricName, counter, mInfo)
 	return counter
 }
 
 func (e *EncodeProm) addGauge(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: ""}, mInfo.TargetLabels())
+	gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Expiry: e.exp, Help: ""}, mInfo.TargetLabels())
 	e.metricCommon.AddGauge(fullMetricName, gauge, mInfo)
 	return gauge
 }
 
 func (e *EncodeProm) addHistogram(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	histogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: ""}, mInfo.TargetLabels())
+	histogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Expiry: e.exp, Help: ""}, mInfo.TargetLabels())
 	e.metricCommon.AddHist(fullMetricName, histogram, mInfo)
 	return histogram
 }
 
 func (e *EncodeProm) addAgghistogram(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	agghistogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: ""}, mInfo.TargetLabels())
+	agghistogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Expiry: e.exp, Help: ""}, mInfo.TargetLabels())
 	e.metricCommon.AddAggHist(fullMetricName, agghistogram, mInfo)
 	return agghistogram
 }
@@ -297,6 +294,8 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	plog.Debugf("expiryTime = %v", expiryTime)
 
 	registry := prometheus.NewRegistry()
+	exp := prometheus.NewExpiry(&expiryTime.Duration)
+	exp.RunEvery(context.TODO(), expiryTime.Duration)
 
 	w := &EncodeProm{
 		cfg:        &cfg,
@@ -304,6 +303,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		updateChan: make(chan config.StageParam),
 		server:     promserver.SharedServer,
 		regName:    params.Name,
+		exp:        &exp,
 	}
 
 	if cfg.PromConnectionInfo != nil {
@@ -311,7 +311,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		w.server = promserver.StartServerAsync(cfg.PromConnectionInfo, params.Name, registry)
 	}
 
-	metricCommon := NewMetricsCommonStruct(opMetrics, cfg.MaxMetrics, params.Name, expiryTime, w.Cleanup)
+	metricCommon := NewMetricsCommonStruct(opMetrics, params.Name)
 	w.metricCommon = metricCommon
 
 	// Init metrics

@@ -64,6 +64,10 @@ type Desc struct {
 	// err is an error that occurred during construction. It is reported on
 	// registration time.
 	err error
+	// expiry is an optional reference to an Expiry,
+	// which provides a mechanism for metrics expiration after receiving no updates
+	// for a configured duration.
+	expiry *Expiry
 }
 
 // NewDesc allocates and initializes a new Desc. Errors are recorded in the Desc
@@ -75,8 +79,8 @@ type Desc struct {
 //
 // For constLabels, the label values are constant. Therefore, they are fully
 // specified in the Desc. See the Collector example for a usage pattern.
-func NewDesc(fqName, help string, variableLabels []string, constLabels Labels) *Desc {
-	return V2.NewDesc(fqName, help, UnconstrainedLabels(variableLabels), constLabels)
+func NewDesc(fqName, help string, variableLabels []string, constLabels Labels, exp *Expiry) *Desc {
+	return V2.NewDesc(fqName, help, UnconstrainedLabels(variableLabels), constLabels, exp)
 }
 
 // NewDesc allocates and initializes a new Desc. Errors are recorded in the Desc
@@ -89,11 +93,12 @@ func NewDesc(fqName, help string, variableLabels []string, constLabels Labels) *
 //
 // For constLabels, the label values are constant. Therefore, they are fully
 // specified in the Desc. See the Collector example for a usage pattern.
-func (v2) NewDesc(fqName, help string, variableLabels ConstrainableLabels, constLabels Labels) *Desc {
+func (v2) NewDesc(fqName, help string, variableLabels ConstrainableLabels, constLabels Labels, exp *Expiry) *Desc {
 	d := &Desc{
 		fqName:         fqName,
 		help:           help,
 		variableLabels: variableLabels.compile(),
+		expiry:         exp,
 	}
 	if !model.IsValidMetricName(model.LabelValue(fqName)) {
 		d.err = fmt.Errorf("%q is not a valid metric name", fqName)
@@ -200,11 +205,18 @@ func (d *Desc) String() string {
 			}
 		}
 	}
+	var expiry string
+	if d.expiry == nil {
+		expiry = "disabled"
+	} else {
+		expiry = d.expiry.duration.String()
+	}
 	return fmt.Sprintf(
-		"Desc{fqName: %q, help: %q, constLabels: {%s}, variableLabels: {%s}}",
+		"Desc{fqName: %q, help: %q, constLabels: {%s}, variableLabels: {%s}, expiry: {%s}}",
 		d.fqName,
 		d.help,
 		strings.Join(lpStrings, ","),
 		strings.Join(vlStrings, ","),
+		expiry,
 	)
 }

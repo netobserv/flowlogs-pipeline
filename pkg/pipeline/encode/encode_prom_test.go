@@ -97,7 +97,6 @@ func Test_NewEncodeProm(t *testing.T) {
 	require.Equal(t, 1, len(encodeProm.metricCommon.gauges))
 	require.Equal(t, 1, len(encodeProm.metricCommon.histos))
 	require.Equal(t, 1, len(encodeProm.metricCommon.aggHistos))
-	require.Equal(t, time.Second, encodeProm.metricCommon.expiryTime)
 
 	require.Equal(t, encodeProm.metricCommon.gauges["test_Bytes"].info.Name, "Bytes")
 	expectedList := []string{"srcAddr", "dstAddr", "srcPort"}
@@ -108,16 +107,6 @@ func Test_NewEncodeProm(t *testing.T) {
 	require.Equal(t, encodeProm.metricCommon.counters["test_Packets"].info.Labels, expectedList)
 	entry := test.GetExtractMockEntry()
 	encodeProm.Encode(entry)
-
-	// verify entries are in cache; one for the gauge and one for the counter
-	entriesMapLen := encodeProm.metricCommon.mCache.GetCacheLen()
-	require.Equal(t, 2, entriesMapLen)
-
-	// wait a couple seconds so that the entry will expire
-	time.Sleep(2 * time.Second)
-	encodeProm.metricCommon.mCache.CleanupExpiredEntries(encodeProm.metricCommon.expiryTime, encodeProm.Cleanup)
-	entriesMapLen = encodeProm.metricCommon.mCache.GetCacheLen()
-	require.Equal(t, 0, entriesMapLen)
 }
 
 func Test_CustomMetric(t *testing.T) {

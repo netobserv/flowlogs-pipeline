@@ -147,6 +147,11 @@ type SummaryOpts struct {
 	// "github.com/bmizerany/perks/quantile").
 	BufCap uint32
 
+	// Expiry is an optional reference to an Expiry,
+	// which provides a mechanism for metrics expiration after receiving no updates
+	// for a configured duration.
+	Expiry *Expiry
+
 	// now is for testing purposes, by default it's time.Now.
 	now func() time.Time
 }
@@ -186,6 +191,7 @@ func NewSummary(opts SummaryOpts) Summary {
 			opts.Help,
 			nil,
 			opts.ConstLabels,
+			opts.Expiry,
 		),
 		opts,
 	)
@@ -578,6 +584,7 @@ func (v2) NewSummaryVec(opts SummaryVecOpts) *SummaryVec {
 		opts.Help,
 		opts.VariableLabels,
 		opts.ConstLabels,
+		opts.Expiry,
 	)
 	return &SummaryVec{
 		MetricVec: NewMetricVec(desc, func(lvs ...string) Metric {

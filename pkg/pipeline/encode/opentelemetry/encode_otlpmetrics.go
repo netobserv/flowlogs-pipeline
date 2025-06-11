@@ -128,7 +128,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 		meter: meterFactory,
 	}
 
-	metricCommon := encode.NewMetricsCommonStruct(opMetrics, 0, params.Name, expiryTime, nil)
+	metricCommon := encode.NewMetricsCommonStruct(opMetrics, params.Name)
 	w.metricCommon = metricCommon
 
 	for i := range cfg.Metrics {
