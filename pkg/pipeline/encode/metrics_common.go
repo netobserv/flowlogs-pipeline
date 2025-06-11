@@ -42,7 +42,7 @@ type MetricsCommonStruct struct {
 	histos           map[string]mInfoStruct
 	aggHistos        map[string]mInfoStruct
 	mCache           *putils.TimedCache
-	mChacheLenMetric prometheus.Gauge
+	mCacheLenMetric  prometheus.Gauge
 	metricsProcessed prometheus.Counter
 	metricsDropped   prometheus.Counter
 	errorsCounter    *prometheus.CounterVec
@@ -51,7 +51,7 @@ type MetricsCommonStruct struct {
 }
 
 type MetricsCommonInterface interface {
-	GetChacheEntry(entryLabels map[string]string, m interface{}) interface{}
+	GetCacheEntry(entryLabels map[string]string, m interface{}) interface{}
 	ProcessCounter(m interface{}, labels map[string]string, value float64) error
 	ProcessGauge(m interface{}, labels map[string]string, value float64, key string) error
 	ProcessHist(m interface{}, labels map[string]string, value float64) error
@@ -198,13 +198,14 @@ func (m *MetricsCommonStruct) prepareMetric(mci MetricsCommonInterface, flow con
 	}
 
 	labelSets := extractLabels(flow, flatParts, info)
-	var lkms []labelsKeyAndMap
+	lkms := make([]labelsKeyAndMap, 0, len(labelSets))
 	for _, ls := range labelSets {
 		// Update entry for expiry mechanism (the entry itself is its own cleanup function)
 		lkm := ls.toKeyAndMap(info)
 		lkms = append(lkms, lkm)
-		cacheEntry := mci.GetChacheEntry(lkm.lMap, mv)
-		ok := m.mCache.UpdateCacheEntry(lkm.key, cacheEntry)
+		ok := m.mCache.UpdateCacheEntry(lkm.key, func() interface{} {
+			return mci.GetCacheEntry(lkm.lMap, mv)
+		})
 		if !ok {
 			m.metricsDropped.Inc()
 			return nil, 0
@@ -231,13 +232,14 @@ func (m *MetricsCommonStruct) prepareAggHisto(mci MetricsCommonInterface, flow c
 	}
 
 	labelSets := extractLabels(flow, flatParts, info)
-	var lkms []labelsKeyAndMap
+	lkms := make([]labelsKeyAndMap, 0, len(labelSets))
 	for _, ls := range labelSets {
 		// Update entry for expiry mechanism (the entry itself is its own cleanup function)
 		lkm := ls.toKeyAndMap(info)
 		lkms = append(lkms, lkm)
-		cacheEntry := mci.GetChacheEntry(lkm.lMap, mc)
-		ok := m.mCache.UpdateCacheEntry(lkm.key, cacheEntry)
+		ok := m.mCache.UpdateCacheEntry(lkm.key, func() interface{} {
+			return mci.GetCacheEntry(lkm.lMap, mc)
+		})
 		if !ok {
 			m.metricsDropped.Inc()
 			return nil, nil
@@ -273,9 +275,10 @@ type labelsKeyAndMap struct {
 
 func (l labelSet) toKeyAndMap(info *metrics.Preprocessed) labelsKeyAndMap {
 	key := strings.Builder{}
+	key.Grow(256) // pre-allocate a decent buffer
 	key.WriteString(info.Name)
 	key.WriteRune('|')
-	m := map[string]string{}
+	m := make(map[string]string, len(l))
 	for _, kv := range l {
 		key.WriteString(kv.value)
 		key.WriteRune('|')
@@ -302,7 +305,7 @@ func extractLabels(flow config.GenericMap, flatParts []config.GenericMap, info *
 }
 
 func newLabelSet(part config.GenericMap, labels []metrics.MappedLabel) labelSet {
-	var ls labelSet
+	ls := make(labelSet, 0, len(labels))
 	for _, t := range labels {
 		label := label{key: t.Target, value: ""}
 		if v, ok := part[t.Source]; ok {
@@ -337,7 +340,7 @@ func NewMetricsCommonStruct(opMetrics *operational.Metrics, maxCacheEntries int,
 	mChacheLenMetric := opMetrics.NewGauge(&mChacheLen, name)
 	m := &MetricsCommonStruct{
 		mCache:           putils.NewTimedCache(maxCacheEntries, mChacheLenMetric),
-		mChacheLenMetric: mChacheLenMetric,
+		mCacheLenMetric:  mChacheLenMetric,
 		metricsProcessed: opMetrics.NewCounter(&metricsProcessed, name),
 		metricsDropped:   opMetrics.NewCounter(&metricsDropped, name),
 		errorsCounter:    opMetrics.NewCounterVec(&encodePromErrors),

@@ -289,7 +289,7 @@ parameters:
 	loki.client = &fe
 
 	require.NoError(t, loki.ProcessRecord(map[string]interface{}{
-		"ba/z": "isBaz", "fo.o": "isFoo", "ba-r": "isBar", "ignored?": "yes!"}))
+		"ba/z": "isBaz", "fo.o": "isFoo", "ba-r": "isBar", "ignored?": "yes!", "md": "md"}))
 
 	fe.AssertCalled(t, "Handle", model.LabelSet{
 		"ba_r": "isBar",
@@ -336,6 +336,7 @@ func buildFlow(t time.Time) config.GenericMap {
 		"bytes":     rand.Intn(100),
 		"packets":   rand.Intn(10),
 		"latency":   rand.Float64(),
+		"toIgnore":  "--",
 	}
 }
 
@@ -359,9 +360,10 @@ func BenchmarkWriteLoki(b *testing.B) {
 		StaticLabels: model.LabelSet{
 			"app": "flp-benchmark",
 		},
-		Labels:         []string{"srcIP", "dstIP"},
+		Labels:         []string{"srcIP", "dstIP", "toIgnore"},
 		TimestampLabel: "timestamp",
 		TimestampScale: "1ms",
+		IgnoreList:     []string{"toIgnore"},
 	}
 
 	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), config.StageParam{Write: &config.Write{Loki: &params}})

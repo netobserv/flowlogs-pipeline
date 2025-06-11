@@ -140,7 +140,9 @@ func (aggregate *Aggregate) UpdateByEntry(entry config.GenericMap, normalizedVal
 	} else {
 		groupState = oldEntry.(*GroupState)
 	}
-	aggregate.cache.UpdateCacheEntry(string(normalizedValues), groupState)
+	aggregate.cache.UpdateCacheEntry(string(normalizedValues), func() interface{} {
+		return groupState
+	})
 
 	// update value
 	operationKey := aggregate.definition.OperationKey
