@@ -197,20 +197,17 @@ func (m *MetricsCommonStruct) prepareMetric(mci MetricsCommonInterface, flow con
 	}
 
 	labelSets := extractLabels(flow, flatParts, info)
-	lkms := make([]labelsKeyAndMap, 0, len(labelSets))
 	for _, ls := range labelSets {
 		// Update entry for expiry mechanism (the entry itself is its own cleanup function)
-		lkm := ls.toKeysAndMap(info)
-		lkms = append(lkms, lkm)
-		ok := m.mCache.UpdateCacheEntry(lkm.values, func() interface{} {
-			return mci.GetCacheEntry(lkm.lMap, mv)
+		ok := m.mCache.UpdateCacheEntry(ls.values, func() interface{} {
+			return mci.GetCacheEntry(ls.lMap, mv)
 		})
 		if !ok {
 			m.metricsDropped.Inc()
 			return nil, 0
 		}
 	}
-	return lkms, floatVal
+	return labelSets, floatVal
 }
 
 func (m *MetricsCommonStruct) prepareAggHisto(mci MetricsCommonInterface, flow config.GenericMap, info *metrics.Preprocessed, mc interface{}) ([]labelsKeyAndMap, []float64) {
@@ -231,20 +228,17 @@ func (m *MetricsCommonStruct) prepareAggHisto(mci MetricsCommonInterface, flow c
 	}
 
 	labelSets := extractLabels(flow, flatParts, info)
-	lkms := make([]labelsKeyAndMap, 0, len(labelSets))
 	for _, ls := range labelSets {
 		// Update entry for expiry mechanism (the entry itself is its own cleanup function)
-		lkm := ls.toKeysAndMap(info)
-		lkms = append(lkms, lkm)
-		ok := m.mCache.UpdateCacheEntry(lkm.values, func() interface{} {
-			return mci.GetCacheEntry(lkm.lMap, mc)
+		ok := m.mCache.UpdateCacheEntry(ls.values, func() interface{} {
+			return mci.GetCacheEntry(ls.lMap, mc)
 		})
 		if !ok {
 			m.metricsDropped.Inc()
 			return nil, nil
 		}
 	}
-	return lkms, values
+	return labelSets, values
 }
 
 func (m *MetricsCommonStruct) extractGenericValue(flow config.GenericMap, info *metrics.Preprocessed) interface{} {
@@ -260,56 +254,44 @@ func (m *MetricsCommonStruct) extractGenericValue(flow config.GenericMap, info *
 	return val
 }
 
-type label struct {
-	key   string
-	value string
-}
-
-type labelSet []label
-
 type labelsKeyAndMap struct {
 	values []string
 	lMap   map[string]string
 }
 
-func (l labelSet) toKeysAndMap(info *metrics.Preprocessed) labelsKeyAndMap {
-	values := make([]string, 0, len(l)+1)
-	values = append(values, info.Name)
-	m := make(map[string]string, len(l))
-	for _, kv := range l {
-		values = append(values, kv.value)
-		m[kv.key] = kv.value
-	}
-	return labelsKeyAndMap{values: values, lMap: m}
-}
-
 // extractLabels takes the flow and a single metric definition as input.
 // It returns the flat labels maps (label names and values).
 // Most of the time it will return a single map; it may return several of them when the parsed flow fields are lists (e.g. "interfaces").
-func extractLabels(flow config.GenericMap, flatParts []config.GenericMap, info *metrics.Preprocessed) []labelSet {
-	common := newLabelSet(flow, info.MappedLabels)
+func extractLabels(flow config.GenericMap, flatParts []config.GenericMap, info *metrics.Preprocessed) []labelsKeyAndMap {
+	common := newLabelKeyAndMap(info.Name, flow, info.MappedLabels)
 	if len(flatParts) == 0 {
-		return []labelSet{common}
+		return []labelsKeyAndMap{common}
 	}
-	var all []labelSet
+	all := make([]labelsKeyAndMap, 0, len(flatParts))
 	for _, fp := range flatParts {
-		ls := newLabelSet(fp, info.FlattenedLabels)
-		ls = append(ls, common...)
+		ls := newLabelKeyAndMap(info.Name, fp, info.FlattenedLabels)
+		ls.values = append(ls.values, common.values...)
+		for k, v := range common.lMap {
+			ls.lMap[k] = v
+		}
 		all = append(all, ls)
 	}
 	return all
 }
 
-func newLabelSet(part config.GenericMap, labels []metrics.MappedLabel) labelSet {
-	ls := make(labelSet, 0, len(labels))
+func newLabelKeyAndMap(name string, part config.GenericMap, labels []metrics.MappedLabel) labelsKeyAndMap {
+	values := make([]string, 0, len(labels)+1)
+	values = append(values, name)
+	m := make(map[string]string, len(labels))
 	for _, t := range labels {
-		label := label{key: t.Target, value: ""}
+		value := ""
 		if v, ok := part[t.Source]; ok {
-			label.value = utils.ConvertToString(v)
+			value = utils.ConvertToString(v)
 		}
-		ls = append(ls, label)
+		values = append(values, value)
+		m[t.Target] = value
 	}
-	return ls
+	return labelsKeyAndMap{values: values, lMap: m}
 }
 
 func (m *MetricsCommonStruct) cleanupExpiredEntriesLoop(callback putils.CacheCallback) {
