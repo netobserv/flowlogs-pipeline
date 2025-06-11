@@ -65,9 +65,9 @@ func (tc *TimedCache) GetCacheEntry(key string) (interface{}, bool) {
 
 var uclog = log.WithField("method", "UpdateCacheEntry")
 
-// If cache entry exists, update it and return it; if it does not exist, create it if there is room.
+// If cache entry exists, update its timestamp; if it does not exist, create it if there is room.
 // If we exceed the size of the cache, then do not allocate new entry
-func (tc *TimedCache) UpdateCacheEntry(key string, entry interface{}) bool {
+func (tc *TimedCache) UpdateCacheEntry(key string, entryProvider func() interface{}) bool {
 	nowInSecs := time.Now()
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
@@ -85,7 +85,7 @@ func (tc *TimedCache) UpdateCacheEntry(key string, entry interface{}) bool {
 		cEntry = &cacheEntry{
 			lastUpdatedTime: nowInSecs,
 			key:             key,
-			SourceEntry:     entry,
+			SourceEntry:     entryProvider(),
 		}
 		uclog.Tracef("adding entry: %#v", cEntry)
 		// place at end of list

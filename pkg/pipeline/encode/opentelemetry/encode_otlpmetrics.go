@@ -90,7 +90,7 @@ func (e *EncodeOtlpMetrics) ProcessAggHist(m interface{}, labels map[string]stri
 	return nil
 }
 
-func (e *EncodeOtlpMetrics) GetChacheEntry(entryLabels map[string]string, _ interface{}) interface{} {
+func (e *EncodeOtlpMetrics) GetCacheEntry(entryLabels map[string]string, _ interface{}) interface{} {
 	return entryLabels
 }
 

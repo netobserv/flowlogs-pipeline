@@ -130,7 +130,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 					lbl, ok := n.ipLabelCache.GetCacheEntry(strIP)
 					if !ok {
 						lbl = n.applySubnetLabel(strIP)
-						n.ipLabelCache.UpdateCacheEntry(strIP, lbl)
+						n.ipLabelCache.UpdateCacheEntry(strIP, func() interface{} { return lbl })
 					}
 					if lbl != "" {
 						outputEntry[rule.AddSubnetLabel.Output] = lbl
@@ -179,6 +179,8 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 	if params.Transform != nil && params.Transform.Network != nil {
 		jsonNetworkTransform = *params.Transform.Network
 	}
+	jsonNetworkTransform.Preprocess()
+
 	for _, rule := range jsonNetworkTransform.Rules {
 		switch rule.Type {
 		case api.NetworkAddLocation:

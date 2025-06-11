@@ -98,7 +98,8 @@ func (e *EncodeProm) ProcessAggHist(m interface{}, labels map[string]string, val
 	return nil
 }
 
-func (e *EncodeProm) GetChacheEntry(entryLabels map[string]string, m interface{}) interface{} {
+func (e *EncodeProm) GetCacheEntry(entryLabels map[string]string, m interface{}) interface{} {
+	// In prom_encode, the metrics cache just contains cleanup callbacks
 	switch mv := m.(type) {
 	case *prometheus.CounterVec:
 		return func() { mv.Delete(entryLabels) }
