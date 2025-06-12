@@ -321,6 +321,8 @@ Following is the supported API format for writing to loki:
          clientConfig: clientConfig
          timestampLabel: label to use for time indexing
          timestampScale: timestamp units scale (e.g. for UNIX = 1s)
+         format: the format of each line: printf (writes using golang's default map printing), fields (writes one key and value field per line) or json (default)
+         reorder: reorder json map keys
 </pre>
 ## Write Standard Output
 Following is the supported API format for writing to standard output:
