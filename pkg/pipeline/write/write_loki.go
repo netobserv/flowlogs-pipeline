@@ -30,15 +30,12 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 
 	logAdapter "github.com/go-kit/kit/log/logrus"
-	jsonIter "github.com/json-iterator/go"
 	"github.com/netobserv/loki-client-go/loki"
 	"github.com/netobserv/loki-client-go/pkg/backoff"
 	"github.com/netobserv/loki-client-go/pkg/urlutil"
 	"github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
 )
-
-var jsonEncodingConfig = jsonIter.Config{}.Froze()
 
 var (
 	keyReplacer = strings.NewReplacer("/", "_", ".", "_", "-", "_")
@@ -61,6 +58,7 @@ type Loki struct {
 	timeNow        func() time.Time
 	exitChan       <-chan struct{}
 	metrics        *metrics
+	formatter      func(config.GenericMap) string
 }
 
 func buildLokiConfig(c *api.WriteLoki) (loki.Config, error) {
@@ -110,13 +108,10 @@ func buildLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 func (l *Loki) ProcessRecord(in config.GenericMap) error {
 	labels, lines := l.splitLabelsLines(in)
 
-	js, err := jsonEncodingConfig.Marshal(lines)
-	if err != nil {
-		return err
-	}
-
+	output := l.formatter(lines)
 	timestamp := l.extractTimestamp(lines)
-	err = l.client.Handle(labels, timestamp, string(js))
+
+	err := l.client.Handle(labels, timestamp, output)
 	if err == nil {
 		l.metrics.recordsWritten.Inc()
 	}
@@ -256,6 +251,7 @@ func NewWriteLoki(opMetrics *operational.Metrics, params config.StageParam) (*Lo
 		ignoreList[label] = nil
 	}
 
+	f := formatter(lokiConfigIn.Format, lokiConfigIn.Reorder)
 	l := &Loki{
 		lokiConfig:     lokiConfig,
 		apiConfig:      lokiConfigIn,
@@ -266,6 +262,7 @@ func NewWriteLoki(opMetrics *operational.Metrics, params config.StageParam) (*Lo
 		timeNow:        time.Now,
 		exitChan:       pUtils.ExitChannel(),
 		metrics:        newMetrics(opMetrics, params.Name),
+		formatter:      f,
 	}
 
 	return l, nil
