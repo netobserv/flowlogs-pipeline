@@ -34,7 +34,7 @@ Following is the supported API format for prometheus encode:
                  buckets: histogram buckets
                  valueScale: scale factor of the value (MetricVal := FlowVal / Scale)
          prefix: prefix added to each metric name
-         expiryTime: time duration of no-flow to wait before deleting prometheus data item
+         expiryTime: time duration of no-flow to wait before deleting prometheus data item (default: 2m)
          maxMetrics: maximum number of metrics to report (default: unlimited)
 </pre>
 ## Kafka encode API
@@ -458,8 +458,8 @@ Following is the supported API format for writing metrics to an OpenTelemetry co
                  flatten: list fields to be flattened
                  buckets: histogram buckets
                  valueScale: scale factor of the value (MetricVal := FlowVal / Scale)
-         pushTimeInterval: how often should metrics be sent to collector:
-         expiryTime: time duration of no-flow to wait before deleting data item
+         pushTimeInterval: how often should metrics be sent to collector (default: 20s)
+         expiryTime: time duration of no-flow to wait before deleting data item (default: 2m)
 </pre>
 ## OpenTelemetry Traces API
 Following is the supported API format for writing traces to an OpenTelemetry collector:
