@@ -60,7 +60,7 @@ type HotReloadStruct struct {
 
 type Health struct {
 	Address string
-	Port    string
+	Port    int
 }
 
 type Profile struct {
