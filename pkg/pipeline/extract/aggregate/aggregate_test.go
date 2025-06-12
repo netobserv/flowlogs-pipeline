@@ -62,7 +62,7 @@ func getMockLabels(reverseOrder bool) Labels {
 }
 
 func Test_getNormalizedValues(t *testing.T) {
-	expectedLabels := NormalizedValues("20.0.0.2,10.0.0.1")
+	expectedLabels := NormalizedValues{"20.0.0.2", "10.0.0.1"}
 
 	labels := getMockLabels(false)
 
@@ -103,7 +103,7 @@ func Test_FilterEntry(t *testing.T) {
 	normalizedLabels, labels, err := aggregate.filterEntry(entry)
 	require.Equal(t, err, nil)
 	require.Equal(t, Labels{"srcIP": "10.0.0.1", "dstIP": "20.0.0.2"}, labels)
-	require.Equal(t, NormalizedValues("20.0.0.2,10.0.0.1"), normalizedLabels)
+	require.Equal(t, NormalizedValues{"20.0.0.2", "10.0.0.1"}, normalizedLabels)
 
 	entry = test.GetIngestMockEntry(true)
 
@@ -125,7 +125,7 @@ func Test_Evaluate(t *testing.T) {
 
 	require.Equal(t, nil, err)
 	require.Equal(t, 1, aggregate.cache.GetCacheLen())
-	cacheEntry, found := aggregate.cache.GetCacheEntry(string(normalizedValues))
+	cacheEntry, found := aggregate.cache.GetCacheEntry(normalizedValues)
 	gState := cacheEntry.(*GroupState)
 	require.Equal(t, true, found)
 	require.Equal(t, 2, gState.totalCount)

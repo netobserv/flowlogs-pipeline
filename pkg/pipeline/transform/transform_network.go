@@ -127,10 +127,11 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			}
 			if anyIP, ok := outputEntry[rule.AddSubnetLabel.Input]; ok {
 				if strIP, ok := anyIP.(string); ok {
-					lbl, ok := n.ipLabelCache.GetCacheEntry(strIP)
+					keys := []string{strIP}
+					lbl, ok := n.ipLabelCache.GetCacheEntry(keys)
 					if !ok {
 						lbl = n.applySubnetLabel(strIP)
-						n.ipLabelCache.UpdateCacheEntry(strIP, func() interface{} { return lbl })
+						n.ipLabelCache.UpdateCacheEntry(keys, func() interface{} { return lbl })
 					}
 					if lbl != "" {
 						outputEntry[rule.AddSubnetLabel.Output] = lbl

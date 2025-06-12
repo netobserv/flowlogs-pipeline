@@ -819,14 +819,6 @@ func buildFlow() config.GenericMap {
 	}
 }
 
-func thousandsFlows() []config.GenericMap {
-	flows := make([]config.GenericMap, 1000)
-	for i := 0; i < 1000; i++ {
-		flows[i] = buildFlow()
-	}
-	return flows
-}
-
 func BenchmarkPromEncode(b *testing.B) {
 	var expiryTimeDuration api.Duration
 	expiryTimeDuration.Duration = time.Duration(60 * time.Second)
@@ -869,9 +861,8 @@ func BenchmarkPromEncode(b *testing.B) {
 	require.NoError(b, err)
 
 	for i := 0; i < b.N; i++ {
-		for _, metric := range thousandsFlows() {
-			prom.Encode(metric)
-		}
+		m := buildFlow()
+		prom.Encode(m)
 	}
 }
 
