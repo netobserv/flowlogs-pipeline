@@ -90,6 +90,8 @@ Following is the supported API format for the NetFlow / IPFIX collector:
          port: the port number to listen on, for IPFIX/NetFlow v9. Omit or set to 0 to disable IPFIX/NetFlow v9 ingestion
          portLegacy: the port number to listen on, for legacy NetFlow v5. Omit or set to 0 to disable NetFlow v5 ingestion
          batchMaxLen: the number of accumulated flows before being forwarded for processing
+         workers: the number of netflow/ipfix decoding workers
+         sockets: the number of listening sockets
 </pre>
 ## Ingest Kafka API
 Following is the supported API format for the kafka ingest:
