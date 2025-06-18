@@ -46,7 +46,7 @@ var ipInfo = map[string]*model.ResourceMetaData{
 }
 
 var customKeysInfo = map[string]*model.ResourceMetaData{
-	"~~AA:BB:CC:DD:EE:FF": {
+	"~~aa:bb:cc:dd:ee:ff": {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "pod-1",
 			Namespace: "ns-1",
@@ -456,7 +456,7 @@ func TestEnrichUsingMac(t *testing.T) {
 	// Pod to unknown using MAC
 	entry := config.GenericMap{
 		"SrcAddr": "8.8.8.8",
-		"SrcMAC":  "AA:BB:CC:DD:EE:FF", // pod-1
+		"SrcMAC":  "aa:bb:cc:dd:ee:ff", // pod-1
 		"DstAddr": "9.9.9.9",
 		"DstMAC":  "GG:HH:II:JJ:KK:LL", // unknown
 	}
@@ -465,7 +465,7 @@ func TestEnrichUsingMac(t *testing.T) {
 	}
 	assert.Equal(t, config.GenericMap{
 		"SrcAddr":            "8.8.8.8",
-		"SrcMAC":             "AA:BB:CC:DD:EE:FF",
+		"SrcMAC":             "aa:bb:cc:dd:ee:ff",
 		"DstAddr":            "9.9.9.9",
 		"DstMAC":             "GG:HH:II:JJ:KK:LL",
 		"SrcK8s_HostIP":      "100.0.0.1",
@@ -481,7 +481,7 @@ func TestEnrichUsingMac(t *testing.T) {
 
 	// remove the MAC rules and retry
 	entry = config.GenericMap{
-		"SrcMAC": "AA:BB:CC:DD:EE:FF", // pod-1
+		"SrcMAC": "aa:bb:cc:dd:ee:ff", // pod-1
 		"DstMAC": "GG:HH:II:JJ:KK:LL", // unknown
 	}
 	for _, r := range nt.Rules {
@@ -490,7 +490,7 @@ func TestEnrichUsingMac(t *testing.T) {
 	}
 	assert.Equal(t, config.GenericMap{
 		"DstMAC": "GG:HH:II:JJ:KK:LL",
-		"SrcMAC": "AA:BB:CC:DD:EE:FF",
+		"SrcMAC": "aa:bb:cc:dd:ee:ff",
 	}, entry)
 }
 
@@ -520,7 +520,7 @@ func TestEnrichUsingUDN(t *testing.T) {
 		},
 	}
 	customIndexes := map[string]*model.ResourceMetaData{
-		"~~AA:BB:CC:DD:EE:FF": {
+		"~~aa:bb:cc:dd:ee:ff": {
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "pod-1",
 				Namespace: "ns-1",
