@@ -58,12 +58,12 @@ func TestGetInfo(t *testing.T) {
 		OwnerKind:        "Pod",
 		NetworkName:      "primary",
 		IPs:              []string{"1.2.3.4"},
-		SecondaryNetKeys: []string{"~~AA:BB:CC:DD:EE:FF"},
+		SecondaryNetKeys: []string{"~~aa:bb:cc:dd:ee:ff"},
 	}
 	require.Equal(t, pod1, *info)
 
 	// Test get same pod by mac
-	info = kubeData.IndexLookup([]cni.SecondaryNetKey{{NetworkName: "custom-network", Key: "~~AA:BB:CC:DD:EE:FF"}}, "")
+	info = kubeData.IndexLookup([]cni.SecondaryNetKey{{NetworkName: "custom-network", Key: "~~aa:bb:cc:dd:ee:ff"}}, "")
 	require.NotNil(t, info)
 	pod1.NetworkName = "custom-network"
 	require.Equal(t, pod1, *info)
