@@ -331,6 +331,16 @@ Following is the supported API format for writing to standard output:
  stdout:
          format: the format of each line: printf (default - writes using golang's default map printing), fields (writes one key and value field per line) or json
 </pre>
+## Write IPFIX
+Following is the supported API format for writing to an IPFIX collector:
+
+<pre>
+ ipfix:
+         targetHost: IPFIX Collector host target IP
+         targetPort: IPFIX Collector host target port
+         transport: Transport protocol (tcp/udp) to be used for the IPFIX connection
+         enterpriseId: Enterprise ID for exporting transformations
+</pre>
 ## Aggregate metrics API
 Following is the supported API format for specifying metrics aggregations:
 
