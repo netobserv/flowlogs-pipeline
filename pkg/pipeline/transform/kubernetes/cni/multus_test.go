@@ -57,11 +57,11 @@ func TestExtractNetStatusKeys(t *testing.T) {
 	}
 	keys, err = multusHandler.GetPodUniqueKeys(&pod, secondaryNetConfig)
 	require.NoError(t, err)
-	require.Equal(t, []string{"~~86:1D:96:FF:55:0D"}, keys)
+	require.Equal(t, []string{"~~86:1d:96:ff:55:0d"}, keys)
 
 	// Composed key
 	secondaryNetConfig[0].Index = map[string]any{"mac": nil, "ip": nil, "interface": nil}
 	keys, err = multusHandler.GetPodUniqueKeys(&pod, secondaryNetConfig)
 	require.NoError(t, err)
-	require.Equal(t, []string{"net1~192.168.1.205~86:1D:96:FF:55:0D"}, keys)
+	require.Equal(t, []string{"net1~192.168.1.205~86:1d:96:ff:55:0d"}, keys)
 }
