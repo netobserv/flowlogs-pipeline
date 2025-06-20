@@ -6,7 +6,7 @@
   "labels": ["dependencies"],
   "gomod": {
     "schedule": [
-      "after 1pm on friday"
+      "after 9pm on friday"
     ],
     "postUpdateOptions": [
       "gomodUpdateImportPaths",
@@ -16,19 +16,21 @@
     "packageRules": [
       {
         "matchManagers": ["gomod"],
-        "matchDepTypes": ["indirect"],
-        "enabled": true
+        "matchUpdateTypes": ["minor", "patch"],
+        "groupName": "Go modules"
       },
       {
-        "matchPackageNames": ["**"],
-        "groupName": "Go modules",
-        "matchUpdateTypes": [
-          "minor",
-          "patch"
-        ]
-      },
-      {
+        "matchManagers": ["gomod"],
         "matchUpdateTypes": ["major"],
+        "enabled": false
+      }
+    ]
+  },
+  "dockerfile": {
+    "packageRules": [
+      {
+        "matchManagers": ["dockerfile"],
+        "matchPackageNames": "docker.io/library/golang",
         "enabled": false
       }
     ]
