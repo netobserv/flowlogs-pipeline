@@ -26,6 +26,10 @@
           "minor",
           "patch"
         ]
+      },
+      {
+        "matchUpdateTypes": ["major"],
+        "enabled": false
       }
     ]
   }
