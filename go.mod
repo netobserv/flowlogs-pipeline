@@ -1,6 +1,6 @@
 module github.com/netobserv/flowlogs-pipeline
 
-go 1.23.0
+go 1.24.2
 
 toolchain go1.24.4
 
@@ -18,7 +18,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/netobserv/gopipes v0.3.0
 	github.com/netobserv/loki-client-go v0.0.0-20250425113517-526b43e51847
-	github.com/netobserv/netobserv-ebpf-agent 324ef531f4d0
+	github.com/netobserv/netobserv-ebpf-agent v1.9.0-crc0.0.20250613124932-324ef531f4d0
 	github.com/netsampler/goflow2 v1.3.7
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.22.0
@@ -51,7 +51,30 @@ require (
 	sigs.k8s.io/e2e-framework v0.6.0
 )
 
-require github.com/cenkalti/backoff/v5 v5.0.2 // indirect
+require (
+	cloud.google.com/go/compute/metadata v0.6.0 // indirect
+	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
+	github.com/gaissmai/cidrtree v0.1.4 // indirect
+	github.com/josharian/native v1.1.0 // indirect
+	github.com/k8snetworkplumbingwg/govdpa v0.1.5-0.20230926073613-07c1031aea47 // indirect
+	github.com/k8snetworkplumbingwg/ipamclaims v0.4.0-alpha // indirect
+	github.com/k8snetworkplumbingwg/multi-networkpolicy v1.0.1 // indirect
+	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.6.0 // indirect
+	github.com/k8snetworkplumbingwg/sriovnet v1.2.1-0.20230427090635-4929697df2dc // indirect
+	github.com/mdlayher/arp v0.0.0-20220512170110-6706a2966875 // indirect
+	github.com/mdlayher/ndp v1.0.1 // indirect
+	github.com/mdlayher/packet v1.1.2 // indirect
+	github.com/mdlayher/socket v0.5.1 // indirect
+	github.com/metallb/frr-k8s v0.0.15 // indirect
+	github.com/miekg/dns v1.1.65 // indirect
+	github.com/openshift/api v0.0.0-20231120222239-b86761094ee3 // indirect
+	github.com/openshift/client-go v0.0.0-20231121143148-910ca30a1a9a // indirect
+	golang.org/x/mod v0.25.0 // indirect
+	golang.org/x/sync v0.15.0 // indirect
+	golang.org/x/tools v0.34.0 // indirect
+	sigs.k8s.io/knftables v0.0.18 // indirect
+	sigs.k8s.io/network-policy-api v0.1.5 // indirect
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -88,7 +111,6 @@ require (
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-jsonnet v0.21.0
-	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc // indirect
@@ -110,7 +132,7 @@ require (
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/ovn-org/libovsdb v0.7.1-0.20240820095311-ce1951614a20 // indirect
-	github.com/ovn-org/ovn-kubernetes/go-controller eea781bd80d4 // indirect
+	github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250618195440-eea781bd80d4 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
@@ -161,8 +183,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/component-base v0.33.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
-	k8s.io/kube-openapi 8b98d1ed966a // indirect
-	k8s.io/utils 4c0f3b243397 // indirect
+	k8s.io/kube-openapi v0.0.0-20250610211856-8b98d1ed966a // indirect
+	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 // indirect
 	lukechampine.com/uint128 v1.3.0 // indirect
 	sigs.k8s.io/controller-runtime v0.21.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
