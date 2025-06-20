@@ -6,11 +6,12 @@
   "labels": ["dependencies"],
   "gomod": {
     "schedule": [
-      "after 5am on wednesday"
+      "after 1pm on friday"
     ],
     "postUpdateOptions": [
       "gomodUpdateImportPaths",
-      "gomodTidy"
+      "gomodTidy",
+      "gomodVendor"
     ],
     "packageRules": [
       {
@@ -20,7 +21,11 @@
       },
       {
         "matchPackageNames": ["**"],
-        "groupName": "Go modules"
+        "groupName": "Go modules",
+        "matchUpdateTypes": [
+          "minor",
+          "patch"
+        ]
       }
     ]
   }
