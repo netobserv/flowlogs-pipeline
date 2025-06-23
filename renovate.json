@@ -6,7 +6,7 @@
   "labels": ["dependencies"],
   "gomod": {
     "schedule": [
-      "after 9pm on friday"
+      "after 8am on monday"
     ],
     "postUpdateOptions": [
       "gomodUpdateImportPaths",
@@ -16,7 +16,6 @@
     "packageRules": [
       {
         "matchManagers": ["gomod"],
-        "matchUpdateTypes": ["minor", "patch"],
         "groupName": "Go modules"
       },
       {
