@@ -150,11 +150,17 @@ tests-unit: ## Unit tests
 .PHONY: coverage-report
 coverage-report: ## Generate coverage report
 	@echo "### Generating coverage report"
+# Fix go cover conflicting with goyacc generated code
+# See https://github.com/golang/go/issues/41222#issuecomment-3023898581
+	sed -i -e '/yaccpar/d' cover.out
 	go tool cover --func=./cover.out
 
 .PHONY: coverage-report-html
 coverage-report-html: ## Generate HTML coverage report
 	@echo "### Generating HTML coverage report"
+# Fix go cover conflicting with goyacc generated code
+# See https://github.com/golang/go/issues/41222#issuecomment-3023898581
+	sed -i -e '/yaccpar/d' cover.out
 	go tool cover --html=./cover.out
 
 .PHONY: tests-fast
