@@ -177,14 +177,16 @@ var (
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned8Value(rec.(uint8)) },
 		},
 		"sourceTransportPort": {
-			Key:    "SrcPort",
-			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
+			Key:      "SrcPort",
+			Getter:   func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
+			Setter:   func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
+			Optional: true,
 		},
 		"destinationTransportPort": {
-			Key:    "DstPort",
-			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
+			Key:      "DstPort",
+			Getter:   func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
+			Setter:   func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
+			Optional: true,
 		},
 		"octetDeltaCount": {
 			Key:    "Bytes",
