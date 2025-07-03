@@ -25,7 +25,7 @@ import (
 var (
 	startTime  = time.Now()
 	endTime    = startTime.Add(7 * time.Second)
-	FullPBFlow = pbflow.Record{
+	fullPBFlow = pbflow.Record{
 		Direction: pbflow.Direction_EGRESS,
 		Bytes:     1024,
 		DataLink: &pbflow.DataLink{
@@ -79,13 +79,54 @@ var (
 			},
 		},
 	}
+
+	icmpPBFlow = pbflow.Record{
+		Direction: pbflow.Direction_INGRESS,
+		Bytes:     1024,
+		DataLink: &pbflow.DataLink{
+			DstMac: 0x112233445566,
+			SrcMac: 0x010203040506,
+		},
+		Network: &pbflow.Network{
+			SrcAddr: &pbflow.IP{
+				IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x01020304},
+			},
+			DstAddr: &pbflow.IP{
+				IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x05060708},
+			},
+		},
+		EthProtocol: 2048,
+		Packets:     3,
+		Transport: &pbflow.Transport{
+			Protocol: 1,
+		},
+		TimeFlowStart: timestamppb.New(startTime),
+		TimeFlowEnd:   timestamppb.New(endTime),
+
+		AgentIp: &pbflow.IP{
+			IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x0a090807},
+		},
+		Flags:    0x110,
+		IcmpCode: 10,
+		IcmpType: 8,
+		DupList: []*pbflow.DupMapEntry{
+			{
+				Interface: "eth0",
+				Direction: pbflow.Direction_EGRESS,
+			},
+			{
+				Interface: "a1234567",
+				Direction: pbflow.Direction_INGRESS,
+			},
+		},
+	}
 )
 
 func TestEnrichedIPFIXFlow(t *testing.T) {
 	cp := startCollector(t)
 	addr := cp.GetAddress().(*net.UDPAddr)
 
-	flow := decode.PBFlowToMap(&FullPBFlow)
+	flow := decode.PBFlowToMap(&fullPBFlow)
 
 	// Add enrichment
 	flow["SrcK8S_Name"] = "pod A"
@@ -146,7 +187,7 @@ func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 	cp := startCollector(t)
 	addr := cp.GetAddress().(*net.UDPAddr)
 
-	flow := decode.PBFlowToMap(&FullPBFlow)
+	flow := decode.PBFlowToMap(&fullPBFlow)
 
 	// Add partial enrichment
 	flow["SrcK8S_Name"] = "pod A"
@@ -207,12 +248,68 @@ func TestBasicIPFIXFlow(t *testing.T) {
 	cp := startCollector(t)
 	addr := cp.GetAddress().(*net.UDPAddr)
 
-	flow := decode.PBFlowToMap(&FullPBFlow)
+	flow := decode.PBFlowToMap(&fullPBFlow)
 
 	// Add partial enrichment (must be ignored)
 	flow["SrcK8S_Name"] = "pod A"
 	flow["SrcK8S_Namespace"] = "ns1"
 	flow["SrcK8S_HostName"] = "node1"
+
+	writer, err := write.NewWriteIpfix(config.StageParam{
+		Write: &config.Write{
+			Ipfix: &api.WriteIpfix{
+				TargetHost: addr.IP.String(),
+				TargetPort: addr.Port,
+				Transport:  addr.Network(),
+				// No enterprise ID here
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	writer.Write(flow)
+
+	// Read collector
+	// 1st = IPv4 template
+	tplv4Msg := <-cp.GetMsgChan()
+	// 2nd = IPv6 template (ignore)
+	<-cp.GetMsgChan()
+	// 3rd = data record
+	dataMsg := <-cp.GetMsgChan()
+	cp.Stop()
+
+	// Check template
+	assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
+	templateSet := tplv4Msg.GetSet()
+	templateElements := templateSet.GetRecords()[0].GetOrderedElementList()
+	assert.Len(t, templateElements, len(write.IPv4IANAFields))
+	assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
+
+	// Check data
+	assert.Equal(t, uint16(10), dataMsg.GetVersion())
+	dataSet := dataMsg.GetSet()
+	record := dataSet.GetRecords()[0]
+
+	for _, name := range write.IPv4IANAFields {
+		element, _, exist := record.GetInfoElementWithValue(name)
+		assert.Truef(t, exist, "element with name %s should exist in the record", name)
+		assert.NotNil(t, element)
+		matchElement(t, element, flow)
+	}
+
+	// Make sure enriched fields are absent
+	for _, name := range write.KubeFields {
+		element, _, exist := record.GetInfoElementWithValue(name)
+		assert.Falsef(t, exist, "element with name %s should NOT exist in the record", name)
+		assert.Nil(t, element)
+	}
+}
+
+func TestICMPIPFIXFlow(t *testing.T) {
+	cp := startCollector(t)
+	addr := cp.GetAddress().(*net.UDPAddr)
+
+	flow := decode.PBFlowToMap(&icmpPBFlow)
 
 	writer, err := write.NewWriteIpfix(config.StageParam{
 		Write: &config.Write{
