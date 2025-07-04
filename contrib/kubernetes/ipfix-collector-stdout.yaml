@@ -1,41 +1,32 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Pod
 metadata:
-  name: flowlogs-pipeline
+  name: flp-ipfix-stdout
   labels:
-    app: flowlogs-pipeline
+    app: flp-ipfix-stdout
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: flowlogs-pipeline
-  template:
-    metadata:
-      labels:
-        app: flowlogs-pipeline
-    spec:
-      containers:
-        - name: flowlogs-pipeline
-          image: quay.io/netobserv/flowlogs-pipeline:main
-          args:
-          - "--config=/etc/flowlogs-pipeline/config.yaml"
-          ports:
-            - containerPort: 2055
-          imagePullPolicy: IfNotPresent
-          volumeMounts:
-            - name: configuration
-              mountPath: "/etc/flowlogs-pipeline/"
-      volumes:
+  containers:
+    - name: flp-ipfix-stdout
+      image: quay.io/jotak/flowlogs-pipeline:main
+      imagePullPolicy: Always
+      args:
+      - "--config=/etc/flowlogs-pipeline/config.yaml"
+      ports:
+        - containerPort: 2055
+      volumeMounts:
         - name: configuration
-          configMap:
-            name: flp-config
+          mountPath: "/etc/flowlogs-pipeline/"
+  volumes:
+    - name: configuration
+      configMap:
+        name: flp-ipfix-stdout-config
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: flowlogs-pipeline
+  name: flp-ipfix-stdout
   labels:
-    app: flowlogs-pipeline
+    app: flp-ipfix-stdout
 spec:
   ports:
     - port: 2055
@@ -43,12 +34,12 @@ spec:
       protocol: UDP
       name: ipfix
   selector:
-    app: flowlogs-pipeline
+    app: flp-ipfix-stdout
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: flp-config
+  name: flp-ipfix-stdout-config
 data:
   config.yaml: |
     log-level: info
@@ -59,10 +50,26 @@ data:
     parameters:
       - name: ingest
         ingest:
-          type: collector
-          collector:
-            hostName: 0.0.0.0
+          type: ipfix
+          ipfix:
             port: 2055
+            mapping:
+              - penprovided: true
+                pen: 2
+                field: 7733
+                destination: CustomBytes_1
+              - penprovided: true
+                pen: 2
+                field: 7734
+                destination: CustomBytes_2
+              - penprovided: true
+                pen: 2
+                field: 7735
+                destination: CustomBytes_3
+              - penprovided: true
+                pen: 2
+                field: 7736
+                destination: CustomBytes_4
       - name: write
         write:
           type: stdout

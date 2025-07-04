@@ -88,7 +88,7 @@ func Test_EncodeKafka(t *testing.T) {
 
 func Test_TLSConfigEmpty(t *testing.T) {
 	test.ResetPromRegistry()
-	pipeline := config.NewCollectorPipeline("ingest", api.IngestCollector{})
+	pipeline := config.NewIPFIXPipeline("ingest", api.IngestIpfix{})
 	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
 		Address: "any",
 		Topic:   "topic",
@@ -103,7 +103,7 @@ func Test_TLSConfigCA(t *testing.T) {
 	test.ResetPromRegistry()
 	ca, cleanup := test.CreateCACert(t)
 	defer cleanup()
-	pipeline := config.NewCollectorPipeline("ingest", api.IngestCollector{})
+	pipeline := config.NewIPFIXPipeline("ingest", api.IngestIpfix{})
 	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
 		Address: "any",
 		Topic:   "topic",
@@ -124,7 +124,7 @@ func Test_MutualTLSConfig(t *testing.T) {
 	test.ResetPromRegistry()
 	ca, user, userKey, cleanup := test.CreateAllCerts(t)
 	defer cleanup()
-	pipeline := config.NewCollectorPipeline("ingest", api.IngestCollector{})
+	pipeline := config.NewIPFIXPipeline("ingest", api.IngestIpfix{})
 	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
 		Address: "any",
 		Topic:   "topic",

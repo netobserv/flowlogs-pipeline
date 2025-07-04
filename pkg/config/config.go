@@ -102,7 +102,8 @@ type StageParam struct {
 type Ingest struct {
 	Type      string               `yaml:"type" json:"type"`
 	File      *File                `yaml:"file,omitempty" json:"file,omitempty"`
-	Collector *api.IngestCollector `yaml:"collector,omitempty" json:"collector,omitempty"`
+	Collector *api.IngestIpfix     `yaml:"collector,omitempty" json:"collector,omitempty"` // deprecated: use 'ipfix' instead
+	Ipfix     *api.IngestIpfix     `yaml:"ipfix,omitempty" json:"ipfix,omitempty"`
 	Kafka     *api.IngestKafka     `yaml:"kafka,omitempty" json:"kafka,omitempty"`
 	GRPC      *api.IngestGRPCProto `yaml:"grpc,omitempty" json:"grpc,omitempty"`
 	Synthetic *api.IngestSynthetic `yaml:"synthetic,omitempty" json:"synthetic,omitempty"`

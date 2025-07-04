@@ -1,0 +1,16 @@
+# Use it with:
+# ./flowlogs-pipeline --config=contrib/local/ipfix-collector-stdout.yaml
+log-level: info
+pipeline:
+  - name: ingest
+  - name: write
+    follows: ingest
+parameters:
+  - name: ingest
+    ingest:
+      type: ipfix
+      ipfix:
+        port: 2055
+  - name: write
+    write:
+      type: stdout

@@ -26,7 +26,7 @@ type IPFIXClient struct {
 }
 
 // NewIPFIXClient returns an IPFIXClient that sends data to the given port
-func NewIPFIXClient(port int) (*IPFIXClient, error) {
+func NewIPFIXClient(port uint) (*IPFIXClient, error) {
 	conn, err := net.Dial("udp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return nil, fmt.Errorf("can't open UDP connection on port %d :%w",
@@ -100,7 +100,7 @@ func (ke *IPFIXClient) sendMessage(set entities.Set) error {
 }
 
 // UDPPort asks the kernel for a free open port that is ready to use.
-func UDPPort() (int, error) {
+func UDPPort() (uint, error) {
 	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
 	if err != nil {
 		return 0, err
@@ -111,5 +111,5 @@ func UDPPort() (int, error) {
 		return 0, err
 	}
 	defer l.Close()
-	return l.LocalAddr().(*net.UDPAddr).Port, nil
+	return uint(l.LocalAddr().(*net.UDPAddr).Port), nil
 }

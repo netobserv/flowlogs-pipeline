@@ -27,7 +27,7 @@ import (
 )
 
 func TestLokiPipeline(t *testing.T) {
-	pl := NewCollectorPipeline("ingest", api.IngestCollector{HostName: "127.0.0.1", Port: 9999})
+	pl := NewIPFIXPipeline("ingest", api.IngestIpfix{HostName: "127.0.0.1", Port: 9999})
 	pl = pl.TransformNetwork("enrich", api.TransformNetwork{Rules: api.NetworkTransformRules{{
 		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
@@ -54,7 +54,7 @@ func TestLokiPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"ingest","ingest":{"type":"collector","collector":{"hostName":"127.0.0.1","port":9999}}}`, string(b))
+	require.Equal(t, `{"name":"ingest","ingest":{"type":"ipfix","ipfix":{"hostName":"127.0.0.1","port":9999}}}`, string(b))
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
@@ -176,7 +176,7 @@ func TestKafkaPromPipeline(t *testing.T) {
 }
 
 func TestForkPipeline(t *testing.T) {
-	plFork := NewCollectorPipeline("ingest", api.IngestCollector{HostName: "127.0.0.1", Port: 9999})
+	plFork := NewIPFIXPipeline("ingest", api.IngestIpfix{HostName: "127.0.0.1", Port: 9999})
 	plFork.WriteLoki("loki", api.WriteLoki{URL: "http://loki:3100/"})
 	plFork.WriteStdout("stdout", api.WriteStdout{})
 	stages := plFork.GetStages()
@@ -191,7 +191,7 @@ func TestForkPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"ingest","ingest":{"type":"collector","collector":{"hostName":"127.0.0.1","port":9999}}}`, string(b))
+	require.JSONEq(t, `{"name":"ingest","ingest":{"type":"ipfix","ipfix":{"hostName":"127.0.0.1","port":9999}}}`, string(b))
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
@@ -203,7 +203,7 @@ func TestForkPipeline(t *testing.T) {
 }
 
 func TestIPFIXPipeline(t *testing.T) {
-	pl := NewCollectorPipeline("ingest", api.IngestCollector{HostName: "127.0.0.1", Port: 9999})
+	pl := NewIPFIXPipeline("ingest", api.IngestIpfix{HostName: "127.0.0.1", Port: 9999})
 	pl = pl.TransformNetwork("enrich", api.TransformNetwork{Rules: api.NetworkTransformRules{{
 		Type: api.NetworkAddKubernetes,
 		Kubernetes: &api.K8sRule{
@@ -218,10 +218,11 @@ func TestIPFIXPipeline(t *testing.T) {
 		},
 	}}})
 	pl = pl.WriteIpfix("ipfix", api.WriteIpfix{
-		TargetHost:   "ipfix-receiver-test",
-		TargetPort:   5999,
-		Transport:    "tcp",
-		EnterpriseID: 1,
+		TargetHost:      "ipfix-receiver-test",
+		TargetPort:      5999,
+		Transport:       "tcp",
+		TplSendInterval: api.Duration{Duration: 40 * time.Second},
+		EnterpriseID:    1,
 	})
 	stages := pl.GetStages()
 	require.Len(t, stages, 3)
@@ -235,7 +236,7 @@ func TestIPFIXPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[0])
 	require.NoError(t, err)
-	require.Equal(t, `{"name":"ingest","ingest":{"type":"collector","collector":{"hostName":"127.0.0.1","port":9999}}}`, string(b))
+	require.Equal(t, `{"name":"ingest","ingest":{"type":"ipfix","ipfix":{"hostName":"127.0.0.1","port":9999}}}`, string(b))
 
 	b, err = json.Marshal(params[1])
 	require.NoError(t, err)
@@ -243,5 +244,5 @@ func TestIPFIXPipeline(t *testing.T) {
 
 	b, err = json.Marshal(params[2])
 	require.NoError(t, err)
-	require.JSONEq(t, `{"name":"ipfix","write":{"type":"ipfix","ipfix":{"targetHost":"ipfix-receiver-test","targetPort":5999,"transport":"tcp","EnterpriseId":1}}}`, string(b))
+	require.JSONEq(t, `{"name":"ipfix","write":{"type":"ipfix","ipfix":{"targetHost":"ipfix-receiver-test","targetPort":5999,"tplSendInterval":"40s","transport":"tcp","enterpriseId":1}}}`, string(b))
 }
