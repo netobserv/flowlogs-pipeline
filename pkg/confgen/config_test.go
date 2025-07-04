@@ -35,7 +35,7 @@ func expectedConfig() *Config {
 			},
 		},
 		Ingest: config.Ingest{
-			Collector: &api.IngestCollector{
+			Collector: &api.IngestIpfix{
 				Port: 8888,
 			},
 		},

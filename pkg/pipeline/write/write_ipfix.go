@@ -22,11 +22,9 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	putils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware/go-ipfix/pkg/entities"
@@ -473,7 +471,6 @@ func (t *writeIpfix) sendDataRecord(record config.GenericMap, v6 bool) error {
 
 // Write writes a flow before being stored
 func (t *writeIpfix) Write(entry config.GenericMap) {
-	ilog.Tracef("entering writeIpfix Write")
 	if IPv6Type == entry["Etype"].(uint16) {
 		err := t.sendDataRecord(entry, true)
 		if err != nil {
@@ -487,38 +484,8 @@ func (t *writeIpfix) Write(entry config.GenericMap) {
 	}
 }
 
-func (t *writeIpfix) startTemplateSenderLoop(interval time.Duration, exitChan <-chan struct{}) {
-	// First send sync
-	if _, err := t.exporter.SendSet(t.tplV4); err != nil {
-		ilog.WithError(err).Error("Failed to send template V4")
-	}
-	if _, err := t.exporter.SendSet(t.tplV6); err != nil {
-		ilog.WithError(err).Error("Failed to send template V6")
-	}
-	// Periodic sending async
-	go func() {
-		ticker := time.NewTicker(interval)
-		for {
-			select {
-			case <-exitChan:
-				log.Infof("Exit signal received, stopping templates sending loop")
-				return
-			case <-ticker.C:
-				if _, err := t.exporter.SendSet(t.tplV4); err != nil {
-					ilog.WithError(err).Error("Failed to send template V4")
-				}
-				if _, err := t.exporter.SendSet(t.tplV6); err != nil {
-					ilog.WithError(err).Error("Failed to send template V6")
-				}
-			}
-		}
-	}()
-}
-
 // NewWriteIpfix creates a new write
 func NewWriteIpfix(params config.StageParam) (Writer, error) {
-	ilog.Debugf("entering NewWriteIpfix")
-
 	ipfixConfigIn := api.WriteIpfix{}
 	if params.Write != nil && params.Write.Ipfix != nil {
 		ipfixConfigIn = *params.Write.Ipfix
@@ -535,7 +502,7 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 		CollectorAddress:    fmt.Sprintf("%s:%d", ipfixConfigIn.TargetHost, ipfixConfigIn.TargetPort),
 		CollectorProtocol:   ipfixConfigIn.Transport,
 		ObservationDomainID: 1,
-		TempRefTimeout:      1,
+		TempRefTimeout:      uint32(ipfixConfigIn.TplSendInterval.Duration.Seconds()),
 	}
 
 	exporter, err := ipfixExporter.InitExportingProcess(input)
@@ -565,6 +532,14 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 		return nil, fmt.Errorf("failed to prepare IPv6 template: %w", err)
 	}
 
+	// First send sync
+	if _, err := exporter.SendSet(setV4); err != nil {
+		return nil, fmt.Errorf("failed to send IPv6 template: %w", err)
+	}
+	if _, err := exporter.SendSet(setV6); err != nil {
+		return nil, fmt.Errorf("failed to send IPv6 template: %w", err)
+	}
+
 	writeIpfix := &writeIpfix{
 		exporter:     exporter,
 		templateIDv4: idV4,
@@ -574,8 +549,6 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 		tplV6:        setV6,
 		entitiesV6:   entitiesV6,
 	}
-
-	writeIpfix.startTemplateSenderLoop(ipfixConfigIn.TplSendInterval.Duration, putils.ExitChannel())
 
 	return writeIpfix, nil
 }

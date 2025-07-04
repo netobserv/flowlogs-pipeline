@@ -10,10 +10,14 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/decode"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
+	"github.com/netsampler/goflow2/producer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vmware/go-ipfix/pkg/collector"
@@ -427,4 +431,85 @@ func startCollector(t *testing.T) *collector.CollectingProcess {
 	require.NoError(t, err, "Connection timeout in collector setup")
 
 	return cp
+}
+
+func TestIngestEnriched(t *testing.T) {
+	var pen uint32 = 2
+	collectorPort, err := test.UDPPort()
+	require.NoError(t, err)
+	stage := config.NewIPFIXPipeline("ingest-ipfix", api.IngestIpfix{
+		Port:    collectorPort,
+		Mapping: generateWriteMapping(pen),
+	})
+	ic, err := ingest.NewIngestIPFIX(operational.NewMetrics(&config.MetricsSettings{}), stage.GetStageParams()[0])
+	require.NoError(t, err)
+	forwarded := make(chan config.GenericMap)
+
+	go ic.Ingest(forwarded)
+
+	flow := decode.PBFlowToMap(&fullPBFlow)
+
+	// Convert TCP flags
+	flow["Flags"] = utils.DecodeTCPFlags(uint(fullPBFlow.Flags))
+
+	// Add enrichment
+	flow["SrcK8S_Name"] = "pod A"
+	flow["SrcK8S_Namespace"] = "ns1"
+	flow["DstK8S_Name"] = "pod B"
+	flow["DstK8S_Namespace"] = "ns2"
+
+	writer, err := write.NewWriteIpfix(config.StageParam{
+		Write: &config.Write{
+			Ipfix: &api.WriteIpfix{
+				TargetHost:   "0.0.0.0",
+				TargetPort:   int(collectorPort),
+				Transport:    "udp",
+				EnterpriseID: int(pen),
+			},
+		},
+	})
+	require.NoError(t, err)
+	writer.Write(flow)
+
+	// Wait for flow
+	for {
+		select {
+		case received := <-forwarded:
+			assert.Equal(t, "1.2.3.4", received["SrcAddr"])
+			assert.Equal(t, "127.0.0.1", received["SamplerAddress"])
+			assert.Equal(t, []byte("ns1"), received["CustomBytes_1"])
+			assert.Equal(t, []byte("pod A"), received["CustomBytes_2"])
+			assert.Equal(t, []byte("ns2"), received["CustomBytes_3"])
+			assert.Equal(t, []byte("pod B"), received["CustomBytes_4"])
+			return
+		default:
+			// nothing yet received
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+}
+
+func generateWriteMapping(pen uint32) []producer.NetFlowMapField {
+	var mapping []producer.NetFlowMapField
+	allCustom := []entities.InfoElement{}
+	allCustom = append(allCustom, write.KubeFields...)
+	allCustom = append(allCustom, write.CustomNetworkFields...)
+	countString := 0
+	countOther := 0
+	for _, in := range allCustom {
+		out := producer.NetFlowMapField{
+			PenProvided: true,
+			Pen:         pen,
+			Type:        in.ElementId,
+		}
+		if in.DataType == entities.String {
+			countString++
+			out.Destination = fmt.Sprintf("CustomBytes_%d", countString)
+		} else {
+			countOther++
+			out.Destination = fmt.Sprintf("CustomInteger_%d", countOther)
+		}
+		mapping = append(mapping, out)
+	}
+	return mapping
 }

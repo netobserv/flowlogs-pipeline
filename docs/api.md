@@ -81,17 +81,17 @@ Following is the supported API format for S3 encode:
          secure: true for https, false for http (default: false)
          objectHeaderParameters: parameters to include in object header (key/value pairs)
 </pre>
-## Ingest collector API
+## Ingest NetFlow/IPFIX API
 Following is the supported API format for the NetFlow / IPFIX collector:
 
 <pre>
- collector:
-         hostName: the hostname to listen on
-         port: the port number to listen on, for IPFIX/NetFlow v9. Omit or set to 0 to disable IPFIX/NetFlow v9 ingestion
+ ipfix:
+         hostName: the hostname to listen on; defaults to 0.0.0.0
+         port: the port number to listen on, for IPFIX/NetFlow v9. Omit or set to 0 to disable IPFIX/NetFlow v9 ingestion. If both port and portLegacy are omitted, defaults to 2055
          portLegacy: the port number to listen on, for legacy NetFlow v5. Omit or set to 0 to disable NetFlow v5 ingestion
-         batchMaxLen: the number of accumulated flows before being forwarded for processing
          workers: the number of netflow/ipfix decoding workers
          sockets: the number of listening sockets
+         mapping: custom field mapping
 </pre>
 ## Ingest Kafka API
 Following is the supported API format for the kafka ingest:
