@@ -26,7 +26,8 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	putils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware/go-ipfix/pkg/entities"
 	ipfixExporter "github.com/vmware/go-ipfix/pkg/exporter"
@@ -83,18 +84,18 @@ var (
 		"icmpTypeIPv6",
 		"icmpCodeIPv6",
 	}, IANAFields...)
-	KubeFields = []string{
-		"sourcePodNamespace",
-		"sourcePodName",
-		"destinationPodNamespace",
-		"destinationPodName",
-		"sourceNodeName",
-		"destinationNodeName",
+	KubeFields = []entities.InfoElement{
+		{Name: "sourcePodNamespace", ElementId: 7733, DataType: entities.String, Len: 65535},
+		{Name: "sourcePodName", ElementId: 7734, DataType: entities.String, Len: 65535},
+		{Name: "destinationPodNamespace", ElementId: 7735, DataType: entities.String, Len: 65535},
+		{Name: "destinationPodName", ElementId: 7736, DataType: entities.String, Len: 65535},
+		{Name: "sourceNodeName", ElementId: 7737, DataType: entities.String, Len: 65535},
+		{Name: "destinationNodeName", ElementId: 7738, DataType: entities.String, Len: 65535},
 	}
-	CustomNetworkFields = []string{
-		"timeFlowRttNs",
-		"interfaces",
-		"directions",
+	CustomNetworkFields = []entities.InfoElement{
+		{Name: "timeFlowRttNs", ElementId: 7740, DataType: entities.Unsigned64, Len: 8},
+		{Name: "interfaces", ElementId: 7741, DataType: entities.String, Len: 65535},
+		{Name: "directions", ElementId: 7742, DataType: entities.String, Len: 65535},
 	}
 
 	MapIPFIXKeys = map[string]FieldMap{
@@ -224,9 +225,38 @@ var (
 			},
 		},
 		"tcpControlBits": {
-			Key:    "Flags",
-			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
+			Key: "Flags",
+			Getter: func(elt entities.InfoElementWithValue) any {
+				return elt.GetUnsigned16Value()
+			},
+			Setter: func(elt entities.InfoElementWithValue, rec any) {
+				if decoded, isDecoded := rec.([]string); isDecoded {
+					// reencode for ipfix
+					reencoded := utils.EncodeTCPFlags(decoded)
+					elt.SetUnsigned16Value(uint16(reencoded))
+				} else if raw, isRaw := rec.(uint16); isRaw {
+					elt.SetUnsigned16Value(raw)
+				}
+			},
+			Matcher: func(elt entities.InfoElementWithValue, expected any) bool {
+				received := elt.GetUnsigned16Value()
+				if expSlice, isSlice := expected.([]string); isSlice {
+					decoded := utils.DecodeTCPFlags(uint(received))
+					if len(expSlice) != len(decoded) {
+						return false
+					}
+					for i := 0; i < len(expSlice); i++ {
+						if expSlice[i] != decoded[i] {
+							return false
+						}
+					}
+					return true
+				}
+				if expected == nil {
+					return received == 0
+				}
+				return received == expected
+			},
 		},
 		"icmpTypeIPv4": {
 			Key:    "IcmpType",
@@ -312,7 +342,7 @@ func addElementToTemplate(elementName string, value []byte, elements *[]entities
 
 func addNetworkEnrichmentToTemplate(elements *[]entities.InfoElementWithValue, registryID uint32) error {
 	for _, field := range CustomNetworkFields {
-		if err := addElementToTemplate(field, nil, elements, registryID); err != nil {
+		if err := addElementToTemplate(field.Name, nil, elements, registryID); err != nil {
 			return err
 		}
 	}
@@ -321,7 +351,7 @@ func addNetworkEnrichmentToTemplate(elements *[]entities.InfoElementWithValue, r
 
 func addKubeContextToTemplate(elements *[]entities.InfoElementWithValue, registryID uint32) error {
 	for _, field := range KubeFields {
-		if err := addElementToTemplate(field, nil, elements, registryID); err != nil {
+		if err := addElementToTemplate(field.Name, nil, elements, registryID); err != nil {
 			return err
 		}
 	}
@@ -334,50 +364,16 @@ func loadCustomRegistry(enterpriseID uint32) error {
 		ilog.WithError(err).Errorf("Failed to initialize registry")
 		return err
 	}
-	err = registry.PutInfoElement((*entities.NewInfoElement("sourcePodNamespace", 7733, entities.String, enterpriseID, 65535)), enterpriseID)
-	if err != nil {
-		ilog.WithError(err).Errorf("Failed to register element")
-		return err
-	}
-	err = registry.PutInfoElement((*entities.NewInfoElement("sourcePodName", 7734, entities.String, enterpriseID, 65535)), enterpriseID)
-	if err != nil {
-		ilog.WithError(err).Errorf("Failed to register element")
-		return err
-	}
-	err = registry.PutInfoElement((*entities.NewInfoElement("destinationPodNamespace", 7735, entities.String, enterpriseID, 65535)), enterpriseID)
-	if err != nil {
-		ilog.WithError(err).Errorf("Failed to register element")
-		return err
-	}
-	err = registry.PutInfoElement((*entities.NewInfoElement("destinationPodName", 7736, entities.String, enterpriseID, 65535)), enterpriseID)
-	if err != nil {
-		ilog.WithError(err).Errorf("Failed to register element")
-		return err
-	}
-	err = registry.PutInfoElement((*entities.NewInfoElement("sourceNodeName", 7737, entities.String, enterpriseID, 65535)), enterpriseID)
-	if err != nil {
-		ilog.WithError(err).Errorf("Failed to register element")
-		return err
-	}
-	err = registry.PutInfoElement((*entities.NewInfoElement("destinationNodeName", 7738, entities.String, enterpriseID, 65535)), enterpriseID)
-	if err != nil {
-		ilog.WithError(err).Errorf("Failed to register element")
-		return err
-	}
-	err = registry.PutInfoElement((*entities.NewInfoElement("timeFlowRttNs", 7740, entities.Unsigned64, enterpriseID, 8)), enterpriseID)
-	if err != nil {
-		ilog.WithError(err).Errorf("Failed to register element")
-		return err
-	}
-	err = registry.PutInfoElement((*entities.NewInfoElement("interfaces", 7741, entities.String, enterpriseID, 65535)), enterpriseID)
-	if err != nil {
-		ilog.WithError(err).Errorf("Failed to register element")
-		return err
-	}
-	err = registry.PutInfoElement((*entities.NewInfoElement("directions", 7742, entities.String, enterpriseID, 65535)), enterpriseID)
-	if err != nil {
-		ilog.WithError(err).Errorf("Failed to register element")
-		return err
+	allCustom := []entities.InfoElement{}
+	allCustom = append(allCustom, KubeFields...)
+	allCustom = append(allCustom, CustomNetworkFields...)
+	for _, f := range allCustom {
+		f.EnterpriseId = enterpriseID
+		err = registry.PutInfoElement(f, enterpriseID)
+		if err != nil {
+			ilog.WithError(err).Errorf("Failed to register element: %s", f.Name)
+			return err
+		}
 	}
 	return nil
 }
@@ -386,7 +382,6 @@ func prepareTemplate(templateID uint16, enrichEnterpriseID uint32, fields []stri
 	templateSet := entities.NewSet(false)
 	err := templateSet.PrepareSet(entities.Template, templateID)
 	if err != nil {
-		ilog.WithError(err).Error("prepareTemplate: failed to prepare set")
 		return nil, nil, err
 	}
 	elements := make([]entities.InfoElementWithValue, 0)
@@ -409,7 +404,6 @@ func prepareTemplate(templateID uint16, enrichEnterpriseID uint32, fields []stri
 	}
 	err = templateSet.AddRecord(elements, templateID)
 	if err != nil {
-		ilog.WithError(err).Error("prepareTemplate: failed to add record")
 		return nil, nil, err
 	}
 
@@ -507,7 +501,7 @@ func (t *writeIpfix) startTemplateSenderLoop(interval time.Duration, exitChan <-
 		for {
 			select {
 			case <-exitChan:
-				log.Debugf("exiting sendTemplates because of signal")
+				log.Infof("Exit signal received, stopping templates sending loop")
 				return
 			case <-ticker.C:
 				if _, err := t.exporter.SendSet(t.tplV4); err != nil {
@@ -581,7 +575,7 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 		entitiesV6:   entitiesV6,
 	}
 
-	writeIpfix.startTemplateSenderLoop(ipfixConfigIn.TplSendInterval.Duration, utils.ExitChannel())
+	writeIpfix.startTemplateSenderLoop(ipfixConfigIn.TplSendInterval.Duration, putils.ExitChannel())
 
 	return writeIpfix, nil
 }

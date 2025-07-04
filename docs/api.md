@@ -340,6 +340,7 @@ Following is the supported API format for writing to an IPFIX collector:
          targetPort: IPFIX Collector host target port
          transport: Transport protocol (tcp/udp) to be used for the IPFIX connection
          enterpriseId: Enterprise ID for exporting transformations
+         tplSendInterval: Interval for resending templates to the collector (default: 1m)
 </pre>
 ## Aggregate metrics API
 Following is the supported API format for specifying metrics aggregations:

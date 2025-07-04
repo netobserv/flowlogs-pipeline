@@ -11,6 +11,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/decode"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 	"github.com/stretchr/testify/assert"
@@ -45,7 +46,7 @@ var (
 		EthProtocol: 2048,
 		Packets:     3,
 		Transport: &pbflow.Transport{
-			Protocol: 17,
+			Protocol: 6,
 			SrcPort:  23000,
 			DstPort:  443,
 		},
@@ -128,6 +129,9 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 
 	flow := decode.PBFlowToMap(&fullPBFlow)
 
+	// Convert TCP flags
+	flow["Flags"] = utils.DecodeTCPFlags(uint(fullPBFlow.Flags))
+
 	// Add enrichment
 	flow["SrcK8S_Name"] = "pod A"
 	flow["SrcK8S_Namespace"] = "ns1"
@@ -160,8 +164,12 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 	cp.Stop()
 
 	expectedFields := write.IPv4IANAFields
-	expectedFields = append(expectedFields, write.KubeFields...)
-	expectedFields = append(expectedFields, write.CustomNetworkFields...)
+	for _, f := range write.KubeFields {
+		expectedFields = append(expectedFields, f.Name)
+	}
+	for _, f := range write.CustomNetworkFields {
+		expectedFields = append(expectedFields, f.Name)
+	}
 
 	// Check template
 	assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
@@ -221,8 +229,12 @@ func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 	cp.Stop()
 
 	expectedFields := write.IPv4IANAFields
-	expectedFields = append(expectedFields, write.KubeFields...)
-	expectedFields = append(expectedFields, write.CustomNetworkFields...)
+	for _, f := range write.KubeFields {
+		expectedFields = append(expectedFields, f.Name)
+	}
+	for _, f := range write.CustomNetworkFields {
+		expectedFields = append(expectedFields, f.Name)
+	}
 
 	// Check template
 	assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
@@ -298,9 +310,9 @@ func TestBasicIPFIXFlow(t *testing.T) {
 	}
 
 	// Make sure enriched fields are absent
-	for _, name := range write.KubeFields {
-		element, _, exist := record.GetInfoElementWithValue(name)
-		assert.Falsef(t, exist, "element with name %s should NOT exist in the record", name)
+	for _, f := range write.KubeFields {
+		element, _, exist := record.GetInfoElementWithValue(f.Name)
+		assert.Falsef(t, exist, "element with name %s should NOT exist in the record", f.Name)
 		assert.Nil(t, element)
 	}
 }
@@ -354,9 +366,9 @@ func TestICMPIPFIXFlow(t *testing.T) {
 	}
 
 	// Make sure enriched fields are absent
-	for _, name := range write.KubeFields {
-		element, _, exist := record.GetInfoElementWithValue(name)
-		assert.Falsef(t, exist, "element with name %s should NOT exist in the record", name)
+	for _, f := range write.KubeFields {
+		element, _, exist := record.GetInfoElementWithValue(f.Name)
+		assert.Falsef(t, exist, "element with name %s should NOT exist in the record", f.Name)
 		assert.Nil(t, element)
 	}
 }
