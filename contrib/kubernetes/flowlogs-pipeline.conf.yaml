@@ -20,8 +20,8 @@ pipeline:
 parameters:
 - name: ingest_collector
   ingest:
-    type: collector
-    collector:
+    type: ipfix
+    ipfix:
       hostName: 0.0.0.0
       port: 2055
       portLegacy: 2056
