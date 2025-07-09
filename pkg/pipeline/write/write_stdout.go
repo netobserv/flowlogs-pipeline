@@ -40,7 +40,8 @@ func (t *writeStdout) Write(v config.GenericMap) {
 }
 
 func formatter(format string, reorder bool) func(config.GenericMap) string {
-	if format == "json" {
+	switch format {
+	case "json":
 		jconf := jsonIter.Config{
 			SortMapKeys: reorder,
 		}.Froze()
@@ -48,7 +49,7 @@ func formatter(format string, reorder bool) func(config.GenericMap) string {
 			b, _ := jconf.Marshal(v)
 			return string(b)
 		}
-	} else if format == "fields" {
+	case "fields":
 		return func(v config.GenericMap) string {
 			var sb strings.Builder
 			var order sort.StringSlice

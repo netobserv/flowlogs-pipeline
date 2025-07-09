@@ -115,11 +115,11 @@ func Test_RunShortConfGen(t *testing.T) {
 	)
 
 	// Expects ingest
-	require.Equal(t, &api.IngestCollector{
+	require.Equal(t, &api.IngestIpfix{
 		HostName:   "0.0.0.0",
 		Port:       2155,
 		PortLegacy: 2156,
-	}, out.Parameters[0].Ingest.Collector)
+	}, out.Parameters[0].Ingest.Ipfix)
 
 	// Expects transform network
 	require.Len(t, out.Parameters[1].Transform.Network.Rules, 1)
@@ -207,11 +207,11 @@ func Test_RunConfGenNoAgg(t *testing.T) {
 	)
 
 	// Expects ingest
-	require.Equal(t, &api.IngestCollector{
+	require.Equal(t, &api.IngestIpfix{
 		HostName:   "0.0.0.0",
 		Port:       2155,
 		PortLegacy: 2156,
-	}, out.Parameters[0].Ingest.Collector)
+	}, out.Parameters[0].Ingest.Ipfix)
 
 	// Expects transform network
 	require.Len(t, out.Parameters[1].Transform.Network.Rules, 1)
@@ -295,11 +295,11 @@ func Test_RunLongConfGen(t *testing.T) {
 	)
 
 	// Expects ingest
-	require.Equal(t, &api.IngestCollector{
+	require.Equal(t, &api.IngestIpfix{
 		HostName:   "0.0.0.0",
 		Port:       2155,
 		PortLegacy: 2156,
-	}, out.Parameters[0].Ingest.Collector)
+	}, out.Parameters[0].Ingest.Ipfix)
 
 	// Expects transform generic
 	require.Equal(t, api.ReplaceKeys, out.Parameters[1].Transform.Generic.Policy)

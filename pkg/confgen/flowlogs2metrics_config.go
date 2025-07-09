@@ -72,12 +72,13 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.ConfigFileStruct {
 	})
 }
 
+// Deprecated: old function that only manages IPFIX ingestion
 func (cg *ConfGen) GenerateTruncatedConfig() []config.StageParam {
 	parameters := make([]config.StageParam, len(cg.opts.GenerateStages))
 	for i, stage := range cg.opts.GenerateStages {
 		switch stage {
 		case "ingest":
-			parameters[i] = config.NewCollectorParams("ingest_collector", *cg.config.Ingest.Collector)
+			parameters[i] = config.NewIPFIXParams("ingest_collector", *cg.config.Ingest.Collector)
 		case "transform_generic":
 			parameters[i] = config.NewTransformGenericParams("transform_generic", *cg.config.Transform.Generic)
 		case "transform_network":

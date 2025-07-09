@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
@@ -28,6 +29,27 @@ func TestConnectionVerification_Pass(t *testing.T) {
 `)
 	_, err := NewPipeline(cfg)
 	assert.NoError(t, err)
+}
+
+func TestPipelineIPFIXBackwardCompatible(t *testing.T) {
+	_, cfg := test.InitConfig(t, `
+pipeline:
+  - follows: ingest1
+    name: write1
+parameters:
+  - name: ingest1
+    ingest: 
+      type: collector
+  - name: write1
+    write:
+      type: none
+`)
+	p, err := NewPipeline(cfg)
+	assert.NoError(t, err)
+
+	assert.NotNil(t, p.pipelineStages[0].Ingester)
+	ty := reflect.TypeOf(p.pipelineStages[0].Ingester)
+	assert.Equal(t, "*ingest.ingestIPFIX", ty.String())
 }
 
 func TestConnectionVerification(t *testing.T) {
