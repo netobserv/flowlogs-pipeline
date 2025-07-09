@@ -19,8 +19,8 @@ pipeline:
 parameters:
   - name: ingest
     ingest: # use nflow generator to simulate flows: ./nflow-generator -t localhost -p 2055
-      type: collector
-      collector:
+      type: ipfix
+      ipfix:
         hostName: localhost
         port: 4739 # Use this for IPFIX / netflow v9
         portLegacy: 2055 # Use this for legacy v5 netflow

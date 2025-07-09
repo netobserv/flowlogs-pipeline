@@ -10,9 +10,14 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/ingest"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
+	"github.com/netobserv/flowlogs-pipeline/pkg/test"
+	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/decode"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
+	"github.com/netsampler/goflow2/producer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vmware/go-ipfix/pkg/collector"
@@ -25,7 +30,7 @@ import (
 var (
 	startTime  = time.Now()
 	endTime    = startTime.Add(7 * time.Second)
-	FullPBFlow = pbflow.Record{
+	fullPBFlow = pbflow.Record{
 		Direction: pbflow.Direction_EGRESS,
 		Bytes:     1024,
 		DataLink: &pbflow.DataLink{
@@ -45,7 +50,7 @@ var (
 		EthProtocol: 2048,
 		Packets:     3,
 		Transport: &pbflow.Transport{
-			Protocol: 17,
+			Protocol: 6,
 			SrcPort:  23000,
 			DstPort:  443,
 		},
@@ -79,13 +84,57 @@ var (
 			},
 		},
 	}
+
+	icmpPBFlow = pbflow.Record{
+		Direction: pbflow.Direction_INGRESS,
+		Bytes:     1024,
+		DataLink: &pbflow.DataLink{
+			DstMac: 0x112233445566,
+			SrcMac: 0x010203040506,
+		},
+		Network: &pbflow.Network{
+			SrcAddr: &pbflow.IP{
+				IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x01020304},
+			},
+			DstAddr: &pbflow.IP{
+				IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x05060708},
+			},
+		},
+		EthProtocol: 2048,
+		Packets:     3,
+		Transport: &pbflow.Transport{
+			Protocol: 1,
+		},
+		TimeFlowStart: timestamppb.New(startTime),
+		TimeFlowEnd:   timestamppb.New(endTime),
+
+		AgentIp: &pbflow.IP{
+			IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x0a090807},
+		},
+		Flags:    0x110,
+		IcmpCode: 10,
+		IcmpType: 8,
+		DupList: []*pbflow.DupMapEntry{
+			{
+				Interface: "eth0",
+				Direction: pbflow.Direction_EGRESS,
+			},
+			{
+				Interface: "a1234567",
+				Direction: pbflow.Direction_INGRESS,
+			},
+		},
+	}
 )
 
 func TestEnrichedIPFIXFlow(t *testing.T) {
 	cp := startCollector(t)
 	addr := cp.GetAddress().(*net.UDPAddr)
 
-	flow := decode.PBFlowToMap(&FullPBFlow)
+	flow := decode.PBFlowToMap(&fullPBFlow)
+
+	// Convert TCP flags
+	flow["Flags"] = utils.DecodeTCPFlags(uint(fullPBFlow.Flags))
 
 	// Add enrichment
 	flow["SrcK8S_Name"] = "pod A"
@@ -119,8 +168,12 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 	cp.Stop()
 
 	expectedFields := write.IPv4IANAFields
-	expectedFields = append(expectedFields, write.KubeFields...)
-	expectedFields = append(expectedFields, write.CustomNetworkFields...)
+	for _, f := range write.KubeFields {
+		expectedFields = append(expectedFields, f.Name)
+	}
+	for _, f := range write.CustomNetworkFields {
+		expectedFields = append(expectedFields, f.Name)
+	}
 
 	// Check template
 	assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
@@ -146,7 +199,7 @@ func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 	cp := startCollector(t)
 	addr := cp.GetAddress().(*net.UDPAddr)
 
-	flow := decode.PBFlowToMap(&FullPBFlow)
+	flow := decode.PBFlowToMap(&fullPBFlow)
 
 	// Add partial enrichment
 	flow["SrcK8S_Name"] = "pod A"
@@ -180,8 +233,12 @@ func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 	cp.Stop()
 
 	expectedFields := write.IPv4IANAFields
-	expectedFields = append(expectedFields, write.KubeFields...)
-	expectedFields = append(expectedFields, write.CustomNetworkFields...)
+	for _, f := range write.KubeFields {
+		expectedFields = append(expectedFields, f.Name)
+	}
+	for _, f := range write.CustomNetworkFields {
+		expectedFields = append(expectedFields, f.Name)
+	}
 
 	// Check template
 	assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
@@ -207,7 +264,7 @@ func TestBasicIPFIXFlow(t *testing.T) {
 	cp := startCollector(t)
 	addr := cp.GetAddress().(*net.UDPAddr)
 
-	flow := decode.PBFlowToMap(&FullPBFlow)
+	flow := decode.PBFlowToMap(&fullPBFlow)
 
 	// Add partial enrichment (must be ignored)
 	flow["SrcK8S_Name"] = "pod A"
@@ -257,9 +314,65 @@ func TestBasicIPFIXFlow(t *testing.T) {
 	}
 
 	// Make sure enriched fields are absent
-	for _, name := range write.KubeFields {
+	for _, f := range write.KubeFields {
+		element, _, exist := record.GetInfoElementWithValue(f.Name)
+		assert.Falsef(t, exist, "element with name %s should NOT exist in the record", f.Name)
+		assert.Nil(t, element)
+	}
+}
+
+func TestICMPIPFIXFlow(t *testing.T) {
+	cp := startCollector(t)
+	addr := cp.GetAddress().(*net.UDPAddr)
+
+	flow := decode.PBFlowToMap(&icmpPBFlow)
+
+	writer, err := write.NewWriteIpfix(config.StageParam{
+		Write: &config.Write{
+			Ipfix: &api.WriteIpfix{
+				TargetHost: addr.IP.String(),
+				TargetPort: addr.Port,
+				Transport:  addr.Network(),
+				// No enterprise ID here
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	writer.Write(flow)
+
+	// Read collector
+	// 1st = IPv4 template
+	tplv4Msg := <-cp.GetMsgChan()
+	// 2nd = IPv6 template (ignore)
+	<-cp.GetMsgChan()
+	// 3rd = data record
+	dataMsg := <-cp.GetMsgChan()
+	cp.Stop()
+
+	// Check template
+	assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
+	templateSet := tplv4Msg.GetSet()
+	templateElements := templateSet.GetRecords()[0].GetOrderedElementList()
+	assert.Len(t, templateElements, len(write.IPv4IANAFields))
+	assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
+
+	// Check data
+	assert.Equal(t, uint16(10), dataMsg.GetVersion())
+	dataSet := dataMsg.GetSet()
+	record := dataSet.GetRecords()[0]
+
+	for _, name := range write.IPv4IANAFields {
 		element, _, exist := record.GetInfoElementWithValue(name)
-		assert.Falsef(t, exist, "element with name %s should NOT exist in the record", name)
+		assert.Truef(t, exist, "element with name %s should exist in the record", name)
+		assert.NotNil(t, element)
+		matchElement(t, element, flow)
+	}
+
+	// Make sure enriched fields are absent
+	for _, f := range write.KubeFields {
+		element, _, exist := record.GetInfoElementWithValue(f.Name)
+		assert.Falsef(t, exist, "element with name %s should NOT exist in the record", f.Name)
 		assert.Nil(t, element)
 	}
 }
@@ -318,4 +431,85 @@ func startCollector(t *testing.T) *collector.CollectingProcess {
 	require.NoError(t, err, "Connection timeout in collector setup")
 
 	return cp
+}
+
+func TestIngestEnriched(t *testing.T) {
+	var pen uint32 = 2
+	collectorPort, err := test.UDPPort()
+	require.NoError(t, err)
+	stage := config.NewIPFIXPipeline("ingest-ipfix", api.IngestIpfix{
+		Port:    collectorPort,
+		Mapping: generateWriteMapping(pen),
+	})
+	ic, err := ingest.NewIngestIPFIX(operational.NewMetrics(&config.MetricsSettings{}), stage.GetStageParams()[0])
+	require.NoError(t, err)
+	forwarded := make(chan config.GenericMap)
+
+	go ic.Ingest(forwarded)
+
+	flow := decode.PBFlowToMap(&fullPBFlow)
+
+	// Convert TCP flags
+	flow["Flags"] = utils.DecodeTCPFlags(uint(fullPBFlow.Flags))
+
+	// Add enrichment
+	flow["SrcK8S_Name"] = "pod A"
+	flow["SrcK8S_Namespace"] = "ns1"
+	flow["DstK8S_Name"] = "pod B"
+	flow["DstK8S_Namespace"] = "ns2"
+
+	writer, err := write.NewWriteIpfix(config.StageParam{
+		Write: &config.Write{
+			Ipfix: &api.WriteIpfix{
+				TargetHost:   "0.0.0.0",
+				TargetPort:   int(collectorPort),
+				Transport:    "udp",
+				EnterpriseID: int(pen),
+			},
+		},
+	})
+	require.NoError(t, err)
+	writer.Write(flow)
+
+	// Wait for flow
+	for {
+		select {
+		case received := <-forwarded:
+			assert.Equal(t, "1.2.3.4", received["SrcAddr"])
+			assert.Equal(t, "127.0.0.1", received["SamplerAddress"])
+			assert.Equal(t, []byte("ns1"), received["CustomBytes_1"])
+			assert.Equal(t, []byte("pod A"), received["CustomBytes_2"])
+			assert.Equal(t, []byte("ns2"), received["CustomBytes_3"])
+			assert.Equal(t, []byte("pod B"), received["CustomBytes_4"])
+			return
+		default:
+			// nothing yet received
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+}
+
+func generateWriteMapping(pen uint32) []producer.NetFlowMapField {
+	var mapping []producer.NetFlowMapField
+	allCustom := []entities.InfoElement{}
+	allCustom = append(allCustom, write.KubeFields...)
+	allCustom = append(allCustom, write.CustomNetworkFields...)
+	countString := 0
+	countOther := 0
+	for _, in := range allCustom {
+		out := producer.NetFlowMapField{
+			PenProvided: true,
+			Pen:         pen,
+			Type:        in.ElementId,
+		}
+		if in.DataType == entities.String {
+			countString++
+			out.Destination = fmt.Sprintf("CustomBytes_%d", countString)
+		} else {
+			countOther++
+			out.Destination = fmt.Sprintf("CustomInteger_%d", countOther)
+		}
+		mapping = append(mapping, out)
+	}
+	return mapping
 }
