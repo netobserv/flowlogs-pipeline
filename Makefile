@@ -41,7 +41,7 @@ ifneq ($(CLEAN_BUILD),)
 	LDFLAGS ?= -X 'main.buildVersion=${VERSION}-${BUILD_SHA}' -X 'main.buildDate=${BUILD_DATE}'
 endif
 
-GOLANGCI_LINT_VERSION = v1.61.0
+GOLANGCI_LINT_VERSION = v2.2.1
 KIND_VERSION = v0.22.0
 
 FLP_BIN_FILE=flowlogs-pipeline
@@ -101,7 +101,9 @@ help: ## Display this help.
 .PHONY: prereqs
 prereqs: ## Check if prerequisites are met, and install missing dependencies
 	@echo "### Checking if prerequisites are met, and installing missing dependencies"
-	GOFLAGS="" go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}
+	test -f ./bin/golangci-lint-${GOLANGCI_LINT_VERSION} || ( \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s ${GOLANGCI_LINT_VERSION} \
+		&& mv ./bin/golangci-lint ./bin/golangci-lint-${GOLANGCI_LINT_VERSION})
 
 .PHONY: prereqs-kind
 prereqs-kind: ## Check if prerequisites are met for running kind, and install missing dependencies
@@ -117,7 +119,7 @@ vendors: ## Check go vendors
 
 .PHONY: lint
 lint: prereqs ## Lint the code
-	golangci-lint run ./... --timeout=3m
+	./bin/golangci-lint-${GOLANGCI_LINT_VERSION} run ./... --timeout=3m
 
 .PHONY: compile
 compile: ## Compile main flowlogs-pipeline and config generator

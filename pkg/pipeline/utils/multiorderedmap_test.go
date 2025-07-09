@@ -170,8 +170,8 @@ func TestMultiOrderedMap_IterateFrontToBack(t *testing.T) {
 		lexicalOrder := OrderID("lexical")
 		mom := NewMultiOrderedMap(lengthOrder, lexicalOrder)
 		require.Panics(t, func() {
-			mom.IterateFrontToBack("MISSING", func(_ Record) (delete, stop bool) {
-				return
+			mom.IterateFrontToBack("MISSING", func(_ Record) (bool, bool) {
+				return false, false
 			})
 		})
 		assertLengthConsistency(t, mom)

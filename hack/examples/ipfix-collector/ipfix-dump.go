@@ -1,3 +1,4 @@
+// nolint
 package main
 
 import (
@@ -133,7 +134,7 @@ func printIPFIXMessage(msg *entities.Message) {
 			}
 		}
 	}
-	log.Printf(buf.String())
+	log.Println(buf.String())
 }
 
 func signalHandler(stopCh chan struct{}, messageReceived chan *entities.Message) {
