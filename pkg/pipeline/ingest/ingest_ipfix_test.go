@@ -34,11 +34,10 @@ const timeout = 5 * time.Second
 func TestIngest(t *testing.T) {
 	collectorPort, err := test.UDPPort()
 	require.NoError(t, err)
-	stage := config.NewCollectorPipeline("ingest-ipfix", api.IngestCollector{
-		HostName: "0.0.0.0",
-		Port:     collectorPort,
+	stage := config.NewIPFIXPipeline("ingest-ipfix", api.IngestIpfix{
+		Port: collectorPort,
 	})
-	ic, err := NewIngestCollector(operational.NewMetrics(&config.MetricsSettings{}), stage.GetStageParams()[0])
+	ic, err := NewIngestIPFIX(operational.NewMetrics(&config.MetricsSettings{}), stage.GetStageParams()[0])
 	require.NoError(t, err)
 	forwarded := make(chan config.GenericMap)
 

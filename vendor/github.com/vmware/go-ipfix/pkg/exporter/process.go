@@ -52,6 +52,7 @@ type templateValue struct {
 //     maxMsgSize is not set correctly, the message may be fragmented.
 type ExportingProcess struct {
 	connToCollector net.Conn
+	connMut         sync.Mutex
 	obsDomainID     uint32
 	seqNumber       uint32
 	templateID      uint16
@@ -76,6 +77,15 @@ type ExporterTLSClientConfig struct {
 	CertData []byte
 	// KeyData holds PEM-encoded bytes.
 	KeyData []byte
+	// List of supported cipher suites.
+	// From https://pkg.go.dev/crypto/tls#pkg-constants
+	// The order of the list is ignored.Note that TLS 1.3 ciphersuites are not configurable.
+	// For DTLS, cipher suites are from https://pkg.go.dev/github.com/pion/dtls/v2@v2.2.12/internal/ciphersuite#ID.
+	CipherSuites []uint16
+	// Min TLS version.
+	// From https://pkg.go.dev/crypto/tls#pkg-constants
+	// Not configurable for DTLS, as only DTLS 1.2 is supported.
+	MinVersion uint16
 }
 
 type ExporterInput struct {
@@ -159,30 +169,39 @@ func InitExportingProcess(input ExporterInput) (*ExportingProcess, error) {
 	var err error
 	if input.TLSClientConfig != nil {
 		tlsConfig := input.TLSClientConfig
-		if input.CollectorProtocol == "tcp" { // use TLS
+		switch input.CollectorProtocol {
+		case "tcp": // use TLS
 			config, configErr := createClientConfig(tlsConfig)
 			if configErr != nil {
 				return nil, configErr
 			}
 			conn, err = tls.Dial(input.CollectorProtocol, input.CollectorAddress, config)
 			if err != nil {
-				klog.Errorf("Cannot the create the tls connection to the Collector %s: %v", input.CollectorAddress, err)
-				return nil, err
+				return nil, fmt.Errorf("cannot create the TLS connection to the Collector %q: %w", input.CollectorAddress, err)
 			}
-		} else if input.CollectorProtocol == "udp" { // use DTLS
+		case "udp": // use DTLS
 			// TODO: support client authentication
 			if len(tlsConfig.CertData) > 0 || len(tlsConfig.KeyData) > 0 {
-				klog.Error("Client-authentication is not supported yet for DTLS, cert and key data will be ignored")
+				return nil, fmt.Errorf("client-authentication is not supported yet for DTLS")
+			}
+			if tlsConfig.MinVersion != 0 && tlsConfig.MinVersion != tls.VersionTLS12 {
+				return nil, fmt.Errorf("DTLS 1.2 is the only supported version")
 			}
 			roots := x509.NewCertPool()
 			ok := roots.AppendCertsFromPEM(tlsConfig.CAData)
 			if !ok {
 				return nil, fmt.Errorf("failed to parse root certificate")
 			}
+			// If tlsConfig.CipherSuites is nil, cipherSuites should also be nil!
+			var cipherSuites []dtls.CipherSuiteID
+			for _, cipherSuite := range tlsConfig.CipherSuites {
+				cipherSuites = append(cipherSuites, dtls.CipherSuiteID(cipherSuite))
+			}
 			config := &dtls.Config{
 				RootCAs:              roots,
 				ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
 				ServerName:           tlsConfig.ServerName,
+				CipherSuites:         cipherSuites,
 			}
 			udpAddr, err := net.ResolveUDPAddr(input.CollectorProtocol, input.CollectorAddress)
 			if err != nil {
@@ -190,15 +209,13 @@ func InitExportingProcess(input ExporterInput) (*ExportingProcess, error) {
 			}
 			conn, err = dtls.Dial(udpAddr.Network(), udpAddr, config)
 			if err != nil {
-				klog.Errorf("Cannot the create the dtls connection to the Collector %s: %v", udpAddr.String(), err)
-				return nil, err
+				return nil, fmt.Errorf("cannot create the DTLS connection to the Collector %q: %w", udpAddr.String(), err)
 			}
 		}
 	} else {
 		conn, err = net.Dial(input.CollectorProtocol, input.CollectorAddress)
 		if err != nil {
-			klog.Errorf("Cannot the create the connection to the Collector %s: %v", input.CollectorAddress, err)
-			return nil, err
+			return nil, fmt.Errorf("cannot create the connection to the Collector %q: %w", input.CollectorAddress, err)
 		}
 	}
 	var isIPv6 bool
@@ -280,14 +297,24 @@ func InitExportingProcess(input ExporterInput) (*ExportingProcess, error) {
 				case <-expProc.stopCh:
 					return
 				case <-ticker.C:
+					// Dial again (e.g. host name resolving to a different IP)
+					klog.V(2).Info("Refreshing connection")
+					conn, err = net.Dial(input.CollectorProtocol, input.CollectorAddress)
+					if err != nil {
+						klog.Errorf("Cannot connect to the collector %s: %v", input.CollectorAddress, err)
+					} else {
+						expProc.connMut.Lock()
+						expProc.connToCollector = conn
+						expProc.connMut.Unlock()
+					}
+
 					klog.V(2).Info("Sending refreshed templates to the collector")
 					err := expProc.sendRefreshedTemplates()
 					if err != nil {
-						klog.Errorf("Error when sending refreshed templates, closing the connection to the collector: %v", err)
-						expProc.closeConnToCollector()
-						return
+						klog.Errorf("Error when sending refreshed templates: %v", err)
+					} else {
+						klog.V(2).Info("Sent refreshed templates to the collector")
 					}
-					klog.V(2).Info("Sent refreshed templates to the collector")
 				}
 			}
 		}()
@@ -425,6 +452,8 @@ func (ep *ExportingProcess) closeConnToCollector() {
 	}
 	klog.Info("Closing connection to the collector")
 	close(ep.stopCh)
+	ep.connMut.Lock()
+	defer ep.connMut.Unlock()
 	if err := ep.connToCollector.Close(); err != nil {
 		// Just log the error that happened when closing the connection. Not returning error
 		// as we do not expect library consumers to exit their programs with this error.
@@ -435,6 +464,8 @@ func (ep *ExportingProcess) closeConnToCollector() {
 // checkConnToCollector checks whether the connection from exporter is still open
 // by trying to read from connection. Closed connection will return EOF from read.
 func (ep *ExportingProcess) checkConnToCollector(oneByteForRead []byte) bool {
+	ep.connMut.Lock()
+	defer ep.connMut.Unlock()
 	ep.connToCollector.SetReadDeadline(time.Now().Add(time.Millisecond))
 	if _, err := ep.connToCollector.Read(oneByteForRead); err == io.EOF {
 		return false
@@ -460,6 +491,8 @@ func (ep *ExportingProcess) createAndSendIPFIXMsg(set entities.Set, buf *bytes.B
 	}
 
 	// Send the message on the exporter connection.
+	ep.connMut.Lock()
+	defer ep.connMut.Unlock()
 	bytesSent, err := ep.connToCollector.Write(buf.Bytes())
 
 	if err != nil {
@@ -484,6 +517,8 @@ func (ep *ExportingProcess) createAndSendJSONRecords(records []entities.Record, 
 	bytesSent := 0
 	elements := make(map[string]interface{})
 	message := make(map[string]interface{}, 2)
+	ep.connMut.Lock()
+	defer ep.connMut.Unlock()
 	for _, record := range records {
 		clear(elements)
 		orderedElements := record.GetOrderedElementList()
@@ -559,7 +594,6 @@ func (ep *ExportingProcess) updateTemplate(id uint16, elements []entities.InfoEl
 	for i, elem := range elements {
 		ep.templatesMap[id].elements[i] = elem.GetInfoElement()
 	}
-	return
 }
 
 //nolint:unused // Keeping this function for reference.
@@ -616,26 +650,35 @@ func (ep *ExportingProcess) dataRecSanityCheck(rec entities.Record) error {
 }
 
 func createClientConfig(config *ExporterTLSClientConfig) (*tls.Config, error) {
-	roots := x509.NewCertPool()
-	ok := roots.AppendCertsFromPEM(config.CAData)
-	if !ok {
-		return nil, fmt.Errorf("failed to parse root certificate")
+	tlsMinVersion := config.MinVersion
+	// This should already be the default value for tls.Config, but we duplicate the earlier
+	// implementation, which was explicitly setting it to 1.2.
+	if tlsMinVersion == 0 {
+		tlsMinVersion = tls.VersionTLS12
 	}
-	if config.CertData == nil {
-		return &tls.Config{
-			RootCAs:    roots,
-			MinVersion: tls.VersionTLS12,
-			ServerName: config.ServerName,
-		}, nil
-	}
-	cert, err := tls.X509KeyPair(config.CertData, config.KeyData)
-	if err != nil {
-		return nil, err
-	}
-	return &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      roots,
-		MinVersion:   tls.VersionTLS12,
+	// #nosec G402: client is in charge of setting the min TLS version. We use 1.2 as the
+	// default, which is secure.
+	tlsConfig := &tls.Config{
 		ServerName:   config.ServerName,
-	}, nil
+		CipherSuites: config.CipherSuites,
+		MinVersion:   tlsMinVersion,
+	}
+	// Use system roots if config.CAData == nil.
+	if config.CAData != nil {
+		roots := x509.NewCertPool()
+		ok := roots.AppendCertsFromPEM(config.CAData)
+		if !ok {
+			return nil, fmt.Errorf("failed to parse root certificate")
+		}
+		tlsConfig.RootCAs = roots
+	}
+	// Don't use a client certificate if config.CertData == nil.
+	if config.CertData != nil {
+		cert, err := tls.X509KeyPair(config.CertData, config.KeyData)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	}
+	return tlsConfig, nil
 }

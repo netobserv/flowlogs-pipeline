@@ -588,7 +588,7 @@ github.com/vladimirvivien/gexe/net
 github.com/vladimirvivien/gexe/prog
 github.com/vladimirvivien/gexe/str
 github.com/vladimirvivien/gexe/vars
-# github.com/vmware/go-ipfix v0.14.0
+# github.com/vmware/go-ipfix v0.14.0 => github.com/jotak/go-ipfix v0.0.0-20250708115123-407c539ea101
 ## explicit; go 1.23.0
 github.com/vmware/go-ipfix/pkg/collector
 github.com/vmware/go-ipfix/pkg/entities
@@ -1391,3 +1391,4 @@ sigs.k8s.io/structured-merge-diff/v4/value
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v2
+# github.com/vmware/go-ipfix => github.com/jotak/go-ipfix v0.0.0-20250708115123-407c539ea101
