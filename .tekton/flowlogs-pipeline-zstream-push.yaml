@@ -11,10 +11,10 @@ metadata:
       == "release-1.9"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: netobserv-ystream
-    appstudio.openshift.io/component: flowlogs-pipeline-ystream
+    appstudio.openshift.io/application: netobserv-zstream
+    appstudio.openshift.io/component: flowlogs-pipeline-zstream
     pipelines.appstudio.openshift.io/type: build
-  name: flowlogs-pipeline-ystream-on-push
+  name: flowlogs-pipeline-zstream-on-push
   namespace: ocp-network-observab-tenant
 spec:
   params:
@@ -23,7 +23,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/ocp-network-observab-tenant/flowlogs-pipeline-ystream:{{revision}}
+    value: quay.io/redhat-user-workloads/ocp-network-observab-tenant/flowlogs-pipeline-zstream:{{revision}}
   - name: build-args-file
     value: contrib/docker/Dockerfile-args.downstream
   - name: dockerfile
@@ -31,5 +31,5 @@ spec:
   pipelineRef:
     name: build-pipeline
   taskRunTemplate:
-    serviceAccountName: build-pipeline-flowlogs-pipeline-ystream
+    serviceAccountName: build-pipeline-flowlogs-pipeline-zstream
 status: {}
