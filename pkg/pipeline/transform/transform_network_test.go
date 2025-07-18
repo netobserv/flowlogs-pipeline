@@ -619,6 +619,7 @@ func Test_DecodeTCPFlagsDefaultValue(t *testing.T) {
 	var ok bool
 	flow := config.GenericMap{"TcpFlags": uint(0)}
 	flow, ok = dec.Transform(flow)
+	require.True(t, ok)
 	flow, ok = add.Transform(flow)
 	require.True(t, ok)
 	require.Equal(t, config.GenericMap{"TcpFlags": uint(0), "TcpFlagsString": "unknown"}, flow)
