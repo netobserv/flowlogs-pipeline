@@ -581,3 +581,45 @@ func Test_DecodeTCPFlags(t *testing.T) {
 		"TcpFlagsU32String": []string{"SYN", "ACK"},
 	}, output)
 }
+
+func Test_DecodeTCPFlagsDefaultValue(t *testing.T) {
+	dec, err := NewTransformNetwork(config.StageParam{
+		Transform: &config.Transform{
+			Network: &api.TransformNetwork{
+				Rules: []api.NetworkTransformRule{
+					{
+						Type: "decode_tcp_flags",
+						DecodeTCPFlags: &api.NetworkGenericRule{
+							Input:  "TcpFlags",
+							Output: "TcpFlagsString",
+						},
+					},
+				},
+			},
+		},
+	}, nil)
+	require.NoError(t, err)
+	add, err := NewTransformFilter(config.StageParam{
+		Transform: &config.Transform{
+			Filter: &api.TransformFilter{
+				Rules: []api.TransformFilterRule{
+					{
+						Type: "add_field_if_doesnt_exist",
+						AddFieldIfDoesntExist: &api.TransformFilterGenericRule{
+							Input: "TcpFlagsString",
+							Value: "unknown",
+						},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	var ok bool
+	flow := config.GenericMap{"TcpFlags": uint(0)}
+	flow, ok = dec.Transform(flow)
+	flow, ok = add.Transform(flow)
+	require.True(t, ok)
+	require.Equal(t, config.GenericMap{"TcpFlags": uint(0), "TcpFlagsString": "unknown"}, flow)
+}
