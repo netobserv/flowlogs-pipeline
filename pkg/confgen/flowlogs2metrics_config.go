@@ -27,7 +27,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.ConfigFileStruct {
+func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.Root {
 	pipeline, _ := config.NewPipeline("ingest_collector", &cg.config.Ingest)
 	forkedNode := pipeline
 	if cg.config.Transform.Generic != nil {
@@ -63,7 +63,7 @@ func (cg *ConfGen) GenerateFlowlogs2PipelineConfig() *config.ConfigFileStruct {
 	if cg.config.Write.Loki != nil {
 		forkedNode.WriteLoki("write_loki", *cg.config.Write.Loki)
 	}
-	return pipeline.IntoConfigFileStruct(&config.ConfigFileStruct{
+	return pipeline.IntoRootConfig(&config.Root{
 		LogLevel: "error",
 		MetricsSettings: config.MetricsSettings{
 			PromConnectionInfo: api.PromConnectionInfo{Port: 9102},

@@ -377,7 +377,6 @@ func TestICMPIPFIXFlow(t *testing.T) {
 	}
 }
 
-//nolint:cyclop
 func matchElement(t *testing.T, element entities.InfoElementWithValue, flow config.GenericMap) {
 	name := element.GetName()
 	mapping, ok := write.MapIPFIXKeys[name]

@@ -93,7 +93,7 @@ parameters:
 `
 )
 
-func encodeEntries(promEncode *EncodeProm, entries []config.GenericMap) {
+func encodeEntries(promEncode *Prometheus, entries []config.GenericMap) {
 	for _, entry := range entries {
 		promEncode.Encode(entry)
 	}

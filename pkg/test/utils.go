@@ -57,7 +57,7 @@ func GetIngestMockEntry(missingKey bool) config.GenericMap {
 	return entry
 }
 
-func InitConfig(t *testing.T, conf string) (*viper.Viper, *config.ConfigFileStruct) {
+func InitConfig(t *testing.T, conf string) (*viper.Viper, *config.Root) {
 	ResetPromRegistry()
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	yamlConfig := []byte(conf)

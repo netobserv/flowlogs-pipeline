@@ -98,7 +98,7 @@ func Test_RunShortConfGen(t *testing.T) {
 	// Unmarshal output
 	destCfgBytes, err := os.ReadFile(configOut)
 	require.NoError(t, err)
-	var out config.ConfigFileStruct
+	var out config.Root
 	err = yaml.UnmarshalStrict(destCfgBytes, &out)
 	require.NoError(t, err)
 	require.Len(t, out.Pipeline, 4)
@@ -191,7 +191,7 @@ func Test_RunConfGenNoAgg(t *testing.T) {
 	// Unmarshal output
 	destCfgBytes, err := os.ReadFile(configOut)
 	require.NoError(t, err)
-	var out config.ConfigFileStruct
+	var out config.Root
 	err = yaml.Unmarshal(destCfgBytes, &out)
 	require.NoError(t, err)
 	require.Len(t, out.Pipeline, 3)
@@ -276,7 +276,7 @@ func Test_RunLongConfGen(t *testing.T) {
 	// Unmarshal output
 	destCfgBytes, err := os.ReadFile(configOut)
 	require.NoError(t, err)
-	var out config.ConfigFileStruct
+	var out config.Root
 	err = yaml.UnmarshalStrict(destCfgBytes, &out)
 	require.NoError(t, err)
 	require.Len(t, out.Parameters, 6)
