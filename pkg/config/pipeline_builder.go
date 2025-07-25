@@ -235,14 +235,14 @@ func (b *PipelineBuilderStage) GetDynamicStageParams() []StageParam {
 	return res
 }
 
-// IntoConfigFileStruct injects the current pipeline and params in the provided ConfigFileStruct object.
-func (b *PipelineBuilderStage) IntoConfigFileStruct(cfs *ConfigFileStruct) *ConfigFileStruct {
+// IntoRootConfig injects the current pipeline and params in the provided config.Root object.
+func (b *PipelineBuilderStage) IntoRootConfig(cfs *Root) *Root {
 	cfs.Pipeline = b.GetStages()
 	cfs.Parameters = b.GetStageParams()
 	return cfs
 }
 
-// ToConfigFileStruct returns the current pipeline and params as a new ConfigFileStruct object.
-func (b *PipelineBuilderStage) ToConfigFileStruct() *ConfigFileStruct {
-	return b.IntoConfigFileStruct(&ConfigFileStruct{})
+// ToRootConfig returns the current pipeline and params as a new config.Root object.
+func (b *PipelineBuilderStage) ToRootConfig() *Root {
+	return b.IntoRootConfig(&Root{})
 }

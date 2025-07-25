@@ -167,7 +167,6 @@ func (k *ingestKafka) reportStats() {
 }
 
 // NewIngestKafka create a new ingester
-// nolint:cyclop
 func NewIngestKafka(opMetrics *operational.Metrics, params config.StageParam) (Ingester, error) {
 	config := &api.IngestKafka{}
 	var ingestType string

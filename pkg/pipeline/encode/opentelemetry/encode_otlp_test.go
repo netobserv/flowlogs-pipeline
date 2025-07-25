@@ -48,11 +48,12 @@ parameters:
 type fakeOltpLoggerProvider struct {
 }
 type fakeOltpLogger struct {
+	logs.Logger
 }
 
 var otlpReceivedData []logs.LogRecord
 
-// nolint:gocritic
+// nolint:gocritic // no choice here, this is agoda interface signature
 func (f *fakeOltpLogger) Emit(msg logs.LogRecord) {
 	otlpReceivedData = append(otlpReceivedData, msg)
 }
