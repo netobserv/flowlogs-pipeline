@@ -167,7 +167,7 @@ func ingestFile(t *testing.T, in chan<- config.GenericMap, filepath string) int 
 		lines = append(lines, []byte(text))
 	}
 	submittedLines := 0
-	decoder, err := decode.NewDecodeJSON()
+	decoder, err := decode.NewJSON()
 	require.NoError(t, err)
 	for _, line := range lines {
 		line, err := decoder.Decode(line)

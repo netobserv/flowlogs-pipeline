@@ -18,7 +18,7 @@ func TestInProcessFLP(t *testing.T) {
 	pipeline = pipeline.WriteStdout("writer", api.WriteStdout{Format: "json"})
 	in := make(chan config.GenericMap, 100)
 	defer close(in)
-	err := StartFLPInProcess(pipeline.ToConfigFileStruct(), in)
+	err := StartFLPInProcess(pipeline.ToRootConfig(), in)
 	require.NoError(t, err)
 
 	capturedOut, w, _ := os.Pipe()

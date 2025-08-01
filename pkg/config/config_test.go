@@ -47,7 +47,7 @@ func TestJSONUnmarshalStrict(t *testing.T) {
 
 func TestUnmarshalInline(t *testing.T) {
 	cfg := `{"metricsSettings":{"port":9102,"prefix":"netobserv_"}}`
-	var cfs ConfigFileStruct
+	var cfs Root
 	err := yaml.Unmarshal([]byte(cfg), &cfs)
 	require.NoError(t, err)
 	require.Equal(t, "netobserv_", cfs.MetricsSettings.Prefix)

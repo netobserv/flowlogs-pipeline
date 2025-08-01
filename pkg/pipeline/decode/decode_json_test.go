@@ -24,14 +24,14 @@ import (
 )
 
 func initNewDecodeJSON(t *testing.T) Decoder {
-	newDecode, err := NewDecodeJSON()
+	newDecode, err := NewJSON()
 	require.Equal(t, nil, err)
 	return newDecode
 }
 
 func TestDecodeJSON(t *testing.T) {
 	newDecode := initNewDecodeJSON(t)
-	decodeJSON := newDecode.(*DecodeJSON)
+	decodeJSON := newDecode.(*JSON)
 
 	out, err := decodeJSON.Decode([]byte(
 		"{\"varInt\": 12, \"varString\":\"testString\", \"varBool\":false}"))
@@ -53,7 +53,7 @@ func TestDecodeJSON(t *testing.T) {
 
 func TestDecodeJSONTimestamps(t *testing.T) {
 	newDecode := initNewDecodeJSON(t)
-	decodeJSON := newDecode.(*DecodeJSON)
+	decodeJSON := newDecode.(*JSON)
 	out, err := decodeJSON.Decode([]byte("{\"unixTime\": 1645104030 }"))
 	require.NoError(t, err)
 	require.Equal(t, float64(1645104030), out["unixTime"])

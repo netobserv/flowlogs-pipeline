@@ -70,7 +70,7 @@ parameters:
             labels:
 `
 
-func initProm(params *api.PromEncode) (*EncodeProm, error) {
+func initProm(params *api.PromEncode) (*Prometheus, error) {
 	// We need to re-instanciate globals used here and there, to avoid errors such as:
 	//  "panic: http: multiple registrations for /metrics"
 	//  TODO: remove use of default globals.
@@ -83,7 +83,7 @@ func initProm(params *api.PromEncode) (*EncodeProm, error) {
 	if err != nil {
 		return nil, err
 	}
-	prom := enc.(*EncodeProm)
+	prom := enc.(*Prometheus)
 	return prom, nil
 }
 
