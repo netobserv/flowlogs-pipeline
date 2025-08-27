@@ -21,7 +21,7 @@ require (
 	github.com/netobserv/netobserv-ebpf-agent v1.9.1-community
 	github.com/netsampler/goflow2 v1.3.7
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus/client_golang v1.23.0
 	github.com/prometheus/client_model v0.6.2
 	github.com/prometheus/common v0.65.0
 	github.com/segmentio/kafka-go v0.4.48
