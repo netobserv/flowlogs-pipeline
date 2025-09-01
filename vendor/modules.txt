@@ -466,8 +466,8 @@ github.com/safchain/ethtool
 # github.com/sagikazarmark/locafero v0.9.0
 ## explicit; go 1.23.0
 github.com/sagikazarmark/locafero
-# github.com/segmentio/kafka-go v0.4.48
-## explicit; go 1.15
+# github.com/segmentio/kafka-go v0.4.49
+## explicit; go 1.23
 github.com/segmentio/kafka-go
 github.com/segmentio/kafka-go/compress
 github.com/segmentio/kafka-go/compress/gzip
