@@ -283,3 +283,38 @@ func BenchmarkPipeline(b *testing.B) {
 		p.Run()
 	}
 }
+
+const invalidConfig = `---
+log-level: debug
+pipeline:
+  - name: ingest
+  - name: test
+    follows: ingest
+  - name: test
+    follows: test
+parameters:
+  - name: ingest
+    ingest:
+      type: file
+      file:
+        filename: ../../hack/examples/ocp-ipfix-flowlogs.json
+        decoder:
+          type: json
+  - name: test
+    transform:
+      type: generic
+      generic: {}
+  - name: test
+    write:
+      type: none
+`
+
+func Test_InvalidPipeline_DuplicatedNames(t *testing.T) {
+	var mainPipeline *Pipeline
+	var err error
+	_, cfg := test.InitConfig(t, invalidConfig)
+
+	mainPipeline, err = NewPipeline(cfg)
+	assert.ErrorContains(t, err, "duplicate stage name 'test' found in pipeline definition")
+	assert.Nil(t, mainPipeline)
+}
