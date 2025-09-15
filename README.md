@@ -229,8 +229,6 @@ Options included in the command line override the options specified in the confi
 
 `flowlogs-pipeline --log-level debug --pipeline "[{\"name\":\"ingest1\"},{\"follows\":\"ingest1\",\"name\":\"write1\"}]" --config <configFile>`
 
-3. TODO: environment variables
-
 Supported options are provided by running:
 
 ```
