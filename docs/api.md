@@ -191,7 +191,7 @@ Following is the supported API format for filter transformations:
                              value: specified value of input field:
                              castInt: set true to cast the value field as an int (numeric values are float64 otherwise)
                  keepEntryQuery: configuration for keep_entry rule
-                 keepEntrySampling: sampling value for keep_entry type: 1 flow on <sampling> is kept
+                 keepEntrySampling: sampling interval for keep_entry type: 1 flow on <sampling> is kept
                  addField: configuration for add_field rule
                      input: entry input field
                      value: specified value of input field:
@@ -220,7 +220,7 @@ Following is the supported API format for filter transformations:
                      parameters: parameters specific to type
                      assignee: value needs to assign to output field
                  conditionalSampling: sampling configuration rules
-                         value: sampling value: 1 flow on <sampling> is kept
+                         value: sampling interval: 1 flow on <sampling> is kept
                          rules: rules to be satisfied for this sampling configuration
                                  type: (enum) one of the following:
                                     remove_entry_if_exists: removes the entry if the field exists
