@@ -34,7 +34,7 @@ The language is currently integrated in the "keep_entry" transform/filtering API
         rules:
         - type: keep_entry_query
           keepEntryQuery: (namespace="A" and with(workload)) or service=~"abc.+"
-          keepEntrySampling: 10 # Optionally, a sampling ratio can be associated with the filter
+          keepEntrySampling: 10 # Optionally, a sampling interval can be associated with the filter
 ```
 
 ## Integration with the NetObserv operator
@@ -48,7 +48,7 @@ spec:
       - query: |
           (SrcK8S_Namespace="netobserv" OR (SrcK8S_Namespace="openshift-ingress" AND DstK8S_Namespace="netobserv"))
         outputTarget: Loki  # The filter can target a specific output (such as Loki logs or exported data), or all outputs.
-        sampling: 10        # Optionally, a sampling ratio can be associated with the filter
+        sampling: 10        # Optionally, a sampling interval can be associated with the filter
 ```
 
 See also the [list of field names](https://github.com/netobserv/network-observability-operator/blob/main/docs/flows-format.adoc) that are available for queries, and the [API documentation](https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowCollector.md#flowcollectorspecprocessorfiltersindex-1).
