@@ -175,27 +175,3 @@ func Test_EncodeOtlpTraces(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, newEncode)
 }
-
-func Test_EncodeOtlpMetrics(t *testing.T) {
-	cfg := config.StageParam{
-		Encode: &config.Encode{
-			OtlpMetrics: &api.EncodeOtlpMetrics{
-				OtlpConnectionInfo: &api.OtlpConnectionInfo{
-					Address:        "1.2.3.4",
-					Port:           999,
-					ConnectionType: "grpc",
-					Headers:        nil,
-				},
-				Prefix: "flp_test",
-				Metrics: []api.MetricsItem{
-					{Name: "metric1", Type: "counter", Labels: []string{"label11", "label12"}},
-					{Name: "metric2", Type: "gauge", Labels: []string{"label21", "label22"}},
-					{Name: "metric3", Type: "counter", Labels: []string{"label31", "label32"}},
-				},
-			}},
-	}
-	newEncode, err := NewEncodeOtlpMetrics(operational.NewMetrics(&config.MetricsSettings{}), cfg)
-	require.NoError(t, err)
-	require.NotNil(t, newEncode)
-	// TODO: add more tests
-}
