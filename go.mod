@@ -176,4 +176,4 @@ require (
 
 replace github.com/vmware/go-ipfix => github.com/jotak/go-ipfix v0.0.0-20250708115123-407c539ea101
 
-replace github.com/netobserv/loki-client-go => github.com/leandroberetta/loki-client-go v0.0.0-20250910180315-84da2ae0cd4b
+replace github.com/netobserv/loki-client-go => github.com/leandroberetta/loki-client-go v0.0.0-20250923004934-a3e68fd6a596

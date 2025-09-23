@@ -379,7 +379,6 @@ func TestGRPCClientCreation(t *testing.T) {
 			MaxSendMsgSize:   16 * 1024 * 1024,
 			KeepAlive:        "30s",
 			KeepAliveTimeout: "5s",
-			UseStreaming:     false,
 		},
 	}
 
@@ -399,7 +398,6 @@ func TestGRPCClientCreationWithTLS(t *testing.T) {
 			MaxSendMsgSize:   16 * 1024 * 1024,
 			KeepAlive:        "30s",
 			KeepAliveTimeout: "5s",
-			UseStreaming:     false,
 			TLS: &api.GRPCTLSConfig{
 				Enabled:            true,
 				CertFile:           "/path/to/cert.pem",
@@ -442,7 +440,6 @@ func TestBuildGRPCLokiConfig(t *testing.T) {
 					MaxSendMsgSize:   8 * 1024 * 1024,
 					KeepAlive:        "60s",
 					KeepAliveTimeout: "10s",
-					UseStreaming:     true,
 				},
 			},
 			wantErr: false,
@@ -569,7 +566,6 @@ func TestGRPCConfigValidation(t *testing.T) {
 				MaxSendMsgSize:   16 * 1024 * 1024,
 				KeepAlive:        "30s",
 				KeepAliveTimeout: "5s",
-				UseStreaming:     false,
 			},
 			wantErr: false,
 		},

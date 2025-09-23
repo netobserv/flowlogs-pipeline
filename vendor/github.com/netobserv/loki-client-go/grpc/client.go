@@ -5,15 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/gogo/protobuf/proto"
 	"github.com/netobserv/loki-client-go/pkg/backoff"
 	"github.com/netobserv/loki-client-go/pkg/logproto"
-	"github.com/netobserv/loki-client-go/pkg/metric"
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/netobserv/loki-client-go/pkg/metrics"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/common/version"
 	"github.com/prometheus/prometheus/promql/parser"
@@ -27,76 +28,15 @@ const (
 	// Label reserved to override the tenant ID while processing pipeline stages
 	ReservedLabelTenantID = "__tenant_id__"
 
-	LatencyLabel = "filename"
-	HostLabel    = "host"
-	MetricPrefix = "netobserv"
+	transportGRPC = "grpc"
 )
 
 var (
-	// GRPC-specific metrics
-	grpcSentBytes = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: MetricPrefix,
-		Name:      "loki_grpc_sent_bytes_total",
-		Help:      "Number of bytes sent via GRPC.",
-	}, []string{HostLabel})
-	grpcDroppedBytes = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: MetricPrefix,
-		Name:      "loki_grpc_dropped_bytes_total",
-		Help:      "Number of bytes dropped because failed to be sent via GRPC after all retries.",
-	}, []string{HostLabel})
-	grpcSentEntries = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: MetricPrefix,
-		Name:      "loki_grpc_sent_entries_total",
-		Help:      "Number of log entries sent via GRPC.",
-	}, []string{HostLabel})
-	grpcDroppedEntries = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: MetricPrefix,
-		Name:      "loki_grpc_dropped_entries_total",
-		Help:      "Number of log entries dropped because failed to be sent via GRPC after all retries.",
-	}, []string{HostLabel})
-	grpcRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: MetricPrefix,
-		Name:      "loki_grpc_request_duration_seconds",
-		Help:      "Duration of GRPC requests.",
-	}, []string{"status_code", HostLabel})
-	grpcBatchRetries = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: MetricPrefix,
-		Name:      "loki_grpc_batch_retries_total",
-		Help:      "Number of times GRPC batches has had to be retried.",
-	}, []string{HostLabel})
-	grpcConnectionStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: MetricPrefix,
-		Name:      "loki_grpc_connection_status",
-		Help:      "Status of GRPC connection (1 = connected, 0 = disconnected).",
-	}, []string{HostLabel})
-	grpcStreamLag *metric.Gauges
-
-	grpcCountersWithHost = []*prometheus.CounterVec{
-		grpcSentBytes, grpcDroppedBytes, grpcSentEntries, grpcDroppedEntries,
-	}
-
 	UserAgent = fmt.Sprintf("loki-grpc-client/%s", version.Version)
 )
 
 func init() {
-	prometheus.MustRegister(grpcSentBytes)
-	prometheus.MustRegister(grpcDroppedBytes)
-	prometheus.MustRegister(grpcSentEntries)
-	prometheus.MustRegister(grpcDroppedEntries)
-	prometheus.MustRegister(grpcRequestDuration)
-	prometheus.MustRegister(grpcBatchRetries)
-	prometheus.MustRegister(grpcConnectionStatus)
-
-	var err error
-	grpcStreamLag, err = metric.NewGauges(MetricPrefix+"_loki_grpc_stream_lag_seconds",
-		"Difference between current time and last batch timestamp for successful GRPC sends",
-		metric.GaugeConfig{Action: "set"},
-		int64(1*time.Minute.Seconds()),
-	)
-	if err != nil {
-		panic(err)
-	}
-	prometheus.MustRegister(grpcStreamLag)
+	metrics.RegisterMetrics()
 }
 
 // Client for pushing logs via GRPC
@@ -111,10 +51,6 @@ type Client struct {
 	wg      sync.WaitGroup
 
 	externalLabels model.LabelSet
-
-	// Connection management
-	connMux   sync.RWMutex
-	connected bool
 }
 
 // New creates a new GRPC client from config
@@ -152,11 +88,9 @@ func NewWithLogger(cfg Config, logger log.Logger) (*Client, error) {
 	}
 
 	// Initialize counters to 0
-	for _, counter := range grpcCountersWithHost {
-		counter.WithLabelValues(c.cfg.ServerAddress).Add(0)
+	for _, counter := range metrics.CountersWithHost {
+		counter.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(0)
 	}
-
-	grpcConnectionStatus.WithLabelValues(c.cfg.ServerAddress).Set(1)
 
 	c.wg.Add(1)
 	go c.run()
@@ -175,51 +109,10 @@ func (c *Client) connect() error {
 		return err
 	}
 
-	c.connMux.Lock()
 	c.conn = conn
 	c.pusher = logproto.NewPusherClient(conn)
-	c.connected = true
-	c.connMux.Unlock()
 
 	level.Info(c.logger).Log("msg", "connected to GRPC server", "address", c.cfg.ServerAddress)
-	return nil
-}
-
-// isConnected returns connection status
-func (c *Client) isConnected() bool {
-	c.connMux.RLock()
-	defer c.connMux.RUnlock()
-	return c.connected
-}
-
-// reconnect attempts to reconnect to the server
-func (c *Client) reconnect() error {
-	c.connMux.Lock()
-	defer c.connMux.Unlock()
-
-	if c.conn != nil {
-		c.conn.Close()
-	}
-
-	c.connected = false
-	grpcConnectionStatus.WithLabelValues(c.cfg.ServerAddress).Set(0)
-
-	opts, err := c.cfg.BuildDialOptions()
-	if err != nil {
-		return err
-	}
-
-	conn, err := grpc.NewClient(c.cfg.ServerAddress, opts...)
-	if err != nil {
-		return err
-	}
-
-	c.conn = conn
-	c.pusher = logproto.NewPusherClient(conn)
-	c.connected = true
-	grpcConnectionStatus.WithLabelValues(c.cfg.ServerAddress).Set(1)
-
-	level.Info(c.logger).Log("msg", "reconnected to GRPC server", "address", c.cfg.ServerAddress)
 	return nil
 }
 
@@ -288,58 +181,45 @@ func (c *Client) sendBatch(tenantID string, batch *batch) {
 		return
 	}
 
-	ctx := context.Background()
-	backoffConfig := backoff.New(ctx, c.cfg.BackoffConfig)
+	// Calculate wire bytes (protobuf size) to match HTTP client behavior
+	wireBytes := float64(proto.Size(req))
+	metrics.EncodedBytes.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(wireBytes)
 
+	backoffCtx := context.Background()
+	backoffInstance := backoff.New(backoffCtx, c.cfg.BackoffConfig)
+	var status string
 	var err error
-	for backoffConfig.Ongoing() {
+
+	for backoffInstance.Ongoing() {
 		start := time.Now()
-		err = c.push(ctx, tenantID, req)
+		// Create a fresh context for each retry attempt
+		pushCtx := context.Background()
+		err = c.push(pushCtx, tenantID, req)
 
 		// Convert error to status code for metrics
-		statusCode := c.getStatusCode(err)
-		grpcRequestDuration.WithLabelValues(statusCode, c.cfg.ServerAddress).Observe(time.Since(start).Seconds())
+		status = c.getStatusCode(err)
+		metrics.RequestDuration.WithLabelValues(status, c.cfg.ServerAddress, transportGRPC).Observe(time.Since(start).Seconds())
 
 		if err == nil {
 			// Success metrics
-			grpcSentEntries.WithLabelValues(c.cfg.ServerAddress).Add(float64(entriesCount))
-			for _, s := range req.Streams {
-				lbls, parseErr := parser.ParseMetric(s.Labels)
-				if parseErr != nil {
-					level.Warn(c.logger).Log("msg", "error parsing stream labels for lag metric", "error", parseErr)
-					continue
-				}
+			metrics.SentEntries.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(float64(entriesCount))
+			metrics.SentBytes.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(wireBytes)
 
-				var lblSet model.LabelSet
-				for i := range lbls {
-					if lbls[i].Name == LatencyLabel {
-						lblSet = model.LabelSet{
-							model.LabelName(HostLabel):    model.LabelValue(c.cfg.ServerAddress),
-							model.LabelName(LatencyLabel): model.LabelValue(lbls[i].Value),
-						}
-						break
-					}
-				}
-				if lblSet != nil && len(s.Entries) > 0 {
-					grpcStreamLag.With(lblSet).Set(time.Since(s.Entries[len(s.Entries)-1].Timestamp).Seconds())
-				}
-			}
+			c.updateStreamLagMetrics(req.Streams)
 			return
 		}
 
-		// Check if we should retry
-		if !c.shouldRetry(err) {
-			break
-		}
-
-		level.Warn(c.logger).Log("msg", "error sending batch via GRPC, will retry", "error", err)
-		grpcBatchRetries.WithLabelValues(c.cfg.ServerAddress).Inc()
-		backoffConfig.Wait()
+		level.Warn(c.logger).Log("msg", "error sending batch via GRPC, will retry", "status", status, "error", err)
+		metrics.BatchRetries.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Inc()
+		backoffInstance.Wait()
 	}
 
 	// Failed after all retries
-	level.Error(c.logger).Log("msg", "final error sending batch via GRPC", "error", err)
-	grpcDroppedEntries.WithLabelValues(c.cfg.ServerAddress).Add(float64(entriesCount))
+	if err != nil {
+		level.Error(c.logger).Log("msg", "final error sending batch via GRPC", "status", status, "error", err)
+		metrics.DroppedEntries.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(float64(entriesCount))
+		metrics.DroppedBytes.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(wireBytes)
+	}
 }
 
 func (c *Client) push(ctx context.Context, tenantID string, req *logproto.PushRequest) error {
@@ -354,54 +234,14 @@ func (c *Client) push(ctx context.Context, tenantID string, req *logproto.PushRe
 	// Add user agent
 	ctx = metadata.AppendToOutgoingContext(ctx, "user-agent", UserAgent)
 
-	// Ensure we're connected
-	if !c.isConnected() {
-		if err := c.reconnect(); err != nil {
-			return fmt.Errorf("failed to reconnect: %w", err)
-		}
-	}
-
-	c.connMux.RLock()
-	pusher := c.pusher
-	c.connMux.RUnlock()
-
-	_, err := pusher.Push(ctx, req)
-	if err != nil {
-		// Handle connection errors
-		if isConnectionError(err) {
-			c.connMux.Lock()
-			c.connected = false
-			grpcConnectionStatus.WithLabelValues(c.cfg.ServerAddress).Set(0)
-			c.connMux.Unlock()
-		}
-		return err
-	}
-
-	return nil
-}
-
-func (c *Client) shouldRetry(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	st, ok := status.FromError(err)
-	if !ok {
-		// Non-GRPC errors might be connection issues, retry
-		return true
-	}
-
-	switch st.Code() {
-	case codes.Unavailable, codes.DeadlineExceeded, codes.Aborted, codes.Internal, codes.ResourceExhausted:
-		return true
-	default:
-		return false
-	}
+	// gRPC handles connection management automatically
+	_, err := c.pusher.Push(ctx, req)
+	return err
 }
 
 func (c *Client) getStatusCode(err error) string {
 	if err == nil {
-		return "OK"
+		return "200"
 	}
 
 	st, ok := status.FromError(err)
@@ -409,20 +249,18 @@ func (c *Client) getStatusCode(err error) string {
 		return "Unknown"
 	}
 
-	return st.Code().String()
-}
-
-func isConnectionError(err error) bool {
-	st, ok := status.FromError(err)
-	if !ok {
-		return true // Non-GRPC errors are likely connection issues
-	}
-
+	// Convert gRPC status codes to HTTP-like status codes for metrics compatibility
 	switch st.Code() {
-	case codes.Unavailable, codes.DeadlineExceeded:
-		return true
+	case codes.OK:
+		return "200"
+	case codes.ResourceExhausted:
+		return "429" // Rate limited
+	case codes.Internal, codes.Aborted, codes.Unavailable:
+		return "500"
+	case codes.DeadlineExceeded:
+		return "504" // Gateway timeout
 	default:
-		return false
+		return strconv.Itoa(int(st.Code()))
 	}
 }
 
@@ -445,15 +283,35 @@ func (c *Client) Stop() {
 	c.once.Do(func() {
 		close(c.quit)
 
-		c.connMux.Lock()
 		if c.conn != nil {
 			c.conn.Close()
-			c.connected = false
-			grpcConnectionStatus.WithLabelValues(c.cfg.ServerAddress).Set(0)
 		}
-		c.connMux.Unlock()
 	})
 	c.wg.Wait()
+}
+
+// updateStreamLagMetrics updates lag metrics to match HTTP client behavior
+func (c *Client) updateStreamLagMetrics(streams []logproto.Stream) {
+	for _, s := range streams {
+		lbls, err := parser.ParseMetric(s.Labels)
+		if err != nil {
+			// is this possible?
+			level.Warn(c.logger).Log("msg", "error converting stream label string to label.Labels, cannot update lagging metric", "error", err)
+			return
+		}
+		var lblSet model.LabelSet
+		for i := range lbls {
+			if lbls[i].Name == metrics.LatencyLabel {
+				lblSet = model.LabelSet{
+					model.LabelName(metrics.HostLabel):    model.LabelValue(c.cfg.ServerAddress),
+					model.LabelName(metrics.LatencyLabel): model.LabelValue(lbls[i].Value),
+				}
+			}
+		}
+		if lblSet != nil {
+			metrics.StreamLag.With(lblSet).Set(time.Since(s.Entries[len(s.Entries)-1].Timestamp).Seconds())
+		}
+	}
 }
 
 // Handle implements EntryHandler; adds a new line to the next batch; send is async
@@ -477,6 +335,6 @@ func (c *Client) Handle(ls model.LabelSet, t time.Time, s string) error {
 }
 
 func (c *Client) UnregisterLatencyMetric(labels model.LabelSet) {
-	labels[HostLabel] = model.LabelValue(c.cfg.ServerAddress)
-	grpcStreamLag.Delete(labels)
+	labels[metrics.HostLabel] = model.LabelValue(c.cfg.ServerAddress)
+	metrics.StreamLag.Delete(labels)
 }

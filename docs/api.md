@@ -330,7 +330,6 @@ Following is the supported API format for writing to loki:
              maxSendMsgSize: maximum message size the client can send
              keepAlive: keep alive interval
              keepAliveTimeout: keep alive timeout
-             useStreaming: use streaming for real-time log pushing
              tls: TLS configuration
                  enabled: enable TLS
                  certFile: path to client certificate file

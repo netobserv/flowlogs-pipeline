@@ -59,9 +59,6 @@ type Config struct {
 
 	// Tenant ID for multi-tenant mode (empty string means single tenant)
 	TenantID string `yaml:"tenant_id"`
-
-	// Use streaming for real-time log pushing
-	UseStreaming bool `yaml:"use_streaming"`
 }
 
 // TLSConfig contains TLS configuration for GRPC client
@@ -128,7 +125,6 @@ func (c *Config) RegisterFlagsWithPrefix(prefix string, f *flag.FlagSet) {
 
 	f.Var(&c.ExternalLabels, prefix+"grpc.external-labels", "list of external labels to add to each log (e.g: --grpc.external-labels=lb1=v1,lb2=v2)")
 	f.StringVar(&c.TenantID, prefix+"grpc.tenant-id", "", "Tenant ID to use when pushing logs to Loki.")
-	f.BoolVar(&c.UseStreaming, prefix+"grpc.use-streaming", false, "Use streaming for real-time log pushing")
 }
 
 // BuildDialOptions creates GRPC dial options from the configuration

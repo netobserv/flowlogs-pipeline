@@ -59,7 +59,6 @@ type GRPCLokiConfig struct {
 	MaxSendMsgSize   int            `yaml:"maxSendMsgSize,omitempty" json:"maxSendMsgSize,omitempty" doc:"maximum message size the client can send"`
 	KeepAlive        string         `yaml:"keepAlive,omitempty" json:"keepAlive,omitempty" doc:"keep alive interval"`
 	KeepAliveTimeout string         `yaml:"keepAliveTimeout,omitempty" json:"keepAliveTimeout,omitempty" doc:"keep alive timeout"`
-	UseStreaming     bool           `yaml:"useStreaming,omitempty" json:"useStreaming,omitempty" doc:"use streaming for real-time log pushing"`
 	TLS              *GRPCTLSConfig `yaml:"tls,omitempty" json:"tls,omitempty" doc:"TLS configuration"`
 }
 

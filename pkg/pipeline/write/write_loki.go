@@ -189,7 +189,6 @@ func buildGRPCLokiConfig(c *api.WriteLoki) (grpc.Config, error) {
 		MaxSendMsgSize:   c.GRPCConfig.MaxSendMsgSize,
 		KeepAlive:        keepAlive,
 		KeepAliveTimeout: keepAliveTimeout,
-		UseStreaming:     c.GRPCConfig.UseStreaming,
 		BackoffConfig: backoff.BackoffConfig{
 			MinBackoff: minBackoff,
 			MaxBackoff: maxBackoff,
