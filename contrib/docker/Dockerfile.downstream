@@ -1,4 +1,5 @@
 ARG BUILDVERSION
+ARG BUILDVERSION_Y
 
 FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.24 as builder
 ARG BUILDVERSION
@@ -18,6 +19,7 @@ RUN go build -tags strictfipsruntime -ldflags "-X 'main.BuildVersion=$BUILDVERSI
 # final stage
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.6-1758184547
 ARG BUILDVERSION
+ARG BUILDVERSION_Y
 
 WORKDIR /
 COPY --from=builder /app/flowlogs-pipeline .
@@ -28,7 +30,8 @@ USER 65532:65532
 ENTRYPOINT ["/flowlogs-pipeline"]
 
 LABEL com.redhat.component="network-observability-flowlogs-pipeline-container"
-LABEL name="network-observability-flowlogs-pipeline"
+LABEL name="network-observability/network-observability-flowlogs-pipeline-rhel9"
+LABEL cpe="cpe:/a:redhat:network_observ_optr:$BUILDVERSION_Y::el9"
 LABEL io.k8s.display-name="Network Observability Flow-Logs Pipeline"
 LABEL io.k8s.description="Network Observability Flow-Logs Pipeline"
 LABEL summary="Network Observability Flow-Logs Pipeline"
