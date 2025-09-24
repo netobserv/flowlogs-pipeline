@@ -237,7 +237,7 @@ func NewWriteLoki(opMetrics *operational.Metrics, params config.StageParam) (*Lo
 	saneLabels := make(map[string]model.LabelName, len(lokiConfigIn.Labels))
 	for _, label := range lokiConfigIn.Labels {
 		sanitized := model.LabelName(keyReplacer.Replace(label))
-		if sanitized.IsValidLegacy() {
+		if model.LegacyValidation.IsValidLabelName(string(sanitized)) {
 			saneLabels[label] = sanitized
 		} else {
 			log.WithFields(logrus.Fields{"key": label, "sanitized": sanitized}).
