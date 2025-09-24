@@ -371,12 +371,10 @@ func hundredFlows() []config.GenericMap {
 
 func TestGRPCClientCreation(t *testing.T) {
 	params := api.WriteLoki{
-		ClientType: "grpc",
+		URL:        "localhost:9095",
+		ClientProtocol: "grpc",
 		TenantID:   "test-tenant",
 		GRPCConfig: &api.GRPCLokiConfig{
-			ServerAddress:    "localhost:9095",
-			MaxRecvMsgSize:   64 * 1024 * 1024,
-			MaxSendMsgSize:   16 * 1024 * 1024,
 			KeepAlive:        "30s",
 			KeepAliveTimeout: "5s",
 		},
@@ -390,12 +388,10 @@ func TestGRPCClientCreation(t *testing.T) {
 
 func TestGRPCClientCreationWithTLS(t *testing.T) {
 	params := api.WriteLoki{
-		ClientType: "grpc",
+		URL:        "loki.example.com:9095",
+		ClientProtocol: "grpc",
 		TenantID:   "test-tenant",
 		GRPCConfig: &api.GRPCLokiConfig{
-			ServerAddress:    "loki.example.com:443",
-			MaxRecvMsgSize:   64 * 1024 * 1024,
-			MaxSendMsgSize:   16 * 1024 * 1024,
 			KeepAlive:        "30s",
 			KeepAliveTimeout: "5s",
 			TLS: &api.GRPCTLSConfig{
@@ -426,7 +422,8 @@ func TestBuildGRPCLokiConfig(t *testing.T) {
 		{
 			name: "valid basic gRPC config",
 			input: &api.WriteLoki{
-				ClientType: "grpc",
+				URL:        "localhost:9095",
+				ClientProtocol: "grpc",
 				BatchWait:  "2s",
 				BatchSize:  50000,
 				Timeout:    "15s",
@@ -435,9 +432,6 @@ func TestBuildGRPCLokiConfig(t *testing.T) {
 				MaxRetries: 5,
 				TenantID:   "test-tenant",
 				GRPCConfig: &api.GRPCLokiConfig{
-					ServerAddress:    "localhost:9095",
-					MaxRecvMsgSize:   32 * 1024 * 1024,
-					MaxSendMsgSize:   8 * 1024 * 1024,
 					KeepAlive:        "60s",
 					KeepAliveTimeout: "10s",
 				},
@@ -451,7 +445,8 @@ func TestBuildGRPCLokiConfig(t *testing.T) {
 		{
 			name: "missing gRPC config",
 			input: &api.WriteLoki{
-				ClientType: "grpc",
+				URL:        "localhost:9095",
+				ClientProtocol: "grpc",
 				TenantID:   "test-tenant",
 				GRPCConfig: nil,
 			},
@@ -460,12 +455,11 @@ func TestBuildGRPCLokiConfig(t *testing.T) {
 		{
 			name: "invalid duration in gRPC config",
 			input: &api.WriteLoki{
-				ClientType: "grpc",
+				URL:        "localhost:9095",
+				ClientProtocol: "grpc",
 				BatchWait:  "invalid-duration",
 				TenantID:   "test-tenant",
-				GRPCConfig: &api.GRPCLokiConfig{
-					ServerAddress: "localhost:9095",
-				},
+				GRPCConfig: &api.GRPCLokiConfig{},
 			},
 			wantErr: true,
 		},
@@ -486,71 +480,6 @@ func TestBuildGRPCLokiConfig(t *testing.T) {
 	}
 }
 
-func TestClientTypeSelection(t *testing.T) {
-	tests := []struct {
-		name       string
-		clientType string
-		url        string
-		grpcConfig *api.GRPCLokiConfig
-		wantErr    bool
-		errMsg     string
-	}{
-		{
-			name:       "HTTP client (explicit)",
-			clientType: "http",
-			url:        "http://localhost:3100",
-			wantErr:    false,
-		},
-		{
-			name:       "HTTP client (default)",
-			clientType: "",
-			url:        "http://localhost:3100",
-			wantErr:    false,
-		},
-		{
-			name:       "gRPC client",
-			clientType: "grpc",
-			grpcConfig: &api.GRPCLokiConfig{
-				ServerAddress: "localhost:9095",
-			},
-			wantErr: false,
-		},
-		{
-			name:       "invalid client type",
-			clientType: "invalid",
-			url:        "http://localhost:3100",
-			wantErr:    true,
-			errMsg:     "invalid clientType",
-		},
-		{
-			name:       "gRPC without config",
-			clientType: "grpc",
-			wantErr:    true,
-			errMsg:     "grpcConfig is required",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			params := api.WriteLoki{
-				ClientType: tt.clientType,
-				URL:        tt.url,
-				GRPCConfig: tt.grpcConfig,
-			}
-
-			_, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), config.StageParam{Write: &config.Write{Loki: &params}})
-			if tt.wantErr {
-				require.Error(t, err)
-				if tt.errMsg != "" {
-					require.Contains(t, err.Error(), tt.errMsg)
-				}
-				return
-			}
-			require.NoError(t, err)
-		})
-	}
-}
-
 func TestGRPCConfigValidation(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -561,9 +490,6 @@ func TestGRPCConfigValidation(t *testing.T) {
 		{
 			name: "valid config",
 			config: &api.GRPCLokiConfig{
-				ServerAddress:    "localhost:9095",
-				MaxRecvMsgSize:   64 * 1024 * 1024,
-				MaxSendMsgSize:   16 * 1024 * 1024,
 				KeepAlive:        "30s",
 				KeepAliveTimeout: "5s",
 			},
@@ -576,18 +502,9 @@ func TestGRPCConfigValidation(t *testing.T) {
 			errMsg:  "cannot be nil",
 		},
 		{
-			name: "missing server address",
-			config: &api.GRPCLokiConfig{
-				MaxRecvMsgSize: 64 * 1024 * 1024,
-			},
-			wantErr: true,
-			errMsg:  "cannot be empty",
-		},
-		{
 			name: "invalid keepAlive duration",
 			config: &api.GRPCLokiConfig{
-				ServerAddress: "localhost:9095",
-				KeepAlive:     "invalid-duration",
+				KeepAlive: "invalid-duration",
 			},
 			wantErr: true,
 			errMsg:  "invalid keepAlive duration",
@@ -595,7 +512,6 @@ func TestGRPCConfigValidation(t *testing.T) {
 		{
 			name: "invalid keepAliveTimeout duration",
 			config: &api.GRPCLokiConfig{
-				ServerAddress:    "localhost:9095",
 				KeepAlive:        "30s",
 				KeepAliveTimeout: "invalid-timeout",
 			},
@@ -620,14 +536,10 @@ func TestGRPCConfigValidation(t *testing.T) {
 }
 
 func TestGRPCConfigDefaults(t *testing.T) {
-	config := &api.GRPCLokiConfig{
-		ServerAddress: "localhost:9095",
-	}
+	config := &api.GRPCLokiConfig{}
 
 	config.SetDefaults()
 
-	assert.Equal(t, 64*1024*1024, config.MaxRecvMsgSize) // 64MB
-	assert.Equal(t, 16*1024*1024, config.MaxSendMsgSize) // 16MB
 	assert.Equal(t, "30s", config.KeepAlive)
 	assert.Equal(t, "5s", config.KeepAliveTimeout)
 }
@@ -643,7 +555,7 @@ func TestWriteLokiValidation(t *testing.T) {
 			name: "valid HTTP config",
 			config: &api.WriteLoki{
 				URL:        "http://localhost:3100",
-				ClientType: "http",
+				ClientProtocol: "http",
 				BatchSize:  1024,
 			},
 			wantErr: false,
@@ -651,28 +563,37 @@ func TestWriteLokiValidation(t *testing.T) {
 		{
 			name: "valid gRPC config",
 			config: &api.WriteLoki{
-				ClientType: "grpc",
+				URL:        "localhost:9095",
+				ClientProtocol: "grpc",
 				BatchSize:  1024,
-				GRPCConfig: &api.GRPCLokiConfig{
-					ServerAddress: "localhost:9095",
-				},
+				GRPCConfig: &api.GRPCLokiConfig{},
 			},
 			wantErr: false,
 		},
 		{
 			name: "invalid client type",
 			config: &api.WriteLoki{
-				ClientType: "websocket",
+				ClientProtocol: "websocket",
 				BatchSize:  1024,
 			},
 			wantErr: true,
-			errMsg:  "invalid clientType",
+			errMsg:  "invalid clientProtocol",
 		},
 		{
 			name: "missing URL for HTTP",
 			config: &api.WriteLoki{
-				ClientType: "http",
+				ClientProtocol: "http",
 				BatchSize:  1024,
+			},
+			wantErr: true,
+			errMsg:  "url can't be empty",
+		},
+		{
+			name: "missing URL for gRPC",
+			config: &api.WriteLoki{
+				ClientProtocol: "grpc",
+				BatchSize:  1024,
+				GRPCConfig: &api.GRPCLokiConfig{},
 			},
 			wantErr: true,
 			errMsg:  "url can't be empty",
@@ -680,7 +601,8 @@ func TestWriteLokiValidation(t *testing.T) {
 		{
 			name: "missing gRPC config",
 			config: &api.WriteLoki{
-				ClientType: "grpc",
+				URL:        "localhost:9095",
+				ClientProtocol: "grpc",
 				BatchSize:  1024,
 			},
 			wantErr: true,
@@ -690,7 +612,7 @@ func TestWriteLokiValidation(t *testing.T) {
 			name: "invalid batch size",
 			config: &api.WriteLoki{
 				URL:        "http://localhost:3100",
-				ClientType: "http",
+				ClientProtocol: "http",
 				BatchSize:  -1,
 			},
 			wantErr: true,

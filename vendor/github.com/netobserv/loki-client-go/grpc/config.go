@@ -24,8 +24,6 @@ const (
 	DefaultMaxBackoff           = 5 * time.Minute
 	DefaultMaxRetries       int = 10
 	DefaultTimeout              = 10 * time.Second
-	DefaultMaxRecvMsgSize       = 1024 * 1024 * 64 // 64MB
-	DefaultMaxSendMsgSize       = 1024 * 1024 * 16 // 16MB
 	DefaultKeepAlive            = 30 * time.Second
 	DefaultKeepAliveTimeout     = 5 * time.Second
 )
@@ -40,8 +38,6 @@ type Config struct {
 	BatchSize int           `yaml:"batch_size"`
 
 	// Connection configuration
-	MaxRecvMsgSize int           `yaml:"max_recv_msg_size"`
-	MaxSendMsgSize int           `yaml:"max_send_msg_size"`
 	Timeout        time.Duration `yaml:"timeout"`
 
 	// TLS configuration
@@ -105,8 +101,6 @@ func (c *Config) RegisterFlagsWithPrefix(prefix string, f *flag.FlagSet) {
 	f.DurationVar(&c.BatchWait, prefix+"grpc.batch-wait", DefaultBatchWait, "Maximum wait period before sending batch.")
 	f.IntVar(&c.BatchSize, prefix+"grpc.batch-size-bytes", DefaultBatchSize, "Maximum batch size to accrue before sending.")
 
-	f.IntVar(&c.MaxRecvMsgSize, prefix+"grpc.max-recv-msg-size", DefaultMaxRecvMsgSize, "Maximum message size the client can receive.")
-	f.IntVar(&c.MaxSendMsgSize, prefix+"grpc.max-send-msg-size", DefaultMaxSendMsgSize, "Maximum message size the client can send.")
 	f.DurationVar(&c.Timeout, prefix+"grpc.timeout", DefaultTimeout, "Maximum time to wait for server to respond to a request")
 
 	f.BoolVar(&c.TLS.Enabled, prefix+"grpc.tls.enabled", false, "Enable TLS")
@@ -131,13 +125,6 @@ func (c *Config) RegisterFlagsWithPrefix(prefix string, f *flag.FlagSet) {
 func (c *Config) BuildDialOptions() ([]grpc.DialOption, error) {
 	var opts []grpc.DialOption
 
-	// Message size limits
-	opts = append(opts,
-		grpc.WithDefaultCallOptions(
-			grpc.MaxCallRecvMsgSize(c.MaxRecvMsgSize),
-			grpc.MaxCallSendMsgSize(c.MaxSendMsgSize),
-		),
-	)
 
 	// Keep alive settings
 	opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -202,8 +189,6 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			BatchSize:        DefaultBatchSize,
 			BatchWait:        DefaultBatchWait,
 			Timeout:          DefaultTimeout,
-			MaxRecvMsgSize:   DefaultMaxRecvMsgSize,
-			MaxSendMsgSize:   DefaultMaxSendMsgSize,
 			KeepAlive:        DefaultKeepAlive,
 			KeepAliveTimeout: DefaultKeepAliveTimeout,
 		}

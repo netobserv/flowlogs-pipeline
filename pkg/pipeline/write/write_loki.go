@@ -62,13 +62,13 @@ type Loki struct {
 }
 
 func createLokiClient(c *api.WriteLoki) (emitter, error) {
-	switch c.ClientType {
+	switch c.ClientProtocol {
 	case "grpc":
 		return createGRPCClient(c)
 	case "http", "":
 		return createHTTPClient(c)
 	default:
-		return nil, fmt.Errorf("unsupported client type: %s", c.ClientType)
+		return nil, fmt.Errorf("unsupported client protocol: %s", c.ClientProtocol)
 	}
 }
 
@@ -146,7 +146,7 @@ func buildHTTPLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 
 func buildGRPCLokiConfig(c *api.WriteLoki) (grpc.Config, error) {
 	if c.GRPCConfig == nil {
-		return grpc.Config{}, fmt.Errorf("gRPC config is required for gRPC client type")
+		return grpc.Config{}, fmt.Errorf("gRPC config is required for gRPC client protocol")
 	}
 
 	batchWait, err := time.ParseDuration(c.BatchWait)
@@ -180,13 +180,11 @@ func buildGRPCLokiConfig(c *api.WriteLoki) (grpc.Config, error) {
 	}
 
 	cfg := grpc.Config{
-		ServerAddress:    c.GRPCConfig.ServerAddress,
+		ServerAddress:    c.URL,
 		TenantID:         c.TenantID,
 		BatchWait:        batchWait,
 		BatchSize:        c.BatchSize,
 		Timeout:          timeout,
-		MaxRecvMsgSize:   c.GRPCConfig.MaxRecvMsgSize,
-		MaxSendMsgSize:   c.GRPCConfig.MaxSendMsgSize,
 		KeepAlive:        keepAlive,
 		KeepAliveTimeout: keepAliveTimeout,
 		BackoffConfig: backoff.BackoffConfig{
@@ -330,7 +328,7 @@ func NewWriteLoki(opMetrics *operational.Metrics, params config.StageParam) (*Lo
 		return nil, fmt.Errorf("the provided config is not valid: %w", err)
 	}
 
-	// Create the appropriate client based on clientType
+	// Create the appropriate client based on clientProtocol
 	client, err := createLokiClient(&lokiConfigIn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Loki client: %w", err)

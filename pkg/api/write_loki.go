@@ -48,15 +48,12 @@ type WriteLoki struct {
 	Format         string `yaml:"format,omitempty" json:"format,omitempty" doc:"the format of each line: printf (writes using golang's default map printing), fields (writes one key and value field per line) or json (default)"`
 	Reorder        bool   `yaml:"reorder,omitempty" json:"reorder,omitempty" doc:"reorder json map keys"`
 
-	// Client type selection
-	ClientType string          `yaml:"clientType,omitempty" json:"clientType,omitempty" doc:"type of client to use: 'http' or 'grpc' (default: 'http')"`
+	// Client protocol selection
+	ClientProtocol string          `yaml:"clientProtocol,omitempty" json:"clientProtocol,omitempty" doc:"type of client protocol to use: 'http' or 'grpc' (default: 'http')"`
 	GRPCConfig *GRPCLokiConfig `yaml:"grpcConfig,omitempty" json:"grpcConfig,omitempty" doc:"gRPC client configuration (used only for gRPC client type)"`
 }
 
 type GRPCLokiConfig struct {
-	ServerAddress    string         `yaml:"serverAddress,omitempty" json:"serverAddress,omitempty" doc:"gRPC server address (host:port)"`
-	MaxRecvMsgSize   int            `yaml:"maxRecvMsgSize,omitempty" json:"maxRecvMsgSize,omitempty" doc:"maximum message size the client can receive"`
-	MaxSendMsgSize   int            `yaml:"maxSendMsgSize,omitempty" json:"maxSendMsgSize,omitempty" doc:"maximum message size the client can send"`
 	KeepAlive        string         `yaml:"keepAlive,omitempty" json:"keepAlive,omitempty" doc:"keep alive interval"`
 	KeepAliveTimeout string         `yaml:"keepAliveTimeout,omitempty" json:"keepAliveTimeout,omitempty" doc:"keep alive timeout"`
 	TLS              *GRPCTLSConfig `yaml:"tls,omitempty" json:"tls,omitempty" doc:"TLS configuration"`
@@ -99,23 +96,17 @@ func (w *WriteLoki) SetDefaults() {
 	if w.Format == "" {
 		w.Format = "json"
 	}
-	if w.ClientType == "" {
-		w.ClientType = "http"
+	if w.ClientProtocol == "" {
+		w.ClientProtocol = "http"
 	}
 
-	// Set defaults for gRPC config if gRPC client type is selected
-	if w.ClientType == "grpc" && w.GRPCConfig != nil {
+	// Set defaults for gRPC config if gRPC client protocol is selected
+	if w.ClientProtocol == "grpc" && w.GRPCConfig != nil {
 		w.GRPCConfig.SetDefaults()
 	}
 }
 
 func (g *GRPCLokiConfig) SetDefaults() {
-	if g.MaxRecvMsgSize == 0 {
-		g.MaxRecvMsgSize = 1024 * 1024 * 64 // 64MB
-	}
-	if g.MaxSendMsgSize == 0 {
-		g.MaxSendMsgSize = 1024 * 1024 * 16 // 16MB
-	}
 	if g.KeepAlive == "" {
 		g.KeepAlive = "30s"
 	}
@@ -135,20 +126,23 @@ func (w *WriteLoki) Validate() error {
 		return fmt.Errorf("invalid batchSize: %v. Required > 0", w.BatchSize)
 	}
 
-	// Validate client type
-	if w.ClientType != "" && w.ClientType != "http" && w.ClientType != "grpc" {
-		return fmt.Errorf("invalid clientType: %s. Must be 'http' or 'grpc'", w.ClientType)
+	// Validate client protocol
+	if w.ClientProtocol != "" && w.ClientProtocol != "http" && w.ClientProtocol != "grpc" {
+		return fmt.Errorf("invalid clientProtocol: %s. Must be 'http' or 'grpc'", w.ClientProtocol)
 	}
 
-	// Validate based on client type
-	switch w.ClientType {
+	// Validate based on client protocol
+	switch w.ClientProtocol {
 	case "http", "":
 		if w.URL == "" {
 			return errors.New("url can't be empty for HTTP client")
 		}
 	case "grpc":
+		if w.URL == "" {
+			return errors.New("url can't be empty for gRPC client")
+		}
 		if w.GRPCConfig == nil {
-			return errors.New("grpcConfig is required when using gRPC client type")
+			return errors.New("grpcConfig is required when using gRPC client protocol")
 		}
 		if err := w.GRPCConfig.Validate(); err != nil {
 			return fmt.Errorf("gRPC config validation failed: %w", err)
@@ -162,10 +156,6 @@ func (g *GRPCLokiConfig) Validate() error {
 	if g == nil {
 		return errors.New("gRPC config cannot be nil")
 	}
-	if g.ServerAddress == "" {
-		return errors.New("gRPC serverAddress cannot be empty")
-	}
-
 	// Validate duration fields
 	if g.KeepAlive != "" {
 		if _, err := time.ParseDuration(g.KeepAlive); err != nil {

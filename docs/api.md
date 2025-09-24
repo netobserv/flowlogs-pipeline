@@ -323,11 +323,8 @@ Following is the supported API format for writing to loki:
          timestampScale: timestamp units scale (e.g. for UNIX = 1s)
          format: the format of each line: printf (writes using golang's default map printing), fields (writes one key and value field per line) or json (default)
          reorder: reorder json map keys
-         clientType: type of client to use: 'http' or 'grpc' (default: 'http')
-         grpcConfig: gRPC client configuration (used only for gRPC client type)
-             serverAddress: gRPC server address (host:port)
-             maxRecvMsgSize: maximum message size the client can receive
-             maxSendMsgSize: maximum message size the client can send
+         clientProtocol: type of client protocol to use: 'http' or 'grpc' (default: 'http')
+         grpcConfig: gRPC client configuration (used only for gRPC client protocol)
              keepAlive: keep alive interval
              keepAliveTimeout: keep alive timeout
              tls: TLS configuration
