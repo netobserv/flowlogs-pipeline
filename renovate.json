@@ -26,5 +26,13 @@
         "enabled": false
       }
     ]
+  },
+  "pip_requirements": {
+    "packageRules": [
+      {
+        "groupName": "Pip requirements",
+        "matchManagers": ["pip_requirements"]
+      }
+    ]
   }
 }
