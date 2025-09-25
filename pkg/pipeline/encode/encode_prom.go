@@ -55,7 +55,7 @@ func (e *Prometheus) Encode(metricRecord config.GenericMap) {
 	e.checkConfUpdate()
 }
 
-func (e *Prometheus) ProcessCounter(m interface{}, labels map[string]string, value float64) error {
+func (e *Prometheus) ProcessCounter(m interface{}, _ string, labels map[string]string, value float64) error {
 	counter := m.(*prometheus.CounterVec)
 	mm, err := counter.GetMetricWith(labels)
 	if err != nil {
@@ -75,7 +75,7 @@ func (e *Prometheus) ProcessGauge(m interface{}, _ string, labels map[string]str
 	return nil
 }
 
-func (e *Prometheus) ProcessHist(m interface{}, labels map[string]string, value float64) error {
+func (e *Prometheus) ProcessHist(m interface{}, _ string, labels map[string]string, value float64) error {
 	hist := m.(*prometheus.HistogramVec)
 	mm, err := hist.GetMetricWith(labels)
 	if err != nil {
@@ -85,7 +85,7 @@ func (e *Prometheus) ProcessHist(m interface{}, labels map[string]string, value 
 	return nil
 }
 
-func (e *Prometheus) ProcessAggHist(m interface{}, labels map[string]string, values []float64) error {
+func (e *Prometheus) ProcessAggHist(m interface{}, _ string, labels map[string]string, values []float64) error {
 	hist := m.(*prometheus.HistogramVec)
 	mm, err := hist.GetMetricWith(labels)
 	if err != nil {
