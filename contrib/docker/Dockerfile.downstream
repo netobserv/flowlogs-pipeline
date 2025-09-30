@@ -28,7 +28,8 @@ USER 65532:65532
 ENTRYPOINT ["/flowlogs-pipeline"]
 
 LABEL com.redhat.component="network-observability-flowlogs-pipeline-container"
-LABEL name="network-observability-flowlogs-pipeline"
+LABEL name="network-observability/network-observability-flowlogs-pipeline-rhel9"
+LABEL cpe="cpe:/a:redhat:network_observ_optr:1.9::el9"
 LABEL io.k8s.display-name="Network Observability Flow-Logs Pipeline"
 LABEL io.k8s.description="Network Observability Flow-Logs Pipeline"
 LABEL summary="Network Observability Flow-Logs Pipeline"
