@@ -116,25 +116,25 @@ func (e *Prometheus) Cleanup(cleanupFunc interface{}) {
 }
 
 func (e *Prometheus) addCounter(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: ""}, mInfo.TargetLabels())
+	counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
 	e.metricCommon.AddCounter(fullMetricName, counter, mInfo)
 	return counter
 }
 
 func (e *Prometheus) addGauge(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: ""}, mInfo.TargetLabels())
+	gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
 	e.metricCommon.AddGauge(fullMetricName, gauge, mInfo)
 	return gauge
 }
 
 func (e *Prometheus) addHistogram(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	histogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: ""}, mInfo.TargetLabels())
+	histogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
 	e.metricCommon.AddHist(fullMetricName, histogram, mInfo)
 	return histogram
 }
 
 func (e *Prometheus) addAgghistogram(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	agghistogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: ""}, mInfo.TargetLabels())
+	agghistogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
 	e.metricCommon.AddAggHist(fullMetricName, agghistogram, mInfo)
 	return agghistogram
 }

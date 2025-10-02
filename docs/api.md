@@ -17,6 +17,7 @@ Following is the supported API format for prometheus encode:
                     counter: monotonically increasing counter whose value can only increase
                     histogram: counts samples in configurable buckets
                     agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
+                 help: the metric help text
                  filters: a list of criteria to filter entries by
                          key: the key to match and filter by
                          value: the value to match and filter by
@@ -457,6 +458,7 @@ Following is the supported API format for writing metrics to an OpenTelemetry co
                     counter: monotonically increasing counter whose value can only increase
                     histogram: counts samples in configurable buckets
                     agg_histogram: counts samples in configurable buckets, pre-aggregated via an Aggregate stage
+                 help: the metric help text
                  filters: a list of criteria to filter entries by
                          key: the key to match and filter by
                          value: the value to match and filter by
