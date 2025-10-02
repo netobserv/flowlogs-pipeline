@@ -152,7 +152,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 		mInfo := metrics.Preprocess(mCfg)
 		switch mCfg.Type {
 		case api.MetricCounter:
-			counter, err := meter.Float64Counter(fullMetricName)
+			counter, err := meter.Float64Counter(fullMetricName, metric.WithDescription(mCfg.Help))
 			if err != nil {
 				log.Errorf("error during counter creation: %v", err)
 				return nil, err
@@ -163,6 +163,7 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 			obs := Float64Gauge{observations: make(map[string]Float64GaugeEntry)}
 			gauge, err := meterFactory.Float64ObservableGauge(
 				fullMetricName,
+				metric.WithDescription(mCfg.Help),
 				metric.WithFloat64Callback(obs.Callback),
 			)
 			if err != nil {
@@ -173,12 +174,12 @@ func NewEncodeOtlpMetrics(opMetrics *operational.Metrics, params config.StagePar
 		case api.MetricHistogram:
 			var histo metric.Float64Histogram
 			if len(mCfg.Buckets) == 0 {
-				histo, err = meter.Float64Histogram(fullMetricName)
+				histo, err = meter.Float64Histogram(fullMetricName, metric.WithDescription(mCfg.Help))
 			} else {
 				histo, err = meter.Float64Histogram(fullMetricName,
+					metric.WithDescription(mCfg.Help),
 					metric.WithExplicitBucketBoundaries(mCfg.Buckets...),
 				)
-
 			}
 			if err != nil {
 				log.Errorf("error during histogram creation: %v", err)
