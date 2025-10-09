@@ -305,14 +305,16 @@ github.com/mxk/go-flowrate/flowrate
 ## explicit; go 1.18
 github.com/netobserv/gopipes/pkg/node
 github.com/netobserv/gopipes/pkg/node/internal/connect
-# github.com/netobserv/loki-client-go v0.0.0-20250425113517-526b43e51847
+# github.com/netobserv/loki-client-go v0.0.0-20250929121122-f26971f6d948 => github.com/leandroberetta/loki-client-go v0.0.0-20251009134823-acd942c4f7a5
 ## explicit; go 1.23.0
+github.com/netobserv/loki-client-go/grpc
 github.com/netobserv/loki-client-go/loki
 github.com/netobserv/loki-client-go/pkg/backoff
 github.com/netobserv/loki-client-go/pkg/helpers
 github.com/netobserv/loki-client-go/pkg/labelutil
 github.com/netobserv/loki-client-go/pkg/logproto
 github.com/netobserv/loki-client-go/pkg/metric
+github.com/netobserv/loki-client-go/pkg/metrics
 github.com/netobserv/loki-client-go/pkg/urlutil
 # github.com/netobserv/netobserv-ebpf-agent v1.9.2-community
 ## explicit; go 1.24.0
@@ -1399,3 +1401,4 @@ sigs.k8s.io/structured-merge-diff/v6/value
 sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v2
 # github.com/vmware/go-ipfix => github.com/jotak/go-ipfix v0.0.0-20250708115123-407c539ea101
+# github.com/netobserv/loki-client-go => github.com/leandroberetta/loki-client-go v0.0.0-20251009134823-acd942c4f7a5
