@@ -91,7 +91,10 @@ func (w *WriteLoki) SetDefaults() {
 	}
 
 	// Set defaults for gRPC config if gRPC client protocol is selected
-	if w.ClientProtocol == "grpc" && w.GRPCConfig != nil {
+	if w.ClientProtocol == "grpc" {
+		if w.GRPCConfig == nil {
+			w.GRPCConfig = &GRPCLokiConfig{}
+		}
 		w.GRPCConfig.SetDefaults()
 	}
 }

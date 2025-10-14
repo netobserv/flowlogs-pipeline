@@ -328,13 +328,6 @@ Following is the supported API format for writing to loki:
          grpcConfig: gRPC client configuration (used only for gRPC client type)
              keepAlive: keep alive interval
              keepAliveTimeout: keep alive timeout
-             tls: TLS configuration
-                 enabled: enable TLS
-                 certFile: path to client certificate file
-                 keyFile: path to client key file
-                 caFile: path to CA certificate file
-                 serverName: server name for certificate verification
-                 insecureSkipVerify: skip certificate verification (insecure)
 </pre>
 ## Write Standard Output
 Following is the supported API format for writing to standard output:

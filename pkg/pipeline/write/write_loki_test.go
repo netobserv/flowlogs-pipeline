@@ -452,7 +452,7 @@ func TestBuildGRPCLokiConfig(t *testing.T) {
 				TenantID:       "test-tenant",
 				GRPCConfig:     nil,
 			},
-			wantErr: true,
+			wantErr: true, // buildGRPCLokiConfig validates directly (SetDefaults not called in this unit test)
 		},
 		{
 			name: "invalid duration in gRPC config",
@@ -601,14 +601,13 @@ func TestWriteLokiValidation(t *testing.T) {
 			errMsg:  "url can't be empty",
 		},
 		{
-			name: "missing gRPC config",
+			name: "auto-created gRPC config with defaults",
 			config: &api.WriteLoki{
 				URL:            "localhost:9095",
 				ClientProtocol: "grpc",
 				BatchSize:      1024,
 			},
-			wantErr: true,
-			errMsg:  "grpcConfig is required",
+			wantErr: false, // SetDefaults will auto-create GRPCConfig
 		},
 		{
 			name: "invalid batch size",
