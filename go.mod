@@ -17,7 +17,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.95
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/netobserv/gopipes v0.3.0
-	github.com/netobserv/loki-client-go v0.0.0-20250929121122-f26971f6d948
+	github.com/netobserv/loki-client-go v0.0.0-20251014110557-40bc8d2e6cf3
 	github.com/netobserv/netobserv-ebpf-agent v1.9.2-community
 	github.com/netsampler/goflow2 v1.3.7
 	github.com/pkg/errors v0.9.1
@@ -174,5 +174,3 @@ require (
 )
 
 replace github.com/vmware/go-ipfix => github.com/jotak/go-ipfix v0.0.0-20250708115123-407c539ea101
-
-replace github.com/netobserv/loki-client-go => github.com/leandroberetta/loki-client-go v0.0.0-20251009134823-acd942c4f7a5
