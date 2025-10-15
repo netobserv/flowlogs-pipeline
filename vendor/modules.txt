@@ -305,14 +305,16 @@ github.com/mxk/go-flowrate/flowrate
 ## explicit; go 1.18
 github.com/netobserv/gopipes/pkg/node
 github.com/netobserv/gopipes/pkg/node/internal/connect
-# github.com/netobserv/loki-client-go v0.0.0-20250425113517-526b43e51847
+# github.com/netobserv/loki-client-go v0.0.0-20251014110557-40bc8d2e6cf3
 ## explicit; go 1.23.0
+github.com/netobserv/loki-client-go/grpc
 github.com/netobserv/loki-client-go/loki
 github.com/netobserv/loki-client-go/pkg/backoff
 github.com/netobserv/loki-client-go/pkg/helpers
 github.com/netobserv/loki-client-go/pkg/labelutil
 github.com/netobserv/loki-client-go/pkg/logproto
 github.com/netobserv/loki-client-go/pkg/metric
+github.com/netobserv/loki-client-go/pkg/metrics
 github.com/netobserv/loki-client-go/pkg/urlutil
 # github.com/netobserv/netobserv-ebpf-agent v1.9.2-community
 ## explicit; go 1.24.0
