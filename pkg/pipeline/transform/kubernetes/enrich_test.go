@@ -581,3 +581,85 @@ func TestEnrichUsingUDN(t *testing.T) {
 		"DstK8s_NetworkName": "ns-2/primary-udn",
 	}, entry)
 }
+
+func TestEnrich_LabelsAndAnnotationsPrefixes(t *testing.T) {
+	testData := map[string]*model.ResourceMetaData{
+		"10.0.0.10": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "test-pod",
+				Namespace: "test-ns",
+				Labels:    map[string]string{"app": "web", "tier": "backend"},
+				Annotations: map[string]string{
+					"owner":                "team-a",
+					"prometheus.io/scrape": "true",
+				},
+			},
+			Kind: "Pod",
+		},
+	}
+	setupStubs(testData, nil, nodes)
+
+	tests := []struct {
+		name              string
+		labelsPrefix      string
+		annotationsPrefix string
+		expectLabels      map[string]string
+		expectAnnotations map[string]string
+		notExpect         []string
+	}{
+		{
+			name:              "both prefixes",
+			labelsPrefix:      "K8s_Labels",
+			annotationsPrefix: "K8s_Annotations",
+			expectLabels:      map[string]string{"K8s_Labels_app": "web", "K8s_Labels_tier": "backend"},
+			expectAnnotations: map[string]string{"K8s_Annotations_owner": "team-a", "K8s_Annotations_prometheus.io/scrape": "true"},
+		},
+		{
+			name:         "labels only",
+			labelsPrefix: "K8s_Labels",
+			expectLabels: map[string]string{"K8s_Labels_app": "web"},
+			notExpect:    []string{"K8s_Annotations_owner"},
+		},
+		{
+			name:              "annotations only",
+			annotationsPrefix: "K8s_Annotations",
+			expectAnnotations: map[string]string{"K8s_Annotations_owner": "team-a"},
+			notExpect:         []string{"K8s_Labels_app"},
+		},
+		{
+			name:      "no prefixes",
+			notExpect: []string{"K8s_Labels_app", "K8s_Annotations_owner"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule := api.TransformNetwork{
+				Rules: api.NetworkTransformRules{{
+					Type: api.NetworkAddKubernetes,
+					Kubernetes: &api.K8sRule{
+						IPField:           "SrcAddr",
+						Output:            "K8s",
+						LabelsPrefix:      tt.labelsPrefix,
+						AnnotationsPrefix: tt.annotationsPrefix,
+					},
+				}},
+			}
+			rule.Preprocess()
+
+			entry := config.GenericMap{"SrcAddr": "10.0.0.10"}
+			Enrich(entry, rule.Rules[0].Kubernetes)
+
+			assert.Equal(t, "test-pod", entry["K8s_Name"])
+			for k, v := range tt.expectLabels {
+				assert.Equal(t, v, entry[k])
+			}
+			for k, v := range tt.expectAnnotations {
+				assert.Equal(t, v, entry[k])
+			}
+			for _, k := range tt.notExpect {
+				assert.NotContains(t, entry, k)
+			}
+		})
+	}
+}

@@ -57,6 +57,11 @@ func Enrich(outputEntry config.GenericMap, rule *api.K8sRule) {
 			outputEntry[rule.LabelsPrefix+"_"+labelKey] = labelValue
 		}
 	}
+	if rule.AnnotationsPrefix != "" {
+		for annotationKey, annotationValue := range kubeInfo.Annotations {
+			outputEntry[rule.AnnotationsPrefix+"_"+annotationKey] = annotationValue
+		}
+	}
 	if kubeInfo.HostIP != "" {
 		outputEntry[rule.OutputKeys.HostIP] = kubeInfo.HostIP
 		if kubeInfo.HostName != "" {

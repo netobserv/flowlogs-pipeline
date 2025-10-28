@@ -98,15 +98,16 @@ type K8sReference struct {
 }
 
 type K8sRule struct {
-	IPField         string        `yaml:"ipField,omitempty" json:"ipField,omitempty" doc:"entry IP input field"`
-	InterfacesField string        `yaml:"interfacesField,omitempty" json:"interfacesField,omitempty" doc:"entry Interfaces input field"`
-	UDNsField       string        `yaml:"udnsField,omitempty" json:"udnsField,omitempty" doc:"entry UDNs input field"`
-	MACField        string        `yaml:"macField,omitempty" json:"macField,omitempty" doc:"entry MAC input field"`
-	Output          string        `yaml:"output,omitempty" json:"output,omitempty" doc:"entry output field"`
-	Assignee        string        `yaml:"assignee,omitempty" json:"assignee,omitempty" doc:"value needs to assign to output field"`
-	LabelsPrefix    string        `yaml:"labels_prefix,omitempty" json:"labels_prefix,omitempty" doc:"labels prefix to use to copy input lables, if empty labels will not be copied"`
-	AddZone         bool          `yaml:"add_zone,omitempty" json:"add_zone,omitempty" doc:"if true the rule will add the zone"`
-	OutputKeys      K8SOutputKeys `yaml:"-" json:"-"`
+	IPField           string        `yaml:"ipField,omitempty" json:"ipField,omitempty" doc:"entry IP input field"`
+	InterfacesField   string        `yaml:"interfacesField,omitempty" json:"interfacesField,omitempty" doc:"entry Interfaces input field"`
+	UDNsField         string        `yaml:"udnsField,omitempty" json:"udnsField,omitempty" doc:"entry UDNs input field"`
+	MACField          string        `yaml:"macField,omitempty" json:"macField,omitempty" doc:"entry MAC input field"`
+	Output            string        `yaml:"output,omitempty" json:"output,omitempty" doc:"entry output field"`
+	Assignee          string        `yaml:"assignee,omitempty" json:"assignee,omitempty" doc:"value needs to assign to output field"`
+	LabelsPrefix      string        `yaml:"labels_prefix,omitempty" json:"labels_prefix,omitempty" doc:"labels prefix to use to copy input labels, if empty labels will not be copied"`
+	AnnotationsPrefix string        `yaml:"annotations_prefix,omitempty" json:"annotations_prefix,omitempty" doc:"annotations prefix to use to copy input annotations, if empty annotations will not be copied"`
+	AddZone           bool          `yaml:"add_zone,omitempty" json:"add_zone,omitempty" doc:"if true the rule will add the zone"`
+	OutputKeys        K8SOutputKeys `yaml:"-" json:"-"`
 }
 
 type K8SOutputKeys struct {
