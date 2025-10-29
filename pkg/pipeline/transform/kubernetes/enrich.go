@@ -54,12 +54,16 @@ func Enrich(outputEntry config.GenericMap, rule *api.K8sRule) {
 	outputEntry[rule.OutputKeys.NetworkName] = kubeInfo.NetworkName
 	if rule.LabelsPrefix != "" {
 		for labelKey, labelValue := range kubeInfo.Labels {
-			outputEntry[rule.LabelsPrefix+"_"+labelKey] = labelValue
+			if shouldInclude(labelKey, rule.LabelInclusionsMap, rule.LabelExclusionsMap) {
+				outputEntry[rule.LabelsPrefix+"_"+labelKey] = labelValue
+			}
 		}
 	}
 	if rule.AnnotationsPrefix != "" {
 		for annotationKey, annotationValue := range kubeInfo.Annotations {
-			outputEntry[rule.AnnotationsPrefix+"_"+annotationKey] = annotationValue
+			if shouldInclude(annotationKey, rule.AnnotationInclusionsMap, rule.AnnotationExclusionsMap) {
+				outputEntry[rule.AnnotationsPrefix+"_"+annotationKey] = annotationValue
+			}
 		}
 	}
 	if kubeInfo.HostIP != "" {
@@ -144,6 +148,18 @@ func objectIsApp(namespace, name string, rule *api.K8sInfraRule) bool {
 		if namespace == ref.Namespace && name == ref.Name {
 			return false
 		}
+	}
+	return true
+}
+
+// shouldInclude determines if an item should be included based on inclusion/exclusion maps.
+func shouldInclude(key string, inclusions, exclusions map[string]struct{}) bool {
+	if _, excluded := exclusions[key]; excluded {
+		return false
+	}
+	if len(inclusions) > 0 {
+		_, included := inclusions[key]
+		return included
 	}
 	return true
 }

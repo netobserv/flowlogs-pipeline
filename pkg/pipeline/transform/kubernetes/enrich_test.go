@@ -663,3 +663,223 @@ func TestEnrich_LabelsAndAnnotationsPrefixes(t *testing.T) {
 		})
 	}
 }
+
+func TestEnrich_LabelsAnnotationsFiltering(t *testing.T) {
+	testData := map[string]*model.ResourceMetaData{
+		"10.0.0.10": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "test-pod",
+				Namespace: "test-ns",
+				Labels: map[string]string{
+					"app":         "myapp",
+					"version":     "v1",
+					"environment": "prod",
+					"team":        "backend",
+				},
+				Annotations: map[string]string{
+					"annotation1": "value1",
+					"annotation2": "value2",
+					"annotation3": "value3",
+					"annotation4": "value4",
+				},
+			},
+			Kind: "Pod",
+		},
+	}
+
+	setupStubs(testData, nil, nodes)
+
+	tests := []struct {
+		name                 string
+		labelsPrefix         string
+		labelInclusions      []string
+		labelExclusions      []string
+		annotationsPrefix    string
+		annotationInclusions []string
+		annotationExclusions []string
+		expectedLabels       []string
+		expectedAnnotations  []string
+		notExpect            []string
+	}{
+		{
+			name:                "No filtering - all labels and annotations included",
+			labelsPrefix:        "k8s_labels",
+			annotationsPrefix:   "k8s_annotations",
+			expectedLabels:      []string{"k8s_labels_app", "k8s_labels_version", "k8s_labels_environment", "k8s_labels_team"},
+			expectedAnnotations: []string{"k8s_annotations_annotation1", "k8s_annotations_annotation2", "k8s_annotations_annotation3", "k8s_annotations_annotation4"},
+		},
+		{
+			name:                "Only label inclusions specified",
+			labelsPrefix:        "k8s_labels",
+			labelInclusions:     []string{"app", "version"},
+			annotationsPrefix:   "k8s_annotations",
+			expectedLabels:      []string{"k8s_labels_app", "k8s_labels_version"},
+			expectedAnnotations: []string{"k8s_annotations_annotation1", "k8s_annotations_annotation2", "k8s_annotations_annotation3", "k8s_annotations_annotation4"},
+			notExpect:           []string{"k8s_labels_environment", "k8s_labels_team"},
+		},
+		{
+			name:                "Only label exclusions specified",
+			labelsPrefix:        "k8s_labels",
+			labelExclusions:     []string{"environment", "team"},
+			annotationsPrefix:   "k8s_annotations",
+			expectedLabels:      []string{"k8s_labels_app", "k8s_labels_version"},
+			expectedAnnotations: []string{"k8s_annotations_annotation1", "k8s_annotations_annotation2", "k8s_annotations_annotation3", "k8s_annotations_annotation4"},
+			notExpect:           []string{"k8s_labels_environment", "k8s_labels_team"},
+		},
+		{
+			name:                "Both label inclusions and exclusions - exclusions take precedence",
+			labelsPrefix:        "k8s_labels",
+			labelInclusions:     []string{"app", "version", "environment"},
+			labelExclusions:     []string{"environment"},
+			annotationsPrefix:   "k8s_annotations",
+			expectedLabels:      []string{"k8s_labels_app", "k8s_labels_version"},
+			expectedAnnotations: []string{"k8s_annotations_annotation1", "k8s_annotations_annotation2", "k8s_annotations_annotation3", "k8s_annotations_annotation4"},
+			notExpect:           []string{"k8s_labels_environment", "k8s_labels_team"},
+		},
+		{
+			name:                 "Only annotation inclusions specified",
+			labelsPrefix:         "k8s_labels",
+			annotationsPrefix:    "k8s_annotations",
+			annotationInclusions: []string{"annotation1", "annotation3"},
+			expectedLabels:       []string{"k8s_labels_app", "k8s_labels_version", "k8s_labels_environment", "k8s_labels_team"},
+			expectedAnnotations:  []string{"k8s_annotations_annotation1", "k8s_annotations_annotation3"},
+			notExpect:            []string{"k8s_annotations_annotation2", "k8s_annotations_annotation4"},
+		},
+		{
+			name:                 "Only annotation exclusions specified",
+			labelsPrefix:         "k8s_labels",
+			annotationsPrefix:    "k8s_annotations",
+			annotationExclusions: []string{"annotation2", "annotation4"},
+			expectedLabels:       []string{"k8s_labels_app", "k8s_labels_version", "k8s_labels_environment", "k8s_labels_team"},
+			expectedAnnotations:  []string{"k8s_annotations_annotation1", "k8s_annotations_annotation3"},
+			notExpect:            []string{"k8s_annotations_annotation2", "k8s_annotations_annotation4"},
+		},
+		{
+			name:                 "Both annotation inclusions and exclusions - exclusions take precedence",
+			labelsPrefix:         "k8s_labels",
+			annotationsPrefix:    "k8s_annotations",
+			annotationInclusions: []string{"annotation1", "annotation2", "annotation3"},
+			annotationExclusions: []string{"annotation2"},
+			expectedLabels:       []string{"k8s_labels_app", "k8s_labels_version", "k8s_labels_environment", "k8s_labels_team"},
+			expectedAnnotations:  []string{"k8s_annotations_annotation1", "k8s_annotations_annotation3"},
+			notExpect:            []string{"k8s_annotations_annotation2", "k8s_annotations_annotation4"},
+		},
+		{
+			name:                 "Combined filtering for both labels and annotations",
+			labelsPrefix:         "k8s_labels",
+			labelInclusions:      []string{"app", "version", "team"},
+			labelExclusions:      []string{"team"},
+			annotationsPrefix:    "k8s_annotations",
+			annotationInclusions: []string{"annotation1", "annotation2"},
+			annotationExclusions: []string{"annotation1"},
+			expectedLabels:       []string{"k8s_labels_app", "k8s_labels_version"},
+			expectedAnnotations:  []string{"k8s_annotations_annotation2"},
+			notExpect:            []string{"k8s_labels_environment", "k8s_labels_team", "k8s_annotations_annotation1", "k8s_annotations_annotation3", "k8s_annotations_annotation4"},
+		},
+		{
+			name:                 "Empty prefix - no labels or annotations added",
+			labelsPrefix:         "",
+			labelInclusions:      []string{"app"},
+			annotationsPrefix:    "",
+			annotationInclusions: []string{"annotation1"},
+			notExpect:            []string{"k8s_labels_app", "k8s_labels_version", "k8s_labels_environment", "k8s_labels_team", "k8s_annotations_annotation1", "k8s_annotations_annotation2", "k8s_annotations_annotation3", "k8s_annotations_annotation4"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule := api.TransformNetwork{
+				Rules: api.NetworkTransformRules{{
+					Type: api.NetworkAddKubernetes,
+					Kubernetes: &api.K8sRule{
+						IPField:              "SrcAddr",
+						Output:               "SrcK8s",
+						LabelsPrefix:         tt.labelsPrefix,
+						LabelInclusions:      tt.labelInclusions,
+						LabelExclusions:      tt.labelExclusions,
+						AnnotationsPrefix:    tt.annotationsPrefix,
+						AnnotationInclusions: tt.annotationInclusions,
+						AnnotationExclusions: tt.annotationExclusions,
+					},
+				}},
+			}
+			rule.Preprocess()
+
+			entry := config.GenericMap{
+				"SrcAddr": "10.0.0.10",
+			}
+
+			Enrich(entry, rule.Rules[0].Kubernetes)
+
+			for _, label := range tt.expectedLabels {
+				assert.Contains(t, entry, label, "Expected label %s to be present", label)
+			}
+			for _, annotation := range tt.expectedAnnotations {
+				assert.Contains(t, entry, annotation, "Expected annotation %s to be present", annotation)
+			}
+			for _, k := range tt.notExpect {
+				assert.NotContains(t, entry, k)
+			}
+		})
+	}
+}
+
+func TestShouldInclude(t *testing.T) {
+	tests := []struct {
+		name       string
+		key        string
+		inclusions map[string]struct{}
+		exclusions map[string]struct{}
+		expected   bool
+	}{
+		{
+			name:       "No inclusions or exclusions - should include",
+			key:        "test",
+			inclusions: map[string]struct{}{},
+			exclusions: map[string]struct{}{},
+			expected:   true,
+		},
+		{
+			name:       "Key in inclusions - should include",
+			key:        "test",
+			inclusions: map[string]struct{}{"test": {}},
+			exclusions: map[string]struct{}{},
+			expected:   true,
+		},
+		{
+			name:       "Key not in inclusions - should not include",
+			key:        "test",
+			inclusions: map[string]struct{}{"other": {}},
+			exclusions: map[string]struct{}{},
+			expected:   false,
+		},
+		{
+			name:       "Key in exclusions - should not include",
+			key:        "test",
+			inclusions: map[string]struct{}{},
+			exclusions: map[string]struct{}{"test": {}},
+			expected:   false,
+		},
+		{
+			name:       "Key in both inclusions and exclusions - exclusions win",
+			key:        "test",
+			inclusions: map[string]struct{}{"test": {}},
+			exclusions: map[string]struct{}{"test": {}},
+			expected:   false,
+		},
+		{
+			name:       "Key not in exclusions, no inclusions - should include",
+			key:        "test",
+			inclusions: map[string]struct{}{},
+			exclusions: map[string]struct{}{"other": {}},
+			expected:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := shouldInclude(tt.key, tt.inclusions, tt.exclusions)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
