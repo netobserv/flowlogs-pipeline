@@ -159,13 +159,13 @@ Following is the supported API format for filter transformations:
  filter:
          rules: list of filter rules, each includes:
                  type: (enum) one of the following:
-                    remove_field: removes the field from the entry
-                    remove_entry_if_exists: removes the entry if the field exists
-                    remove_entry_if_doesnt_exist: removes the entry if the field does not exist
-                    remove_entry_if_equal: removes the entry if the field value equals specified value
-                    remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
-                    remove_entry_all_satisfied: removes the entry if all of the defined rules are satisfied
-                    keep_entry_query: keeps the entry if it matches the query
+                    remove_field: removes the field from the flow log
+                    remove_entry_if_exists: removes the entry (ie. the flow log) if the field exists
+                    remove_entry_if_doesnt_exist: removes the entry (ie. the flow log) if the field does not exist
+                    remove_entry_if_equal: removes the entry (ie. the flow log) if the field value equals the specified value
+                    remove_entry_if_not_equal: removes the entry (ie. the flow log) if the field value does not equal the specified value
+                    remove_entry_all_satisfied: removes the entry (ie. the flow log) if all of the defined rules are satisfied
+                    keep_entry_query: keeps the entry (ie. the flow log) if it matches the query
                     add_field: adds (input) field to the entry; overrides previous value if present (key=input, value=value)
                     add_field_if_doesnt_exist: adds a field to the entry if the field does not exist
                     add_field_if: add output field set to assignee if input field satisfies criteria from parameters field
@@ -183,10 +183,10 @@ Following is the supported API format for filter transformations:
                      castInt: set true to cast the value field as an int (numeric values are float64 otherwise)
                  removeEntryAllSatisfied: configuration for remove_entry_all_satisfied rule
                          type: (enum) one of the following:
-                            remove_entry_if_exists: removes the entry if the field exists
-                            remove_entry_if_doesnt_exist: removes the entry if the field does not exist
-                            remove_entry_if_equal: removes the entry if the field value equals specified value
-                            remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
+                            remove_entry_if_exists: removes the entry (ie. the flow log) if the field exists
+                            remove_entry_if_doesnt_exist: removes the entry (ie. the flow log) if the field does not exist
+                            remove_entry_if_equal: removes the entry (ie. the flow log) if the field value equals the specified value
+                            remove_entry_if_not_equal: removes the entry (ie. the flow log) if the field value does not equal the specified value
                          removeEntry: configuration for remove_entry_* rules
                              input: entry input field
                              value: specified value of input field:
@@ -224,10 +224,10 @@ Following is the supported API format for filter transformations:
                          value: sampling interval: 1 flow on <sampling> is kept
                          rules: rules to be satisfied for this sampling configuration
                                  type: (enum) one of the following:
-                                    remove_entry_if_exists: removes the entry if the field exists
-                                    remove_entry_if_doesnt_exist: removes the entry if the field does not exist
-                                    remove_entry_if_equal: removes the entry if the field value equals specified value
-                                    remove_entry_if_not_equal: removes the entry if the field value does not equal specified value
+                                    remove_entry_if_exists: removes the entry (ie. the flow log) if the field exists
+                                    remove_entry_if_doesnt_exist: removes the entry (ie. the flow log) if the field does not exist
+                                    remove_entry_if_equal: removes the entry (ie. the flow log) if the field value equals the specified value
+                                    remove_entry_if_not_equal: removes the entry (ie. the flow log) if the field value does not equal the specified value
                                  removeEntry: configuration for remove_entry_* rules
                                      input: entry input field
                                      value: specified value of input field:

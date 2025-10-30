@@ -357,15 +357,27 @@ parameters:
 
 ### Transform Filter
 
-The filter transform module allows setting rules to remove complete entries from
-the output, or just remove specific keys and values from entries.
+The filter transform module allows setting rules to remove complete flow logs from the output, or just remove specific keys and values from logs.
 
 For example, suppose we have a flow log with the following syntax:
 ```json
-{"Bytes":20800,"DstAddr":"10.130.2.2","DstPort":36936,"Packets":400,"Proto":6,"SequenceNum":1919,"SrcAddr":"10.130.2.13","SrcHostIP":"10.0.197.206","SrcPort":3100,"TCPFlags":0,"TimeFlowStart":0,"TimeReceived":1637501832}
+{
+  "Bytes":20800,
+  "DstAddr":"10.130.2.2",
+  "DstPort":36936,
+  "Packets":400,
+  "Proto":6,
+  "SequenceNum":1919,
+  "SrcAddr":"10.130.2.13",
+  "SrcHostIP":"10.0.197.206",
+  "SrcPort":3100,
+  "TCPFlags":0,
+  "TimeFlowStart":0,
+  "TimeReceived":1637501832
+}
 ```
 
-The below configuration will remove (filter) the entry from the output
+The below configuration will skip that log, removing it from the output.
 
 ```yaml
 parameters:
@@ -376,13 +388,13 @@ parameters:
         rules:
         - type: remove_entry_if_exists
           removeEntry:
-            input: srcPort
+            input: TCPFlags
 ```
 
-- Using `remove_entry_if_doesnt_exist` in the rule reverses the logic and will not remove the above example entry.
-- Using `remove_field` in the rule `type` instead, results in outputting the entry after removal of only the `SrcPort` key and value.
-- Using `remove_entry_if_equal` will remove the entry if the specified field exists and is equal to the specified value.
-- Using `remove_entry_if_not_equal` will remove the entry if the specified field exists and is not equal to the specified value.
+- `type: remove_entry_if_doesnt_exist` reverses the logic and will not remove the above example entry.
+- `type: remove_field` keeps the entry but changes its content, removing the `TCPFlags` key and value.
+- `type: remove_entry_if_equal` removes the entry if the specified field exists and is equal to the specified value.
+- `type: remove_entry_if_not_equal` removes the entry if the specified field exists and is not equal to the specified value.
 
 #### Transform Filter: query language
 
