@@ -28,7 +28,7 @@ Following is the supported API format for prometheus encode:
                             absence: filter key must be absent (filter value is ignored)
                             match_regex: match filter value as a regular expression
                             not_match_regex: the filter value must not match the provided regular expression
-                 valueKey: entry key from which to resolve metric value
+                 valueKey: entry key from which to resolve metric value; leave empty to count log lines
                  labels: labels to be associated with the metric
                  remap: optional remapping of labels
                  flatten: list fields to be flattened
@@ -473,7 +473,7 @@ Following is the supported API format for writing metrics to an OpenTelemetry co
                             absence: filter key must be absent (filter value is ignored)
                             match_regex: match filter value as a regular expression
                             not_match_regex: the filter value must not match the provided regular expression
-                 valueKey: entry key from which to resolve metric value
+                 valueKey: entry key from which to resolve metric value; leave empty to count log lines
                  labels: labels to be associated with the metric
                  remap: optional remapping of labels
                  flatten: list fields to be flattened
