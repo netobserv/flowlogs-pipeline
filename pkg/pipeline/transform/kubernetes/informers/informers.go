@@ -66,6 +66,13 @@ type Informers struct {
 	services cache.SharedIndexInformer
 	// replicaSets caches the ReplicaSets as partially-filled *ObjectMeta pointers
 	replicaSets      cache.SharedIndexInformer
+	// New informers for ownership tracking
+	deployments             cache.SharedIndexInformer
+	virtualMachineInstances cache.SharedIndexInformer
+	virtualMachines         cache.SharedIndexInformer
+	gateways                cache.SharedIndexInformer
+	// Config and channels
+	config           Config
 	stopChan         chan struct{}
 	mdStopChan       chan struct{}
 	indexerHitMetric *prometheus.CounterVec
@@ -178,18 +185,125 @@ func (k *Informers) GetNodeByName(name string) (*model.ResourceMetaData, error) 
 }
 
 func (k *Informers) checkParent(info *model.ResourceMetaData) {
-	if info.OwnerKind == "ReplicaSet" {
-		item, ok, err := k.replicaSets.GetIndexer().GetByKey(info.Namespace + "/" + info.OwnerName)
-		if err != nil {
-			log.WithError(err).WithField("key", info.Namespace+"/"+info.OwnerName).
-				Debug("can't get ReplicaSet info from informer. Ignoring")
-		} else if ok {
-			rsInfo := item.(*metav1.ObjectMeta)
-			if len(rsInfo.OwnerReferences) > 0 {
-				info.OwnerKind = rsInfo.OwnerReferences[0].Kind
-				info.OwnerName = rsInfo.OwnerReferences[0].Name
+	// Maximum 3 ownership hops: Pod → ReplicaSet → Deployment → Gateway
+	// This allows tracking up to 3 levels beyond the initial resource
+	const maxHops = 3
+
+	// If trackedKinds is empty, use legacy behavior (stop after ReplicaSet resolution)
+	if len(k.config.trackedKinds) == 0 {
+		// Legacy behavior: only resolve ReplicaSet
+		if info.OwnerKind == "ReplicaSet" {
+			item, ok, err := k.replicaSets.GetIndexer().GetByKey(info.Namespace + "/" + info.OwnerName)
+			if err != nil {
+				log.WithError(err).WithField("key", info.Namespace+"/"+info.OwnerName).
+					Debug("can't get ReplicaSet info from informer. Ignoring")
+				return
+			}
+			if ok {
+				rsInfo := item.(*metav1.ObjectMeta)
+				if len(rsInfo.OwnerReferences) > 0 {
+					info.OwnerKind = rsInfo.OwnerReferences[0].Kind
+					info.OwnerName = rsInfo.OwnerReferences[0].Name
+				}
 			}
 		}
+		return
+	}
+
+	// New behavior with trackedKinds: traverse ownership chain until we find a tracked kind or hit max depth
+	for i := 0; i < maxHops; i++ {
+		// Check if current owner is in trackedKinds
+		if k.isTracked(info.OwnerKind) {
+			// This owner IS tracked. Try to get its parent to see if we can go higher.
+			parent := k.getOwnerFromInformer(info.OwnerKind, info.Namespace, info.OwnerName)
+			if parent == nil {
+				// No parent exists → STOP at current tracked kind
+				break
+			}
+			// Parent exists - check if parent is ALSO tracked
+			if k.isTracked(parent.Kind) {
+				// Parent is also tracked → update and continue (prefer higher level)
+				info.OwnerKind = parent.Kind
+				info.OwnerName = parent.Name
+				continue
+			}
+			// Parent exists but is NOT tracked → STOP at current tracked kind
+			break
+		}
+
+		// Current owner is NOT tracked → try to find a tracked parent
+		parent := k.getOwnerFromInformer(info.OwnerKind, info.Namespace, info.OwnerName)
+		if parent == nil {
+			// No parent found → STOP at current (untracked) owner
+			break
+		}
+
+		// Update to parent and continue
+		info.OwnerKind = parent.Kind
+		info.OwnerName = parent.Name
+	}
+}
+
+// isTracked returns true if the given kind is in the trackedKinds configuration
+func (k *Informers) isTracked(kind string) bool {
+	for _, tracked := range k.config.trackedKinds {
+		if tracked == kind {
+			return true
+		}
+	}
+	return false
+}
+
+// OwnerInfo contains basic ownership information
+type OwnerInfo struct {
+	Kind string
+	Name string
+}
+
+// getOwnerFromInformer retrieves the owner of a resource from the appropriate informer
+func (k *Informers) getOwnerFromInformer(kind, namespace, name string) *OwnerInfo {
+	var informer cache.SharedIndexInformer
+
+	switch kind {
+	case "ReplicaSet":
+		informer = k.replicaSets
+	case "Deployment":
+		informer = k.deployments
+	case "Gateway":
+		informer = k.gateways
+	case "VirtualMachineInstance":
+		informer = k.virtualMachineInstances
+	case "VirtualMachine":
+		informer = k.virtualMachines
+	default:
+		return nil
+	}
+
+	if informer == nil {
+		log.WithField("kind", kind).Debug("informer not initialized for this kind")
+		return nil
+	}
+
+	item, ok, err := informer.GetIndexer().GetByKey(namespace + "/" + name)
+	if err != nil {
+		log.WithError(err).
+			WithField("kind", kind).
+			WithField("key", namespace+"/"+name).
+			Debug("can't get resource info from informer")
+		return nil
+	}
+	if !ok {
+		return nil
+	}
+
+	meta := item.(*metav1.ObjectMeta)
+	if len(meta.OwnerReferences) == 0 {
+		return nil
+	}
+
+	return &OwnerInfo{
+		Kind: meta.OwnerReferences[0].Kind,
+		Name: meta.OwnerReferences[0].Name,
 	}
 }
 
@@ -376,8 +490,101 @@ func (k *Informers) initReplicaSetInformer(informerFactory metadatainformer.Shar
 	return nil
 }
 
+func (k *Informers) initDeploymentInformer(informerFactory metadatainformer.SharedInformerFactory) error {
+	k.deployments = informerFactory.ForResource(
+		schema.GroupVersionResource{
+			Group:    "apps",
+			Version:  "v1",
+			Resource: "deployments",
+		}).Informer()
+	if err := k.deployments.SetTransform(func(i interface{}) (interface{}, error) {
+		deploy, ok := i.(*metav1.PartialObjectMetadata)
+		if !ok {
+			return nil, fmt.Errorf("was expecting a Deployment. Got: %T", i)
+		}
+		return &metav1.ObjectMeta{
+			Name:            deploy.Name,
+			Namespace:       deploy.Namespace,
+			OwnerReferences: deploy.OwnerReferences,
+		}, nil
+	}); err != nil {
+		return fmt.Errorf("can't set Deployments transform: %w", err)
+	}
+	return nil
+}
+
+func (k *Informers) initGatewayInformer(informerFactory metadatainformer.SharedInformerFactory) error {
+	k.gateways = informerFactory.ForResource(
+		schema.GroupVersionResource{
+			Group:    "gateway.networking.k8s.io",
+			Version:  "v1",
+			Resource: "gateways",
+		}).Informer()
+	if err := k.gateways.SetTransform(func(i interface{}) (interface{}, error) {
+		gw, ok := i.(*metav1.PartialObjectMetadata)
+		if !ok {
+			return nil, fmt.Errorf("was expecting a Gateway. Got: %T", i)
+		}
+		return &metav1.ObjectMeta{
+			Name:            gw.Name,
+			Namespace:       gw.Namespace,
+			OwnerReferences: gw.OwnerReferences,
+		}, nil
+	}); err != nil {
+		return fmt.Errorf("can't set Gateways transform: %w", err)
+	}
+	return nil
+}
+
+func (k *Informers) initVirtualMachineInstanceInformer(informerFactory metadatainformer.SharedInformerFactory) error {
+	k.virtualMachineInstances = informerFactory.ForResource(
+		schema.GroupVersionResource{
+			Group:    "kubevirt.io",
+			Version:  "v1",
+			Resource: "virtualmachineinstances",
+		}).Informer()
+	if err := k.virtualMachineInstances.SetTransform(func(i interface{}) (interface{}, error) {
+		vmi, ok := i.(*metav1.PartialObjectMetadata)
+		if !ok {
+			return nil, fmt.Errorf("was expecting a VirtualMachineInstance. Got: %T", i)
+		}
+		return &metav1.ObjectMeta{
+			Name:            vmi.Name,
+			Namespace:       vmi.Namespace,
+			OwnerReferences: vmi.OwnerReferences,
+		}, nil
+	}); err != nil {
+		return fmt.Errorf("can't set VirtualMachineInstances transform: %w", err)
+	}
+	return nil
+}
+
+func (k *Informers) initVirtualMachineInformer(informerFactory metadatainformer.SharedInformerFactory) error {
+	k.virtualMachines = informerFactory.ForResource(
+		schema.GroupVersionResource{
+			Group:    "kubevirt.io",
+			Version:  "v1",
+			Resource: "virtualmachines",
+		}).Informer()
+	if err := k.virtualMachines.SetTransform(func(i interface{}) (interface{}, error) {
+		vm, ok := i.(*metav1.PartialObjectMetadata)
+		if !ok {
+			return nil, fmt.Errorf("was expecting a VirtualMachine. Got: %T", i)
+		}
+		return &metav1.ObjectMeta{
+			Name:            vm.Name,
+			Namespace:       vm.Namespace,
+			OwnerReferences: vm.OwnerReferences,
+		}, nil
+	}); err != nil {
+		return fmt.Errorf("can't set VirtualMachines transform: %w", err)
+	}
+	return nil
+}
+
 func (k *Informers) InitFromConfig(kubeconfig string, infConfig Config, opMetrics *operational.Metrics) error {
 	// Initialization variables
+	k.config = infConfig
 	k.stopChan = make(chan struct{})
 	k.mdStopChan = make(chan struct{})
 
@@ -428,6 +635,32 @@ func (k *Informers) initInformers(client kubernetes.Interface, metaClient metada
 	err = k.initReplicaSetInformer(metadataInformerFactory)
 	if err != nil {
 		return err
+	}
+
+	// Initialize additional informers based on trackedKinds configuration
+	for _, kind := range cfg.trackedKinds {
+		switch kind {
+		case "Deployment":
+			log.Debugf("initializing Deployment informer (trackedKinds)")
+			if err := k.initDeploymentInformer(metadataInformerFactory); err != nil {
+				return err
+			}
+		case "Gateway":
+			log.Debugf("initializing Gateway informer (trackedKinds)")
+			if err := k.initGatewayInformer(metadataInformerFactory); err != nil {
+				return err
+			}
+		case "VirtualMachineInstance":
+			log.Debugf("initializing VirtualMachineInstance informer (trackedKinds)")
+			if err := k.initVirtualMachineInstanceInformer(metadataInformerFactory); err != nil {
+				return err
+			}
+		case "VirtualMachine":
+			log.Debugf("initializing VirtualMachine informer (trackedKinds)")
+			if err := k.initVirtualMachineInformer(metadataInformerFactory); err != nil {
+				return err
+			}
+		}
 	}
 
 	// Informers expose an indexer
