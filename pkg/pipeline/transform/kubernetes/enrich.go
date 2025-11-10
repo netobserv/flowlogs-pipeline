@@ -21,9 +21,9 @@ func MockInformers() {
 	ds = &datasource.Datasource{Informers: informers.NewInformersMock()}
 }
 
-func InitInformerDatasource(config api.NetworkTransformKubeConfig, opMetrics *operational.Metrics) error {
+func InitInformerDatasource(config *api.NetworkTransformKubeConfig, opMetrics *operational.Metrics) error {
 	var err error
-	infConfig = informers.NewConfig(config)
+	infConfig = informers.NewConfig(*config)
 	if ds == nil {
 		ds, err = datasource.NewInformerDatasource(config.ConfigPath, &infConfig, opMetrics)
 	}
