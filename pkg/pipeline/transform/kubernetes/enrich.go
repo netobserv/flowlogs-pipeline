@@ -17,13 +17,13 @@ var infConfig informers.Config
 
 // For testing
 func MockInformers() {
-	infConfig = informers.NewConfig(api.NetworkTransformKubeConfig{})
+	infConfig = informers.NewConfig(&api.NetworkTransformKubeConfig{})
 	ds = &datasource.Datasource{Informers: informers.NewInformersMock()}
 }
 
 func InitInformerDatasource(config *api.NetworkTransformKubeConfig, opMetrics *operational.Metrics) error {
 	var err error
-	infConfig = informers.NewConfig(*config)
+	infConfig = informers.NewConfig(config)
 	if ds == nil {
 		ds, err = datasource.NewInformerDatasource(config.ConfigPath, &infConfig, opMetrics)
 	}

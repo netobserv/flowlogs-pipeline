@@ -22,7 +22,7 @@ type Config struct {
 	trackedKinds      []string
 }
 
-func NewConfig(cfg api.NetworkTransformKubeConfig) Config {
+func NewConfig(cfg *api.NetworkTransformKubeConfig) Config {
 	c := Config{
 		managedCNI:        cfg.ManagedCNI,
 		secondaryNetworks: cfg.SecondaryNetworks,

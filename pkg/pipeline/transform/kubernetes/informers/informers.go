@@ -316,7 +316,7 @@ func (k *Informers) getHostName(hostIP string) string {
 	return ""
 }
 
-func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory, cfg Config) error {
+func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory, cfg *Config) error {
 	nodes := informerFactory.Core().V1().Nodes().Informer()
 	// Transform any *v1.Node instance into a *Info instance to save space
 	// in the informer's cache
@@ -368,7 +368,7 @@ func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory, 
 	return nil
 }
 
-func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory, cfg Config, dynClient *dynamic.DynamicClient) error {
+func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory, cfg *Config, dynClient *dynamic.DynamicClient) error {
 	pods := informerFactory.Core().V1().Pods().Informer()
 	// Transform any *v1.Pod instance into a *Info instance to save space
 	// in the informer's cache
@@ -582,9 +582,9 @@ func (k *Informers) initVirtualMachineInformer(informerFactory metadatainformer.
 	return nil
 }
 
-func (k *Informers) InitFromConfig(kubeconfig string, infConfig Config, opMetrics *operational.Metrics) error {
+func (k *Informers) InitFromConfig(kubeconfig string, infConfig *Config, opMetrics *operational.Metrics) error {
 	// Initialization variables
-	k.config = infConfig
+	k.config = *infConfig
 	k.stopChan = make(chan struct{})
 	k.mdStopChan = make(chan struct{})
 
@@ -617,7 +617,7 @@ func (k *Informers) InitFromConfig(kubeconfig string, infConfig Config, opMetric
 	return nil
 }
 
-func (k *Informers) initInformers(client kubernetes.Interface, metaClient metadata.Interface, dynClient *dynamic.DynamicClient, cfg Config) error {
+func (k *Informers) initInformers(client kubernetes.Interface, metaClient metadata.Interface, dynClient *dynamic.DynamicClient, cfg *Config) error {
 	informerFactory := inf.NewSharedInformerFactory(client, syncTime)
 	metadataInformerFactory := metadatainformer.NewSharedInformerFactory(metaClient, syncTime)
 	err := k.initNodeInformer(informerFactory, cfg)
