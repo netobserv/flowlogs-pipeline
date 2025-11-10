@@ -11,9 +11,9 @@ type Datasource struct {
 	Informers informers.Interface
 }
 
-func NewInformerDatasource(kubeconfig string, infConfig informers.Config, opMetrics *operational.Metrics) (*Datasource, error) {
+func NewInformerDatasource(kubeconfig string, infConfig *informers.Config, opMetrics *operational.Metrics) (*Datasource, error) {
 	inf := &informers.Informers{}
-	if err := inf.InitFromConfig(kubeconfig, infConfig, opMetrics); err != nil {
+	if err := inf.InitFromConfig(kubeconfig, *infConfig, opMetrics); err != nil {
 		return nil, err
 	}
 	return &Datasource{Informers: inf}, nil

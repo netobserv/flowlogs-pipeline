@@ -25,7 +25,7 @@ func InitInformerDatasource(config api.NetworkTransformKubeConfig, opMetrics *op
 	var err error
 	infConfig = informers.NewConfig(config)
 	if ds == nil {
-		ds, err = datasource.NewInformerDatasource(config.ConfigPath, infConfig, opMetrics)
+		ds, err = datasource.NewInformerDatasource(config.ConfigPath, &infConfig, opMetrics)
 	}
 	return err
 }
