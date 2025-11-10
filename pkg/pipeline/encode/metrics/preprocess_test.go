@@ -42,3 +42,24 @@ func Test_Flatten(t *testing.T) {
 		},
 	}, fl)
 }
+
+func Test_ORedFilters(t *testing.T) {
+	// Several filters on the same key are ORed
+	pp := Preprocess(&api.MetricsItem{Filters: []api.MetricsFilter{
+		{
+			Key:  "label",
+			Type: api.MetricFilterAbsence,
+		},
+		{
+			Key:   "label",
+			Type:  api.MetricFilterRegex,
+			Value: "^EXT-.*",
+		},
+	}})
+	keep, _ := pp.ApplyFilters(config.GenericMap{"namespace": "A", "bytes": 7, "label": "Something"}, nil)
+	assert.False(t, keep)
+	keep, _ = pp.ApplyFilters(config.GenericMap{"namespace": "A", "bytes": 7, "label": "EXT-Something"}, nil)
+	assert.True(t, keep)
+	keep, _ = pp.ApplyFilters(config.GenericMap{"namespace": "A", "bytes": 7}, nil)
+	assert.True(t, keep)
+}
