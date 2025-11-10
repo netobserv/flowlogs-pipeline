@@ -55,7 +55,7 @@ var (
 type Interface interface {
 	IndexLookup([]cni.SecondaryNetKey, string) *model.ResourceMetaData
 	GetNodeByName(string) (*model.ResourceMetaData, error)
-	InitFromConfig(string, Config, *operational.Metrics) error
+	InitFromConfig(string, *Config, *operational.Metrics) error
 }
 
 type Informers struct {
@@ -65,7 +65,7 @@ type Informers struct {
 	nodes    cache.SharedIndexInformer
 	services cache.SharedIndexInformer
 	// replicaSets caches the ReplicaSets as partially-filled *ObjectMeta pointers
-	replicaSets      cache.SharedIndexInformer
+	replicaSets cache.SharedIndexInformer
 	// New informers for ownership tracking
 	deployments             cache.SharedIndexInformer
 	virtualMachineInstances cache.SharedIndexInformer
