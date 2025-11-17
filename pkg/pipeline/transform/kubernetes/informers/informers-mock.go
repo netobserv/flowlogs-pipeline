@@ -136,16 +136,6 @@ func (m *IndexerMock) MockReplicaSet(name, namespace, ownerName, ownerKind strin
 }
 
 func (m *IndexerMock) MockDeployment(name, namespace, ownerName, ownerKind string) {
-	m.On("GetByKey", namespace+"/"+name).Return(&metav1.ObjectMeta{
-		Name: name,
-		OwnerReferences: []metav1.OwnerReference{{
-			Kind: ownerKind,
-			Name: ownerName,
-		}},
-	}, true, nil)
-}
-
-func (m *IndexerMock) MockGateway(name, namespace, ownerName, ownerKind string) {
 	if ownerName == "" {
 		// No owner
 		m.On("GetByKey", namespace+"/"+name).Return(&metav1.ObjectMeta{
@@ -191,23 +181,21 @@ func SetupIndexerMocks(kd *Informers) (pods, nodes, svc, rs *IndexerMock) {
 	return
 }
 
-func SetupIndexerMocksWithTrackedKinds(kd *Informers, trackedKinds []string) (pods, nodes, svc, rs, deploy, gw *IndexerMock) {
+func SetupIndexerMocksWithTrackedKinds(kd *Informers, trackedKinds []string) (pods, nodes, svc, rs, deploy *IndexerMock) {
 	// Setup base informers
 	pods, nodes, svc, rs = SetupIndexerMocks(kd)
 
 	// Setup additional informers based on trackedKinds
 	for _, kind := range trackedKinds {
 		switch kind {
-		case "Deployment":
-			deploy = &IndexerMock{}
-			dim := InformerMock{}
-			dim.On("GetIndexer").Return(deploy)
-			kd.deployments = &dim
-		case "Gateway":
-			gw = &IndexerMock{}
-			gim := InformerMock{}
-			gim.On("GetIndexer").Return(gw)
-			kd.gateways = &gim
+		case "Deployment", "Gateway":
+			// Gateway requires Deployment informer, so we initialize it for both
+			if deploy == nil {
+				deploy = &IndexerMock{}
+				dim := InformerMock{}
+				dim.On("GetIndexer").Return(deploy)
+				kd.deployments = &dim
+			}
 		}
 	}
 	return

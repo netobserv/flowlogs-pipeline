@@ -68,7 +68,6 @@ type Informers struct {
 	replicaSets cache.SharedIndexInformer
 	// New informers for ownership tracking
 	deployments cache.SharedIndexInformer
-	gateways    cache.SharedIndexInformer
 	// Config and channels
 	config           Config
 	stopChan         chan struct{}
@@ -267,8 +266,6 @@ func (k *Informers) getOwnerFromInformer(kind, namespace, name string) *OwnerInf
 		informer = k.replicaSets
 	case "Deployment":
 		informer = k.deployments
-	case "Gateway":
-		informer = k.gateways
 	default:
 		return nil
 	}
@@ -507,29 +504,6 @@ func (k *Informers) initDeploymentInformer(informerFactory metadatainformer.Shar
 	return nil
 }
 
-func (k *Informers) initGatewayInformer(informerFactory metadatainformer.SharedInformerFactory) error {
-	k.gateways = informerFactory.ForResource(
-		schema.GroupVersionResource{
-			Group:    "gateway.networking.k8s.io",
-			Version:  "v1",
-			Resource: "gateways",
-		}).Informer()
-	if err := k.gateways.SetTransform(func(i interface{}) (interface{}, error) {
-		gw, ok := i.(*metav1.PartialObjectMetadata)
-		if !ok {
-			return nil, fmt.Errorf("was expecting a Gateway. Got: %T", i)
-		}
-		return &metav1.ObjectMeta{
-			Name:            gw.Name,
-			Namespace:       gw.Namespace,
-			OwnerReferences: gw.OwnerReferences,
-		}, nil
-	}); err != nil {
-		return fmt.Errorf("can't set Gateways transform: %w", err)
-	}
-	return nil
-}
-
 func (k *Informers) InitFromConfig(kubeconfig string, infConfig *Config, opMetrics *operational.Metrics) error {
 	// Initialization variables
 	k.config = *infConfig
@@ -588,14 +562,10 @@ func (k *Informers) initInformers(client kubernetes.Interface, metaClient metada
 	// Initialize additional informers based on trackedKinds configuration
 	for _, kind := range cfg.trackedKinds {
 		switch kind {
-		case "Deployment":
+		case "Deployment", "Gateway":
+			// Gateway requires Deployment informer to navigate ownership chain
 			log.Debugf("initializing Deployment informer (trackedKinds)")
 			if err := k.initDeploymentInformer(metadataInformerFactory); err != nil {
-				return err
-			}
-		case "Gateway":
-			log.Debugf("initializing Gateway informer (trackedKinds)")
-			if err := k.initGatewayInformer(metadataInformerFactory); err != nil {
 				return err
 			}
 		}

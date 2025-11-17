@@ -132,13 +132,12 @@ func TestOwnershipTracking_GatewayAPI(t *testing.T) {
 		},
 	}
 
-	pidx, hidx, sidx, ridx, didx, gwidx := SetupIndexerMocksWithTrackedKinds(&kubeData, []string{"Deployment", "Gateway"})
+	pidx, hidx, sidx, ridx, didx := SetupIndexerMocksWithTrackedKinds(&kubeData, []string{"Deployment", "Gateway"})
 
 	// Setup mocks for the ownership chain
 	ridx.MockReplicaSet("rs1", "test-ns", "deploy1", "Deployment")
 	ridx.FallbackNotFound()
 	didx.MockDeployment("deploy1", "test-ns", "gateway1", "Gateway")
-	gwidx.MockGateway("gateway1", "test-ns", "", "") // Gateway has no owner
 
 	pidx.MockPod("1.2.3.4", "", "", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet")
 	pidx.FallbackNotFound()
@@ -159,11 +158,11 @@ func TestOwnershipTracking_OnlyDeployment(t *testing.T) {
 	kubeData := Informers{
 		indexerHitMetric: metrics.CreateIndexerHitCounter(),
 		config: Config{
-			trackedKinds: []string{"ReplicaSet", "Deployment"}, // Gateway NOT tracked
+			trackedKinds: []string{"Deployment"}, // Gateway NOT tracked
 		},
 	}
 
-	pidx, hidx, sidx, ridx, didx, _ := SetupIndexerMocksWithTrackedKinds(&kubeData, []string{"Deployment"})
+	pidx, hidx, sidx, ridx, didx := SetupIndexerMocksWithTrackedKinds(&kubeData, []string{"Deployment"})
 
 	ridx.MockReplicaSet("rs1", "test-ns", "deploy1", "Deployment")
 	ridx.FallbackNotFound()
@@ -216,17 +215,16 @@ func TestOwnershipTracking_MaxDepth(t *testing.T) {
 	kubeData := Informers{
 		indexerHitMetric: metrics.CreateIndexerHitCounter(),
 		config: Config{
-			trackedKinds: []string{"ReplicaSet", "Deployment", "Gateway"},
+			trackedKinds: []string{"Deployment", "Gateway"},
 		},
 	}
 
-	pidx, hidx, sidx, ridx, didx, gwidx := SetupIndexerMocksWithTrackedKinds(&kubeData, []string{"Deployment", "Gateway"})
+	pidx, hidx, sidx, ridx, didx := SetupIndexerMocksWithTrackedKinds(&kubeData, []string{"Deployment", "Gateway"})
 
 	ridx.MockReplicaSet("rs1", "test-ns", "deploy1", "Deployment")
 	ridx.FallbackNotFound()
+	// Deployment owned by Gateway (which we can't traverse further without Gateway informer)
 	didx.MockDeployment("deploy1", "test-ns", "gateway1", "Gateway")
-	// Gateway has another owner (hypothetical 4th level) - should be ignored
-	gwidx.MockGateway("gateway1", "test-ns", "someother", "SomeKind")
 
 	pidx.MockPod("1.2.3.4", "", "", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet")
 	pidx.FallbackNotFound()
