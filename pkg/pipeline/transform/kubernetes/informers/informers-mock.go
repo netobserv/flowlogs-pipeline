@@ -163,24 +163,6 @@ func (m *IndexerMock) MockGateway(name, namespace, ownerName, ownerKind string) 
 	}
 }
 
-func (m *IndexerMock) MockVirtualMachineInstance(name, namespace, ownerName, ownerKind string) {
-	m.On("GetByKey", namespace+"/"+name).Return(&metav1.ObjectMeta{
-		Name: name,
-		OwnerReferences: []metav1.OwnerReference{{
-			Kind: ownerKind,
-			Name: ownerName,
-		}},
-	}, true, nil)
-}
-
-func (m *IndexerMock) MockVirtualMachine(name, namespace string) {
-	// VirtualMachine typically has no owner
-	m.On("GetByKey", namespace+"/"+name).Return(&metav1.ObjectMeta{
-		Name:            name,
-		OwnerReferences: []metav1.OwnerReference{},
-	}, true, nil)
-}
-
 func (m *IndexerMock) FallbackNotFound() {
 	m.On("ByIndex", IndexIP, mock.Anything).Return([]interface{}{}, nil)
 }
@@ -209,7 +191,7 @@ func SetupIndexerMocks(kd *Informers) (pods, nodes, svc, rs *IndexerMock) {
 	return
 }
 
-func SetupIndexerMocksWithTrackedKinds(kd *Informers, trackedKinds []string) (pods, nodes, svc, rs, deploy, gw, vmi, vm *IndexerMock) {
+func SetupIndexerMocksWithTrackedKinds(kd *Informers, trackedKinds []string) (pods, nodes, svc, rs, deploy, gw *IndexerMock) {
 	// Setup base informers
 	pods, nodes, svc, rs = SetupIndexerMocks(kd)
 
@@ -226,16 +208,6 @@ func SetupIndexerMocksWithTrackedKinds(kd *Informers, trackedKinds []string) (po
 			gim := InformerMock{}
 			gim.On("GetIndexer").Return(gw)
 			kd.gateways = &gim
-		case "VirtualMachineInstance":
-			vmi = &IndexerMock{}
-			vim := InformerMock{}
-			vim.On("GetIndexer").Return(vmi)
-			kd.virtualMachineInstances = &vim
-		case "VirtualMachine":
-			vm = &IndexerMock{}
-			vmim := InformerMock{}
-			vmim.On("GetIndexer").Return(vm)
-			kd.virtualMachines = &vmim
 		}
 	}
 	return

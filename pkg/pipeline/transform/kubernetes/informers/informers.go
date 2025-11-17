@@ -67,10 +67,8 @@ type Informers struct {
 	// replicaSets caches the ReplicaSets as partially-filled *ObjectMeta pointers
 	replicaSets cache.SharedIndexInformer
 	// New informers for ownership tracking
-	deployments             cache.SharedIndexInformer
-	virtualMachineInstances cache.SharedIndexInformer
-	virtualMachines         cache.SharedIndexInformer
-	gateways                cache.SharedIndexInformer
+	deployments cache.SharedIndexInformer
+	gateways    cache.SharedIndexInformer
 	// Config and channels
 	config           Config
 	stopChan         chan struct{}
@@ -271,10 +269,6 @@ func (k *Informers) getOwnerFromInformer(kind, namespace, name string) *OwnerInf
 		informer = k.deployments
 	case "Gateway":
 		informer = k.gateways
-	case "VirtualMachineInstance":
-		informer = k.virtualMachineInstances
-	case "VirtualMachine":
-		informer = k.virtualMachines
 	default:
 		return nil
 	}
@@ -536,52 +530,6 @@ func (k *Informers) initGatewayInformer(informerFactory metadatainformer.SharedI
 	return nil
 }
 
-func (k *Informers) initVirtualMachineInstanceInformer(informerFactory metadatainformer.SharedInformerFactory) error {
-	k.virtualMachineInstances = informerFactory.ForResource(
-		schema.GroupVersionResource{
-			Group:    "kubevirt.io",
-			Version:  "v1",
-			Resource: "virtualmachineinstances",
-		}).Informer()
-	if err := k.virtualMachineInstances.SetTransform(func(i interface{}) (interface{}, error) {
-		vmi, ok := i.(*metav1.PartialObjectMetadata)
-		if !ok {
-			return nil, fmt.Errorf("was expecting a VirtualMachineInstance. Got: %T", i)
-		}
-		return &metav1.ObjectMeta{
-			Name:            vmi.Name,
-			Namespace:       vmi.Namespace,
-			OwnerReferences: vmi.OwnerReferences,
-		}, nil
-	}); err != nil {
-		return fmt.Errorf("can't set VirtualMachineInstances transform: %w", err)
-	}
-	return nil
-}
-
-func (k *Informers) initVirtualMachineInformer(informerFactory metadatainformer.SharedInformerFactory) error {
-	k.virtualMachines = informerFactory.ForResource(
-		schema.GroupVersionResource{
-			Group:    "kubevirt.io",
-			Version:  "v1",
-			Resource: "virtualmachines",
-		}).Informer()
-	if err := k.virtualMachines.SetTransform(func(i interface{}) (interface{}, error) {
-		vm, ok := i.(*metav1.PartialObjectMetadata)
-		if !ok {
-			return nil, fmt.Errorf("was expecting a VirtualMachine. Got: %T", i)
-		}
-		return &metav1.ObjectMeta{
-			Name:            vm.Name,
-			Namespace:       vm.Namespace,
-			OwnerReferences: vm.OwnerReferences,
-		}, nil
-	}); err != nil {
-		return fmt.Errorf("can't set VirtualMachines transform: %w", err)
-	}
-	return nil
-}
-
 func (k *Informers) InitFromConfig(kubeconfig string, infConfig *Config, opMetrics *operational.Metrics) error {
 	// Initialization variables
 	k.config = *infConfig
@@ -648,16 +596,6 @@ func (k *Informers) initInformers(client kubernetes.Interface, metaClient metada
 		case "Gateway":
 			log.Debugf("initializing Gateway informer (trackedKinds)")
 			if err := k.initGatewayInformer(metadataInformerFactory); err != nil {
-				return err
-			}
-		case "VirtualMachineInstance":
-			log.Debugf("initializing VirtualMachineInstance informer (trackedKinds)")
-			if err := k.initVirtualMachineInstanceInformer(metadataInformerFactory); err != nil {
-				return err
-			}
-		case "VirtualMachine":
-			log.Debugf("initializing VirtualMachine informer (trackedKinds)")
-			if err := k.initVirtualMachineInformer(metadataInformerFactory); err != nil {
 				return err
 			}
 		}
