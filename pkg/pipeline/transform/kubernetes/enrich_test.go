@@ -883,3 +883,312 @@ func TestShouldInclude(t *testing.T) {
 		})
 	}
 }
+
+func TestTruncateWithSuffix(t *testing.T) {
+	maxLen10 := 10
+	maxLen0 := 0
+
+	tests := []struct {
+		name     string
+		input    string
+		maxLen   *int
+		suffix   string
+		expected string
+	}{
+		{
+			name:     "No max length - no truncation",
+			input:    "this is a long string",
+			maxLen:   nil,
+			suffix:   "...",
+			expected: "this is a long string",
+		},
+		{
+			name:     "String shorter than max - no truncation",
+			input:    "short",
+			maxLen:   &maxLen10,
+			suffix:   "...",
+			expected: "short",
+		},
+		{
+			name:     "String longer than max - truncate with suffix",
+			input:    "this is a very long string",
+			maxLen:   &maxLen10,
+			suffix:   "...",
+			expected: "this is...",
+		},
+		{
+			name:     "Max length 0 - return empty",
+			input:    "test",
+			maxLen:   &maxLen0,
+			suffix:   "...",
+			expected: "",
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			maxLen:   &maxLen10,
+			suffix:   "...",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := truncateWithSuffix(tt.input, tt.maxLen, tt.suffix)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestEnrich_LabelsValueTrimming(t *testing.T) {
+	testData := map[string]*model.ResourceMetaData{
+		"10.0.0.20": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "test-pod",
+				Namespace: "test-ns",
+				Labels: map[string]string{
+					"short":  "val",
+					"medium": "this is medium",
+					"long":   "this is a very long label value that should be trimmed",
+				},
+			},
+			Kind: "Pod",
+		},
+	}
+	setupStubs(testData, nil, nodes)
+
+	maxLen10 := 10
+	maxLen20 := 20
+
+	tests := []struct {
+		name             string
+		labelValueMaxLen *int
+		expectedLabels   map[string]string
+	}{
+		{
+			name:             "No trimming",
+			labelValueMaxLen: nil,
+			expectedLabels: map[string]string{
+				"k8s_labels_short":  "val",
+				"k8s_labels_medium": "this is medium",
+				"k8s_labels_long":   "this is a very long label value that should be trimmed",
+			},
+		},
+		{
+			name:             "Trim to 10 chars",
+			labelValueMaxLen: &maxLen10,
+			expectedLabels: map[string]string{
+				"k8s_labels_short":  "val",
+				"k8s_labels_medium": "this is...",
+				"k8s_labels_long":   "this is...",
+			},
+		},
+		{
+			name:             "Trim to 20 chars",
+			labelValueMaxLen: &maxLen20,
+			expectedLabels: map[string]string{
+				"k8s_labels_short":  "val",
+				"k8s_labels_medium": "this is medium",
+				"k8s_labels_long":   "this is a very lo...",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule := api.TransformNetwork{
+				Rules: api.NetworkTransformRules{{
+					Type: api.NetworkAddKubernetes,
+					Kubernetes: &api.K8sRule{
+						IPField:             "SrcAddr",
+						Output:              "k8s",
+						LabelsPrefix:        "k8s_labels",
+						LabelValueMaxLength: tt.labelValueMaxLen,
+					},
+				}},
+			}
+			rule.Preprocess()
+
+			entry := config.GenericMap{"SrcAddr": "10.0.0.20"}
+			Enrich(entry, rule.Rules[0].Kubernetes)
+
+			for k, v := range tt.expectedLabels {
+				assert.Equal(t, v, entry[k])
+			}
+		})
+	}
+}
+
+func TestEnrich_AnnotationsValueTrimming(t *testing.T) {
+	testData := map[string]*model.ResourceMetaData{
+		"10.0.0.21": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "test-pod",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					"short":  "val",
+					"medium": "this is medium",
+					"long":   "this is a very long annotation value that should be trimmed",
+				},
+			},
+			Kind: "Pod",
+		},
+	}
+	setupStubs(testData, nil, nodes)
+
+	maxLen10 := 10
+	maxLen20 := 20
+
+	tests := []struct {
+		name                  string
+		annotationValueMaxLen *int
+		expectedAnnotations   map[string]string
+	}{
+		{
+			name:                  "No trimming",
+			annotationValueMaxLen: nil,
+			expectedAnnotations: map[string]string{
+				"k8s_annotations_short":  "val",
+				"k8s_annotations_medium": "this is medium",
+				"k8s_annotations_long":   "this is a very long annotation value that should be trimmed",
+			},
+		},
+		{
+			name:                  "Trim to 10 chars",
+			annotationValueMaxLen: &maxLen10,
+			expectedAnnotations: map[string]string{
+				"k8s_annotations_short":  "val",
+				"k8s_annotations_medium": "this is...",
+				"k8s_annotations_long":   "this is...",
+			},
+		},
+		{
+			name:                  "Trim to 20 chars",
+			annotationValueMaxLen: &maxLen20,
+			expectedAnnotations: map[string]string{
+				"k8s_annotations_short":  "val",
+				"k8s_annotations_medium": "this is medium",
+				"k8s_annotations_long":   "this is a very lo...",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule := api.TransformNetwork{
+				Rules: api.NetworkTransformRules{{
+					Type: api.NetworkAddKubernetes,
+					Kubernetes: &api.K8sRule{
+						IPField:                  "SrcAddr",
+						Output:                   "k8s",
+						AnnotationsPrefix:        "k8s_annotations",
+						AnnotationValueMaxLength: tt.annotationValueMaxLen,
+					},
+				}},
+			}
+			rule.Preprocess()
+
+			entry := config.GenericMap{"SrcAddr": "10.0.0.21"}
+			Enrich(entry, rule.Rules[0].Kubernetes)
+
+			for k, v := range tt.expectedAnnotations {
+				assert.Equal(t, v, entry[k])
+			}
+		})
+	}
+}
+
+func TestEnrich_LabelsAndAnnotationsTrimming_Combined(t *testing.T) {
+	testData := map[string]*model.ResourceMetaData{
+		"10.0.0.22": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "test-pod",
+				Namespace: "test-ns",
+				Labels: map[string]string{
+					"app":     "myapp-with-very-long-name",
+					"version": "v1",
+				},
+				Annotations: map[string]string{
+					"description": "This is a very long description that should be trimmed",
+					"owner":       "team-backend",
+				},
+			},
+			Kind: "Pod",
+		},
+	}
+	setupStubs(testData, nil, nodes)
+
+	maxLen15 := 15
+	maxLen20 := 20
+
+	tests := []struct {
+		name                  string
+		labelValueMaxLen      *int
+		annotationValueMaxLen *int
+		labelInclusions       []string
+		expectedLabels        map[string]string
+		expectedAnnotations   map[string]string
+		notExpect             []string
+	}{
+		{
+			name:                  "Trim both with different max lengths",
+			labelValueMaxLen:      &maxLen15,
+			annotationValueMaxLen: &maxLen20,
+			expectedLabels: map[string]string{
+				"k8s_labels_app":     "myapp-with-v...",
+				"k8s_labels_version": "v1",
+			},
+			expectedAnnotations: map[string]string{
+				"k8s_annotations_description": "This is a very lo...",
+				"k8s_annotations_owner":       "team-backend",
+			},
+		},
+		{
+			name:                  "Trim with filtering",
+			labelValueMaxLen:      &maxLen15,
+			annotationValueMaxLen: &maxLen20,
+			labelInclusions:       []string{"app"},
+			expectedLabels: map[string]string{
+				"k8s_labels_app": "myapp-with-v...",
+			},
+			expectedAnnotations: map[string]string{
+				"k8s_annotations_description": "This is a very lo...",
+				"k8s_annotations_owner":       "team-backend",
+			},
+			notExpect: []string{"k8s_labels_version"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule := api.TransformNetwork{
+				Rules: api.NetworkTransformRules{{
+					Type: api.NetworkAddKubernetes,
+					Kubernetes: &api.K8sRule{
+						IPField:                  "SrcAddr",
+						Output:                   "k8s",
+						LabelsPrefix:             "k8s_labels",
+						LabelValueMaxLength:      tt.labelValueMaxLen,
+						LabelInclusions:          tt.labelInclusions,
+						AnnotationsPrefix:        "k8s_annotations",
+						AnnotationValueMaxLength: tt.annotationValueMaxLen,
+					},
+				}},
+			}
+			rule.Preprocess()
+
+			entry := config.GenericMap{"SrcAddr": "10.0.0.22"}
+			Enrich(entry, rule.Rules[0].Kubernetes)
+
+			for k, v := range tt.expectedLabels {
+				assert.Equal(t, v, entry[k])
+			}
+			for k, v := range tt.expectedAnnotations {
+				assert.Equal(t, v, entry[k])
+			}
+			for _, k := range tt.notExpect {
+				assert.NotContains(t, entry, k)
+			}
+		})
+	}
+}

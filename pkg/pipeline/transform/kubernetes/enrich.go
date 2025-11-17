@@ -15,6 +15,10 @@ import (
 var ds *datasource.Datasource
 var infConfig informers.Config
 
+const (
+	truncateSuffix = "..."
+)
+
 // For testing
 func MockInformers() {
 	infConfig = informers.NewConfig(api.NetworkTransformKubeConfig{})
@@ -55,14 +59,22 @@ func Enrich(outputEntry config.GenericMap, rule *api.K8sRule) {
 	if rule.LabelsPrefix != "" {
 		for labelKey, labelValue := range kubeInfo.Labels {
 			if shouldInclude(labelKey, rule.LabelInclusionsMap, rule.LabelExclusionsMap) {
-				outputEntry[rule.LabelsPrefix+"_"+labelKey] = labelValue
+				outputEntry[rule.LabelsPrefix+"_"+labelKey] = truncateWithSuffix(
+					labelValue,
+					rule.LabelValueMaxLength,
+					truncateSuffix,
+				)
 			}
 		}
 	}
 	if rule.AnnotationsPrefix != "" {
 		for annotationKey, annotationValue := range kubeInfo.Annotations {
 			if shouldInclude(annotationKey, rule.AnnotationInclusionsMap, rule.AnnotationExclusionsMap) {
-				outputEntry[rule.AnnotationsPrefix+"_"+annotationKey] = annotationValue
+				outputEntry[rule.AnnotationsPrefix+"_"+annotationKey] = truncateWithSuffix(
+					annotationValue,
+					rule.AnnotationValueMaxLength,
+					truncateSuffix,
+				)
 			}
 		}
 	}
@@ -162,4 +174,25 @@ func shouldInclude(key string, inclusions, exclusions map[string]struct{}) bool 
 		return included
 	}
 	return true
+}
+
+// truncateWithSuffix truncates s to max runes, including the suffix.
+func truncateWithSuffix(s string, max *int, suffix string) string {
+	if max == nil {
+		return s
+	}
+	m := *max
+	if m <= 0 {
+		return ""
+	}
+	r := []rune(s)
+	sr := []rune(suffix)
+	if len(r) <= m {
+		return s
+	}
+	if m <= len(sr) {
+		return string(sr[:m])
+	}
+	keep := m - len(sr)
+	return string(r[:keep]) + suffix
 }
