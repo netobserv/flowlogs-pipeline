@@ -169,6 +169,9 @@ coverage-report-html: ## Generate HTML coverage report
 tests-fast: TEST_OPTS=
 tests-fast: tests-unit ## Fast unit tests (no race tests / coverage)
 
+.PHONY: test
+test: tests-fast
+
 .PHONY: tests-e2e
 tests-e2e: prereqs-kind  ## End-to-end tests
 	go test -p 1 -v -timeout 20m $$(go list ./... | grep  /e2e)
