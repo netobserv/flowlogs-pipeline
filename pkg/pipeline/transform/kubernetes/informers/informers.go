@@ -561,8 +561,7 @@ func (k *Informers) initInformers(client kubernetes.Interface, metaClient metada
 
 	// Initialize additional informers based on trackedKinds configuration
 	for _, kind := range cfg.trackedKinds {
-		switch kind {
-		case "Deployment":
+		if kind == "Deployment" {
 			// Gateway requires Deployment informer to navigate ownership chain
 			log.Debugf("initializing Deployment informer (trackedKinds)")
 			if err := k.initDeploymentInformer(metadataInformerFactory); err != nil {
