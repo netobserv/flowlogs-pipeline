@@ -18,6 +18,7 @@
 package encode
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -28,7 +29,6 @@ import (
 	kafkago "github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/context"
 )
 
 const testKafkaConfig = `---
