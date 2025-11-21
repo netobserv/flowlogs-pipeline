@@ -581,3 +581,614 @@ func TestEnrichUsingUDN(t *testing.T) {
 		"DstK8s_NetworkName": "ns-2/primary-udn",
 	}, entry)
 }
+
+func TestEnrich_LabelsAndAnnotationsPrefixes(t *testing.T) {
+	testData := map[string]*model.ResourceMetaData{
+		"10.0.0.10": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "test-pod",
+				Namespace: "test-ns",
+				Labels:    map[string]string{"app": "web", "tier": "backend"},
+				Annotations: map[string]string{
+					"owner":                "team-a",
+					"prometheus.io/scrape": "true",
+				},
+			},
+			Kind: "Pod",
+		},
+	}
+	setupStubs(testData, nil, nodes)
+
+	tests := []struct {
+		name              string
+		labelsPrefix      string
+		annotationsPrefix string
+		expectLabels      map[string]string
+		expectAnnotations map[string]string
+		notExpect         []string
+	}{
+		{
+			name:              "both prefixes",
+			labelsPrefix:      "K8s_Labels",
+			annotationsPrefix: "K8s_Annotations",
+			expectLabels:      map[string]string{"K8s_Labels_app": "web", "K8s_Labels_tier": "backend"},
+			expectAnnotations: map[string]string{"K8s_Annotations_owner": "team-a", "K8s_Annotations_prometheus.io/scrape": "true"},
+		},
+		{
+			name:         "labels only",
+			labelsPrefix: "K8s_Labels",
+			expectLabels: map[string]string{"K8s_Labels_app": "web"},
+			notExpect:    []string{"K8s_Annotations_owner"},
+		},
+		{
+			name:              "annotations only",
+			annotationsPrefix: "K8s_Annotations",
+			expectAnnotations: map[string]string{"K8s_Annotations_owner": "team-a"},
+			notExpect:         []string{"K8s_Labels_app"},
+		},
+		{
+			name:      "no prefixes",
+			notExpect: []string{"K8s_Labels_app", "K8s_Annotations_owner"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule := api.TransformNetwork{
+				Rules: api.NetworkTransformRules{{
+					Type: api.NetworkAddKubernetes,
+					Kubernetes: &api.K8sRule{
+						IPField:           "SrcAddr",
+						Output:            "K8s",
+						LabelsPrefix:      tt.labelsPrefix,
+						AnnotationsPrefix: tt.annotationsPrefix,
+					},
+				}},
+			}
+			rule.Preprocess()
+
+			entry := config.GenericMap{"SrcAddr": "10.0.0.10"}
+			Enrich(entry, rule.Rules[0].Kubernetes)
+
+			assert.Equal(t, "test-pod", entry["K8s_Name"])
+			for k, v := range tt.expectLabels {
+				assert.Equal(t, v, entry[k])
+			}
+			for k, v := range tt.expectAnnotations {
+				assert.Equal(t, v, entry[k])
+			}
+			for _, k := range tt.notExpect {
+				assert.NotContains(t, entry, k)
+			}
+		})
+	}
+}
+
+func TestEnrich_LabelsAnnotationsFiltering(t *testing.T) {
+	testData := map[string]*model.ResourceMetaData{
+		"10.0.0.10": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "test-pod",
+				Namespace: "test-ns",
+				Labels: map[string]string{
+					"app":         "myapp",
+					"version":     "v1",
+					"environment": "prod",
+					"team":        "backend",
+				},
+				Annotations: map[string]string{
+					"annotation1": "value1",
+					"annotation2": "value2",
+					"annotation3": "value3",
+					"annotation4": "value4",
+				},
+			},
+			Kind: "Pod",
+		},
+	}
+
+	setupStubs(testData, nil, nodes)
+
+	tests := []struct {
+		name                 string
+		labelsPrefix         string
+		labelInclusions      []string
+		labelExclusions      []string
+		annotationsPrefix    string
+		annotationInclusions []string
+		annotationExclusions []string
+		expectedLabels       []string
+		expectedAnnotations  []string
+		notExpect            []string
+	}{
+		{
+			name:                "No filtering - all labels and annotations included",
+			labelsPrefix:        "k8s_labels",
+			annotationsPrefix:   "k8s_annotations",
+			expectedLabels:      []string{"k8s_labels_app", "k8s_labels_version", "k8s_labels_environment", "k8s_labels_team"},
+			expectedAnnotations: []string{"k8s_annotations_annotation1", "k8s_annotations_annotation2", "k8s_annotations_annotation3", "k8s_annotations_annotation4"},
+		},
+		{
+			name:                "Only label inclusions specified",
+			labelsPrefix:        "k8s_labels",
+			labelInclusions:     []string{"app", "version"},
+			annotationsPrefix:   "k8s_annotations",
+			expectedLabels:      []string{"k8s_labels_app", "k8s_labels_version"},
+			expectedAnnotations: []string{"k8s_annotations_annotation1", "k8s_annotations_annotation2", "k8s_annotations_annotation3", "k8s_annotations_annotation4"},
+			notExpect:           []string{"k8s_labels_environment", "k8s_labels_team"},
+		},
+		{
+			name:                "Only label exclusions specified",
+			labelsPrefix:        "k8s_labels",
+			labelExclusions:     []string{"environment", "team"},
+			annotationsPrefix:   "k8s_annotations",
+			expectedLabels:      []string{"k8s_labels_app", "k8s_labels_version"},
+			expectedAnnotations: []string{"k8s_annotations_annotation1", "k8s_annotations_annotation2", "k8s_annotations_annotation3", "k8s_annotations_annotation4"},
+			notExpect:           []string{"k8s_labels_environment", "k8s_labels_team"},
+		},
+		{
+			name:                "Both label inclusions and exclusions - exclusions take precedence",
+			labelsPrefix:        "k8s_labels",
+			labelInclusions:     []string{"app", "version", "environment"},
+			labelExclusions:     []string{"environment"},
+			annotationsPrefix:   "k8s_annotations",
+			expectedLabels:      []string{"k8s_labels_app", "k8s_labels_version"},
+			expectedAnnotations: []string{"k8s_annotations_annotation1", "k8s_annotations_annotation2", "k8s_annotations_annotation3", "k8s_annotations_annotation4"},
+			notExpect:           []string{"k8s_labels_environment", "k8s_labels_team"},
+		},
+		{
+			name:                 "Only annotation inclusions specified",
+			labelsPrefix:         "k8s_labels",
+			annotationsPrefix:    "k8s_annotations",
+			annotationInclusions: []string{"annotation1", "annotation3"},
+			expectedLabels:       []string{"k8s_labels_app", "k8s_labels_version", "k8s_labels_environment", "k8s_labels_team"},
+			expectedAnnotations:  []string{"k8s_annotations_annotation1", "k8s_annotations_annotation3"},
+			notExpect:            []string{"k8s_annotations_annotation2", "k8s_annotations_annotation4"},
+		},
+		{
+			name:                 "Only annotation exclusions specified",
+			labelsPrefix:         "k8s_labels",
+			annotationsPrefix:    "k8s_annotations",
+			annotationExclusions: []string{"annotation2", "annotation4"},
+			expectedLabels:       []string{"k8s_labels_app", "k8s_labels_version", "k8s_labels_environment", "k8s_labels_team"},
+			expectedAnnotations:  []string{"k8s_annotations_annotation1", "k8s_annotations_annotation3"},
+			notExpect:            []string{"k8s_annotations_annotation2", "k8s_annotations_annotation4"},
+		},
+		{
+			name:                 "Both annotation inclusions and exclusions - exclusions take precedence",
+			labelsPrefix:         "k8s_labels",
+			annotationsPrefix:    "k8s_annotations",
+			annotationInclusions: []string{"annotation1", "annotation2", "annotation3"},
+			annotationExclusions: []string{"annotation2"},
+			expectedLabels:       []string{"k8s_labels_app", "k8s_labels_version", "k8s_labels_environment", "k8s_labels_team"},
+			expectedAnnotations:  []string{"k8s_annotations_annotation1", "k8s_annotations_annotation3"},
+			notExpect:            []string{"k8s_annotations_annotation2", "k8s_annotations_annotation4"},
+		},
+		{
+			name:                 "Combined filtering for both labels and annotations",
+			labelsPrefix:         "k8s_labels",
+			labelInclusions:      []string{"app", "version", "team"},
+			labelExclusions:      []string{"team"},
+			annotationsPrefix:    "k8s_annotations",
+			annotationInclusions: []string{"annotation1", "annotation2"},
+			annotationExclusions: []string{"annotation1"},
+			expectedLabels:       []string{"k8s_labels_app", "k8s_labels_version"},
+			expectedAnnotations:  []string{"k8s_annotations_annotation2"},
+			notExpect:            []string{"k8s_labels_environment", "k8s_labels_team", "k8s_annotations_annotation1", "k8s_annotations_annotation3", "k8s_annotations_annotation4"},
+		},
+		{
+			name:                 "Empty prefix - no labels or annotations added",
+			labelsPrefix:         "",
+			labelInclusions:      []string{"app"},
+			annotationsPrefix:    "",
+			annotationInclusions: []string{"annotation1"},
+			notExpect:            []string{"k8s_labels_app", "k8s_labels_version", "k8s_labels_environment", "k8s_labels_team", "k8s_annotations_annotation1", "k8s_annotations_annotation2", "k8s_annotations_annotation3", "k8s_annotations_annotation4"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule := api.TransformNetwork{
+				Rules: api.NetworkTransformRules{{
+					Type: api.NetworkAddKubernetes,
+					Kubernetes: &api.K8sRule{
+						IPField:              "SrcAddr",
+						Output:               "SrcK8s",
+						LabelsPrefix:         tt.labelsPrefix,
+						LabelInclusions:      tt.labelInclusions,
+						LabelExclusions:      tt.labelExclusions,
+						AnnotationsPrefix:    tt.annotationsPrefix,
+						AnnotationInclusions: tt.annotationInclusions,
+						AnnotationExclusions: tt.annotationExclusions,
+					},
+				}},
+			}
+			rule.Preprocess()
+
+			entry := config.GenericMap{
+				"SrcAddr": "10.0.0.10",
+			}
+
+			Enrich(entry, rule.Rules[0].Kubernetes)
+
+			for _, label := range tt.expectedLabels {
+				assert.Contains(t, entry, label, "Expected label %s to be present", label)
+			}
+			for _, annotation := range tt.expectedAnnotations {
+				assert.Contains(t, entry, annotation, "Expected annotation %s to be present", annotation)
+			}
+			for _, k := range tt.notExpect {
+				assert.NotContains(t, entry, k)
+			}
+		})
+	}
+}
+
+func TestShouldInclude(t *testing.T) {
+	tests := []struct {
+		name       string
+		key        string
+		inclusions map[string]struct{}
+		exclusions map[string]struct{}
+		expected   bool
+	}{
+		{
+			name:       "No inclusions or exclusions - should include",
+			key:        "test",
+			inclusions: map[string]struct{}{},
+			exclusions: map[string]struct{}{},
+			expected:   true,
+		},
+		{
+			name:       "Key in inclusions - should include",
+			key:        "test",
+			inclusions: map[string]struct{}{"test": {}},
+			exclusions: map[string]struct{}{},
+			expected:   true,
+		},
+		{
+			name:       "Key not in inclusions - should not include",
+			key:        "test",
+			inclusions: map[string]struct{}{"other": {}},
+			exclusions: map[string]struct{}{},
+			expected:   false,
+		},
+		{
+			name:       "Key in exclusions - should not include",
+			key:        "test",
+			inclusions: map[string]struct{}{},
+			exclusions: map[string]struct{}{"test": {}},
+			expected:   false,
+		},
+		{
+			name:       "Key in both inclusions and exclusions - exclusions win",
+			key:        "test",
+			inclusions: map[string]struct{}{"test": {}},
+			exclusions: map[string]struct{}{"test": {}},
+			expected:   false,
+		},
+		{
+			name:       "Key not in exclusions, no inclusions - should include",
+			key:        "test",
+			inclusions: map[string]struct{}{},
+			exclusions: map[string]struct{}{"other": {}},
+			expected:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := shouldInclude(tt.key, tt.inclusions, tt.exclusions)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestTruncateWithSuffix(t *testing.T) {
+	maxLen10 := 10
+	maxLen0 := 0
+
+	tests := []struct {
+		name     string
+		input    string
+		maxLen   *int
+		suffix   string
+		expected string
+	}{
+		{
+			name:     "No max length - no truncation",
+			input:    "this is a long string",
+			maxLen:   nil,
+			suffix:   "...",
+			expected: "this is a long string",
+		},
+		{
+			name:     "String shorter than max - no truncation",
+			input:    "short",
+			maxLen:   &maxLen10,
+			suffix:   "...",
+			expected: "short",
+		},
+		{
+			name:     "String longer than max - truncate with suffix",
+			input:    "this is a very long string",
+			maxLen:   &maxLen10,
+			suffix:   "...",
+			expected: "this is...",
+		},
+		{
+			name:     "Max length 0 - return empty",
+			input:    "test",
+			maxLen:   &maxLen0,
+			suffix:   "...",
+			expected: "",
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			maxLen:   &maxLen10,
+			suffix:   "...",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := truncateWithSuffix(tt.input, tt.maxLen, tt.suffix)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestEnrich_LabelsValueTrimming(t *testing.T) {
+	testData := map[string]*model.ResourceMetaData{
+		"10.0.0.20": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "test-pod",
+				Namespace: "test-ns",
+				Labels: map[string]string{
+					"short":  "val",
+					"medium": "this is medium",
+					"long":   "this is a very long label value that should be trimmed",
+				},
+			},
+			Kind: "Pod",
+		},
+	}
+	setupStubs(testData, nil, nodes)
+
+	maxLen10 := 10
+	maxLen20 := 20
+
+	tests := []struct {
+		name             string
+		labelValueMaxLen *int
+		expectedLabels   map[string]string
+	}{
+		{
+			name:             "No trimming",
+			labelValueMaxLen: nil,
+			expectedLabels: map[string]string{
+				"k8s_labels_short":  "val",
+				"k8s_labels_medium": "this is medium",
+				"k8s_labels_long":   "this is a very long label value that should be trimmed",
+			},
+		},
+		{
+			name:             "Trim to 10 chars",
+			labelValueMaxLen: &maxLen10,
+			expectedLabels: map[string]string{
+				"k8s_labels_short":  "val",
+				"k8s_labels_medium": "this is...",
+				"k8s_labels_long":   "this is...",
+			},
+		},
+		{
+			name:             "Trim to 20 chars",
+			labelValueMaxLen: &maxLen20,
+			expectedLabels: map[string]string{
+				"k8s_labels_short":  "val",
+				"k8s_labels_medium": "this is medium",
+				"k8s_labels_long":   "this is a very lo...",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule := api.TransformNetwork{
+				Rules: api.NetworkTransformRules{{
+					Type: api.NetworkAddKubernetes,
+					Kubernetes: &api.K8sRule{
+						IPField:             "SrcAddr",
+						Output:              "k8s",
+						LabelsPrefix:        "k8s_labels",
+						LabelValueMaxLength: tt.labelValueMaxLen,
+					},
+				}},
+			}
+			rule.Preprocess()
+
+			entry := config.GenericMap{"SrcAddr": "10.0.0.20"}
+			Enrich(entry, rule.Rules[0].Kubernetes)
+
+			for k, v := range tt.expectedLabels {
+				assert.Equal(t, v, entry[k])
+			}
+		})
+	}
+}
+
+func TestEnrich_AnnotationsValueTrimming(t *testing.T) {
+	testData := map[string]*model.ResourceMetaData{
+		"10.0.0.21": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "test-pod",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					"short":  "val",
+					"medium": "this is medium",
+					"long":   "this is a very long annotation value that should be trimmed",
+				},
+			},
+			Kind: "Pod",
+		},
+	}
+	setupStubs(testData, nil, nodes)
+
+	maxLen10 := 10
+	maxLen20 := 20
+
+	tests := []struct {
+		name                  string
+		annotationValueMaxLen *int
+		expectedAnnotations   map[string]string
+	}{
+		{
+			name:                  "No trimming",
+			annotationValueMaxLen: nil,
+			expectedAnnotations: map[string]string{
+				"k8s_annotations_short":  "val",
+				"k8s_annotations_medium": "this is medium",
+				"k8s_annotations_long":   "this is a very long annotation value that should be trimmed",
+			},
+		},
+		{
+			name:                  "Trim to 10 chars",
+			annotationValueMaxLen: &maxLen10,
+			expectedAnnotations: map[string]string{
+				"k8s_annotations_short":  "val",
+				"k8s_annotations_medium": "this is...",
+				"k8s_annotations_long":   "this is...",
+			},
+		},
+		{
+			name:                  "Trim to 20 chars",
+			annotationValueMaxLen: &maxLen20,
+			expectedAnnotations: map[string]string{
+				"k8s_annotations_short":  "val",
+				"k8s_annotations_medium": "this is medium",
+				"k8s_annotations_long":   "this is a very lo...",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule := api.TransformNetwork{
+				Rules: api.NetworkTransformRules{{
+					Type: api.NetworkAddKubernetes,
+					Kubernetes: &api.K8sRule{
+						IPField:                  "SrcAddr",
+						Output:                   "k8s",
+						AnnotationsPrefix:        "k8s_annotations",
+						AnnotationValueMaxLength: tt.annotationValueMaxLen,
+					},
+				}},
+			}
+			rule.Preprocess()
+
+			entry := config.GenericMap{"SrcAddr": "10.0.0.21"}
+			Enrich(entry, rule.Rules[0].Kubernetes)
+
+			for k, v := range tt.expectedAnnotations {
+				assert.Equal(t, v, entry[k])
+			}
+		})
+	}
+}
+
+func TestEnrich_LabelsAndAnnotationsTrimming_Combined(t *testing.T) {
+	testData := map[string]*model.ResourceMetaData{
+		"10.0.0.22": {
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "test-pod",
+				Namespace: "test-ns",
+				Labels: map[string]string{
+					"app":     "myapp-with-very-long-name",
+					"version": "v1",
+				},
+				Annotations: map[string]string{
+					"description": "This is a very long description that should be trimmed",
+					"owner":       "team-backend",
+				},
+			},
+			Kind: "Pod",
+		},
+	}
+	setupStubs(testData, nil, nodes)
+
+	maxLen15 := 15
+	maxLen20 := 20
+
+	tests := []struct {
+		name                  string
+		labelValueMaxLen      *int
+		annotationValueMaxLen *int
+		labelInclusions       []string
+		expectedLabels        map[string]string
+		expectedAnnotations   map[string]string
+		notExpect             []string
+	}{
+		{
+			name:                  "Trim both with different max lengths",
+			labelValueMaxLen:      &maxLen15,
+			annotationValueMaxLen: &maxLen20,
+			expectedLabels: map[string]string{
+				"k8s_labels_app":     "myapp-with-v...",
+				"k8s_labels_version": "v1",
+			},
+			expectedAnnotations: map[string]string{
+				"k8s_annotations_description": "This is a very lo...",
+				"k8s_annotations_owner":       "team-backend",
+			},
+		},
+		{
+			name:                  "Trim with filtering",
+			labelValueMaxLen:      &maxLen15,
+			annotationValueMaxLen: &maxLen20,
+			labelInclusions:       []string{"app"},
+			expectedLabels: map[string]string{
+				"k8s_labels_app": "myapp-with-v...",
+			},
+			expectedAnnotations: map[string]string{
+				"k8s_annotations_description": "This is a very lo...",
+				"k8s_annotations_owner":       "team-backend",
+			},
+			notExpect: []string{"k8s_labels_version"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule := api.TransformNetwork{
+				Rules: api.NetworkTransformRules{{
+					Type: api.NetworkAddKubernetes,
+					Kubernetes: &api.K8sRule{
+						IPField:                  "SrcAddr",
+						Output:                   "k8s",
+						LabelsPrefix:             "k8s_labels",
+						LabelValueMaxLength:      tt.labelValueMaxLen,
+						LabelInclusions:          tt.labelInclusions,
+						AnnotationsPrefix:        "k8s_annotations",
+						AnnotationValueMaxLength: tt.annotationValueMaxLen,
+					},
+				}},
+			}
+			rule.Preprocess()
+
+			entry := config.GenericMap{"SrcAddr": "10.0.0.22"}
+			Enrich(entry, rule.Rules[0].Kubernetes)
+
+			for k, v := range tt.expectedLabels {
+				assert.Equal(t, v, entry[k])
+			}
+			for k, v := range tt.expectedAnnotations {
+				assert.Equal(t, v, entry[k])
+			}
+			for _, k := range tt.notExpect {
+				assert.NotContains(t, entry, k)
+			}
+		})
+	}
+}

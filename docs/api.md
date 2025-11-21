@@ -265,7 +265,14 @@ Following is the supported API format for network transformations:
                      macField: entry MAC input field
                      output: entry output field
                      assignee: value needs to assign to output field
-                     labels_prefix: labels prefix to use to copy input lables, if empty labels will not be copied
+                     labels_prefix: labels prefix to use to copy input labels, if empty labels will not be copied
+                     label_inclusions: labels to include, if empty all labels will be included. Only used if labels_prefix is specified
+                     label_exclusions: labels to exclude, if empty no labels will be excluded. Only used if labels_prefix is specified
+                     label_value_max_length: label value max length, if specified, will trim label values to this length
+                     annotations_prefix: annotations prefix to use to copy input annotations, if empty annotations will not be copied
+                     annotation_inclusions: annotations to include, if empty all annotations will be included. Only used if annotations_prefix is specified
+                     annotation_exclusions: annotations to exclude, if empty no annotations will be excluded. Only used if annotations_prefix is specified
+                     annotation_value_max_length: annotation value max length, if specified, will trim annotation values to this length
                      add_zone: if true the rule will add the zone
                  add_subnet: Add subnet rule configuration
                      input: entry input field
