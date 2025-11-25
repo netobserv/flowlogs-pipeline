@@ -42,8 +42,8 @@ github.com/cenkalti/rpc2/jsonrpc
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/ebpf v0.19.0
-## explicit; go 1.23.0
+# github.com/cilium/ebpf v0.20.0
+## explicit; go 1.24.0
 github.com/cilium/ebpf
 github.com/cilium/ebpf/asm
 github.com/cilium/ebpf/btf
@@ -306,7 +306,7 @@ github.com/netobserv/loki-client-go/pkg/logproto
 github.com/netobserv/loki-client-go/pkg/metric
 github.com/netobserv/loki-client-go/pkg/metrics
 github.com/netobserv/loki-client-go/pkg/urlutil
-# github.com/netobserv/netobserv-ebpf-agent v1.10.0-community
+# github.com/netobserv/netobserv-ebpf-agent v1.10.0-community.0.20251125162210-4be10c36721e
 ## explicit; go 1.24.0
 github.com/netobserv/netobserv-ebpf-agent/pkg/decode
 github.com/netobserv/netobserv-ebpf-agent/pkg/ebpf
