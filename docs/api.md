@@ -303,6 +303,37 @@ Following is the supported API format for network transformations:
              flowDirectionField: field providing the flow direction in the input entries; it will be rewritten
              ifDirectionField: interface-level field for flow direction, to create in output
 </pre>
+## Transform Anomaly API
+Following is the supported API format for anomaly detection transformations:
+
+<pre>
+ anomaly:
+         algorithm: (enum) algorithm used to score anomalies: ewma or zscore
+         valueField: field containing the numeric value to evaluate
+         keyFields: list of fields combined to build the per-entity baseline key
+         windowSize: number of recent samples to keep for baseline statistics
+         baselineWindow: minimum number of samples before anomaly scores are emitted
+         sensitivity: threshold multiplier for flagging anomalies (e.g., z-score)
+         ewmaAlpha: smoothing factor for ewma algorithm; derived from windowSize if omitted
+</pre>
+
+Example pipeline stage:
+
+<pre>
+  - name: anomaly
+    transform:
+      type: anomaly
+      anomaly:
+        algorithm: zscore
+        valueField: bytes
+        keyFields: [srcIP, dstIP, proto]
+        windowSize: 20
+        baselineWindow: 5
+        sensitivity: 3
+</pre>
+The anomaly stage appends `anomaly_score`, `anomaly_type`, and `baseline_window` to each flow record. Scores reflect the chosen
+algorithm (EWMA or z-score); a warming-up period suppresses alerts until the baseline window is populated. Grafana users can
+alert on `anomaly_type != "normal"` or threshold `anomaly_score` using the emitted fields.
 ## Write Loki API
 Following is the supported API format for writing to loki:
 
