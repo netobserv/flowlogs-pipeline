@@ -91,6 +91,7 @@ func TestGRPC_FailExpectingMTLS(t *testing.T) {
 	)
 }
 
+// nolint:gocritic // hugeParam; don't care in tests
 func runGRPCTestForTLS(t *testing.T, certs tlsConfig, expectErrorContains string) {
 	port, err := test2.FreeTCPPort()
 	require.NoError(t, err)
