@@ -168,7 +168,7 @@ parameters:
 	// yield thread to allow pipe services correctly start
 	time.Sleep(10 * time.Millisecond)
 
-	flowSender, err := grpc.ConnectClient("127.0.0.1", port)
+	flowSender, err := grpc.ConnectClient("127.0.0.1", port, "", "", "")
 	require.NoError(t, err)
 	defer flowSender.Close()
 

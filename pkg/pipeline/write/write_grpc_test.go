@@ -13,7 +13,7 @@ import (
 func Test_WriteGRPC(t *testing.T) {
 	port, err := test.FreeTCPPort()
 	require.NoError(t, err)
-	cc, err := grpc.ConnectClient("127.0.0.1", port)
+	cc, err := grpc.ConnectClient("127.0.0.1", port, nil)
 	require.NoError(t, err)
 	ws := writeGRPC{
 		hostIP:     "127.0.0.1",

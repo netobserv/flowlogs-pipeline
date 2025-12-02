@@ -242,7 +242,7 @@ func Test_TLSConfigCA(t *testing.T) {
 
 func Test_MutualTLSConfig(t *testing.T) {
 	test.ResetPromRegistry()
-	ca, user, userKey, cleanup := test.CreateAllCerts(t)
+	ca, user, userKey, _, _, cleanup := test.CreateAllCerts(t)
 	defer cleanup()
 	stage := config.NewKafkaPipeline("ingest-kafka", api.IngestKafka{
 		Brokers: []string{"any"},

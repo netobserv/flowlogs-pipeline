@@ -23,7 +23,7 @@ func TestGRPCCommunication(t *testing.T) {
 	serverOut := make(chan *genericmap.Flow)
 	_, err = StartCollector(port, serverOut)
 	require.NoError(t, err)
-	cc, err := ConnectClient("127.0.0.1", port)
+	cc, err := ConnectClient("127.0.0.1", port, nil)
 	require.NoError(t, err)
 	client := cc.Client()
 
@@ -76,7 +76,7 @@ func TestConstructorOptions(t *testing.T) {
 			return handler(ctx, req)
 		})))
 	require.NoError(t, err)
-	cc, err := ConnectClient("127.0.0.1", port)
+	cc, err := ConnectClient("127.0.0.1", port, nil)
 	require.NoError(t, err)
 	client := cc.Client()
 
