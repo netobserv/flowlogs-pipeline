@@ -234,8 +234,9 @@ func (k *Informers) initNodeInformer(informerFactory inf.SharedInformerFactory, 
 
 		return &model.ResourceMetaData{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:   node.Name,
-				Labels: node.Labels,
+				Name:        node.Name,
+				Labels:      node.Labels,
+				Annotations: node.Annotations,
 			},
 			Kind:      model.KindNode,
 			OwnerName: node.Name,
@@ -294,6 +295,7 @@ func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory, c
 				Name:            pod.Name,
 				Namespace:       pod.Namespace,
 				Labels:          pod.Labels,
+				Annotations:     pod.Annotations,
 				OwnerReferences: pod.OwnerReferences,
 			},
 			Kind:             model.KindPod,
@@ -335,9 +337,10 @@ func (k *Informers) initServiceInformer(informerFactory inf.SharedInformerFactor
 		}
 		return &model.ResourceMetaData{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      svc.Name,
-				Namespace: svc.Namespace,
-				Labels:    svc.Labels,
+				Name:        svc.Name,
+				Namespace:   svc.Namespace,
+				Labels:      svc.Labels,
+				Annotations: svc.Annotations,
 			},
 			Kind:      model.KindService,
 			OwnerName: svc.Name,
