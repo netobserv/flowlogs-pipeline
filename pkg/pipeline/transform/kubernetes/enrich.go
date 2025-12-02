@@ -177,11 +177,11 @@ func shouldInclude(key string, inclusions, exclusions map[string]struct{}) bool 
 }
 
 // truncateWithSuffix truncates s to max runes, including the suffix.
-func truncateWithSuffix(s string, max *int, suffix string) string {
-	if max == nil {
+func truncateWithSuffix(s string, maxRunes *int, suffix string) string {
+	if maxRunes == nil {
 		return s
 	}
-	m := *max
+	m := *maxRunes
 	if m <= 0 {
 		return ""
 	}
