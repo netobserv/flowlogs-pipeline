@@ -3,17 +3,12 @@ approvers:
 - jpinsonneau
 - msherif1234
 - OlivierCazade
-- eranra
-- KalmanMeth
-- ronensc
+- luisjira
+- leandroberetta
 options: {}
 reviewers:
-- mariomac
 - jotak
 - jpinsonneau
 - msherif1234
 - OlivierCazade
 - stleerh
-- eranra
-- KalmanMeth
-- ronensc
