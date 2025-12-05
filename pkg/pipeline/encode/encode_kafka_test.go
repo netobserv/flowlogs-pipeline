@@ -122,7 +122,7 @@ func Test_TLSConfigCA(t *testing.T) {
 
 func Test_MutualTLSConfig(t *testing.T) {
 	test.ResetPromRegistry()
-	ca, user, userKey, cleanup := test.CreateAllCerts(t)
+	ca, user, userKey, _, _, cleanup := test.CreateAllCerts(t)
 	defer cleanup()
 	pipeline := config.NewIPFIXPipeline("ingest", api.IngestIpfix{})
 	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
