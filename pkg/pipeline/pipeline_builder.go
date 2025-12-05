@@ -450,6 +450,8 @@ func getTransformer(opMetrics *operational.Metrics, params config.StageParam) (t
 		transformer, err = transform.NewTransformFilter(params)
 	case api.NetworkType:
 		transformer, err = transform.NewTransformNetwork(params, opMetrics)
+	case api.AnomalyType:
+		transformer, err = transform.NewTransformAnomaly(params, opMetrics)
 	case api.NoneType:
 		transformer, err = transform.NewTransformNone()
 	default:
