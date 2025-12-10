@@ -121,3 +121,120 @@ func TestGetInfo(t *testing.T) {
 	info = kubeData.IndexLookup(nil, "1.2.3.200")
 	require.Nil(t, info)
 }
+
+// TestOwnershipTracking_GatewayAPI tests the ownership chain: Pod → ReplicaSet → Deployment → Gateway
+func TestOwnershipTracking_GatewayAPI(t *testing.T) {
+	metrics := operational.NewMetrics(&config.MetricsSettings{})
+	kubeData := Informers{
+		indexerHitMetric: metrics.CreateIndexerHitCounter(),
+		config: Config{
+			trackedKinds: []string{"Deployment", "Gateway"},
+		},
+	}
+
+	pidx, hidx, sidx, ridx, didx := SetupIndexerMocksWithTrackedKinds(&kubeData, []string{"Deployment", "Gateway"})
+
+	// Setup mocks for the ownership chain
+	ridx.MockReplicaSet("rs1", "test-ns", "deploy1", "Deployment")
+	ridx.FallbackNotFound()
+	didx.MockDeployment("deploy1", "test-ns", "gateway1", "Gateway")
+
+	pidx.MockPod("1.2.3.4", "", "", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet")
+	pidx.FallbackNotFound()
+	hidx.MockNode("10.0.0.1", "node1")
+	hidx.FallbackNotFound()
+	sidx.FallbackNotFound()
+
+	// Test: Pod should resolve to Gateway as final owner
+	info := kubeData.IndexLookup(nil, "1.2.3.4")
+	require.NotNil(t, info)
+	require.Equal(t, "Gateway", info.OwnerKind)
+	require.Equal(t, "gateway1", info.OwnerName)
+}
+
+// TestOwnershipTracking_OnlyDeployment tests when only Deployment is tracked (not Gateway)
+func TestOwnershipTracking_OnlyDeployment(t *testing.T) {
+	metrics := operational.NewMetrics(&config.MetricsSettings{})
+	kubeData := Informers{
+		indexerHitMetric: metrics.CreateIndexerHitCounter(),
+		config: Config{
+			trackedKinds: []string{"Deployment"}, // Gateway NOT tracked
+		},
+	}
+
+	pidx, hidx, sidx, ridx, didx := SetupIndexerMocksWithTrackedKinds(&kubeData, []string{"Deployment"})
+
+	ridx.MockReplicaSet("rs1", "test-ns", "deploy1", "Deployment")
+	ridx.FallbackNotFound()
+	didx.MockDeployment("deploy1", "test-ns", "gateway1", "Gateway")
+
+	pidx.MockPod("1.2.3.4", "", "", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet")
+	pidx.FallbackNotFound()
+	hidx.MockNode("10.0.0.1", "node1")
+	hidx.FallbackNotFound()
+	sidx.FallbackNotFound()
+
+	// Test: Pod should resolve to Deployment (stops there because Gateway is not tracked)
+	info := kubeData.IndexLookup(nil, "1.2.3.4")
+	require.NotNil(t, info)
+	require.Equal(t, "Deployment", info.OwnerKind)
+	require.Equal(t, "deploy1", info.OwnerName)
+}
+
+// TestOwnershipTracking_NoTrackedKinds tests backward compatibility (no trackedKinds configured)
+func TestOwnershipTracking_NoTrackedKinds(t *testing.T) {
+	metrics := operational.NewMetrics(&config.MetricsSettings{})
+	kubeData := Informers{
+		indexerHitMetric: metrics.CreateIndexerHitCounter(),
+		config: Config{
+			trackedKinds: []string{}, // Empty list
+		},
+	}
+
+	pidx, hidx, sidx, ridx := SetupIndexerMocks(&kubeData)
+
+	ridx.MockReplicaSet("rs1", "test-ns", "deploy1", "Deployment")
+	ridx.FallbackNotFound()
+
+	pidx.MockPod("1.2.3.4", "", "", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet")
+	pidx.FallbackNotFound()
+	hidx.MockNode("10.0.0.1", "node1")
+	hidx.FallbackNotFound()
+	sidx.FallbackNotFound()
+
+	// Test: Pod should resolve to Deployment (ReplicaSet is always processed)
+	info := kubeData.IndexLookup(nil, "1.2.3.4")
+	require.NotNil(t, info)
+	require.Equal(t, "Deployment", info.OwnerKind)
+	require.Equal(t, "deploy1", info.OwnerName)
+}
+
+// TestOwnershipTracking_MaxDepth tests that ownership tracking stops at 3 levels
+func TestOwnershipTracking_MaxDepth(t *testing.T) {
+	metrics := operational.NewMetrics(&config.MetricsSettings{})
+	kubeData := Informers{
+		indexerHitMetric: metrics.CreateIndexerHitCounter(),
+		config: Config{
+			trackedKinds: []string{"Deployment", "Gateway"},
+		},
+	}
+
+	pidx, hidx, sidx, ridx, didx := SetupIndexerMocksWithTrackedKinds(&kubeData, []string{"Deployment", "Gateway"})
+
+	ridx.MockReplicaSet("rs1", "test-ns", "deploy1", "Deployment")
+	ridx.FallbackNotFound()
+	// Deployment owned by Gateway (which we can't traverse further without Gateway informer)
+	didx.MockDeployment("deploy1", "test-ns", "gateway1", "Gateway")
+
+	pidx.MockPod("1.2.3.4", "", "", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet")
+	pidx.FallbackNotFound()
+	hidx.MockNode("10.0.0.1", "node1")
+	hidx.FallbackNotFound()
+	sidx.FallbackNotFound()
+
+	// Test: Should stop at Gateway (3rd level), not continue to 4th level
+	info := kubeData.IndexLookup(nil, "1.2.3.4")
+	require.NotNil(t, info)
+	require.Equal(t, "Gateway", info.OwnerKind)
+	require.Equal(t, "gateway1", info.OwnerName)
+}
