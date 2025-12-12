@@ -1,1 +1,52 @@
-bin/
+# More info: https://docs.docker.com/engine/reference/builder/#dockerignore-file
+
+# Build artifacts
+**/bin/
+flowlogs-pipeline
+confgenerator
+*.o
+*.tar
+*.tgz
+
+# Test files and directories
+**/*_test.go
+cover*.out
+test.out
+**/e2e/
+
+# Documentation
+**/docs/
+CONTRIBUTING.md
+*.md
+!README.md
+
+# Examples and contributions (not needed for build)
+**/contrib/
+**/hack/
+**/network_definitions/
+proto/
+
+# CI/CD and development files
+**/.git/
+.gitignore
+.gitattributes
+OWNERS
+renovate.json
+Makefile
+**/scripts/
+
+# Dockerfiles (not needed in build context)
+Dockerfile*
+!Dockerfile
+
+# IDE and editor files
+**/.vscode/
+**/.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+*.tmp
+*.log
