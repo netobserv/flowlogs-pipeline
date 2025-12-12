@@ -1,0 +1,27 @@
+---
+log-level: info
+pipeline:
+  - name: ingest
+  - name: detect-anomaly
+    follows: ingest
+  - name: write
+    follows: detect-anomaly
+parameters:
+  - name: ingest
+    ingest:
+      type: synthetic
+      synthetic:
+        flowLogsPerMin: 10
+  - name: detect-anomaly
+    transform:
+      type: anomaly
+      anomaly:
+        algorithm: zscore
+        valueField: Bytes
+        keyFields: [SrcAddr, DstAddr, Proto]
+        windowSize: 20
+        baselineWindow: 5
+        sensitivity: 3
+  - name: write
+    write:
+      type: stdout

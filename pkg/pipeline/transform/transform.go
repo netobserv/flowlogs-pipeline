@@ -45,6 +45,7 @@ type Definition struct {
 	Type    string
 	Generic api.TransformGeneric
 	Network api.TransformNetwork
+	Anomaly api.TransformAnomaly
 }
 
 type Definitions []Definition
