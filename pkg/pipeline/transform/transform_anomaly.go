@@ -27,6 +27,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -85,8 +86,14 @@ type Anomaly struct {
 	sensitivity    float64
 	alpha          float64
 	opMetrics      *operational.Metrics
+	errorsCounter  *prometheus.CounterVec
 }
-
+var anomalyErrorsCounter = operational.DefineMetric(
+	"transform_anomaly_errors",
+	"Counter of errors during anomaly transformation",
+	operational.TypeCounter,
+	"type", "field",
+)
 // NewTransformAnomaly creates a new anomaly transformer.
 func NewTransformAnomaly(params config.StageParam, opMetrics *operational.Metrics) (Transformer, error) {
 	anomalyConfig := api.TransformAnomaly{}
@@ -132,6 +139,7 @@ func NewTransformAnomaly(params config.StageParam, opMetrics *operational.Metric
 		sensitivity:    sensitivity,
 		alpha:          alpha,
 		opMetrics:      opMetrics,
+		errorsCounter:  opMetrics.NewCounterVec(&anomalyErrorsCounter),
 	}, nil
 }
 
@@ -139,7 +147,9 @@ func NewTransformAnomaly(params config.StageParam, opMetrics *operational.Metric
 func (a *Anomaly) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 	value, err := utils.ConvertToFloat64(entry[a.config.ValueField])
 	if err != nil {
-		anomalyLog.Errorf("unable to convert %s to float: %v", a.config.ValueField, err)
+	    if a.errorsCounter != nil {
+        		a.errorsCounter.WithLabelValues("ValueConversionError", a.config.ValueField).Inc()
+        	}
 		return entry, false
 	}
 	key := a.buildKey(entry)
