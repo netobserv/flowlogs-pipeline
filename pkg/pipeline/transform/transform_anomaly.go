@@ -219,7 +219,7 @@ func (a *Anomaly) scoreEWMA(state *anomalyState, value float64) (anomalyType, fl
 		stddev = math.Max(math.Abs(state.baseline)*1e-6, 1e-9)
 	}
 	score := math.Abs(deviation) / stddev
-	state.baseline = state.baseline + a.alpha*(value-state.baseline)
+	state.baseline += a.alpha*(value-state.baseline)
 	anomalyType := anomalyTypeNormal
 	if score >= a.sensitivity {
 		if deviation > 0 {
