@@ -38,6 +38,17 @@ const (
 
 var anomalyLog = logrus.WithField("component", "transform.Anomaly")
 
+type anomalyType string
+
+const (
+	anomalyTypeNormal     anomalyType = "normal"
+	anomalyTypeWarmingUp  anomalyType = "warming_up"
+	anomalyTypeEWMAHigh   anomalyType = "ewma_high"
+	anomalyTypeEWMALow    anomalyType = "ewma_low"
+	anomalyTypeZScoreHigh anomalyType = "zscore_high"
+	anomalyTypeZScoreLow  anomalyType = "zscore_low"
+)
+
 type anomalyState struct {
 	values      []float64
 	sum         float64
@@ -89,12 +100,14 @@ type Anomaly struct {
 	opMetrics      *operational.Metrics
 	errorsCounter  *prometheus.CounterVec
 }
+
 var anomalyErrorsCounter = operational.DefineMetric(
 	"transform_anomaly_errors",
 	"Counter of errors during anomaly transformation",
 	operational.TypeCounter,
 	"type", "field",
 )
+
 // NewTransformAnomaly creates a new anomaly transformer.
 func NewTransformAnomaly(params config.StageParam, opMetrics *operational.Metrics) (Transformer, error) {
 	anomalyConfig := api.TransformAnomaly{}
@@ -132,7 +145,7 @@ func NewTransformAnomaly(params config.StageParam, opMetrics *operational.Metric
 	}
 
 	outputPrefix := anomalyConfig.Prefix
-    	anomalyLog.Infof("NewTransformAnomaly algorithm=%s window=%d baselineWindow=%d prefix=%q", anomalyConfig.Algorithm, window, baselineWindow, outputPrefix)
+	anomalyLog.Infof("NewTransformAnomaly algorithm=%s window=%d baselineWindow=%d prefix=%q", anomalyConfig.Algorithm, window, baselineWindow, outputPrefix)
 	return &Anomaly{
 		states:         make(map[string]*anomalyState),
 		config:         anomalyConfig,
@@ -150,9 +163,9 @@ func NewTransformAnomaly(params config.StageParam, opMetrics *operational.Metric
 func (a *Anomaly) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 	value, err := utils.ConvertToFloat64(entry[a.config.ValueField])
 	if err != nil {
-	    if a.errorsCounter != nil {
-        			a.errorsCounter.WithLabelValues("ValueConversionError", a.config.ValueField).Inc()
-        		}
+		if a.errorsCounter != nil {
+			a.errorsCounter.WithLabelValues("ValueConversionError", a.config.ValueField).Inc()
+		}
 		return entry, false
 	}
 	key := a.buildKey(entry)
@@ -176,13 +189,13 @@ func (a *Anomaly) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 	return output, true
 }
 
-func (a *Anomaly) score(state *anomalyState, value float64) (string, float64) {
+func (a *Anomaly) score(state *anomalyState, value float64) (anomalyType, float64) {
 	if len(state.values) < a.baselineWindow {
 		if !state.initialized {
 			state.baseline = value
 			state.initialized = true
 		}
-		return "warming_up", 0
+		return anomalyTypeWarmingUp, 0
 	}
 
 	switch a.config.Algorithm {
@@ -195,7 +208,7 @@ func (a *Anomaly) score(state *anomalyState, value float64) (string, float64) {
 	}
 }
 
-func (a *Anomaly) scoreEWMA(state *anomalyState, value float64) (string, float64) {
+func (a *Anomaly) scoreEWMA(state *anomalyState, value float64) (anomalyType, float64) {
 	if !state.initialized {
 		state.baseline = value
 		state.initialized = true
@@ -207,30 +220,30 @@ func (a *Anomaly) scoreEWMA(state *anomalyState, value float64) (string, float64
 	}
 	score := math.Abs(deviation) / stddev
 	state.baseline = state.baseline + a.alpha*(value-state.baseline)
-	anomalyType := "normal"
+	anomalyType := anomalyTypeNormal
 	if score >= a.sensitivity {
 		if deviation > 0 {
-			anomalyType = "ewma_high"
+			anomalyType = anomalyTypeEWMAHigh
 		} else {
-			anomalyType = "ewma_low"
+			anomalyType = anomalyTypeEWMALow
 		}
 	}
 	return anomalyType, score
 }
 
-func (a *Anomaly) scoreZScore(state *anomalyState, value float64) (string, float64) {
+func (a *Anomaly) scoreZScore(state *anomalyState, value float64) (anomalyType, float64) {
 	mean := state.mean()
 	stddev := state.stddev()
 	if stddev == 0 {
 		stddev = math.Max(math.Abs(mean)*1e-6, 1e-9)
 	}
 	score := math.Abs(value-mean) / stddev
-	anomalyType := "normal"
+	anomalyType := anomalyTypeNormal
 	if score >= a.sensitivity {
 		if value > mean {
-			anomalyType = "zscore_high"
+			anomalyType = anomalyTypeZScoreHigh
 		} else {
-			anomalyType = "zscore_low"
+			anomalyType = anomalyTypeZScoreLow
 		}
 	}
 	return anomalyType, score
