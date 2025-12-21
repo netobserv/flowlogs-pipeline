@@ -90,16 +90,16 @@ func TestTransformAnomalyZScore(t *testing.T) {
 	for _, v := range []float64{100, 102, 98} {
 		out, ok := anomaly.Transform(baseFlow(v))
 		require.True(t, ok)
-		assert.Equal(t, "warming_up", out["anomaly_type"])
+		assert.Equal(t, anomalyTypeWarmingUp, out["anomaly_type"])
 	}
 
 	normalOut, ok := anomaly.Transform(baseFlow(101))
 	require.True(t, ok)
-	assert.Equal(t, "normal", normalOut["anomaly_type"])
+	assert.Equal(t, anomalyTypeNormal, normalOut["anomaly_type"])
 
 	anomalousOut, ok := anomaly.Transform(baseFlow(250))
 	require.True(t, ok)
-	assert.NotEqual(t, "normal", anomalousOut["anomaly_type"])
+	assert.NotEqual(t, anomalyTypeNormal, anomalousOut["anomaly_type"])
 	score := anomalousOut["anomaly_score"].(float64)
 	assert.GreaterOrEqual(t, score, anomaly.sensitivity)
 }
@@ -121,7 +121,7 @@ func TestTransformAnomalyReset(t *testing.T) {
 	anomaly.Reset()
 	out, ok := anomaly.Transform(flow)
 	require.True(t, ok)
-	assert.Equal(t, "warming_up", out["anomaly_type"])
+	assert.Equal(t, anomalyTypeWarmingUp, out["anomaly_type"])
 }
 
 func BenchmarkTransformAnomaly(b *testing.B) {
