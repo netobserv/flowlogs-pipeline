@@ -19,6 +19,7 @@ parameters:
         algorithm: zscore
         valueField: Bytes
         keyFields: [SrcAddr, DstAddr, Proto]
+        prefix: bytes_
         windowSize: 20
         baselineWindow: 5
         sensitivity: 3

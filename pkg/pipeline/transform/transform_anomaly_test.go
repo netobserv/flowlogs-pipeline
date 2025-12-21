@@ -45,6 +45,24 @@ parameters:
         sensitivity: 2.5
 `
 
+const testConfigTransformAnomalyPrefix = `---
+log-level: debug
+pipeline:
+  - name: anomaly1
+parameters:
+  - name: anomaly1
+    transform:
+      type: anomaly
+      anomaly:
+        algorithm: zscore
+        valueField: bytes
+        keyFields: [srcIP, dstIP]
+        windowSize: 5
+        baselineWindow: 3
+        sensitivity: 2.5
+        prefix: custom_
+        `
+
 func initNewTransformAnomaly(t *testing.T, configFile string) *Anomaly {
 	v, cfg := test.InitConfig(t, configFile)
 	require.NotNil(t, v)
@@ -84,6 +102,14 @@ func TestTransformAnomalyZScore(t *testing.T) {
 	assert.NotEqual(t, "normal", anomalousOut["anomaly_type"])
 	score := anomalousOut["anomaly_score"].(float64)
 	assert.GreaterOrEqual(t, score, anomaly.sensitivity)
+}
+func TestTransformAnomalyWithPrefix(t *testing.T) {
+	anomaly := initNewTransformAnomaly(t, testConfigTransformAnomalyPrefix)
+	out, ok := anomaly.Transform(config.GenericMap{"srcIP": "1.1.1.1", "dstIP": "2.2.2.2", "bytes": 50})
+	require.True(t, ok)
+	assert.Contains(t, out, "custom_anomaly_score")
+	assert.Contains(t, out, "custom_anomaly_type")
+	assert.Contains(t, out, "custom_baseline_window")
 }
 
 func TestTransformAnomalyReset(t *testing.T) {

@@ -85,6 +85,7 @@ type Anomaly struct {
 	baselineWindow int
 	sensitivity    float64
 	alpha          float64
+	outputPrefix   string
 	opMetrics      *operational.Metrics
 	errorsCounter  *prometheus.CounterVec
 }
@@ -130,7 +131,8 @@ func NewTransformAnomaly(params config.StageParam, opMetrics *operational.Metric
 		anomalyConfig.Algorithm = api.AnomalyAlgorithmZScore
 	}
 
-	anomalyLog.Infof("NewTransformAnomaly algorithm=%s window=%d baselineWindow=%d", anomalyConfig.Algorithm, window, baselineWindow)
+	outputPrefix := anomalyConfig.Prefix
+    	anomalyLog.Infof("NewTransformAnomaly algorithm=%s window=%d baselineWindow=%d prefix=%q", anomalyConfig.Algorithm, window, baselineWindow, outputPrefix)
 	return &Anomaly{
 		states:         make(map[string]*anomalyState),
 		config:         anomalyConfig,
@@ -138,6 +140,7 @@ func NewTransformAnomaly(params config.StageParam, opMetrics *operational.Metric
 		baselineWindow: baselineWindow,
 		sensitivity:    sensitivity,
 		alpha:          alpha,
+		outputPrefix:   outputPrefix,
 		opMetrics:      opMetrics,
 		errorsCounter:  opMetrics.NewCounterVec(&anomalyErrorsCounter),
 	}, nil
@@ -148,8 +151,8 @@ func (a *Anomaly) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 	value, err := utils.ConvertToFloat64(entry[a.config.ValueField])
 	if err != nil {
 	    if a.errorsCounter != nil {
-        		a.errorsCounter.WithLabelValues("ValueConversionError", a.config.ValueField).Inc()
-        	}
+        			a.errorsCounter.WithLabelValues("ValueConversionError", a.config.ValueField).Inc()
+        		}
 		return entry, false
 	}
 	key := a.buildKey(entry)
@@ -166,9 +169,9 @@ func (a *Anomaly) Transform(entry config.GenericMap) (config.GenericMap, bool) {
 	a.mu.Unlock()
 
 	output := entry.Copy()
-	output["anomaly_score"] = score
-	output["anomaly_type"] = anomalyType
-	output["baseline_window"] = stateSize
+	output[a.outputField("anomaly_score")] = score
+	output[a.outputField("anomaly_type")] = anomalyType
+	output[a.outputField("baseline_window")] = stateSize
 
 	return output, true
 }
@@ -243,6 +246,9 @@ func (a *Anomaly) buildKey(entry config.GenericMap) string {
 		}
 	}
 	return strings.Join(parts, "|")
+}
+func (a *Anomaly) outputField(name string) string {
+	return a.outputPrefix + name
 }
 
 // Reset clears the internal state; useful for tests.
