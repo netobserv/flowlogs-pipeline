@@ -237,7 +237,7 @@ func (a *Anomaly) buildKey(entry config.GenericMap) string {
 	parts := make([]string, 0, len(a.config.KeyFields))
 	for _, key := range a.config.KeyFields {
 		if val, ok := entry[key]; ok {
-			parts = append(parts, fmt.Sprint(val))
+			parts = append(parts, utils.ConvertToString(val))
 		} else {
 			parts = append(parts, "<missing>")
 		}
