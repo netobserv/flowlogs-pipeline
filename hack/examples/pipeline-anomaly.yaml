@@ -1,11 +1,27 @@
----
 log-level: info
 pipeline:
   - name: ingest
   - name: detect-anomaly
     follows: ingest
-  - name: write
+  - name: write_stdout   # for debugging
     follows: detect-anomaly
+  # Uncomment for production: export anomaly metrics to Prometheus
+  # - name: write_metrics
+  #   follows: detect-anomaly
+  #   write:
+  #     type: prometheus
+  #     prometheus:
+  #       port: 9102
+  #       prefix: flowlogs_pipeline_
+  #       metrics:
+  #         - name: anomaly_score
+  #           type: gauge
+  #           valueKey: bytes_anomaly_score
+  #           labels:
+  #             - SrcAddr
+  #             - DstAddr
+  #             - Proto
+  #             - anomaly_type
 parameters:
   - name: ingest
     ingest:
@@ -23,6 +39,6 @@ parameters:
         windowSize: 20
         baselineWindow: 5
         sensitivity: 3
-  - name: write
+  - name: write_stdout
     write:
       type: stdout
