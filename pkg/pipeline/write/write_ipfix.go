@@ -53,7 +53,8 @@ type FieldMap struct {
 const IPv6Type uint16 = 0x86DD
 
 var (
-	ilog       = logrus.WithField("component", "write.Ipfix")
+	ilog = logrus.WithField("component", "write.Ipfix")
+	// See RFC 5102: https://www.rfc-editor.org/rfc/rfc5102
 	IANAFields = []string{
 		"ethernetType",
 		"flowDirection",
@@ -94,6 +95,16 @@ var (
 		{Name: "timeFlowRttNs", ElementId: 7740, DataType: entities.Unsigned64, Len: 8},
 		{Name: "interfaces", ElementId: 7741, DataType: entities.String, Len: 65535},
 		{Name: "directions", ElementId: 7742, DataType: entities.String, Len: 65535},
+		{Name: "xlatSourcePort", ElementId: 7743, DataType: entities.Unsigned16, Len: 2},
+		{Name: "xlatDestinationPort", ElementId: 7744, DataType: entities.Unsigned16, Len: 2},
+	}
+	CustomNetworkFieldsV4 = []entities.InfoElement{
+		{Name: "xlatSourceIPv4Address", ElementId: 7745, DataType: entities.Ipv4Address, Len: 4},
+		{Name: "xlatDestinationIPv4Address", ElementId: 7746, DataType: entities.Ipv4Address, Len: 4},
+	}
+	CustomNetworkFieldsV6 = []entities.InfoElement{
+		{Name: "xlatSourceIPv6Address", ElementId: 7747, DataType: entities.Ipv6Address, Len: 16},
+		{Name: "xlatDestinationIPv6Address", ElementId: 7748, DataType: entities.Ipv6Address, Len: 16},
 	}
 
 	MapIPFIXKeys = map[string]FieldMap{
@@ -320,6 +331,36 @@ var (
 			Getter: func(elt entities.InfoElementWithValue) any { return int64(elt.GetUnsigned64Value()) },
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(int64))) },
 		},
+		"xlatSourcePort": {
+			Key:    "XlatSrcPort",
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
+		},
+		"xlatDestinationPort": {
+			Key:    "XlatDstPort",
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
+		},
+		"xlatSourceIPv4Address": {
+			Key:    "XlatSrcAddr",
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+		},
+		"xlatDestinationIPv4Address": {
+			Key:    "XlatDstAddr",
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+		},
+		"xlatSourceIPv6Address": {
+			Key:    "XlatSrcAddr",
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+		},
+		"xlatDestinationIPv6Address": {
+			Key:    "XlatDstAddr",
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+		},
 	}
 )
 
@@ -338,8 +379,14 @@ func addElementToTemplate(elementName string, value []byte, elements *[]entities
 	return nil
 }
 
-func addNetworkEnrichmentToTemplate(elements *[]entities.InfoElementWithValue, registryID uint32) error {
-	for _, field := range CustomNetworkFields {
+func addNetworkEnrichmentToTemplate(elements *[]entities.InfoElementWithValue, registryID uint32, v6 bool) error {
+	fields := CustomNetworkFields
+	if v6 {
+		fields = append(fields, CustomNetworkFieldsV6...)
+	} else {
+		fields = append(fields, CustomNetworkFieldsV4...)
+	}
+	for _, field := range fields {
 		if err := addElementToTemplate(field.Name, nil, elements, registryID); err != nil {
 			return err
 		}
@@ -365,6 +412,8 @@ func loadCustomRegistry(enterpriseID uint32) error {
 	allCustom := []entities.InfoElement{}
 	allCustom = append(allCustom, KubeFields...)
 	allCustom = append(allCustom, CustomNetworkFields...)
+	allCustom = append(allCustom, CustomNetworkFieldsV4...)
+	allCustom = append(allCustom, CustomNetworkFieldsV6...)
 	for _, f := range allCustom {
 		f.EnterpriseId = enterpriseID
 		err = registry.PutInfoElement(f, enterpriseID)
@@ -376,13 +425,19 @@ func loadCustomRegistry(enterpriseID uint32) error {
 	return nil
 }
 
-func prepareTemplate(templateID uint16, enrichEnterpriseID uint32, fields []string) (entities.Set, []entities.InfoElementWithValue, error) {
+func prepareTemplate(templateID uint16, enrichEnterpriseID uint32, v6 bool) (entities.Set, []entities.InfoElementWithValue, error) {
 	templateSet := entities.NewSet(false)
 	err := templateSet.PrepareSet(entities.Template, templateID)
 	if err != nil {
 		return nil, nil, err
 	}
 	elements := make([]entities.InfoElementWithValue, 0)
+	var fields []string
+	if v6 {
+		fields = IPv6IANAFields
+	} else {
+		fields = IPv4IANAFields
+	}
 
 	for _, field := range fields {
 		err = addElementToTemplate(field, nil, &elements, registry.IANAEnterpriseID)
@@ -395,7 +450,7 @@ func prepareTemplate(templateID uint16, enrichEnterpriseID uint32, fields []stri
 		if err != nil {
 			return nil, nil, err
 		}
-		err = addNetworkEnrichmentToTemplate(&elements, enrichEnterpriseID)
+		err = addNetworkEnrichmentToTemplate(&elements, enrichEnterpriseID, v6)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -521,13 +576,13 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 	}
 
 	idV4 := exporter.NewTemplateID()
-	setV4, entitiesV4, err := prepareTemplate(idV4, eeid, IPv4IANAFields)
+	setV4, entitiesV4, err := prepareTemplate(idV4, eeid, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare IPv4 template: %w", err)
 	}
 
 	idV6 := exporter.NewTemplateID()
-	setV6, entitiesV6, err := prepareTemplate(idV6, eeid, IPv6IANAFields)
+	setV6, entitiesV6, err := prepareTemplate(idV6, eeid, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare IPv6 template: %w", err)
 	}
