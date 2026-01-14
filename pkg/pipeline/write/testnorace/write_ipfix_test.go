@@ -170,11 +170,14 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 
 	// Read collector
 	// 1st = IPv4 template
-	tplv4Msg := <-cp.GetMsgChan()
+	tplv4Msg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 2nd = IPv6 template (ignore)
-	<-cp.GetMsgChan()
+	_, err = cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 3rd = data record
-	dataMsg := <-cp.GetMsgChan()
+	dataMsg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	cp.Stop()
 
 	expectedFields := write.IPv4IANAFields
@@ -239,11 +242,14 @@ func TestIPv6IPFIXFlow(t *testing.T) {
 
 	// Read collector
 	// 1st = IPv4 template
-	<-cp.GetMsgChan()
-	// 2nd = IPv6 template (ignore)
-	tplv6Msg := <-cp.GetMsgChan()
+	_, err = cp.read(5 * time.Second)
+	require.NoError(t, err)
+	// 2nd = IPv6 template
+	tplv6Msg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 3rd = data record
-	dataMsg := <-cp.GetMsgChan()
+	dataMsg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	cp.Stop()
 
 	expectedFields := write.IPv6IANAFields
@@ -307,11 +313,14 @@ func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 
 	// Read collector
 	// 1st = IPv4 template
-	tplv4Msg := <-cp.GetMsgChan()
+	tplv4Msg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 2nd = IPv6 template (ignore)
-	<-cp.GetMsgChan()
+	_, err = cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 3rd = data record
-	dataMsg := <-cp.GetMsgChan()
+	dataMsg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	cp.Stop()
 
 	expectedFields := write.IPv4IANAFields
@@ -372,11 +381,14 @@ func TestBasicIPFIXFlow(t *testing.T) {
 
 	// Read collector
 	// 1st = IPv4 template
-	tplv4Msg := <-cp.GetMsgChan()
+	tplv4Msg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 2nd = IPv6 template (ignore)
-	<-cp.GetMsgChan()
+	_, err = cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 3rd = data record
-	dataMsg := <-cp.GetMsgChan()
+	dataMsg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	cp.Stop()
 
 	// Check template
@@ -428,11 +440,14 @@ func TestICMPIPFIXFlow(t *testing.T) {
 
 	// Read collector
 	// 1st = IPv4 template
-	tplv4Msg := <-cp.GetMsgChan()
+	tplv4Msg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 2nd = IPv6 template (ignore)
-	<-cp.GetMsgChan()
+	_, err = cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 3rd = data record
-	dataMsg := <-cp.GetMsgChan()
+	dataMsg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	cp.Stop()
 
 	// Check template
@@ -482,7 +497,25 @@ func matchElement(t *testing.T, element entities.InfoElementWithValue, flow conf
 	}
 }
 
-func startCollector(t *testing.T) *collector.CollectingProcess {
+type collect struct {
+	*collector.CollectingProcess
+}
+
+func (c *collect) read(timeout time.Duration) (*entities.Message, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(timeout)
+		cancel()
+	}()
+	select {
+	case msg := <-c.GetMsgChan():
+		return msg, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+func startCollector(t *testing.T) collect {
 	address, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
 	require.NoError(t, err)
 
@@ -514,7 +547,7 @@ func startCollector(t *testing.T) *collector.CollectingProcess {
 	err = wait.PollUntilContextTimeout(context.TODO(), 100*time.Millisecond, 2*time.Second, false, checkConn)
 	require.NoError(t, err, "Connection timeout in collector setup")
 
-	return cp
+	return collect{CollectingProcess: cp}
 }
 
 func TestIngestEnriched(t *testing.T) {

@@ -47,6 +47,7 @@ type FieldMap struct {
 	Getter  func(entities.InfoElementWithValue) any
 	Setter  func(entities.InfoElementWithValue, any)
 	Matcher func(entities.InfoElementWithValue, any) bool
+	Default func(entities.InfoElementWithValue)
 }
 
 // IPv6Type value as defined in IEEE 802: https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
@@ -345,21 +346,29 @@ var (
 			Key:    "XlatSrcAddr",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L596
+			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv4zero) },
 		},
 		"xlatDestinationIPv4Address": {
 			Key:    "XlatDstAddr",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L596
+			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv4zero) },
 		},
 		"xlatSourceIPv6Address": {
 			Key:    "XlatSrcAddr",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L602
+			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv6zero) },
 		},
 		"xlatDestinationIPv6Address": {
 			Key:    "XlatDstAddr",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L602
+			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv6zero) },
 		},
 	}
 )
@@ -429,7 +438,7 @@ func prepareTemplate(templateID uint16, enrichEnterpriseID uint32, v6 bool) (ent
 	templateSet := entities.NewSet(false)
 	err := templateSet.PrepareSet(entities.Template, templateID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to prepare set (v6=%t), %w", v6, err)
 	}
 	elements := make([]entities.InfoElementWithValue, 0)
 	var fields []string
@@ -442,84 +451,63 @@ func prepareTemplate(templateID uint16, enrichEnterpriseID uint32, v6 bool) (ent
 	for _, field := range fields {
 		err = addElementToTemplate(field, nil, &elements, registry.IANAEnterpriseID)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("failed to add %s to template (v6=%t), %w", field, v6, err)
 		}
 	}
 	if enrichEnterpriseID != 0 {
 		err = addKubeContextToTemplate(&elements, enrichEnterpriseID)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("failed to add k8s context (v6=%t), %w", v6, err)
 		}
 		err = addNetworkEnrichmentToTemplate(&elements, enrichEnterpriseID, v6)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("failed to add network enrichment (v6=%t), %w", v6, err)
 		}
 	}
 	err = templateSet.AddRecord(elements, templateID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to add record (v6=%t), %w", v6, err)
 	}
 
 	return templateSet, elements, nil
 }
 
-func setElementValue(record config.GenericMap, ieValPtr *entities.InfoElementWithValue) error {
-	ieVal := *ieValPtr
-	name := ieVal.GetName()
-	mapping, ok := MapIPFIXKeys[name]
-	if !ok {
-		return nil
-	}
-	if value := record[mapping.Key]; value != nil {
-		mapping.Setter(ieVal, value)
-	}
-	return nil
-}
-
-func setEntities(record config.GenericMap, elements *[]entities.InfoElementWithValue) error {
-	for _, ieVal := range *elements {
-		err := setElementValue(record, &ieVal)
-		if err != nil {
-			return err
+func createDataRecord(flow config.GenericMap, elements []entities.InfoElementWithValue) {
+	for _, ieVal := range elements {
+		name := ieVal.GetName()
+		if mapping, ok := MapIPFIXKeys[name]; ok {
+			if value := flow[mapping.Key]; value != nil {
+				mapping.Setter(ieVal, value)
+			} else if mapping.Default != nil {
+				mapping.Default(ieVal)
+			}
 		}
 	}
-	return nil
 }
 
 func (t *writeIpfix) sendDataRecord(record config.GenericMap, v6 bool) error {
 	dataSet := entities.NewSet(false)
+	var dataRecord []entities.InfoElementWithValue
 	var templateID uint16
 	if v6 {
 		templateID = t.templateIDv6
-		err := setEntities(record, &t.entitiesV6)
-		if err != nil {
-			return err
-		}
+		dataRecord = t.entitiesV6
 	} else {
 		templateID = t.templateIDv4
-		err := setEntities(record, &t.entitiesV4)
-		if err != nil {
-			return err
-		}
+		dataRecord = t.entitiesV4
 	}
+	createDataRecord(record, dataRecord)
 	err := dataSet.PrepareSet(entities.Data, templateID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to prepare set (v6: %t): %w", v6, err)
 	}
-	if v6 {
-		err = dataSet.AddRecord(t.entitiesV6, templateID)
-		if err != nil {
-			return err
-		}
-	} else {
-		err = dataSet.AddRecord(t.entitiesV4, templateID)
-		if err != nil {
-			return err
-		}
+	err = dataSet.AddRecord(dataRecord, templateID)
+	if err != nil {
+		return fmt.Errorf("failed to add record (v6: %t): %w", v6, err)
 	}
 	_, err = t.exporter.SendSet(dataSet)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send set (v6: %t): %w", v6, err)
 	}
 	return nil
 }
@@ -589,7 +577,7 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 
 	// First send sync
 	if _, err := exporter.SendSet(setV4); err != nil {
-		return nil, fmt.Errorf("failed to send IPv6 template: %w", err)
+		return nil, fmt.Errorf("failed to send IPv4 template: %w", err)
 	}
 	if _, err := exporter.SendSet(setV6); err != nil {
 		return nil, fmt.Errorf("failed to send IPv6 template: %w", err)
