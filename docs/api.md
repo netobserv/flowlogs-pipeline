@@ -132,6 +132,9 @@ Following is the supported API format for the Network Observability eBPF ingest:
  grpc:
          port: the port number to listen on
          bufferLength: the length of the ingest channel buffer, in groups of flows, containing each group hundreds of flows (default: 100)
+         certPath: path of the TLS certificate, if any
+         keyPath: path of the TLS certificate key, if any
+         clientCAPath: path of the client TLS CA, if any, for mutual TLS
 </pre>
 ## Ingest Standard Input
 Following is the supported API format for the standard input ingest:
@@ -298,6 +301,7 @@ Following is the supported API format for network transformations:
                      name: name of the secondary network, as mentioned in the annotation 'k8s.v1.cni.cncf.io/network-status'
                      index: fields to use for indexing, must be any combination of 'mac', 'ip', 'interface', or 'udn'
              managedCNI: a list of CNI (network plugins) to manage, for detecting additional interfaces. Currently supported: ovn
+             trackedKinds: list of Kubernetes resource kinds to track for ownership chain (e.g., Deployment, Gateway, VirtualMachine). If a resource's owner is in this list, FLP will continue tracking up the ownership chain.
          servicesFile: path to services file (optional, default: /etc/services)
          protocolsFile: path to protocols file (optional, default: /etc/protocols)
          subnetLabels: configure subnet and IPs custom labels
@@ -351,7 +355,7 @@ Following is the supported API format for writing to an IPFIX collector:
          targetHost: IPFIX Collector host target IP
          targetPort: IPFIX Collector host target port
          transport: Transport protocol (tcp/udp) to be used for the IPFIX connection
-         enterpriseId: Enterprise ID for exporting transformations
+         enterpriseId: Enterprise ID for exporting non-standard data
          tplSendInterval: Interval for resending templates to the collector (default: 1m)
 </pre>
 ## Aggregate metrics API
