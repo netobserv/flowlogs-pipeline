@@ -157,6 +157,10 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 	return outputEntry, true
 }
 
+func (n *Network) Update(_ config.StageParam) {
+	log.Warn("Transform Network, update not supported")
+}
+
 func (n *Network) applySubnetLabel(strIP string) string {
 	ip := net.ParseIP(strIP)
 	if ip != nil {
