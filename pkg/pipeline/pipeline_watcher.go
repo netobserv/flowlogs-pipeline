@@ -108,6 +108,8 @@ func (pcw *pipelineConfigWatcher) updateEntry(pEntry *pipelineEntry, param confi
 	switch pEntry.stageType {
 	case StageEncode:
 		pEntry.Encoder.Update(param)
+	case StageTransform:
+		pEntry.Transformer.Update(param)
 	default:
 		log.Warningf("Hot reloading not supported for: %s", pEntry.stageType)
 	}
