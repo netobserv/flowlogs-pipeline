@@ -20,6 +20,7 @@ package write
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"strconv"
 	"strings"
 
@@ -99,23 +100,31 @@ var (
 	MapIPFIXKeys = map[string]FieldMap{
 		"sourceIPv4Address": {
 			Key:    "SrcAddr",
-			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			Getter: func(elt entities.InfoElementWithValue) any { return convertToNetip(elt.GetIPAddressValue()) },
+			Setter: func(elt entities.InfoElementWithValue, rec any) {
+				elt.SetIPAddressValue(convertFromNetip(rec.(netip.Addr)))
+			},
 		},
 		"destinationIPv4Address": {
 			Key:    "DstAddr",
-			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			Getter: func(elt entities.InfoElementWithValue) any { return convertToNetip(elt.GetIPAddressValue()) },
+			Setter: func(elt entities.InfoElementWithValue, rec any) {
+				elt.SetIPAddressValue(convertFromNetip(rec.(netip.Addr)))
+			},
 		},
 		"sourceIPv6Address": {
 			Key:    "SrcAddr",
-			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			Getter: func(elt entities.InfoElementWithValue) any { return convertToNetip(elt.GetIPAddressValue()) },
+			Setter: func(elt entities.InfoElementWithValue, rec any) {
+				elt.SetIPAddressValue(convertFromNetip(rec.(netip.Addr)))
+			},
 		},
 		"destinationIPv6Address": {
 			Key:    "DstAddr",
-			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			Getter: func(elt entities.InfoElementWithValue) any { return convertToNetip(elt.GetIPAddressValue()) },
+			Setter: func(elt entities.InfoElementWithValue, rec any) {
+				elt.SetIPAddressValue(convertFromNetip(rec.(netip.Addr)))
+			},
 		},
 		"nextHeaderIPv6": {
 			Key:    "Proto",
@@ -322,6 +331,15 @@ var (
 		},
 	}
 )
+
+func convertFromNetip(ip netip.Addr) net.IP {
+	return net.IP(ip.AsSlice())
+}
+
+func convertToNetip(ip net.IP) netip.Addr {
+	conv, _ := netip.AddrFromSlice(ip)
+	return conv
+}
 
 func addElementToTemplate(elementName string, value []byte, elements *[]entities.InfoElementWithValue, registryID uint32) error {
 	element, err := registry.GetInfoElement(elementName, registryID)

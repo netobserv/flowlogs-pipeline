@@ -213,8 +213,9 @@ type NetworkTransformDirectionInfo struct {
 type NetworkTransformRules []NetworkTransformRule
 
 type NetworkTransformSubnetLabel struct {
-	CIDRs []string `yaml:"cidrs,omitempty" json:"cidrs,omitempty" doc:"list of CIDRs to match a label"`
-	Name  string   `yaml:"name,omitempty" json:"name,omitempty" doc:"name of the label"`
+	CIDRs        []string `yaml:"cidrs,omitempty" json:"cidrs,omitempty" doc:"list of CIDRs to match a label"`
+	CheckPrivate bool     `yaml:"checkPrivate,omitempty" json:"checkPrivate,omitempty" doc:"Apply this label to private IPs; the cidrs configuration can be omited"`
+	Name         string   `yaml:"name,omitempty" json:"name,omitempty" doc:"name of the label"`
 }
 
 func buildStringMap(items []string) map[string]struct{} {

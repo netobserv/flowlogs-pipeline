@@ -20,6 +20,7 @@ package utils
 import (
 	"fmt"
 	"math"
+	"net/netip"
 	"reflect"
 	"strconv"
 )
@@ -272,6 +273,8 @@ func ConvertToString(unk interface{}) string {
 		return strconv.FormatUint(uint64(i), 10)
 	case string:
 		return i
+	case netip.Addr:
+		return i.String()
 	default:
 		return fmt.Sprintf("%v", unk)
 	}

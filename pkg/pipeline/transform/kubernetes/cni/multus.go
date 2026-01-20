@@ -47,13 +47,15 @@ func (m *MultusHandler) BuildKeys(flow config.GenericMap, rule *api.K8sRule, sec
 func (m *MultusHandler) buildSNKeys(flow config.GenericMap, rule *api.K8sRule, sn *api.SecondaryNetwork) []SecondaryNetKey {
 	var keys []SecondaryNetKey
 
-	var ip, mac string
+	var ip string
+	var mac string // TODO: optimize with HardwareAddr
 	var interfaces []string
 	if _, ok := sn.Index[indexIP]; ok && len(rule.IPField) > 0 {
-		ip, ok = flow.LookupString(rule.IPField)
+		netip, ok := flow.LookupIP(rule.IPField)
 		if !ok {
 			return nil
 		}
+		ip = netip.String()
 	}
 	if _, ok := sn.Index[indexMAC]; ok && len(rule.MACField) > 0 {
 		mac, ok = flow.LookupString(rule.MACField)

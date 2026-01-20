@@ -2,6 +2,7 @@ package decode
 
 import (
 	"fmt"
+	"net/netip"
 	"syscall"
 	"time"
 
@@ -95,8 +96,13 @@ func RecordToMap(fr *model.Record) config.GenericMap {
 	}
 
 	if fr.Metrics.EthProtocol == uint16(ethernet.EtherTypeIPv4) || fr.Metrics.EthProtocol == uint16(ethernet.EtherTypeIPv6) {
-		out["SrcAddr"] = model.IP(fr.ID.SrcIp).String()
-		out["DstAddr"] = model.IP(fr.ID.DstIp).String()
+		if fr.Metrics.EthProtocol == uint16(ethernet.EtherTypeIPv4) {
+			out["SrcAddr"] = netip.AddrFrom16(fr.ID.SrcIp).Unmap()
+			out["DstAddr"] = netip.AddrFrom16(fr.ID.DstIp).Unmap()
+		} else {
+			out["SrcAddr"] = netip.AddrFrom16(fr.ID.SrcIp)
+			out["DstAddr"] = netip.AddrFrom16(fr.ID.DstIp)
+		}
 		out["Proto"] = fr.ID.TransportProtocol
 		out["Dscp"] = fr.Metrics.Dscp
 

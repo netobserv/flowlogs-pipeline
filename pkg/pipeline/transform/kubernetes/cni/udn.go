@@ -23,7 +23,7 @@ const (
 type UDNHandler struct {
 }
 
-func UDNKey(label, ip string) SecondaryNetKey {
+func UDNKey(label string, ip string) SecondaryNetKey {
 	key := label + "~" + ip
 	return SecondaryNetKey{NetworkName: label, Key: key}
 }
@@ -37,12 +37,12 @@ func (m *UDNHandler) BuildKeys(flow config.GenericMap, rule *api.K8sRule) []Seco
 
 	var ip string
 	var udns []string
-	var ok bool
 	if len(rule.IPField) > 0 {
-		ip, ok = flow.LookupString(rule.IPField)
+		netip, ok := flow.LookupIP(rule.IPField)
 		if !ok {
 			return nil
 		}
+		ip = netip.String()
 	}
 	if len(rule.UDNsField) > 0 {
 		v, ok := flow[rule.UDNsField]

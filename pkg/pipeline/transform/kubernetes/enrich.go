@@ -35,12 +35,12 @@ func InitInformerDatasource(config *api.NetworkTransformKubeConfig, opMetrics *o
 }
 
 func Enrich(outputEntry config.GenericMap, rule *api.K8sRule) {
-	ip, ok := outputEntry.LookupString(rule.IPField)
+	ip, ok := outputEntry.LookupIP(rule.IPField)
 	if !ok {
 		return
 	}
 	potentialKeys := infConfig.BuildSecondaryNetworkKeys(outputEntry, rule)
-	kubeInfo := ds.IndexLookup(potentialKeys, ip)
+	kubeInfo := ds.IndexLookup(potentialKeys, ip.String())
 	if kubeInfo == nil {
 		logrus.Tracef("can't find kubernetes info for keys %v and IP %s", potentialKeys, ip)
 		return

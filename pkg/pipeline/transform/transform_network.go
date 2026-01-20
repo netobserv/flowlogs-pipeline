@@ -22,7 +22,6 @@ import (
 	"net"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
@@ -30,7 +29,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	util "github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -39,14 +37,8 @@ var log = logrus.WithField("component", "transform.Network")
 
 type Network struct {
 	api.TransformNetwork
-	svcNames     *netdb.ServiceNames
-	snLabels     []subnetLabel
-	ipLabelCache *utils.TimedCache
-}
-
-type subnetLabel struct {
-	cidrs []*net.IPNet
-	name  string
+	svcNames *netdb.ServiceNames
+	snLabels subnetLabels
 }
 
 //nolint:cyclop
@@ -125,19 +117,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				logrus.Error("AddSubnetLabel rule: Missing configuration ")
 				continue
 			}
-			if anyIP, ok := outputEntry[rule.AddSubnetLabel.Input]; ok {
-				if strIP, ok := anyIP.(string); ok {
-					keys := []string{strIP}
-					lbl, ok := n.ipLabelCache.GetCacheEntry(keys)
-					if !ok {
-						lbl = n.applySubnetLabel(strIP)
-						n.ipLabelCache.UpdateCacheEntry(keys, func() interface{} { return lbl })
-					}
-					if lbl != "" {
-						outputEntry[rule.AddSubnetLabel.Output] = lbl
-					}
-				}
-			}
+			n.snLabels.apply(outputEntry, rule.AddSubnetLabel)
 		case api.NetworkDecodeTCPFlags:
 			if anyFlags, ok := outputEntry[rule.DecodeTCPFlags.Input]; ok && anyFlags != nil {
 				if flags, err := util.ConvertToUint(anyFlags); err == nil {
@@ -155,20 +135,6 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 	}
 
 	return outputEntry, true
-}
-
-func (n *Network) applySubnetLabel(strIP string) string {
-	ip := net.ParseIP(strIP)
-	if ip != nil {
-		for _, subnetCat := range n.snLabels {
-			for _, cidr := range subnetCat.cidrs {
-				if cidr.Contains(ip) {
-					return subnetCat.name
-				}
-			}
-		}
-	}
-	return ""
 }
 
 // NewTransformNetwork create a new transform
@@ -245,18 +211,11 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 		}
 	}
 
-	var subnetCats []subnetLabel
-	for _, category := range jsonNetworkTransform.SubnetLabels {
-		var cidrs []*net.IPNet
-		for _, cidr := range category.CIDRs {
-			_, parsed, err := net.ParseCIDR(cidr)
-			if err != nil {
-				return nil, fmt.Errorf("category %s: fail to parse CIDR, %w", category.Name, err)
-			}
-			cidrs = append(cidrs, parsed)
-		}
-		if len(cidrs) > 0 {
-			subnetCats = append(subnetCats, subnetLabel{name: category.Name, cidrs: cidrs})
+	var snLabels subnetLabels
+	if len(jsonNetworkTransform.SubnetLabels) > 0 {
+		var err error
+		if snLabels, err = newSubnetLabels(jsonNetworkTransform.SubnetLabels); err != nil {
+			return nil, err
 		}
 	}
 
@@ -265,8 +224,7 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 			Rules:         jsonNetworkTransform.Rules,
 			DirectionInfo: jsonNetworkTransform.DirectionInfo,
 		},
-		svcNames:     servicesDB,
-		snLabels:     subnetCats,
-		ipLabelCache: utils.NewQuietExpiringTimedCache(2 * time.Minute),
+		svcNames: servicesDB,
+		snLabels: snLabels,
 	}, nil
 }

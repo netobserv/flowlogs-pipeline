@@ -2,6 +2,7 @@ package ingest
 
 import (
 	"context"
+	"net/netip"
 	"testing"
 	"time"
 
@@ -144,6 +145,6 @@ func runGRPCTestForTLS(t *testing.T, certs tlsConfig, expectErrorContains string
 		require.Fail(t, "timeout while waiting for Ingester to receive and process data")
 	}
 
-	assert.Equal(t, "1.2.3.4", received["SrcAddr"])
-	assert.Equal(t, "5.6.7.8", received["DstAddr"])
+	assert.Equal(t, netip.MustParseAddr("1.2.3.4"), received["SrcAddr"])
+	assert.Equal(t, netip.MustParseAddr("5.6.7.8"), received["DstAddr"])
 }

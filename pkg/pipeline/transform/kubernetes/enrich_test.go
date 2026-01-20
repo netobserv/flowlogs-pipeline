@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"net/netip"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -116,15 +117,15 @@ func TestEnrich(t *testing.T) {
 
 	// Pod to unknown
 	entry := config.GenericMap{
-		"SrcAddr": "10.0.0.1",    // pod-1
-		"DstAddr": "42.42.42.42", // unknown
+		"SrcAddr": netip.MustParseAddr("10.0.0.1"),    // pod-1
+		"DstAddr": netip.MustParseAddr("42.42.42.42"), // unknown
 	}
 	for _, r := range nt.Rules {
 		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
-		"DstAddr":            "42.42.42.42",
-		"SrcAddr":            "10.0.0.1",
+		"DstAddr":            netip.MustParseAddr("42.42.42.42"),
+		"SrcAddr":            netip.MustParseAddr("10.0.0.1"),
 		"SrcK8s_HostIP":      "100.0.0.1",
 		"SrcK8s_HostName":    "host-1",
 		"SrcK8s_Name":        "pod-1",
@@ -138,14 +139,14 @@ func TestEnrich(t *testing.T) {
 
 	// Pod to pod
 	entry = config.GenericMap{
-		"SrcAddr": "10.0.0.1", // pod-1
-		"DstAddr": "10.0.0.2", // pod-2
+		"SrcAddr": netip.MustParseAddr("10.0.0.1"), // pod-1
+		"DstAddr": netip.MustParseAddr("10.0.0.2"), // pod-2
 	}
 	for _, r := range nt.Rules {
 		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
-		"DstAddr":            "10.0.0.2",
+		"DstAddr":            netip.MustParseAddr("10.0.0.2"),
 		"DstK8s_HostIP":      "100.0.0.2",
 		"DstK8s_HostName":    "host-2",
 		"DstK8s_Name":        "pod-2",
@@ -155,7 +156,7 @@ func TestEnrich(t *testing.T) {
 		"DstK8s_Type":        "Pod",
 		"DstK8s_Zone":        "us-east-1b",
 		"DstK8s_NetworkName": "primary",
-		"SrcAddr":            "10.0.0.1",
+		"SrcAddr":            netip.MustParseAddr("10.0.0.1"),
 		"SrcK8s_HostIP":      "100.0.0.1",
 		"SrcK8s_HostName":    "host-1",
 		"SrcK8s_Name":        "pod-1",
@@ -169,21 +170,21 @@ func TestEnrich(t *testing.T) {
 
 	// Pod to service
 	entry = config.GenericMap{
-		"SrcAddr": "10.0.0.2", // pod-2
-		"DstAddr": "20.0.0.1", // service-1
+		"SrcAddr": netip.MustParseAddr("10.0.0.2"), // pod-2
+		"DstAddr": netip.MustParseAddr("20.0.0.1"), // service-1
 	}
 	for _, r := range nt.Rules {
 		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
-		"DstAddr":            "20.0.0.1",
+		"DstAddr":            netip.MustParseAddr("20.0.0.1"),
 		"DstK8s_Name":        "service-1",
 		"DstK8s_Namespace":   "ns-1",
 		"DstK8s_OwnerName":   "",
 		"DstK8s_OwnerType":   "",
 		"DstK8s_Type":        "Service",
 		"DstK8s_NetworkName": "primary",
-		"SrcAddr":            "10.0.0.2",
+		"SrcAddr":            netip.MustParseAddr("10.0.0.2"),
 		"SrcK8s_HostIP":      "100.0.0.2",
 		"SrcK8s_HostName":    "host-2",
 		"SrcK8s_Name":        "pod-2",
@@ -225,15 +226,15 @@ func TestEnrich_Otel(t *testing.T) {
 
 	// Pod to unknown
 	entry := config.GenericMap{
-		"source.ip":      "10.0.0.1",    // pod-1
-		"destination.ip": "42.42.42.42", // unknown
+		"source.ip":      netip.MustParseAddr("10.0.0.1"),    // pod-1
+		"destination.ip": netip.MustParseAddr("42.42.42.42"), // unknown
 	}
 	for _, r := range ntOtel.Rules {
 		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
-		"destination.ip":            "42.42.42.42",
-		"source.ip":                 "10.0.0.1",
+		"destination.ip":            netip.MustParseAddr("42.42.42.42"),
+		"source.ip":                 netip.MustParseAddr("10.0.0.1"),
 		"source.k8s.host.ip":        "100.0.0.1",
 		"source.k8s.host.name":      "host-1",
 		"source.k8s.name":           "pod-1",
@@ -249,14 +250,14 @@ func TestEnrich_Otel(t *testing.T) {
 
 	// Pod to pod
 	entry = config.GenericMap{
-		"source.ip":      "10.0.0.1", // pod-1
-		"destination.ip": "10.0.0.2", // pod-2
+		"source.ip":      netip.MustParseAddr("10.0.0.1"), // pod-1
+		"destination.ip": netip.MustParseAddr("10.0.0.2"), // pod-2
 	}
 	for _, r := range ntOtel.Rules {
 		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
-		"destination.ip":                 "10.0.0.2",
+		"destination.ip":                 netip.MustParseAddr("10.0.0.2"),
 		"destination.k8s.host.ip":        "100.0.0.2",
 		"destination.k8s.host.name":      "host-2",
 		"destination.k8s.name":           "pod-2",
@@ -268,7 +269,7 @@ func TestEnrich_Otel(t *testing.T) {
 		"destination.k8s.owner.type":     "",
 		"destination.k8s.type":           "Pod",
 		"destination.k8s.zone":           "us-east-1b",
-		"source.ip":                      "10.0.0.1",
+		"source.ip":                      netip.MustParseAddr("10.0.0.1"),
 		"source.k8s.host.ip":             "100.0.0.1",
 		"source.k8s.host.name":           "host-1",
 		"source.k8s.name":                "pod-1",
@@ -284,14 +285,14 @@ func TestEnrich_Otel(t *testing.T) {
 
 	// Pod to service
 	entry = config.GenericMap{
-		"source.ip":      "10.0.0.2", // pod-2
-		"destination.ip": "20.0.0.1", // service-1
+		"source.ip":      netip.MustParseAddr("10.0.0.2"), // pod-2
+		"destination.ip": netip.MustParseAddr("20.0.0.1"), // service-1
 	}
 	for _, r := range ntOtel.Rules {
 		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
-		"destination.ip":                 "20.0.0.1",
+		"destination.ip":                 netip.MustParseAddr("20.0.0.1"),
 		"destination.k8s.name":           "service-1",
 		"destination.k8s.namespace.name": "ns-1",
 		"destination.k8s.net.name":       "primary",
@@ -300,7 +301,7 @@ func TestEnrich_Otel(t *testing.T) {
 		"destination.k8s.owner.name":     "",
 		"destination.k8s.owner.type":     "",
 		"destination.k8s.type":           "Service",
-		"source.ip":                      "10.0.0.2",
+		"source.ip":                      netip.MustParseAddr("10.0.0.2"),
 		"source.k8s.host.ip":             "100.0.0.2",
 		"source.k8s.host.name":           "host-2",
 		"source.k8s.name":                "pod-2",
@@ -322,8 +323,8 @@ func TestEnrich_EmptyNamespace(t *testing.T) {
 	// We need to check that, whether it returns NotFound or just an empty namespace,
 	// there is no map entry for that namespace (an empty-valued map entry is not valid)
 	entry := config.GenericMap{
-		"SrcAddr": "1.2.3.4", // would return an empty namespace
-		"DstAddr": "3.2.1.0", // would return NotFound
+		"SrcAddr": netip.MustParseAddr("1.2.3.4"), // would return an empty namespace
+		"DstAddr": netip.MustParseAddr("3.2.1.0"), // would return NotFound
 	}
 
 	for _, r := range nt.Rules {
@@ -356,10 +357,10 @@ func TestEnrichLayer(t *testing.T) {
 	flow := config.GenericMap{
 		"SrcK8S_Name":      "prometheus-0",
 		"SrcK8S_Namespace": "openshift-monitoring",
-		"SrcAddr":          "10.0.0.1",
+		"SrcAddr":          netip.MustParseAddr("10.0.0.1"),
 		"DstK8S_Name":      "flowlog-pipeline-12345",
 		"DstK8S_Namespace": "netobserv",
-		"DstAddr":          "10.0.0.3",
+		"DstAddr":          netip.MustParseAddr("10.0.0.3"),
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -369,9 +370,9 @@ func TestEnrichLayer(t *testing.T) {
 	flow = config.GenericMap{
 		"SrcK8S_Name":      "prometheus-0",
 		"SrcK8S_Namespace": "openshift-monitoring",
-		"SrcAddr":          "10.0.0.1",
+		"SrcAddr":          netip.MustParseAddr("10.0.0.1"),
 		"DstK8S_Name":      "host-12345",
-		"DstAddr":          "30.0.0.1",
+		"DstAddr":          netip.MustParseAddr("30.0.0.1"),
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -380,10 +381,10 @@ func TestEnrichLayer(t *testing.T) {
 	// node to kubernetes => infra
 	flow = config.GenericMap{
 		"SrcK8S_Name":      "host-12345",
-		"SrcAddr":          "30.0.0.1",
+		"SrcAddr":          netip.MustParseAddr("30.0.0.1"),
 		"DstK8S_Name":      "kubernetes",
 		"DstK8S_Namespace": "default",
-		"DstAddr":          "20.0.0.1",
+		"DstAddr":          netip.MustParseAddr("20.0.0.1"),
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -392,8 +393,8 @@ func TestEnrichLayer(t *testing.T) {
 	// node to external => infra
 	flow = config.GenericMap{
 		"SrcK8S_Name": "host-12345",
-		"SrcAddr":     "30.0.0.1",
-		"DstAddr":     "1.2.3.4", // external
+		"SrcAddr":     netip.MustParseAddr("30.0.0.1"),
+		"DstAddr":     netip.MustParseAddr("1.2.3.4"), // external
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -403,10 +404,10 @@ func TestEnrichLayer(t *testing.T) {
 	flow = config.GenericMap{
 		"SrcK8S_Name":      "my-app-12345",
 		"SrcK8S_Namespace": "my-namespace",
-		"SrcAddr":          "10.0.0.2",
+		"SrcAddr":          netip.MustParseAddr("10.0.0.2"),
 		"DstK8S_Name":      "my-app",
 		"DstK8S_Namespace": "my-namespace",
-		"DstAddr":          "20.0.0.2",
+		"DstAddr":          netip.MustParseAddr("20.0.0.2"),
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -415,10 +416,10 @@ func TestEnrichLayer(t *testing.T) {
 	// node to app => app
 	flow = config.GenericMap{
 		"SrcK8S_Name":      "host-12345",
-		"SrcAddr":          "30.0.0.1",
+		"SrcAddr":          netip.MustParseAddr("30.0.0.1"),
 		"DstK8S_Name":      "my-app",
 		"DstK8S_Namespace": "my-namespace",
-		"DstAddr":          "20.0.0.2",
+		"DstAddr":          netip.MustParseAddr("20.0.0.2"),
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -428,10 +429,10 @@ func TestEnrichLayer(t *testing.T) {
 	flow = config.GenericMap{
 		"SrcK8S_Name":      "my-app-12345",
 		"SrcK8S_Namespace": "my-namespace",
-		"SrcAddr":          "10.0.0.2",
+		"SrcAddr":          netip.MustParseAddr("10.0.0.2"),
 		"DstK8S_Name":      "kubernetes",
 		"DstK8S_Namespace": "default",
-		"DstAddr":          "20.0.0.1",
+		"DstAddr":          netip.MustParseAddr("20.0.0.1"),
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -441,8 +442,8 @@ func TestEnrichLayer(t *testing.T) {
 	flow = config.GenericMap{
 		"SrcK8S_Name":      "my-app-12345",
 		"SrcK8S_Namespace": "my-namespace",
-		"SrcAddr":          "10.0.0.2",
-		"DstAddr":          "1.2.3.4", // external
+		"SrcAddr":          netip.MustParseAddr("10.0.0.2"),
+		"DstAddr":          netip.MustParseAddr("1.2.3.4"), // external
 	}
 	EnrichLayer(flow, rule.KubernetesInfra)
 
@@ -455,18 +456,18 @@ func TestEnrichUsingMac(t *testing.T) {
 
 	// Pod to unknown using MAC
 	entry := config.GenericMap{
-		"SrcAddr": "8.8.8.8",
+		"SrcAddr": netip.MustParseAddr("8.8.8.8"),
 		"SrcMAC":  "aa:bb:cc:dd:ee:ff", // pod-1
-		"DstAddr": "9.9.9.9",
+		"DstAddr": netip.MustParseAddr("9.9.9.9"),
 		"DstMAC":  "GG:HH:II:JJ:KK:LL", // unknown
 	}
 	for _, r := range nt.Rules {
 		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
-		"SrcAddr":            "8.8.8.8",
+		"SrcAddr":            netip.MustParseAddr("8.8.8.8"),
 		"SrcMAC":             "aa:bb:cc:dd:ee:ff",
-		"DstAddr":            "9.9.9.9",
+		"DstAddr":            netip.MustParseAddr("9.9.9.9"),
 		"DstMAC":             "GG:HH:II:JJ:KK:LL",
 		"SrcK8s_HostIP":      "100.0.0.1",
 		"SrcK8s_HostName":    "host-1",
@@ -546,19 +547,19 @@ func TestEnrichUsingUDN(t *testing.T) {
 
 	// MAC-indexed Pod 1 to UDN-indexed Pod 2
 	entry := config.GenericMap{
-		"SrcAddr": "8.8.8.8",
-		"SrcMAC":  "AA:BB:CC:DD:EE:FF", // pod-1
-		"DstAddr": "10.200.200.12",     // pod-2 (UDN)
-		"DstMAC":  "GG:HH:II:JJ:KK:LL", // unknown
+		"SrcAddr": netip.MustParseAddr("8.8.8.8"),
+		"SrcMAC":  "AA:BB:CC:DD:EE:FF",                  // pod-1
+		"DstAddr": netip.MustParseAddr("10.200.200.12"), // pod-2 (UDN)
+		"DstMAC":  "GG:HH:II:JJ:KK:LL",                  // unknown
 		"Udns":    []string{"", "default", "ns-2/primary-udn"},
 	}
 	for _, r := range ntUDN.Rules {
 		Enrich(entry, r.Kubernetes)
 	}
 	assert.Equal(t, config.GenericMap{
-		"SrcAddr":            "8.8.8.8",
+		"SrcAddr":            netip.MustParseAddr("8.8.8.8"),
 		"SrcMAC":             "AA:BB:CC:DD:EE:FF",
-		"DstAddr":            "10.200.200.12",
+		"DstAddr":            netip.MustParseAddr("10.200.200.12"),
 		"DstMAC":             "GG:HH:II:JJ:KK:LL",
 		"Udns":               []string{"", "default", "ns-2/primary-udn"},
 		"SrcK8s_HostIP":      "100.0.0.1",
@@ -647,7 +648,7 @@ func TestEnrich_LabelsAndAnnotationsPrefixes(t *testing.T) {
 			}
 			rule.Preprocess()
 
-			entry := config.GenericMap{"SrcAddr": "10.0.0.10"}
+			entry := config.GenericMap{"SrcAddr": netip.MustParseAddr("10.0.0.10")}
 			Enrich(entry, rule.Rules[0].Kubernetes)
 
 			assert.Equal(t, "test-pod", entry["K8s_Name"])
@@ -806,7 +807,7 @@ func TestEnrich_LabelsAnnotationsFiltering(t *testing.T) {
 			rule.Preprocess()
 
 			entry := config.GenericMap{
-				"SrcAddr": "10.0.0.10",
+				"SrcAddr": netip.MustParseAddr("10.0.0.10"),
 			}
 
 			Enrich(entry, rule.Rules[0].Kubernetes)
@@ -1009,7 +1010,7 @@ func TestEnrich_LabelsValueTrimming(t *testing.T) {
 			}
 			rule.Preprocess()
 
-			entry := config.GenericMap{"SrcAddr": "10.0.0.20"}
+			entry := config.GenericMap{"SrcAddr": netip.MustParseAddr("10.0.0.20")}
 			Enrich(entry, rule.Rules[0].Kubernetes)
 
 			for k, v := range tt.expectedLabels {
@@ -1088,7 +1089,7 @@ func TestEnrich_AnnotationsValueTrimming(t *testing.T) {
 			}
 			rule.Preprocess()
 
-			entry := config.GenericMap{"SrcAddr": "10.0.0.21"}
+			entry := config.GenericMap{"SrcAddr": netip.MustParseAddr("10.0.0.21")}
 			Enrich(entry, rule.Rules[0].Kubernetes)
 
 			for k, v := range tt.expectedAnnotations {
@@ -1177,7 +1178,7 @@ func TestEnrich_LabelsAndAnnotationsTrimming_Combined(t *testing.T) {
 			}
 			rule.Preprocess()
 
-			entry := config.GenericMap{"SrcAddr": "10.0.0.22"}
+			entry := config.GenericMap{"SrcAddr": netip.MustParseAddr("10.0.0.22")}
 			Enrich(entry, rule.Rules[0].Kubernetes)
 
 			for k, v := range tt.expectedLabels {

@@ -18,6 +18,7 @@
 package config
 
 import (
+	"net/netip"
 	"syscall"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
@@ -75,4 +76,13 @@ func (m GenericMap) LookupString(key string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func (m GenericMap) LookupIP(key string) (netip.Addr, bool) {
+	if v, ok := m[key]; ok {
+		if s, ok := v.(netip.Addr); ok && s.IsValid() {
+			return s, true
+		}
+	}
+	return netip.Addr{}, false
 }
