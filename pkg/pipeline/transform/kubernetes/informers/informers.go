@@ -32,6 +32,7 @@ import (
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	inf "k8s.io/client-go/informers"
@@ -544,7 +545,9 @@ func (k *Informers) InitFromConfig(kubeconfig string, infConfig *Config, opMetri
 
 func (k *Informers) initInformers(client kubernetes.Interface, metaClient metadata.Interface, dynClient *dynamic.DynamicClient, cfg *Config) error {
 	informerFactory := inf.NewSharedInformerFactory(client, syncTime)
-	metadataInformerFactory := metadatainformer.NewSharedInformerFactory(metaClient, syncTime)
+	metadataInformerFactory := metadatainformer.NewFilteredSharedInformerFactory(metaClient, syncTime, metav1.NamespaceAll, func(options *metav1.ListOptions) {
+		options.FieldSelector = fields.OneTermNotEqualSelector("status.replicas", "0").String()
+	})
 	err := k.initNodeInformer(informerFactory, cfg)
 	if err != nil {
 		return err
