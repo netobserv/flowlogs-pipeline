@@ -7,7 +7,7 @@ metadata:
 spec:
   containers:
     - name: flp-ipfix-stdout
-      image: quay.io/jotak/flowlogs-pipeline:main
+      image: quay.io/netobserv/flowlogs-pipeline:3cf0304
       imagePullPolicy: Always
       args:
       - "--config=/etc/flowlogs-pipeline/config.yaml"
@@ -56,19 +56,19 @@ data:
             mapping:
               - penprovided: true
                 pen: 2
-                field: 7733
+                field: 7745
                 destination: CustomBytes_1
               - penprovided: true
                 pen: 2
-                field: 7734
+                field: 7746
                 destination: CustomBytes_2
               - penprovided: true
                 pen: 2
-                field: 7735
+                field: 7747
                 destination: CustomBytes_3
               - penprovided: true
                 pen: 2
-                field: 7736
+                field: 7748
                 destination: CustomBytes_4
       - name: write
         write:

@@ -83,6 +83,16 @@ var (
 				Direction: pbflow.Direction_INGRESS,
 			},
 		},
+		Xlat: &pbflow.Xlat{
+			SrcAddr: &pbflow.IP{
+				IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x02030405},
+			},
+			DstAddr: &pbflow.IP{
+				IpFamily: &pbflow.IP_Ipv4{Ipv4: 0x06070809},
+			},
+			SrcPort: 888,
+			DstPort: 889,
+		},
 	}
 
 	icmpPBFlow = pbflow.Record{
@@ -160,11 +170,14 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 
 	// Read collector
 	// 1st = IPv4 template
-	tplv4Msg := <-cp.GetMsgChan()
+	tplv4Msg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 2nd = IPv6 template (ignore)
-	<-cp.GetMsgChan()
+	_, err = cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 3rd = data record
-	dataMsg := <-cp.GetMsgChan()
+	dataMsg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	cp.Stop()
 
 	expectedFields := write.IPv4IANAFields
@@ -174,10 +187,85 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 	for _, f := range write.CustomNetworkFields {
 		expectedFields = append(expectedFields, f.Name)
 	}
+	for _, f := range write.CustomNetworkFieldsV4 {
+		expectedFields = append(expectedFields, f.Name)
+	}
 
 	// Check template
 	assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
 	templateSet := tplv4Msg.GetSet()
+	templateElements := templateSet.GetRecords()[0].GetOrderedElementList()
+	assert.Len(t, templateElements, len(expectedFields))
+	assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
+
+	// Check data
+	assert.Equal(t, uint16(10), dataMsg.GetVersion())
+	dataSet := dataMsg.GetSet()
+	record := dataSet.GetRecords()[0]
+
+	for _, name := range expectedFields {
+		element, _, exist := record.GetInfoElementWithValue(name)
+		assert.Truef(t, exist, "element with name %s should exist in the record", name)
+		assert.NotNil(t, element)
+		matchElement(t, element, flow)
+	}
+}
+
+func TestIPv6IPFIXFlow(t *testing.T) {
+	cp := startCollector(t)
+	addr := cp.GetAddress().(*net.UDPAddr)
+
+	flow := decode.PBFlowToMap(&fullPBFlow)
+	// Set as IPv6
+	flow["Etype"] = write.IPv6Type
+	flow["SrcAddr"] = "2001:db8::1111"
+	flow["DstAddr"] = "2001:db8::2222"
+	flow["XlatSrcAddr"] = "2001:db8::3333"
+	flow["XlatDstAddr"] = "2001:db8::4444"
+
+	// Convert TCP flags
+	flow["Flags"] = utils.DecodeTCPFlags(uint(fullPBFlow.Flags))
+
+	writer, err := write.NewWriteIpfix(config.StageParam{
+		Write: &config.Write{
+			Ipfix: &api.WriteIpfix{
+				TargetHost:   addr.IP.String(),
+				TargetPort:   addr.Port,
+				Transport:    addr.Network(),
+				EnterpriseID: 9999,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	writer.Write(flow)
+
+	// Read collector
+	// 1st = IPv4 template
+	_, err = cp.read(5 * time.Second)
+	require.NoError(t, err)
+	// 2nd = IPv6 template
+	tplv6Msg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
+	// 3rd = data record
+	dataMsg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
+	cp.Stop()
+
+	expectedFields := write.IPv6IANAFields
+	for _, f := range write.KubeFields {
+		expectedFields = append(expectedFields, f.Name)
+	}
+	for _, f := range write.CustomNetworkFields {
+		expectedFields = append(expectedFields, f.Name)
+	}
+	for _, f := range write.CustomNetworkFieldsV6 {
+		expectedFields = append(expectedFields, f.Name)
+	}
+
+	// Check template
+	assert.Equal(t, uint16(10), tplv6Msg.GetVersion())
+	templateSet := tplv6Msg.GetSet()
 	templateElements := templateSet.GetRecords()[0].GetOrderedElementList()
 	assert.Len(t, templateElements, len(expectedFields))
 	assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
@@ -225,11 +313,14 @@ func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 
 	// Read collector
 	// 1st = IPv4 template
-	tplv4Msg := <-cp.GetMsgChan()
+	tplv4Msg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 2nd = IPv6 template (ignore)
-	<-cp.GetMsgChan()
+	_, err = cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 3rd = data record
-	dataMsg := <-cp.GetMsgChan()
+	dataMsg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	cp.Stop()
 
 	expectedFields := write.IPv4IANAFields
@@ -237,6 +328,9 @@ func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 		expectedFields = append(expectedFields, f.Name)
 	}
 	for _, f := range write.CustomNetworkFields {
+		expectedFields = append(expectedFields, f.Name)
+	}
+	for _, f := range write.CustomNetworkFieldsV4 {
 		expectedFields = append(expectedFields, f.Name)
 	}
 
@@ -287,11 +381,14 @@ func TestBasicIPFIXFlow(t *testing.T) {
 
 	// Read collector
 	// 1st = IPv4 template
-	tplv4Msg := <-cp.GetMsgChan()
+	tplv4Msg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 2nd = IPv6 template (ignore)
-	<-cp.GetMsgChan()
+	_, err = cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 3rd = data record
-	dataMsg := <-cp.GetMsgChan()
+	dataMsg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	cp.Stop()
 
 	// Check template
@@ -343,11 +440,14 @@ func TestICMPIPFIXFlow(t *testing.T) {
 
 	// Read collector
 	// 1st = IPv4 template
-	tplv4Msg := <-cp.GetMsgChan()
+	tplv4Msg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 2nd = IPv6 template (ignore)
-	<-cp.GetMsgChan()
+	_, err = cp.read(5 * time.Second)
+	require.NoError(t, err)
 	// 3rd = data record
-	dataMsg := <-cp.GetMsgChan()
+	dataMsg, err := cp.read(5 * time.Second)
+	require.NoError(t, err)
 	cp.Stop()
 
 	// Check template
@@ -397,7 +497,25 @@ func matchElement(t *testing.T, element entities.InfoElementWithValue, flow conf
 	}
 }
 
-func startCollector(t *testing.T) *collector.CollectingProcess {
+type collect struct {
+	*collector.CollectingProcess
+}
+
+func (c *collect) read(timeout time.Duration) (*entities.Message, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(timeout)
+		cancel()
+	}()
+	select {
+	case msg := <-c.GetMsgChan():
+		return msg, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+func startCollector(t *testing.T) collect {
 	address, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
 	require.NoError(t, err)
 
@@ -429,7 +547,7 @@ func startCollector(t *testing.T) *collector.CollectingProcess {
 	err = wait.PollUntilContextTimeout(context.TODO(), 100*time.Millisecond, 2*time.Second, false, checkConn)
 	require.NoError(t, err, "Connection timeout in collector setup")
 
-	return cp
+	return collect{CollectingProcess: cp}
 }
 
 func TestIngestEnriched(t *testing.T) {
