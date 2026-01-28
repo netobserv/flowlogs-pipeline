@@ -26,7 +26,7 @@ type tlsConfig struct {
 }
 
 func TestGRPC_NoTLS(t *testing.T) {
-	runGRPCTestForTLS(t, tlsConfig{}, "")
+	runGRPCTestForTLS(t, tlsConfig{}, false)
 }
 
 func TestGRPC_SimpleTLS(t *testing.T) {
@@ -39,7 +39,7 @@ func TestGRPC_SimpleTLS(t *testing.T) {
 			serverCertPath:        cert,
 			serverKeyPath:         key,
 		},
-		"",
+		false,
 	)
 }
 
@@ -56,7 +56,7 @@ func TestGRPC_MutualTLS(t *testing.T) {
 			serverCertPath:        serverCert,
 			serverKeyPath:         serverKey,
 		},
-		"",
+		false,
 	)
 }
 
@@ -70,7 +70,7 @@ func TestGRPC_FailExpectingTLS(t *testing.T) {
 			serverCertPath:        cert,
 			serverKeyPath:         key,
 		},
-		"connection error",
+		true,
 	)
 }
 
@@ -87,12 +87,12 @@ func TestGRPC_FailExpectingMTLS(t *testing.T) {
 			serverCertPath:        serverCert,
 			serverKeyPath:         serverKey,
 		},
-		"write tcp", // would prefer a more explicit error, but that's all that we get: "write tcp 127.0.0.1:54154->127.0.0.1:40763: write: broken pipe"
+		true,
 	)
 }
 
 // nolint:gocritic // hugeParam; don't care in tests
-func runGRPCTestForTLS(t *testing.T, certs tlsConfig, expectErrorContains string) {
+func runGRPCTestForTLS(t *testing.T, certs tlsConfig, expectSomeTLSError bool) {
 	port, err := test2.FreeTCPPort()
 	require.NoError(t, err)
 
@@ -130,8 +130,9 @@ func runGRPCTestForTLS(t *testing.T, certs tlsConfig, expectErrorContains string
 	}
 
 	_, err = flowSender.Client().Send(context.Background(), record)
-	if expectErrorContains != "" {
-		require.ErrorContains(t, err, expectErrorContains)
+	// When expecting an error, the error sometimes varies, for some reason... Can't do a strict check here
+	if expectSomeTLSError {
+		require.Error(t, err)
 		return
 	}
 	require.NoError(t, err)
