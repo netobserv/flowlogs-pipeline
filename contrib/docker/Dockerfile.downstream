@@ -1,7 +1,7 @@
 ARG BUILDVERSION
 ARG BUILDVERSION_Y
 
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.24 as builder
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.25 as builder
 ARG BUILDVERSION
 
 WORKDIR /app
