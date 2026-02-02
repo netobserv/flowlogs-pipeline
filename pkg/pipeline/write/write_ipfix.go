@@ -70,12 +70,16 @@ var (
 		"packetDeltaCount",
 		"interfaceName",
 		"tcpControlBits",
+		"postNAPTSourceTransportPort",
+		"postNAPTDestinationTransportPort",
 	}
 	IPv4IANAFields = append([]string{
 		"sourceIPv4Address",
 		"destinationIPv4Address",
 		"icmpTypeIPv4",
 		"icmpCodeIPv4",
+		"postNATSourceIPv4Address",
+		"postNATDestinationIPv4Address",
 	}, IANAFields...)
 	IPv6IANAFields = append([]string{
 		"sourceIPv6Address",
@@ -83,6 +87,8 @@ var (
 		"nextHeaderIPv6",
 		"icmpTypeIPv6",
 		"icmpCodeIPv6",
+		"postNATSourceIPv6Address",
+		"postNATDestinationIPv6Address",
 	}, IANAFields...)
 	KubeFields = []entities.InfoElement{
 		{Name: "sourcePodNamespace", ElementId: 7733, DataType: entities.String, Len: 65535},
@@ -96,17 +102,9 @@ var (
 		{Name: "timeFlowRttNs", ElementId: 7740, DataType: entities.Unsigned64, Len: 8},
 		{Name: "interfaces", ElementId: 7741, DataType: entities.String, Len: 65535},
 		{Name: "directions", ElementId: 7742, DataType: entities.String, Len: 65535},
-		{Name: "xlatSourcePort", ElementId: 7743, DataType: entities.Unsigned16, Len: 2},
-		{Name: "xlatDestinationPort", ElementId: 7744, DataType: entities.Unsigned16, Len: 2},
 	}
-	CustomNetworkFieldsV4 = []entities.InfoElement{
-		{Name: "xlatSourceIPv4Address", ElementId: 7745, DataType: entities.Ipv4Address, Len: 4},
-		{Name: "xlatDestinationIPv4Address", ElementId: 7746, DataType: entities.Ipv4Address, Len: 4},
-	}
-	CustomNetworkFieldsV6 = []entities.InfoElement{
-		{Name: "xlatSourceIPv6Address", ElementId: 7747, DataType: entities.Ipv6Address, Len: 16},
-		{Name: "xlatDestinationIPv6Address", ElementId: 7748, DataType: entities.Ipv6Address, Len: 16},
-	}
+	CustomNetworkFieldsV4 = []entities.InfoElement{}
+	CustomNetworkFieldsV6 = []entities.InfoElement{}
 
 	MapIPFIXKeys = map[string]FieldMap{
 		"sourceIPv4Address": {
@@ -332,40 +330,60 @@ var (
 			Getter: func(elt entities.InfoElementWithValue) any { return int64(elt.GetUnsigned64Value()) },
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(int64))) },
 		},
-		"xlatSourcePort": {
+		"postNAPTSourceTransportPort": {
 			Key:    "XlatSrcPort",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
 		},
-		"xlatDestinationPort": {
+		"postNAPTDestinationTransportPort": {
 			Key:    "XlatDstPort",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
 		},
-		"xlatSourceIPv4Address": {
-			Key:    "XlatSrcAddr",
-			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
+		"postNATSourceIPv4Address": {
+			Key: "XlatSrcAddr",
+			Getter: func(elt entities.InfoElementWithValue) any {
+				if net.IPv4zero.Equal(elt.GetIPAddressValue()) {
+					return nil
+				}
+				return elt.GetIPAddressValue().String()
+			},
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
 			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L596
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv4zero) },
 		},
-		"xlatDestinationIPv4Address": {
-			Key:    "XlatDstAddr",
-			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
+		"postNATDestinationIPv4Address": {
+			Key: "XlatDstAddr",
+			Getter: func(elt entities.InfoElementWithValue) any {
+				if net.IPv4zero.Equal(elt.GetIPAddressValue()) {
+					return nil
+				}
+				return elt.GetIPAddressValue().String()
+			},
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
 			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L596
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv4zero) },
 		},
-		"xlatSourceIPv6Address": {
-			Key:    "XlatSrcAddr",
-			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
+		"postNATSourceIPv6Address": {
+			Key: "XlatSrcAddr",
+			Getter: func(elt entities.InfoElementWithValue) any {
+				if net.IPv6zero.Equal(elt.GetIPAddressValue()) {
+					return nil
+				}
+				return elt.GetIPAddressValue().String()
+			},
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
 			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L602
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv6zero) },
 		},
-		"xlatDestinationIPv6Address": {
-			Key:    "XlatDstAddr",
-			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
+		"postNATDestinationIPv6Address": {
+			Key: "XlatDstAddr",
+			Getter: func(elt entities.InfoElementWithValue) any {
+				if net.IPv6zero.Equal(elt.GetIPAddressValue()) {
+					return nil
+				}
+				return elt.GetIPAddressValue().String()
+			},
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
 			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L602
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv6zero) },
