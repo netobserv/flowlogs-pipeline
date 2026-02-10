@@ -117,6 +117,10 @@ vendors: ## Check go vendors
 
 ##@ Develop
 
+.PHONY: fmt
+fmt: ## Format code
+	go fmt ./...
+
 .PHONY: lint
 lint: prereqs ## Lint the code
 	./bin/golangci-lint-${GOLANGCI_LINT_VERSION} run ./... --timeout=5m
@@ -127,7 +131,7 @@ compile: ## Compile main flowlogs-pipeline and config generator
 	GOARCH=${GOARCH} go build "${CMD_DIR}${CG_BIN_FILE}"
 
 .PHONY: build
-build: lint compile docs ## Build flowlogs-pipeline executable and update the docs
+build: fmt lint compile docs ## Build flowlogs-pipeline executable and update the docs
 
 .PHONY: docs
 docs: FORCE ## Update flowlogs-pipeline documentation
