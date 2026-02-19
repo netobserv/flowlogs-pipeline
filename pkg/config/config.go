@@ -120,6 +120,7 @@ type Transform struct {
 	Generic *api.TransformGeneric `yaml:"generic,omitempty" json:"generic,omitempty"`
 	Filter  *api.TransformFilter  `yaml:"filter,omitempty" json:"filter,omitempty"`
 	Network *api.TransformNetwork `yaml:"network,omitempty" json:"network,omitempty"`
+	Anomaly *api.TransformAnomaly `yaml:"anomaly,omitempty" json:"anomaly,omitempty"`
 }
 
 type Extract struct {
