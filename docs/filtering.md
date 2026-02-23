@@ -37,7 +37,11 @@ The language is currently integrated in the "keep_entry" transform/filtering API
           keepEntrySampling: 10 # Optionally, a sampling interval can be associated with the filter
 ```
 
-## Integration with the NetObserv operator
+## Integration with the NetObserv operator and CLI
+
+See also the [list of field names](https://github.com/netobserv/network-observability-operator/blob/main/docs/flows-format.adoc) that are available for queries, and the [API documentation](https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowCollector.md#flowcollectorspecprocessorfiltersindex-1).
+
+### Operator
 
 In the [NetObserv operator](https://github.com/netobserv/network-observability-operator), the filtering query language is used in `FlowCollector` `spec.processor.filters`. Example:
 
@@ -51,7 +55,13 @@ spec:
         sampling: 10        # Optionally, a sampling interval can be associated with the filter
 ```
 
-See also the [list of field names](https://github.com/netobserv/network-observability-operator/blob/main/docs/flows-format.adoc) that are available for queries, and the [API documentation](https://github.com/netobserv/network-observability-operator/blob/main/docs/FlowCollector.md#flowcollectorspecprocessorfiltersindex-1).
+### CLI
+
+In the [NetObserv CLI](https://github.com/netobserv/network-observability-cli), the filtering query language is used in the `--query` parameter. Example:
+
+```bash
+kubectl netobserv flows --query='SrcK8S_Namespace="netobserv" OR (SrcK8S_Namespace="openshift-ingress" AND DstK8S_Namespace="netobserv")'
+```
 
 ## Internals
 
