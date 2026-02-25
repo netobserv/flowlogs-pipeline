@@ -17,7 +17,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/decode"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
-	"github.com/netsampler/goflow2/producer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vmware/go-ipfix/pkg/collector"
@@ -606,15 +605,15 @@ func TestIngestEnriched(t *testing.T) {
 	}
 }
 
-func generateWriteMapping(pen uint32) []producer.NetFlowMapField {
-	var mapping []producer.NetFlowMapField
+func generateWriteMapping(pen uint32) []api.NetFlowMapField {
+	var mapping []api.NetFlowMapField
 	allCustom := []entities.InfoElement{}
 	allCustom = append(allCustom, write.KubeFields...)
 	allCustom = append(allCustom, write.CustomNetworkFields...)
 	countString := 0
 	countOther := 0
 	for _, in := range allCustom {
-		out := producer.NetFlowMapField{
+		out := api.NetFlowMapField{
 			PenProvided: true,
 			Pen:         pen,
 			Type:        in.ElementId,
