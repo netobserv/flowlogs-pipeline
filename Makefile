@@ -232,6 +232,14 @@ extract-binaries: ## Extract all MULTIARCH_TARGETS binaries
 	mkdir -p release-assets; \
 	$(foreach target,$(MULTIARCH_TARGETS),$(call extract_target,$(target)))
 
+.PHONY: tar-image
+tar-image: MULTIARCH_TARGETS=amd64
+tar-image: image-build ## Build single arch (amd64) and save as a tar
+	$(OCI_BIN) tag $(IMAGE)-amd64 $(IMAGE)
+	mkdir -p ./out
+	$(OCI_BIN) save -o out/image.tar $(IMAGE)
+	echo $(IMAGE) > ./out/name
+
 .PHONY: goyacc
 goyacc: ## Regenerate filters query langage
 	@echo "### Regenerate filters query langage"
