@@ -51,7 +51,7 @@ jobs:
             ${mainImage}
             \`\`\`
 
-            They will expire in two weeks.
+            It will expire in two weeks.
 
             To deploy this build, run from the operator repo, assuming the operator is running:
             \`\`\`bash
