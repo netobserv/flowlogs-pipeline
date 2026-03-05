@@ -34,8 +34,8 @@ func TestGetInfo(t *testing.T) {
 	pidx, hidx, sidx, ridx := SetupIndexerMocks(&kubeData)
 	ridx.MockReplicaSet("rs1", "podNamespace", "dep1", "Deployment")
 	ridx.FallbackNotFound()
-	pidx.MockPod("1.2.3.4", "AA:BB:CC:DD:EE:FF", "eth0", "pod1", "podNamespace", "10.0.0.1", "pod1", "Pod")
-	pidx.MockPod("1.2.3.5", "", "", "pod2", "podNamespace", "10.0.0.1", "rs1", "ReplicaSet")
+	pidx.MockPod("1.2.3.4", "pod1", "podNamespace", "10.0.0.1", "pod1", "Pod", &cni.NetStatItem{Name: "custom-network", MAC: "AA:BB:CC:DD:EE:FF", Interface: "eth0"})
+	pidx.MockPod("1.2.3.5", "pod2", "podNamespace", "10.0.0.1", "rs1", "ReplicaSet", nil)
 	pidx.FallbackNotFound()
 	sidx.MockService("1.2.3.100", "svc1", "svcNamespace")
 	sidx.FallbackNotFound()
@@ -46,27 +46,28 @@ func TestGetInfo(t *testing.T) {
 	info := kubeData.IndexLookup(nil, "1.2.3.4")
 	require.NotNil(t, info)
 
-	pod1 := model.ResourceMetaData{
+	expected := model.ResourceMetaData{
 		Kind: "Pod",
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "pod1",
 			Namespace: "podNamespace",
 		},
-		HostName:         "node1",
-		HostIP:           "10.0.0.1",
-		OwnerName:        "pod1",
-		OwnerKind:        "Pod",
-		NetworkName:      "primary",
-		IPs:              []string{"1.2.3.4"},
-		SecondaryNetKeys: []string{"~~aa:bb:cc:dd:ee:ff"},
+		HostName:          "node1",
+		HostIP:            "10.0.0.1",
+		OwnerName:         "pod1",
+		OwnerKind:         "Pod",
+		NetworkName:       "primary",
+		IPs:               []string{"1.2.3.4"},
+		SecondaryNetKeys:  []string{"~~aa:bb:cc:dd:ee:ff"},
+		SecondaryNetNames: map[string]string{"~~aa:bb:cc:dd:ee:ff": "custom-network"},
 	}
-	require.Equal(t, pod1, *info)
+	require.Equal(t, expected, *info)
 
 	// Test get same pod by mac
-	info = kubeData.IndexLookup([]cni.SecondaryNetKey{{NetworkName: "custom-network", Key: "~~aa:bb:cc:dd:ee:ff"}}, "")
+	info = kubeData.IndexLookup([]string{"~~aa:bb:cc:dd:ee:ff"}, "")
 	require.NotNil(t, info)
-	pod1.NetworkName = "custom-network"
-	require.Equal(t, pod1, *info)
+	expected.NetworkName = "custom-network"
+	require.Equal(t, expected, *info)
 
 	// Test get pod owned
 	info = kubeData.IndexLookup(nil, "1.2.3.5")
@@ -139,7 +140,7 @@ func TestOwnershipTracking_GatewayAPI(t *testing.T) {
 	ridx.FallbackNotFound()
 	didx.MockDeployment("deploy1", "test-ns", "gateway1", "Gateway")
 
-	pidx.MockPod("1.2.3.4", "", "", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet")
+	pidx.MockPod("1.2.3.4", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet", nil)
 	pidx.FallbackNotFound()
 	hidx.MockNode("10.0.0.1", "node1")
 	hidx.FallbackNotFound()
@@ -168,7 +169,7 @@ func TestOwnershipTracking_OnlyDeployment(t *testing.T) {
 	ridx.FallbackNotFound()
 	didx.MockDeployment("deploy1", "test-ns", "gateway1", "Gateway")
 
-	pidx.MockPod("1.2.3.4", "", "", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet")
+	pidx.MockPod("1.2.3.4", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet", nil)
 	pidx.FallbackNotFound()
 	hidx.MockNode("10.0.0.1", "node1")
 	hidx.FallbackNotFound()
@@ -196,7 +197,7 @@ func TestOwnershipTracking_NoTrackedKinds(t *testing.T) {
 	ridx.MockReplicaSet("rs1", "test-ns", "deploy1", "Deployment")
 	ridx.FallbackNotFound()
 
-	pidx.MockPod("1.2.3.4", "", "", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet")
+	pidx.MockPod("1.2.3.4", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet", nil)
 	pidx.FallbackNotFound()
 	hidx.MockNode("10.0.0.1", "node1")
 	hidx.FallbackNotFound()
@@ -226,7 +227,7 @@ func TestOwnershipTracking_MaxDepth(t *testing.T) {
 	// Deployment owned by Gateway (which we can't traverse further without Gateway informer)
 	didx.MockDeployment("deploy1", "test-ns", "gateway1", "Gateway")
 
-	pidx.MockPod("1.2.3.4", "", "", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet")
+	pidx.MockPod("1.2.3.4", "pod1", "test-ns", "10.0.0.1", "rs1", "ReplicaSet", nil)
 	pidx.FallbackNotFound()
 	hidx.MockNode("10.0.0.1", "node1")
 	hidx.FallbackNotFound()

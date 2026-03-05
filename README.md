@@ -940,6 +940,7 @@ General
   vendors               Check go vendors  
   
 Develop  
+  fmt                   Format code  
   lint                  Lint the code  
   compile               Compile main flowlogs-pipeline and config generator  
   build                 Build flowlogs-pipeline executable and update the docs  
@@ -960,6 +961,7 @@ Images
   manifest-build        Build MULTIARCH_TARGETS manifest  
   manifest-push         Push MULTIARCH_TARGETS manifest  
   extract-binaries      Extract all MULTIARCH_TARGETS binaries  
+  tar-image             Build single arch (amd64) and save as a tar  
   goyacc                Regenerate filters query langage  
   
 kubernetes  

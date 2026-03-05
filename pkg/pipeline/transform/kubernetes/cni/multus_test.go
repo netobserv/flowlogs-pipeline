@@ -12,26 +12,23 @@ import (
 var (
 	multusHandler      = MultusHandler{}
 	pod                = v1.Pod{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{}}}
-	secondaryNetConfig = []api.SecondaryNetwork{
-		{
-			Name:  "macvlan-conf",
-			Index: map[string]any{"mac": nil},
-		},
-	}
+	secondaryNetConfig = []api.SecondaryNetwork{{Index: map[string]any{"mac": nil}}}
 )
 
 func TestExtractNetStatusKeys(t *testing.T) {
 	// Annotation not found => no error, no key
-	keys, err := multusHandler.GetPodUniqueKeys(&pod, secondaryNetConfig)
+	keys, namedKeys, err := multusHandler.GetPodUniqueKeys(&pod, secondaryNetConfig)
 	require.NoError(t, err)
 	require.Empty(t, keys)
+	require.Empty(t, namedKeys)
 
 	// Annotation malformed => error, no key
 	pod.Annotations = map[string]string{statusAnnotation: "whatever"}
-	keys, err = multusHandler.GetPodUniqueKeys(&pod, secondaryNetConfig)
+	keys, namedKeys, err = multusHandler.GetPodUniqueKeys(&pod, secondaryNetConfig)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "cannot read annotation")
 	require.Empty(t, keys)
+	require.Empty(t, namedKeys)
 
 	// Valid annotation => no error, key
 	pod.Annotations = map[string]string{
@@ -55,13 +52,15 @@ func TestExtractNetStatusKeys(t *testing.T) {
 		}]
 		`,
 	}
-	keys, err = multusHandler.GetPodUniqueKeys(&pod, secondaryNetConfig)
+	keys, namedKeys, err = multusHandler.GetPodUniqueKeys(&pod, secondaryNetConfig)
 	require.NoError(t, err)
 	require.Equal(t, []string{"~~86:1d:96:ff:55:0d"}, keys)
+	require.Equal(t, map[string]string{"~~86:1d:96:ff:55:0d": "macvlan-conf"}, namedKeys)
 
 	// Composed key
 	secondaryNetConfig[0].Index = map[string]any{"mac": nil, "ip": nil, "interface": nil}
-	keys, err = multusHandler.GetPodUniqueKeys(&pod, secondaryNetConfig)
+	keys, namedKeys, err = multusHandler.GetPodUniqueKeys(&pod, secondaryNetConfig)
 	require.NoError(t, err)
 	require.Equal(t, []string{"net1~192.168.1.205~86:1d:96:ff:55:0d"}, keys)
+	require.Equal(t, map[string]string{"net1~192.168.1.205~86:1d:96:ff:55:0d": "macvlan-conf"}, namedKeys)
 }
