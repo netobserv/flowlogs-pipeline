@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,39 +31,44 @@ func udnConfigAnnotation(ip string) string {
 
 func TestExtractUDNStatusKeys(t *testing.T) {
 	// Annotation not found => no error, no key
-	keys, err := udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
+	keys, namedKeys, err := udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
 	require.NoError(t, err)
-	require.Empty(t, keys)
+	assert.Empty(t, keys)
+	assert.Empty(t, namedKeys)
 
 	// Valid annotation => no error, valid key
 	udnPod.Annotations = map[string]string{
 		ovnAnnotation: udnConfigAnnotation("10.200.200.12"),
 	}
-	keys, err = udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
+	keys, namedKeys, err = udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
 	require.NoError(t, err)
-	require.Equal(t, []string{"mesh-arena/primary-udn~10.200.200.12"}, keys)
+	assert.Equal(t, []string{"mesh-arena/primary-udn~10.200.200.12"}, keys)
+	assert.Equal(t, map[string]string{"mesh-arena/primary-udn~10.200.200.12": "mesh-arena/primary-udn"}, namedKeys)
 
 	// Same check with a somewhat surprising CIDR found here as an IP, but it's really the IP part that should be used
 	udnPod.Annotations = map[string]string{
 		ovnAnnotation: udnConfigAnnotation("10.200.200.12/24"),
 	}
-	keys, err = udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
+	keys, namedKeys, err = udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
 	require.NoError(t, err)
-	require.Equal(t, []string{"mesh-arena/primary-udn~10.200.200.12"}, keys)
+	assert.Equal(t, []string{"mesh-arena/primary-udn~10.200.200.12"}, keys)
+	assert.Equal(t, map[string]string{"mesh-arena/primary-udn~10.200.200.12": "mesh-arena/primary-udn"}, namedKeys)
 
 	// Same with IPv6
 	udnPod.Annotations = map[string]string{
 		ovnAnnotation: udnConfigAnnotation("2001:0db8::1111"),
 	}
-	keys, err = udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
+	keys, namedKeys, err = udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
 	require.NoError(t, err)
-	require.Equal(t, []string{"mesh-arena/primary-udn~2001:0db8::1111"}, keys)
+	assert.Equal(t, []string{"mesh-arena/primary-udn~2001:0db8::1111"}, keys)
+	assert.Equal(t, map[string]string{"mesh-arena/primary-udn~2001:0db8::1111": "mesh-arena/primary-udn"}, namedKeys)
 
 	// Same with IPv6 as a CIDR
 	udnPod.Annotations = map[string]string{
 		ovnAnnotation: udnConfigAnnotation("2001:0db8::1111/24"),
 	}
-	keys, err = udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
+	keys, namedKeys, err = udnHandler.GetPodUniqueKeys(context.TODO(), nil, &udnPod)
 	require.NoError(t, err)
-	require.Equal(t, []string{"mesh-arena/primary-udn~2001:0db8::1111"}, keys)
+	assert.Equal(t, []string{"mesh-arena/primary-udn~2001:0db8::1111"}, keys)
+	assert.Equal(t, map[string]string{"mesh-arena/primary-udn~2001:0db8::1111": "mesh-arena/primary-udn"}, namedKeys)
 }
