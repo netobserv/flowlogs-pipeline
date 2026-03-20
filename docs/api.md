@@ -298,7 +298,7 @@ Following is the supported API format for network transformations:
          kubeConfig: global configuration related to Kubernetes (optional)
              configPath: path to kubeconfig file (optional)
              secondaryNetworks: configuration for secondary networks
-                     name: name of the secondary network, as mentioned in the annotation 'k8s.v1.cni.cncf.io/network-status'
+                     name: deprecated / unused
                      index: fields to use for indexing, must be any combination of 'mac', 'ip', 'interface', or 'udn'
              managedCNI: a list of CNI (network plugins) to manage, for detecting additional interfaces. Currently supported: ovn
              trackedKinds: list of Kubernetes resource kinds to track for ownership chain (e.g., Deployment, Gateway, VirtualMachine). If a resource's owner is in this list, FLP will continue tracking up the ownership chain.
