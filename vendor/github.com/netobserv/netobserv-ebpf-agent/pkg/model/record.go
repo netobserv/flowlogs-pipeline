@@ -1,7 +1,6 @@
 package model
 
 import (
-	"crypto/tls"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -10,9 +9,9 @@ import (
 	"time"
 
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/ebpf"
-	"github.com/netobserv/netobserv-ebpf-agent/pkg/utils"
+	"github.com/netobserv/netobserv-ebpf-agent/pkg/utils/networkevents"
 
-	ovnobserv "github.com/ovn-org/ovn-kubernetes/go-controller/observability-lib/sampledecoder"
+	ovnmodel "github.com/ovn-org/ovn-kubernetes/go-controller/observability-lib/model"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,7 +25,6 @@ const (
 	NetworkEventsMaxEventsMD = 8
 	MaxNetworkEvents         = 4
 	MaxObservedInterfaces    = 6
-	MiscFlagsSSLMismatch     = 0x01
 )
 
 var recordLog = logrus.WithField("component", "model")
@@ -42,6 +40,9 @@ type Direction uint8
 type IPAddr [net.IPv6len]uint8
 
 type InterfaceNamer func(ifIndex int, mac MacAddr) string
+type SampleDecoder interface {
+	DecodeCookie8Bytes(cookie [8]byte) (ovnmodel.NetworkEvent, error)
+}
 
 var (
 	agentIP        net.IP
@@ -81,7 +82,7 @@ func NewRecord(
 	metrics *BpfFlowContent,
 	currentTime time.Time,
 	monotonicCurrentTime uint64,
-	s *ovnobserv.SampleDecoder,
+	s SampleDecoder,
 	udnsCache map[string]string,
 ) *Record {
 	startDelta := time.Duration(monotonicCurrentTime - metrics.StartMonoTimeTs)
@@ -123,14 +124,30 @@ func NewRecord(
 	if s != nil && metrics.NetworkEventsMetrics != nil {
 		seen := make(map[string]bool)
 		record.NetworkMonitorEventsMD = make([]map[string]string, 0)
-		for _, metadata := range metrics.NetworkEventsMetrics.NetworkEvents {
-			if !AllZerosMetaData(metadata) {
+		for i, metadata := range metrics.NetworkEventsMetrics.NetworkEvents {
+			if metrics.NetworkEventsMetrics.Packets[i] != 0 {
 				if md, err := s.DecodeCookie8Bytes(metadata); err == nil {
 					mdStr := md.String()
 					if !seen[mdStr] {
-						asMap := utils.NetworkEventToMap(md)
+						asMap := networkevents.ToMap(md)
 						record.NetworkMonitorEventsMD = append(record.NetworkMonitorEventsMD, asMap)
 						seen[mdStr] = true
+					}
+					if cause, isDrop := networkevents.ToDropReasonCode(md); isDrop {
+						// Inject as a packet drop
+						if record.Metrics.PktDropMetrics == nil {
+							record.Metrics.PktDropMetrics = &ebpf.BpfPktDropMetrics{
+								StartMonoTimeTs: metrics.NetworkEventsMetrics.StartMonoTimeTs,
+								EndMonoTimeTs:   metrics.NetworkEventsMetrics.EndMonoTimeTs,
+								LatestDropCause: cause,
+								Bytes:           metrics.NetworkEventsMetrics.Bytes[i],
+								Packets:         metrics.NetworkEventsMetrics.Packets[i],
+							}
+						} else {
+							record.Metrics.PktDropMetrics.LatestDropCause = cause
+							record.Metrics.PktDropMetrics.Bytes = addUint16(metrics.PktDropMetrics.Bytes, metrics.NetworkEventsMetrics.Bytes[i])
+							record.Metrics.PktDropMetrics.Packets = addUint16(metrics.PktDropMetrics.Packets, metrics.NetworkEventsMetrics.Packets[i])
+						}
 					}
 				}
 			}
@@ -211,37 +228,9 @@ func ReadFrom(reader io.Reader) (*RawRecord, error) {
 	return &fr, err
 }
 
-func AllZerosMetaData(s [NetworkEventsMaxEventsMD]uint8) bool {
-	for _, v := range s {
-		if v != 0 {
-			return false
-		}
-	}
-	return true
-}
-
 func AllZeroIP(ip net.IP) bool {
 	if ip.Equal(net.IPv4zero) || ip.Equal(net.IPv6zero) {
 		return true
 	}
 	return false
-}
-
-func (r *BpfFlowContent) SSLVersionToString() string {
-	if r.SslVersion == 0 {
-		return ""
-	}
-	v := tls.VersionName(r.SslVersion)
-	if r.HasSSLMismatch() {
-		return "~ " + v
-	}
-	return v
-}
-
-func (r *BpfFlowContent) TLSTypesToStrings() []string {
-	return tlsTypesToStrings(r.TlsTypes)
-}
-
-func (r *BpfFlowContent) HasSSLMismatch() bool {
-	return r.MiscFlags&MiscFlagsSSLMismatch > 0
 }

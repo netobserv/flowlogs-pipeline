@@ -1,7 +1,6 @@
 package decode
 
 import (
-	"crypto/tls"
 	"fmt"
 	"syscall"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/model"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/utils"
+	"github.com/netobserv/netobserv-ebpf-agent/pkg/utils/networkevents"
 
 	"github.com/mdlayher/ethernet"
 	log "github.com/sirupsen/logrus"
@@ -93,19 +93,6 @@ func RecordToMap(fr *model.Record) config.GenericMap {
 
 	if fr.Metrics.Sampling != 0 {
 		out["Sampling"] = fr.Metrics.Sampling
-	}
-
-	if tlsVersion := fr.Metrics.SSLVersionToString(); tlsVersion != "" {
-		out["TLSVersion"] = tlsVersion
-	}
-	if fr.Metrics.TlsTypes > 0 {
-		out["TLSTypes"] = fr.Metrics.TLSTypesToStrings()
-	}
-	if fr.Metrics.TlsCipherSuite != 0 {
-		out["TLSCipherSuite"] = tls.CipherSuiteName(fr.Metrics.TlsCipherSuite)
-	}
-	if fr.Metrics.TlsKeyShare != 0 {
-		out["TLSCurve"] = tls.CurveID(fr.Metrics.TlsKeyShare).String()
 	}
 
 	if fr.Metrics.EthProtocol == uint16(ethernet.EtherTypeIPv4) || fr.Metrics.EthProtocol == uint16(ethernet.EtherTypeIPv6) {
@@ -406,6 +393,11 @@ func PktDropCauseToStr(dropCause uint32) string {
 	case skbDropReasonSubSysOpenVSwitch + 11:
 		return "OVS_DROP_IP_TTL"
 	}
+
+	if cause := networkevents.DropReasonCodeToString(dropCause); cause != "" {
+		return "NetworkEvent_" + cause
+	}
+
 	return "SKB_DROP_UNKNOWN_CAUSE"
 }
 

@@ -144,11 +144,6 @@ type BpfFlowMetricsT struct {
 	ObservedDirection  [6]uint8
 	_                  [2]byte
 	ObservedIntf       [6]uint32
-	SslVersion         uint16
-	TlsCipherSuite     uint16
-	TlsKeyShare        uint16
-	TlsTypes           uint8
-	MiscFlags          uint8
 	_                  [4]byte
 }
 
@@ -182,6 +177,8 @@ type BpfNetworkEventsMetricsT struct {
 	StartMonoTimeTs  uint64
 	EndMonoTimeTs    uint64
 	NetworkEvents    [4][8]uint8
+	Bytes            [4]uint16
+	Packets          [4]uint16
 	EthProtocol      uint16
 	NetworkEventsIdx uint8
 	_                [5]byte
@@ -193,8 +190,8 @@ type BpfPktDropMetricsT struct {
 	_               structs.HostLayout
 	StartMonoTimeTs uint64
 	EndMonoTimeTs   uint64
-	Bytes           uint64
-	Packets         uint32
+	Bytes           uint16
+	Packets         uint16
 	LatestDropCause uint32
 	LatestFlags     uint16
 	EthProtocol     uint16
@@ -340,7 +337,6 @@ type BpfVariableSpecs struct {
 	EnablePca                      *ebpf.VariableSpec `ebpf:"enable_pca"`
 	EnablePktTranslationTracking   *ebpf.VariableSpec `ebpf:"enable_pkt_translation_tracking"`
 	EnableRtt                      *ebpf.VariableSpec `ebpf:"enable_rtt"`
-	EnableTlsUsageTracking         *ebpf.VariableSpec `ebpf:"enable_tls_usage_tracking"`
 	FilterKey                      *ebpf.VariableSpec `ebpf:"filter_key"`
 	FilterValue                    *ebpf.VariableSpec `ebpf:"filter_value"`
 	HasFilterSampling              *ebpf.VariableSpec `ebpf:"has_filter_sampling"`
@@ -425,7 +421,6 @@ type BpfVariables struct {
 	EnablePca                      *ebpf.Variable `ebpf:"enable_pca"`
 	EnablePktTranslationTracking   *ebpf.Variable `ebpf:"enable_pkt_translation_tracking"`
 	EnableRtt                      *ebpf.Variable `ebpf:"enable_rtt"`
-	EnableTlsUsageTracking         *ebpf.Variable `ebpf:"enable_tls_usage_tracking"`
 	FilterKey                      *ebpf.Variable `ebpf:"filter_key"`
 	FilterValue                    *ebpf.Variable `ebpf:"filter_value"`
 	HasFilterSampling              *ebpf.Variable `ebpf:"has_filter_sampling"`

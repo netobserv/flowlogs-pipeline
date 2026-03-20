@@ -63,16 +63,11 @@ func FlowToPB(fr *model.Record) *Record {
 			Seconds: fr.TimeFlowEnd.Unix(),
 			Nanos:   int32(fr.TimeFlowEnd.Nanosecond()),
 		},
-		Packets:        uint64(fr.Metrics.Packets),
-		AgentIp:        agentIP(fr.AgentIP),
-		Flags:          uint32(fr.Metrics.Flags),
-		TimeFlowRtt:    durationpb.New(fr.TimeFlowRtt),
-		Sampling:       fr.Metrics.Sampling,
-		SslVersion:     uint32(fr.Metrics.SslVersion),
-		TlsTypes:       uint32(fr.Metrics.TlsTypes),
-		TlsCipherSuite: uint32(fr.Metrics.TlsCipherSuite),
-		TlsKeyShare:    uint32(fr.Metrics.TlsKeyShare),
-		SslMismatch:    fr.Metrics.HasSSLMismatch(),
+		Packets:     uint64(fr.Metrics.Packets),
+		AgentIp:     agentIP(fr.AgentIP),
+		Flags:       uint32(fr.Metrics.Flags),
+		TimeFlowRtt: durationpb.New(fr.TimeFlowRtt),
+		Sampling:    fr.Metrics.Sampling,
 	}
 	if fr.Metrics.DNSMetrics != nil {
 		pbflowRecord.DnsId = uint32(fr.Metrics.DNSMetrics.Id)
@@ -87,7 +82,7 @@ func FlowToPB(fr *model.Record) *Record {
 		}
 	}
 	if fr.Metrics.PktDropMetrics != nil {
-		pbflowRecord.PktDropBytes = fr.Metrics.PktDropMetrics.Bytes
+		pbflowRecord.PktDropBytes = uint64(fr.Metrics.PktDropMetrics.Bytes)
 		pbflowRecord.PktDropPackets = uint64(fr.Metrics.PktDropMetrics.Packets)
 		pbflowRecord.PktDropLatestFlags = uint32(fr.Metrics.PktDropMetrics.LatestFlags)
 		pbflowRecord.PktDropLatestState = uint32(fr.Metrics.PktDropMetrics.LatestState)
@@ -157,18 +152,14 @@ func PBToFlow(pb *Record) *model.Record {
 		},
 		Metrics: model.BpfFlowContent{
 			BpfFlowMetrics: &ebpf.BpfFlowMetrics{
-				EthProtocol:    uint16(pb.EthProtocol),
-				SrcMac:         macToUint8(pb.DataLink.GetSrcMac()),
-				DstMac:         macToUint8(pb.DataLink.GetDstMac()),
-				Bytes:          pb.Bytes,
-				Packets:        uint32(pb.Packets),
-				Flags:          uint16(pb.Flags),
-				Dscp:           uint8(pb.Network.Dscp),
-				Sampling:       pb.Sampling,
-				SslVersion:     uint16(pb.SslVersion),
-				TlsTypes:       uint8(pb.TlsTypes),
-				TlsCipherSuite: uint16(pb.TlsCipherSuite),
-				TlsKeyShare:    uint16(pb.TlsKeyShare),
+				EthProtocol: uint16(pb.EthProtocol),
+				SrcMac:      macToUint8(pb.DataLink.GetSrcMac()),
+				DstMac:      macToUint8(pb.DataLink.GetDstMac()),
+				Bytes:       pb.Bytes,
+				Packets:     uint32(pb.Packets),
+				Flags:       uint16(pb.Flags),
+				Dscp:        uint8(pb.Network.Dscp),
+				Sampling:    pb.Sampling,
 			},
 			DNSMetrics: &ebpf.BpfDnsMetrics{
 				Id:      uint16(pb.DnsId),
@@ -178,8 +169,8 @@ func PBToFlow(pb *Record) *model.Record {
 				Latency: uint64(pb.DnsLatency.AsDuration()),
 			},
 			PktDropMetrics: &ebpf.BpfPktDropMetrics{
-				Bytes:           pb.PktDropBytes,
-				Packets:         uint32(pb.PktDropPackets),
+				Bytes:           uint16(pb.PktDropBytes),
+				Packets:         uint16(pb.PktDropPackets),
 				LatestFlags:     uint16(pb.PktDropLatestFlags),
 				LatestState:     uint8(pb.PktDropLatestState),
 				LatestDropCause: pb.PktDropLatestDropCause,
@@ -200,9 +191,6 @@ func PBToFlow(pb *Record) *model.Record {
 		AgentIP:       pbIPToNetIP(pb.AgentIp),
 		TimeFlowRtt:   pb.TimeFlowRtt.AsDuration(),
 		DNSLatency:    pb.DnsLatency.AsDuration(),
-	}
-	if pb.SslMismatch {
-		out.Metrics.MiscFlags |= model.MiscFlagsSSLMismatch
 	}
 	if pb.IpsecEncrypted != 0 {
 		out.Metrics.AdditionalMetrics.IpsecEncrypted = true
