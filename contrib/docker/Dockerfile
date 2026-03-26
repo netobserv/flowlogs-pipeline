@@ -13,10 +13,12 @@ COPY cmd/ cmd/
 COPY pkg/ pkg/
 
 RUN CGO_ENABLED=0 GOARCH=$TARGETARCH go build -ldflags "$LDFLAGS" -mod vendor -o flowlogs-pipeline cmd/flowlogs-pipeline/main.go
+RUN CGO_ENABLED=0 GOARCH=$TARGETARCH go build -ldflags "$LDFLAGS" -mod vendor -o flp-informers cmd/flp-informers/main.go
 
 # final stage
 FROM --platform=linux/$TARGETARCH registry.access.redhat.com/ubi9/ubi-minimal:9.7-1773939694
 
 COPY --from=builder /app/flowlogs-pipeline /app/
+COPY --from=builder /app/flp-informers /app/
 
 ENTRYPOINT ["/app/flowlogs-pipeline"]
