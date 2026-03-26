@@ -33,6 +33,7 @@ type Options struct {
 	MetricsSettings   string
 	Health            Health
 	Profile           Profile
+	K8sCacheServer    K8sCacheServer
 }
 
 type Root struct {
@@ -62,6 +63,11 @@ type Health struct {
 
 type Profile struct {
 	Port int
+}
+
+type K8sCacheServer struct {
+	Address string
+	Port    int
 }
 
 // MetricsSettings is similar to api.PromEncode, but is global to the application, ie. it also works with operational metrics.

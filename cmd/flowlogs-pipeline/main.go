@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -33,12 +34,16 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/datasource"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/k8scache"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/prometheus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -145,6 +150,8 @@ func initFlags() {
 	rootCmd.PersistentFlags().StringVar(&opts.Health.Address, "health.address", "0.0.0.0", "Health server address")
 	rootCmd.PersistentFlags().IntVar(&opts.Health.Port, "health.port", 0, "Health server port (default: disable health server) ")
 	rootCmd.PersistentFlags().IntVar(&opts.Profile.Port, "profile.port", 0, "Go pprof tool port (default: disabled)")
+	rootCmd.PersistentFlags().StringVar(&opts.K8sCacheServer.Address, "k8scache.address", "0.0.0.0", "K8s cache sync server address")
+	rootCmd.PersistentFlags().IntVar(&opts.K8sCacheServer.Port, "k8scache.port", 0, "K8s cache sync server port (default: disabled)")
 	rootCmd.PersistentFlags().StringVar(&opts.PipeLine, "pipeline", "", "json of config file pipeline field")
 	rootCmd.PersistentFlags().StringVar(&opts.Parameters, "parameters", "", "json of config file parameters field")
 	rootCmd.PersistentFlags().StringVar(&opts.DynamicParameters, "dynamicParameters", "", "json of configmap location for dynamic parameters")
@@ -204,6 +211,12 @@ func run() {
 		healthServer = operational.NewHealthServer(&opts, mainPipeline.IsAlive, mainPipeline.IsReady)
 	}
 
+	// Start K8s cache server
+	var grpcServer *grpc.Server
+	if opts.K8sCacheServer.Port > 0 {
+		grpcServer = startK8sCacheServer(&opts.K8sCacheServer)
+	}
+
 	// Starts the flows pipeline
 	mainPipeline.Run()
 
@@ -213,9 +226,53 @@ func run() {
 	if healthServer != nil {
 		_ = healthServer.Shutdown(context.Background())
 	}
+	if grpcServer != nil {
+		log.Info("stopping K8s cache sync server")
+		grpcServer.GracefulStop()
+	}
 
 	// Give all threads a chance to exit and then exit the process
 	time.Sleep(time.Second)
 	log.Debugf("exiting main run")
 	os.Exit(0)
+}
+
+// startK8sCacheServer initializes and starts the gRPC server for K8s cache synchronization
+// Returns nil if the datasource is not available (e.g., no kubernetes enrichment configured)
+func startK8sCacheServer(cfg *config.K8sCacheServer) *grpc.Server {
+	// Check if kubernetes datasource is available
+	ds := kubernetes.GetDatasource()
+	if ds == nil {
+		log.Warn("K8s cache server requested but kubernetes datasource not initialized. " +
+			"Make sure kubernetes enrichment is configured in the pipeline.")
+		return nil
+	}
+
+	// Attach a Kubernetes store so the cache server can apply received updates; enrichment will use it for lookups
+	ds.SetKubernetesStore(datasource.NewKubernetesStore())
+
+	// Create cache server
+	cacheServer := k8scache.NewKubernetesCacheServer(ds)
+
+	// Create gRPC server
+	grpcServer := grpc.NewServer()
+	k8scache.RegisterKubernetesCacheServiceServer(grpcServer, cacheServer)
+
+	// Start listening
+	address := fmt.Sprintf("%s:%d", cfg.Address, cfg.Port)
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		log.WithError(err).WithField("address", address).Fatal("failed to start K8s cache server")
+		return nil
+	}
+
+	// Start server in background
+	go func() {
+		log.WithField("address", address).Info("starting K8s cache sync server")
+		if err := grpcServer.Serve(listener); err != nil {
+			log.WithError(err).Error("K8s cache sync server stopped with error")
+		}
+	}()
+
+	return grpcServer
 }

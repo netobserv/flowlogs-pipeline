@@ -34,6 +34,12 @@ func InitInformerDatasource(config *api.NetworkTransformKubeConfig, opMetrics *o
 	return err
 }
 
+// GetDatasource returns the initialized datasource
+// Returns nil if datasource has not been initialized via InitInformerDatasource
+func GetDatasource() *datasource.Datasource {
+	return ds
+}
+
 func Enrich(outputEntry config.GenericMap, rule *api.K8sRule) {
 	ip, ok := outputEntry.LookupString(rule.IPField)
 	if !ok {
