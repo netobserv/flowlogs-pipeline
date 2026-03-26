@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+option go_package = "./k8scache";
+
+package k8scache;
+
+// KubernetesCacheService defines the bidirectional streaming service for cache synchronization
+// between the centralized informers pod and the distributed FLP processor pods.
+//
+// Flow:
+// 1. FLP processor (server) accepts connection from informers (client)
+// 2. FLP sends SyncRequest indicating what version it has
+// 3. Informers sends CacheUpdate (snapshot or incremental)
+// 4. FLP sends SyncAck to confirm receipt
+// 5. Repeat steps 3-4 for ongoing updates
+service KubernetesCacheService {
+  // StreamUpdates establishes a bidirectional stream:
+  // - Informers (client) send CacheUpdate messages (snapshots and incremental updates)
+  // - FLP processors (server) send SyncRequest and SyncAck messages
+  //
+  // NOTE: In protobuf syntax, "rpc Method(stream A) returns (stream B)":
+  //   - A = what server RECEIVES (what client SENDS)
+  //   - B = what server SENDS (what client RECEIVES)
+  //
+  // We want:
+  //   - Server receives: CacheUpdate (from informers client)
+  //   - Server sends: SyncMessage (requests/acks)
+  //
+  // Therefore we need: (stream CacheUpdate) returns (stream SyncMessage)
+  rpc StreamUpdates(stream CacheUpdate) returns (stream SyncMessage) {}
+}
+
+// SyncMessage is sent by FLP processors (server) to the informers (client)
+message SyncMessage {
+  oneof message {
+    SyncRequest request = 1;
+    SyncAck ack = 2;
+  }
+}
+
+// SyncRequest is sent when an FLP processor connects or reconnects
+message SyncRequest {
+  string processor_id = 1;  // Unique identifier for the FLP processor pod
+  int64 last_version = 2;   // Last cache version seen (0 if requesting full snapshot)
+}
+
+// SyncAck acknowledges receipt of cache updates
+message SyncAck {
+  string processor_id = 1;
+  int64 version = 2;        // The version that was successfully applied
+  bool success = 3;         // Whether the update was applied successfully
+  string error = 4;         // Error message if success = false
+}
+
+// CacheUpdate represents an incremental change to the cache
+message CacheUpdate {
+  int64 version = 1;              // Monotonically increasing version number
+  bool is_snapshot = 2;           // True if this is a full snapshot, false for incremental
+  repeated ResourceEntry entries = 3;
+  OperationType operation = 4;    // Only relevant when is_snapshot = false
+}
+
+// OperationType defines the kind of cache operation
+enum OperationType {
+  OPERATION_UNSPECIFIED = 0;
+  OPERATION_ADD = 1;
+  OPERATION_UPDATE = 2;
+  OPERATION_DELETE = 3;
+}
+
+// ResourceEntry represents a single Kubernetes resource in the cache
+message ResourceEntry {
+  string kind = 1;           // "Pod", "Node", or "Service"
+  string namespace = 2;
+  string name = 3;
+  string uid = 4;
+
+  // Resource-specific metadata
+  string owner_name = 5;
+  string owner_kind = 6;
+  string host_name = 7;      // For Pods: the node name
+  string host_ip = 8;        // For Pods: the node IP
+  string network_name = 9;   // For multi-network support
+
+  repeated string ips = 10;  // IP addresses associated with this resource
+  repeated string secondary_net_keys = 11;  // Secondary network keys for CNI plugins
+  map<string, string> secondary_net_names = 16;  // Secondary network names mapping (key -> network name)
+
+  map<string, string> labels = 12;
+  map<string, string> annotations = 13;
+
+  // Kubernetes metadata
+  int64 creation_timestamp = 14;  // Unix timestamp
+  string resource_version = 15;   // K8s resource version
+}

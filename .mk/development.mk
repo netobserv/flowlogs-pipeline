@@ -66,6 +66,17 @@ deploy-netflow-simulator: ## Deploy netflow simulator
 undeploy-netflow-simulator: ## Undeploy netflow simulator
 	kubectl --ignore-not-found=true delete -f contrib/kubernetes/deployment-netflow-simulator.yaml || true
 
+.PHONY: deploy-flp-informers
+deploy-flp-informers: ## Deploy flp-informers (centralized K8s cache pusher)
+	sed 's|%IMAGE_TAG_BASE%|$(IMAGE_TAG_BASE)|g;s|%VERSION%|$(VERSION)|g;s|%NAMESPACE%|$(NAMESPACE)|g' contrib/kubernetes/deployment-flp-informers.yaml > /tmp/deployment-flp-informers.yaml
+	kubectl apply -f /tmp/deployment-flp-informers.yaml -n $(NAMESPACE)
+	kubectl rollout status "deploy/flp-informers" --timeout=600s -n $(NAMESPACE)
+
+.PHONY: undeploy-flp-informers
+undeploy-flp-informers: ## Undeploy flp-informers
+	sed 's|%IMAGE_TAG_BASE%|$(IMAGE_TAG_BASE)|g;s|%VERSION%|$(VERSION)|g;s|%NAMESPACE%|$(NAMESPACE)|g' contrib/kubernetes/deployment-flp-informers.yaml > /tmp/deployment-flp-informers.yaml
+	kubectl --ignore-not-found=true delete -f /tmp/deployment-flp-informers.yaml -n $(NAMESPACE) || true
+
 ##@ kind
 
 .PHONY: create-kind-cluster
@@ -120,6 +131,32 @@ local-cleanup: prereqs-kind local-deployments-cleanup delete-kind-cluster ## Und
 
 .PHONY: local-redeploy
 local-redeploy:  local-deployments-cleanup local-deployments-deploy ## Redeploy locally (on current kind)
+
+.PHONY: local-deployments-deploy-k8scache
+local-deployments-deploy-k8scache: prereqs-kind deploy-prometheus deploy-loki deploy-grafana build-image kind-load-image deploy-k8scache deploy-flp-informers deploy-netflow-simulator
+	kubectl get pods -n $(NAMESPACE)
+	kubectl rollout status -w deployment/flowlogs-pipeline -n $(NAMESPACE)
+	kubectl rollout status -w deployment/flp-informers -n $(NAMESPACE)
+	kubectl logs -l app=flowlogs-pipeline -n $(NAMESPACE)
+
+.PHONY: deploy-k8scache
+deploy-k8scache: ## Deploy FLP with k8scache server enabled
+	sed 's|%IMAGE_TAG_BASE%|$(IMAGE_TAG_BASE)|g;s|%VERSION%|$(VERSION)|g;s|%NAMESPACE%|$(NAMESPACE)|g' contrib/kubernetes/deployment-k8scache.yaml > /tmp/deployment-k8scache.yaml
+	kubectl create configmap flowlogs-pipeline-configuration --from-file=flowlogs-pipeline.conf.yaml=$(FLP_CONF_FILE) -n $(NAMESPACE)
+	kubectl apply -f /tmp/deployment-k8scache.yaml -n $(NAMESPACE)
+	kubectl rollout status "deploy/flowlogs-pipeline" --timeout=600s -n $(NAMESPACE)
+
+.PHONY: local-deploy-k8scache
+local-deploy-k8scache: prereqs-kind local-cleanup-k8scache create-kind-cluster local-deployments-deploy-k8scache ## Deploy locally on kind with k8scache and flp-informers
+
+.PHONY: local-deployments-cleanup-k8scache
+local-deployments-cleanup-k8scache: prereqs-kind undeploy-netflow-simulator undeploy undeploy-flp-informers undeploy-grafana undeploy-loki undeploy-prometheus
+
+.PHONY: local-cleanup-k8scache
+local-cleanup-k8scache: prereqs-kind local-deployments-cleanup-k8scache delete-kind-cluster ## Undeploy k8scache setup from local kind
+
+.PHONY: local-redeploy-k8scache
+local-redeploy-k8scache: local-deployments-cleanup-k8scache local-deployments-deploy-k8scache ## Redeploy locally with k8scache (on current kind)
 
 .PHONY: ocp-deploy
 ocp-deploy: ocp-cleanup deploy-prometheus deploy-loki deploy-grafana deploy ## Deploy to OCP

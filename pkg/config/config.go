@@ -33,6 +33,7 @@ type Options struct {
 	MetricsSettings   string
 	HealthAddr        string
 	PprofAddr         string
+	K8sCacheServer    K8sCacheServer
 }
 
 type Root struct {
@@ -55,6 +56,28 @@ type HotReloadStruct struct {
 	Parameters []StageParam `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 }
 
+<<<<<<< HEAD
+=======
+type Health struct {
+	Address string
+	Port    int
+}
+
+type Profile struct {
+	Port int
+}
+
+type K8sCacheServer struct {
+	Address string
+	Port    int
+	// TLS configuration
+	TLSEnabled  bool
+	TLSCertPath string
+	TLSKeyPath  string
+	TLSCAPath   string
+}
+
+>>>>>>> 6e8effa0 (flp-informers and flp-processors)
 // MetricsSettings is similar to api.PromEncode, but is global to the application, ie. it also works with operational metrics.
 // Also, currently FLP doesn't support defining more than one PromEncode stage. If this feature is added later, these global settings
 // will help configuring common setting for all PromEncode stages - PromEncode settings would then act as overrides.
