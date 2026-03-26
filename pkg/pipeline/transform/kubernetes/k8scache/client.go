@@ -2,6 +2,7 @@ package k8scache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -216,11 +217,11 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 	}
 
 	clog.WithFields(log.Fields{
-		"version":      update.Version,
-		"is_snapshot":  update.IsSnapshot,
-		"operation":    update.Operation,
-		"num_entries":  len(update.Entries),
-		"num_targets":  len(connections),
+		"version":     update.Version,
+		"is_snapshot": update.IsSnapshot,
+		"operation":   update.Operation,
+		"num_entries": len(update.Entries),
+		"num_targets": len(connections),
 	}).Debug("broadcasting cache update")
 
 	// Send to all processors concurrently
@@ -248,7 +249,7 @@ func (c *Client) receiveFromProcessor(pc *processorConnection) {
 	for {
 		msg, err := pc.stream.Recv()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				clog.WithField("address", pc.address).Info("processor disconnected (EOF)")
 			} else {
 				clog.WithError(err).WithField("address", pc.address).Warn("error receiving from processor")

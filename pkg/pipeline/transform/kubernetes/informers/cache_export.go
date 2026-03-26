@@ -1,17 +1,23 @@
 package informers
 
 // AddEventHandler adds event handlers to informers for pushing incremental updates
-// Returns a function that can be called to remove the handlers
-func (k *Informers) AddEventHandler(handler EventHandler) {
+func (k *Informers) AddEventHandler(handler EventHandler) error {
 	if k.pods != nil {
-		k.pods.AddEventHandler(handler)
+		if _, err := k.pods.AddEventHandler(handler); err != nil {
+			return err
+		}
 	}
 	if k.nodes != nil {
-		k.nodes.AddEventHandler(handler)
+		if _, err := k.nodes.AddEventHandler(handler); err != nil {
+			return err
+		}
 	}
 	if k.services != nil {
-		k.services.AddEventHandler(handler)
+		if _, err := k.services.AddEventHandler(handler); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // EventHandler defines callbacks for resource changes

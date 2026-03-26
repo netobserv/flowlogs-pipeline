@@ -88,7 +88,7 @@ func main() {
 	}
 }
 
-func run(cmd *cobra.Command, args []string) {
+func run(_ *cobra.Command, _ []string) {
 	// Setup logging
 	lvl, err := log.ParseLevel(opts.LogLevel)
 	if err != nil {
@@ -137,7 +137,9 @@ func run(cmd *cobra.Command, args []string) {
 // setupInformerHandlers attaches event handlers to informers to push updates via gRPC
 func setupInformerHandlers(inf *informers.Informers, client *k8scache.Client) {
 	handler := &cacheEventHandler{client: client}
-	inf.AddEventHandler(handler)
+	if err := inf.AddEventHandler(handler); err != nil {
+		log.WithError(err).Fatal("failed to add event handlers")
+	}
 	log.Info("Informer event handlers registered for cache sync")
 }
 
@@ -163,7 +165,7 @@ func (h *cacheEventHandler) OnAdd(obj interface{}, isInInitialList bool) {
 	}
 }
 
-func (h *cacheEventHandler) OnUpdate(oldObj, newObj interface{}) {
+func (h *cacheEventHandler) OnUpdate(_, newObj interface{}) {
 	meta, ok := newObj.(*model.ResourceMetaData)
 	if !ok {
 		log.Warnf("unexpected object type in OnUpdate: %T", newObj)
@@ -235,7 +237,8 @@ func discoverAndConnect(ctx context.Context, clientset *kubernetes.Clientset, cl
 
 	log.WithField("num_pods", len(pods.Items)).Debug("discovered processor pods")
 
-	for _, pod := range pods.Items {
+	for i := range pods.Items {
+		pod := &pods.Items[i]
 		if pod.Status.Phase != v1.PodRunning {
 			continue
 		}

@@ -58,20 +58,20 @@ func metaToResourceEntry(meta *model.ResourceMetaData) *ResourceEntry {
 		return nil
 	}
 	entry := &ResourceEntry{
-		Kind:              meta.Kind,
-		Namespace:         meta.Namespace,
-		Name:              meta.Name,
-		Uid:               string(meta.UID),
-		OwnerName:         meta.OwnerName,
-		OwnerKind:         meta.OwnerKind,
-		HostName:          meta.HostName,
-		HostIp:            meta.HostIP,
-		NetworkName:       meta.NetworkName,
-		Ips:               append([]string(nil), meta.IPs...),
-		SecondaryNetKeys:  append([]string(nil), meta.SecondaryNetKeys...),
-		Labels:            meta.Labels,
-		Annotations:       meta.Annotations,
-		ResourceVersion:   meta.ResourceVersion,
+		Kind:             meta.Kind,
+		Namespace:        meta.Namespace,
+		Name:             meta.Name,
+		Uid:              string(meta.UID),
+		OwnerName:        meta.OwnerName,
+		OwnerKind:        meta.OwnerKind,
+		HostName:         meta.HostName,
+		HostIp:           meta.HostIP,
+		NetworkName:      meta.NetworkName,
+		Ips:              append([]string(nil), meta.IPs...),
+		SecondaryNetKeys: append([]string(nil), meta.SecondaryNetKeys...),
+		Labels:           meta.Labels,
+		Annotations:      meta.Annotations,
+		ResourceVersion:  meta.ResourceVersion,
 	}
 	if !meta.CreationTimestamp.IsZero() {
 		entry.CreationTimestamp = meta.CreationTimestamp.Unix()
