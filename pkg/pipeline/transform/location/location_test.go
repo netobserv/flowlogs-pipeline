@@ -32,6 +32,11 @@ import (
 )
 
 func Test_InitLocationDB(t *testing.T) {
+	t.Cleanup(func() {
+		os.RemoveAll(dbFileLocation)
+		os.Remove(dbZIPFileLocation)
+	})
+
 	// fail in os.Create
 	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
 	_osio.Create = func(_ string) (*os.File, error) { return nil, fmt.Errorf("test") }
@@ -82,7 +87,6 @@ func Test_InitLocationDB(t *testing.T) {
 	_osio.Stat = func(_ string) (os.FileInfo, error) { return nil, os.ErrNotExist }
 	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
 		_, _ = res.Write([]byte("test"))
-		res.WriteHeader(http.StatusOK)
 	}))
 	_dbURL = testServer.URL
 	err = InitLocationDB("")
@@ -99,7 +103,6 @@ func Test_InitLocationDB(t *testing.T) {
 	zipWriter.Close()
 	testServer = httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
 		_, _ = res.Write(buf.Bytes())
-		res.WriteHeader(http.StatusOK)
 	}))
 	_dbURL = testServer.URL
 	err = InitLocationDB("")
@@ -107,12 +110,6 @@ func Test_InitLocationDB(t *testing.T) {
 	testServer.Close()
 	_dbURL = dbURL
 	_osio.Stat = os.Stat
-	// success
-	// NOTE:: Downloading the DB is a long operation, about 30 seconds, and this delays the tests
-	// TODO: Consider remove this test
-	os.RemoveAll(dbFileLocation)
-	initLocationDBErr := InitLocationDB("")
-	require.Nil(t, initLocationDBErr)
 }
 
 func Test_GetLocation(t *testing.T) {
