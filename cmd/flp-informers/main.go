@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -33,6 +34,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/model"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,8 +44,9 @@ import (
 )
 
 var (
-	version = "dev"
-	commit  = "unknown"
+	version   = "dev"
+	commit    = "unknown"
+	envPrefix = "FLP_INFORMERS"
 )
 
 type options struct {
@@ -67,17 +70,56 @@ This reduces the load on the Kubernetes API server by having a single component
 	Run: run,
 }
 
+// initConfig reads environment variables that match the prefix
+func initConfig() {
+	v := viper.New()
+
+	// Read environment variables that match prefix
+	// Format: FLP_INFORMERS_<FLAG_NAME_WITH_UNDERSCORES>
+	// Example: FLP_INFORMERS_LOG_LEVEL, FLP_INFORMERS_PROCESSOR_PORT
+	v.SetEnvPrefix(envPrefix)
+	v.AutomaticEnv()
+
+	bindFlags(rootCmd, v)
+
+	// Initialize logger
+	initLogger()
+}
+
+func initLogger() {
+	lvl, err := log.ParseLevel(opts.LogLevel)
+	if err != nil {
+		lvl = log.ErrorLevel
+	}
+	log.SetLevel(lvl)
+	log.SetFormatter(&log.TextFormatter{DisableColors: false, FullTimestamp: true, PadLevelText: true, DisableQuote: true})
+}
+
+// bindFlags applies environment variable overrides to flags
+// This follows the same pattern as flowlogs-pipeline/main.go
+func bindFlags(cmd *cobra.Command, v *viper.Viper) {
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		// Convert flag name to env var format (e.g., "log-level" -> "LOG_LEVEL")
+		if strings.Contains(f.Name, "-") {
+			envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
+			_ = v.BindEnv(f.Name, fmt.Sprintf("%s_%s", envPrefix, envVarSuffix))
+		}
+
+		// Apply the viper config value to the flag when the flag is not set and viper has a value
+		if !f.Changed && v.IsSet(f.Name) {
+			val := v.Get(f.Name)
+			_ = cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
+		}
+	})
+}
+
 func initFlags() {
+	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&opts.Kubeconfig, "kubeconfig", "", "Path to kubeconfig file (empty = in-cluster)")
 	rootCmd.PersistentFlags().StringVar(&opts.LogLevel, "log-level", "info", "Log level: debug, info, warning, error")
 	rootCmd.PersistentFlags().StringVar(&opts.ProcessorSelector, "processor-selector", "app=flowlogs-pipeline", "Label selector for FLP processor pods")
 	rootCmd.PersistentFlags().IntVar(&opts.ProcessorPort, "processor-port", 9090, "Port where FLP processors listen for gRPC")
 	rootCmd.PersistentFlags().IntVar(&opts.ResyncInterval, "resync-interval", 60, "Interval in seconds to rediscover processors")
-
-	// Bind to environment variables
-	_ = viper.BindPFlags(rootCmd.PersistentFlags())
-	viper.SetEnvPrefix("FLP_INFORMERS")
-	viper.AutomaticEnv()
 }
 
 func main() {
@@ -89,12 +131,6 @@ func main() {
 }
 
 func run(_ *cobra.Command, _ []string) {
-	// Setup logging
-	lvl, err := log.ParseLevel(opts.LogLevel)
-	if err != nil {
-		log.WithError(err).Fatal("invalid log level")
-	}
-	log.SetLevel(lvl)
 	log.Infof("Starting flp-informers version=%s commit=%s", version, commit)
 
 	// Create gRPC client
