@@ -142,7 +142,9 @@ func Test_Transform(t *testing.T) {
 		svcNames: getServicesDB(t),
 	}
 
-	err := location.InitLocationDB("")
+	err := location.CleanupLocationDB()
+	require.NoError(t, err)
+	err = location.InitLocationDB("../../../contrib/location/location.db")
 	require.NoError(t, err)
 
 	output, ok := networkTransform.Transform(entry)
@@ -188,7 +190,9 @@ func Test_TransformAddSubnetParseCIDRFailure(t *testing.T) {
 		svcNames: getServicesDB(t),
 	}
 
-	err := location.InitLocationDB("")
+	err := location.CleanupLocationDB()
+	require.NoError(t, err)
+	err = location.InitLocationDB("../../../contrib/location/location.db")
 	require.NoError(t, err)
 
 	output, ok := networkTransform.Transform(entry)
