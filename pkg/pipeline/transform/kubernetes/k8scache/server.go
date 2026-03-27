@@ -127,6 +127,10 @@ func (s *KubernetesCacheServer) StreamUpdates(stream KubernetesCacheService_Stre
 
 // processUpdate applies a cache update to the local datasource (when KubernetesStore is set).
 func (s *KubernetesCacheServer) processUpdate(update *CacheUpdate) error {
+	if s.datasource == nil {
+		return fmt.Errorf("datasource not initialized")
+	}
+
 	entries := resourceEntriesToMeta(update.Entries)
 
 	// Note: is_snapshot field is ignored - we only support incremental updates
@@ -140,9 +144,9 @@ func (s *KubernetesCacheServer) processUpdate(update *CacheUpdate) error {
 		slog.WithField("num_entries", len(entries)).Debug("Received DELETE")
 		s.datasource.ApplyCacheDelete(entries)
 	case OperationType_OPERATION_UNSPECIFIED:
-		slog.Warn("Received update with unspecified operation")
+		return fmt.Errorf("received update with unspecified operation")
 	default:
-		slog.WithField("operation", update.Operation).Warn("Unknown operation type")
+		return fmt.Errorf("unknown operation type: %v", update.Operation)
 	}
 
 	return nil

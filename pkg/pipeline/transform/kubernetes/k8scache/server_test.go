@@ -77,6 +77,13 @@ func setupTestDatasource() *datasource.Datasource {
 	return &datasource.Datasource{Informers: informers}
 }
 
+func setupTestDatasourceWithStore() *datasource.Datasource {
+	_, informers := inf.SetupStubs(testIPInfo, nil, testNodes)
+	ds := &datasource.Datasource{Informers: informers}
+	ds.SetKubernetesStore(datasource.NewKubernetesStore())
+	return ds
+}
+
 // TestBackwardCompatibility ensures existing datasource functionality is not broken
 func TestBackwardCompatibility_DatasourceLookup(t *testing.T) {
 	ds := setupTestDatasource()
@@ -272,6 +279,179 @@ func TestKubernetesCacheServer_ErrorHandling(t *testing.T) {
 		err := server.StreamUpdates(mockStream)
 		assert.NoError(t, err) // EOF is normal when client disconnects
 	})
+}
+
+// TestKubernetesCacheServer_WithKubernetesStore tests operations using KubernetesStore
+func TestKubernetesCacheServer_WithKubernetesStore(t *testing.T) {
+	ds := setupTestDatasourceWithStore()
+	server := NewKubernetesCacheServer(ds)
+
+	mockStream := &mockStreamServer{
+		ctx:       context.Background(),
+		sendChan:  make(chan *CacheUpdate, 10),
+		recvMsgs:  make([]*SyncMessage, 0),
+		firstSend: true,
+	}
+
+	// Send ADD
+	mockStream.sendChan <- &CacheUpdate{
+		Version:    1,
+		IsSnapshot: false,
+		Operation:  OperationType_OPERATION_ADD,
+		Entries: []*ResourceEntry{
+			{
+				Kind:      "Pod",
+				Namespace: "test-ns",
+				Name:      "store-pod-1",
+				Uid:       "store-pod-uid-1",
+				Ips:       []string{"10.0.1.1"},
+				Labels: map[string]string{
+					"app": "test",
+				},
+			},
+		},
+	}
+
+	// Send UPDATE
+	mockStream.sendChan <- &CacheUpdate{
+		Version:    2,
+		IsSnapshot: false,
+		Operation:  OperationType_OPERATION_UPDATE,
+		Entries: []*ResourceEntry{
+			{
+				Kind:      "Pod",
+				Namespace: "test-ns",
+				Name:      "store-pod-1",
+				Uid:       "store-pod-uid-1",
+				Ips:       []string{"10.0.1.1"},
+				Labels: map[string]string{
+					"app":     "test",
+					"version": "v2", // Updated label
+				},
+			},
+		},
+	}
+
+	close(mockStream.sendChan)
+
+	err := server.StreamUpdates(mockStream)
+	require.NoError(t, err)
+
+	// Verify resource was added and updated in store
+	meta := ds.IndexLookup(nil, "10.0.1.1")
+	require.NotNil(t, meta, "Resource should be in KubernetesStore")
+	assert.Equal(t, "store-pod-1", meta.Name)
+	assert.Equal(t, "test-ns", meta.Namespace)
+	assert.Equal(t, "v2", meta.Labels["version"], "Label should be updated")
+
+	// Verify ACKs were sent
+	require.Equal(t, 3, len(mockStream.recvMsgs)) // SyncRequest + 2 ACKs
+}
+
+// TestKubernetesCacheServer_DeleteFromStore tests DELETE operation on KubernetesStore
+func TestKubernetesCacheServer_DeleteFromStore(t *testing.T) {
+	ds := setupTestDatasourceWithStore()
+	server := NewKubernetesCacheServer(ds)
+
+	mockStream := &mockStreamServer{
+		ctx:       context.Background(),
+		sendChan:  make(chan *CacheUpdate, 10),
+		recvMsgs:  make([]*SyncMessage, 0),
+		firstSend: true,
+	}
+
+	// First ADD a resource
+	mockStream.sendChan <- &CacheUpdate{
+		Version:    1,
+		IsSnapshot: false,
+		Operation:  OperationType_OPERATION_ADD,
+		Entries: []*ResourceEntry{
+			{
+				Kind:      "Pod",
+				Namespace: "test-ns",
+				Name:      "delete-me",
+				Uid:       "delete-pod-uid",
+				Ips:       []string{"10.0.2.1"},
+			},
+		},
+	}
+
+	// Then DELETE it
+	mockStream.sendChan <- &CacheUpdate{
+		Version:    2,
+		IsSnapshot: false,
+		Operation:  OperationType_OPERATION_DELETE,
+		Entries: []*ResourceEntry{
+			{
+				Kind:      "Pod",
+				Namespace: "test-ns",
+				Name:      "delete-me",
+			},
+		},
+	}
+
+	close(mockStream.sendChan)
+
+	err := server.StreamUpdates(mockStream)
+	require.NoError(t, err)
+
+	// Verify resource was deleted from store
+	meta := ds.IndexLookup(nil, "10.0.2.1")
+	assert.Nil(t, meta, "Resource should be deleted from KubernetesStore")
+}
+
+// TestKubernetesCacheServer_StoreReplacesInformers tests that KubernetesStore replaces Informers
+func TestKubernetesCacheServer_StoreReplacesInformers(t *testing.T) {
+	ds := setupTestDatasourceWithStore()
+	server := NewKubernetesCacheServer(ds)
+
+	mockStream := &mockStreamServer{
+		ctx:       context.Background(),
+		sendChan:  make(chan *CacheUpdate, 10),
+		recvMsgs:  make([]*SyncMessage, 0),
+		firstSend: true,
+	}
+
+	// Add resource via gRPC (goes to KubernetesStore)
+	mockStream.sendChan <- &CacheUpdate{
+		Version:    1,
+		IsSnapshot: false,
+		Operation:  OperationType_OPERATION_ADD,
+		Entries: []*ResourceEntry{
+			{
+				Kind:      "Pod",
+				Namespace: "grpc-ns",
+				Name:      "grpc-pod",
+				Ips:       []string{"10.0.3.1"},
+			},
+		},
+	}
+
+	close(mockStream.sendChan)
+
+	err := server.StreamUpdates(mockStream)
+	require.NoError(t, err)
+
+	// Should find resource from KubernetesStore
+	grpcMeta := ds.IndexLookup(nil, "10.0.3.1")
+	require.NotNil(t, grpcMeta)
+	assert.Equal(t, "grpc-pod", grpcMeta.Name)
+
+	// When KubernetesStore is set, Informers are bypassed
+	// (testIPInfo from setupTestDatasourceWithStore is in Informers, not in Store)
+	informerMeta := ds.IndexLookup(nil, "10.0.0.1")
+	assert.Nil(t, informerMeta, "KubernetesStore replaces Informers, so Informer data is not accessible")
+}
+
+// TestKubernetesCacheServer_FallbackToInformers verifies fallback when Store is not set
+func TestKubernetesCacheServer_FallbackToInformers(t *testing.T) {
+	// Datasource WITHOUT KubernetesStore - falls back to Informers
+	ds := setupTestDatasource()
+
+	// Should find resource from Informers (set up in testIPInfo)
+	informerMeta := ds.IndexLookup(nil, "10.0.0.1")
+	require.NotNil(t, informerMeta, "Should fallback to Informers when Store is not set")
+	assert.Equal(t, "test-pod-1", informerMeta.Name)
 }
 
 // mockStreamServer implements the server-side stream for testing

@@ -129,7 +129,11 @@ func run(_ *cobra.Command, _ []string) {
 
 	// Create gRPC client
 	processorID := fmt.Sprintf("flp-informers-%d", time.Now().Unix())
-	grpcClient := k8scache.NewClient(processorID)
+	clientConfig := k8scache.ClientConfig{
+		ProcessorID: processorID,
+		TLSEnabled:  false, // TODO: Add command-line flags for TLS configuration
+	}
+	grpcClient := k8scache.NewClient(&clientConfig)
 	grpcClient.Start()
 	defer grpcClient.Stop()
 

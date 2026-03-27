@@ -84,6 +84,7 @@ message ResourceEntry {
 
   repeated string ips = 10;  // IP addresses associated with this resource
   repeated string secondary_net_keys = 11;  // Secondary network keys for CNI plugins
+  map<string, string> secondary_net_names = 16;  // Secondary network names mapping (key -> network name)
 
   map<string, string> labels = 12;
   map<string, string> annotations = 13;

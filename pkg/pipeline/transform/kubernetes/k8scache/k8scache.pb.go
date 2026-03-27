@@ -356,15 +356,16 @@ type ResourceEntry struct {
 	Name      string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	Uid       string                 `protobuf:"bytes,4,opt,name=uid,proto3" json:"uid,omitempty"`
 	// Resource-specific metadata
-	OwnerName        string            `protobuf:"bytes,5,opt,name=owner_name,json=ownerName,proto3" json:"owner_name,omitempty"`
-	OwnerKind        string            `protobuf:"bytes,6,opt,name=owner_kind,json=ownerKind,proto3" json:"owner_kind,omitempty"`
-	HostName         string            `protobuf:"bytes,7,opt,name=host_name,json=hostName,proto3" json:"host_name,omitempty"`                            // For Pods: the node name
-	HostIp           string            `protobuf:"bytes,8,opt,name=host_ip,json=hostIp,proto3" json:"host_ip,omitempty"`                                  // For Pods: the node IP
-	NetworkName      string            `protobuf:"bytes,9,opt,name=network_name,json=networkName,proto3" json:"network_name,omitempty"`                   // For multi-network support
-	Ips              []string          `protobuf:"bytes,10,rep,name=ips,proto3" json:"ips,omitempty"`                                                     // IP addresses associated with this resource
-	SecondaryNetKeys []string          `protobuf:"bytes,11,rep,name=secondary_net_keys,json=secondaryNetKeys,proto3" json:"secondary_net_keys,omitempty"` // Secondary network keys for CNI plugins
-	Labels           map[string]string `protobuf:"bytes,12,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Annotations      map[string]string `protobuf:"bytes,13,rep,name=annotations,proto3" json:"annotations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	OwnerName         string            `protobuf:"bytes,5,opt,name=owner_name,json=ownerName,proto3" json:"owner_name,omitempty"`
+	OwnerKind         string            `protobuf:"bytes,6,opt,name=owner_kind,json=ownerKind,proto3" json:"owner_kind,omitempty"`
+	HostName          string            `protobuf:"bytes,7,opt,name=host_name,json=hostName,proto3" json:"host_name,omitempty"`                                                                                                         // For Pods: the node name
+	HostIp            string            `protobuf:"bytes,8,opt,name=host_ip,json=hostIp,proto3" json:"host_ip,omitempty"`                                                                                                               // For Pods: the node IP
+	NetworkName       string            `protobuf:"bytes,9,opt,name=network_name,json=networkName,proto3" json:"network_name,omitempty"`                                                                                                // For multi-network support
+	Ips               []string          `protobuf:"bytes,10,rep,name=ips,proto3" json:"ips,omitempty"`                                                                                                                                  // IP addresses associated with this resource
+	SecondaryNetKeys  []string          `protobuf:"bytes,11,rep,name=secondary_net_keys,json=secondaryNetKeys,proto3" json:"secondary_net_keys,omitempty"`                                                                              // Secondary network keys for CNI plugins
+	SecondaryNetNames map[string]string `protobuf:"bytes,16,rep,name=secondary_net_names,json=secondaryNetNames,proto3" json:"secondary_net_names,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Secondary network names mapping (key -> network name)
+	Labels            map[string]string `protobuf:"bytes,12,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Annotations       map[string]string `protobuf:"bytes,13,rep,name=annotations,proto3" json:"annotations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Kubernetes metadata
 	CreationTimestamp int64  `protobuf:"varint,14,opt,name=creation_timestamp,json=creationTimestamp,proto3" json:"creation_timestamp,omitempty"` // Unix timestamp
 	ResourceVersion   string `protobuf:"bytes,15,opt,name=resource_version,json=resourceVersion,proto3" json:"resource_version,omitempty"`        // K8s resource version
@@ -479,6 +480,13 @@ func (x *ResourceEntry) GetSecondaryNetKeys() []string {
 	return nil
 }
 
+func (x *ResourceEntry) GetSecondaryNetNames() map[string]string {
+	if x != nil {
+		return x.SecondaryNetNames
+	}
+	return nil
+}
+
 func (x *ResourceEntry) GetLabels() map[string]string {
 	if x != nil {
 		return x.Labels
@@ -529,7 +537,7 @@ const file_proto_k8scache_proto_rawDesc = "" +
 	"\vis_snapshot\x18\x02 \x01(\bR\n" +
 	"isSnapshot\x121\n" +
 	"\aentries\x18\x03 \x03(\v2\x17.k8scache.ResourceEntryR\aentries\x125\n" +
-	"\toperation\x18\x04 \x01(\x0e2\x17.k8scache.OperationTypeR\toperation\"\x9c\x05\n" +
+	"\toperation\x18\x04 \x01(\x0e2\x17.k8scache.OperationTypeR\toperation\"\xc2\x06\n" +
 	"\rResourceEntry\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x1c\n" +
 	"\tnamespace\x18\x02 \x01(\tR\tnamespace\x12\x12\n" +
@@ -544,11 +552,15 @@ const file_proto_k8scache_proto_rawDesc = "" +
 	"\fnetwork_name\x18\t \x01(\tR\vnetworkName\x12\x10\n" +
 	"\x03ips\x18\n" +
 	" \x03(\tR\x03ips\x12,\n" +
-	"\x12secondary_net_keys\x18\v \x03(\tR\x10secondaryNetKeys\x12;\n" +
+	"\x12secondary_net_keys\x18\v \x03(\tR\x10secondaryNetKeys\x12^\n" +
+	"\x13secondary_net_names\x18\x10 \x03(\v2..k8scache.ResourceEntry.SecondaryNetNamesEntryR\x11secondaryNetNames\x12;\n" +
 	"\x06labels\x18\f \x03(\v2#.k8scache.ResourceEntry.LabelsEntryR\x06labels\x12J\n" +
 	"\vannotations\x18\r \x03(\v2(.k8scache.ResourceEntry.AnnotationsEntryR\vannotations\x12-\n" +
 	"\x12creation_timestamp\x18\x0e \x01(\x03R\x11creationTimestamp\x12)\n" +
-	"\x10resource_version\x18\x0f \x01(\tR\x0fresourceVersion\x1a9\n" +
+	"\x10resource_version\x18\x0f \x01(\tR\x0fresourceVersion\x1aD\n" +
+	"\x16SecondaryNetNamesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
@@ -577,7 +589,7 @@ func file_proto_k8scache_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_k8scache_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_k8scache_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_proto_k8scache_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_proto_k8scache_proto_goTypes = []any{
 	(OperationType)(0),    // 0: k8scache.OperationType
 	(*SyncMessage)(nil),   // 1: k8scache.SyncMessage
@@ -585,23 +597,25 @@ var file_proto_k8scache_proto_goTypes = []any{
 	(*SyncAck)(nil),       // 3: k8scache.SyncAck
 	(*CacheUpdate)(nil),   // 4: k8scache.CacheUpdate
 	(*ResourceEntry)(nil), // 5: k8scache.ResourceEntry
-	nil,                   // 6: k8scache.ResourceEntry.LabelsEntry
-	nil,                   // 7: k8scache.ResourceEntry.AnnotationsEntry
+	nil,                   // 6: k8scache.ResourceEntry.SecondaryNetNamesEntry
+	nil,                   // 7: k8scache.ResourceEntry.LabelsEntry
+	nil,                   // 8: k8scache.ResourceEntry.AnnotationsEntry
 }
 var file_proto_k8scache_proto_depIdxs = []int32{
 	2, // 0: k8scache.SyncMessage.request:type_name -> k8scache.SyncRequest
 	3, // 1: k8scache.SyncMessage.ack:type_name -> k8scache.SyncAck
 	5, // 2: k8scache.CacheUpdate.entries:type_name -> k8scache.ResourceEntry
 	0, // 3: k8scache.CacheUpdate.operation:type_name -> k8scache.OperationType
-	6, // 4: k8scache.ResourceEntry.labels:type_name -> k8scache.ResourceEntry.LabelsEntry
-	7, // 5: k8scache.ResourceEntry.annotations:type_name -> k8scache.ResourceEntry.AnnotationsEntry
-	4, // 6: k8scache.KubernetesCacheService.StreamUpdates:input_type -> k8scache.CacheUpdate
-	1, // 7: k8scache.KubernetesCacheService.StreamUpdates:output_type -> k8scache.SyncMessage
-	7, // [7:8] is the sub-list for method output_type
-	6, // [6:7] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	6, // 4: k8scache.ResourceEntry.secondary_net_names:type_name -> k8scache.ResourceEntry.SecondaryNetNamesEntry
+	7, // 5: k8scache.ResourceEntry.labels:type_name -> k8scache.ResourceEntry.LabelsEntry
+	8, // 6: k8scache.ResourceEntry.annotations:type_name -> k8scache.ResourceEntry.AnnotationsEntry
+	4, // 7: k8scache.KubernetesCacheService.StreamUpdates:input_type -> k8scache.CacheUpdate
+	1, // 8: k8scache.KubernetesCacheService.StreamUpdates:output_type -> k8scache.SyncMessage
+	8, // [8:9] is the sub-list for method output_type
+	7, // [7:8] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_proto_k8scache_proto_init() }
@@ -619,7 +633,7 @@ func file_proto_k8scache_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_k8scache_proto_rawDesc), len(file_proto_k8scache_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
