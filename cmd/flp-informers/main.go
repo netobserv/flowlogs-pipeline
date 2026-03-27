@@ -31,16 +31,10 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/k8scache"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/model"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (
@@ -152,13 +146,28 @@ func run(_ *cobra.Command, _ []string) {
 	log.Info("Kubernetes informers initialized and synced")
 
 	// Setup informer event handlers to push updates via gRPC
-	setupInformerHandlers(inf, grpcClient)
+	handler := k8scache.NewEventHandler(grpcClient)
+	if err := inf.AddEventHandler(handler); err != nil {
+		log.WithError(err).Fatal("failed to add event handlers")
+	}
+	log.Info("Informer event handlers registered for cache sync")
 
-	// Start processor discovery
+	// Start processor discovery in background
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go discoverProcessors(ctx, grpcClient)
+	discoveryConfig := k8scache.DiscoveryConfig{
+		Kubeconfig:        opts.Kubeconfig,
+		ProcessorSelector: opts.ProcessorSelector,
+		ProcessorPort:     opts.ProcessorPort,
+		ResyncInterval:    opts.ResyncInterval,
+	}
+
+	go func() {
+		if err := k8scache.StartProcessorDiscovery(ctx, grpcClient, discoveryConfig); err != nil {
+			log.WithError(err).Error("processor discovery stopped")
+		}
+	}()
 
 	log.Info("flp-informers started - pushing incremental updates only (no initial snapshot)")
 
@@ -168,133 +177,4 @@ func run(_ *cobra.Command, _ []string) {
 	<-sigChan
 
 	log.Info("Shutdown signal received, stopping...")
-}
-
-// setupInformerHandlers attaches event handlers to informers to push updates via gRPC
-func setupInformerHandlers(inf *informers.Informers, client *k8scache.Client) {
-	handler := &cacheEventHandler{client: client}
-	if err := inf.AddEventHandler(handler); err != nil {
-		log.WithError(err).Fatal("failed to add event handlers")
-	}
-	log.Info("Informer event handlers registered for cache sync")
-}
-
-// cacheEventHandler implements informers.EventHandler to push updates via gRPC
-type cacheEventHandler struct {
-	client *k8scache.Client
-}
-
-func (h *cacheEventHandler) OnAdd(obj interface{}, isInInitialList bool) {
-	if isInInitialList {
-		// Skip initial list - we send full snapshot separately
-		return
-	}
-
-	meta, ok := obj.(*model.ResourceMetaData)
-	if !ok {
-		log.Warnf("unexpected object type in OnAdd: %T", obj)
-		return
-	}
-
-	if err := h.client.SendAdd([]*model.ResourceMetaData{meta}); err != nil {
-		log.WithError(err).WithField("resource", meta.Name).Error("failed to send ADD")
-	}
-}
-
-func (h *cacheEventHandler) OnUpdate(_, newObj interface{}) {
-	meta, ok := newObj.(*model.ResourceMetaData)
-	if !ok {
-		log.Warnf("unexpected object type in OnUpdate: %T", newObj)
-		return
-	}
-
-	if err := h.client.SendUpdate([]*model.ResourceMetaData{meta}); err != nil {
-		log.WithError(err).WithField("resource", meta.Name).Error("failed to send UPDATE")
-	}
-}
-
-func (h *cacheEventHandler) OnDelete(obj interface{}) {
-	meta, ok := obj.(*model.ResourceMetaData)
-	if !ok {
-		log.Warnf("unexpected object type in OnDelete: %T", obj)
-		return
-	}
-
-	if err := h.client.SendDelete([]*model.ResourceMetaData{meta}); err != nil {
-		log.WithError(err).WithField("resource", meta.Name).Error("failed to send DELETE")
-	}
-}
-
-// discoverProcessors periodically discovers FLP processor pods and connects to them
-func discoverProcessors(ctx context.Context, client *k8scache.Client) {
-	// Get in-cluster k8s client
-	config, err := getK8sConfig()
-	if err != nil {
-		log.WithError(err).Fatal("failed to get k8s config for processor discovery")
-		return
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.WithError(err).Fatal("failed to create k8s clientset")
-		return
-	}
-
-	ticker := time.NewTicker(time.Duration(opts.ResyncInterval) * time.Second)
-	defer ticker.Stop()
-
-	// Immediate first run
-	discoverAndConnect(ctx, clientset, client)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			discoverAndConnect(ctx, clientset, client)
-		}
-	}
-}
-
-// discoverAndConnect discovers FLP processor pods and connects to them
-func discoverAndConnect(ctx context.Context, clientset *kubernetes.Clientset, client *k8scache.Client) {
-	namespace := os.Getenv("POD_NAMESPACE")
-	if namespace == "" {
-		namespace = "default"
-	}
-
-	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: opts.ProcessorSelector,
-	})
-	if err != nil {
-		log.WithError(err).Error("failed to list processor pods")
-		return
-	}
-
-	log.WithField("num_pods", len(pods.Items)).Debug("discovered processor pods")
-
-	for i := range pods.Items {
-		pod := &pods.Items[i]
-		if pod.Status.Phase != v1.PodRunning {
-			continue
-		}
-		if pod.Status.PodIP == "" {
-			continue
-		}
-
-		address := fmt.Sprintf("%s:%d", pod.Status.PodIP, opts.ProcessorPort)
-
-		// AddProcessor is idempotent (won't duplicate if already connected)
-		if err := client.AddProcessor(address); err != nil {
-			log.WithError(err).WithField("pod", pod.Name).Error("failed to connect to processor")
-		}
-	}
-}
-
-// getK8sConfig returns the Kubernetes client config (in-cluster or from kubeconfig)
-func getK8sConfig() (*rest.Config, error) {
-	if opts.Kubeconfig != "" {
-		return clientcmd.BuildConfigFromFlags("", opts.Kubeconfig)
-	}
-	return rest.InClusterConfig()
 }
