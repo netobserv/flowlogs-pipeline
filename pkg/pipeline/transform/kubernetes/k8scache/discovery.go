@@ -53,6 +53,11 @@ type DiscoveryConfig struct {
 //
 // This function blocks until ctx is cancelled. Run it in a goroutine for background discovery.
 func StartProcessorDiscovery(ctx context.Context, client *Client, cfg DiscoveryConfig) error {
+	// Validate ResyncInterval before doing any work
+	if cfg.ResyncInterval <= 0 {
+		return fmt.Errorf("invalid ResyncInterval: %d (must be positive)", cfg.ResyncInterval)
+	}
+
 	// Get Kubernetes client
 	k8sConfig, err := getK8sConfig(cfg.Kubeconfig)
 	if err != nil {

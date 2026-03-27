@@ -23,11 +23,19 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+// clientSender defines the interface for sending cache updates.
+// This interface allows for easier testing by enabling mock implementations.
+type clientSender interface {
+	SendAdd(entries []*model.ResourceMetaData) error
+	SendUpdate(entries []*model.ResourceMetaData) error
+	SendDelete(entries []*model.ResourceMetaData) error
+}
+
 // EventHandler implements informers.EventHandler to push cache updates via gRPC.
 // It handles Kubernetes resource events (Add, Update, Delete) and forwards them
 // to connected FLP processor pods through the k8scache client.
 type EventHandler struct {
-	client *Client
+	client clientSender
 }
 
 // NewEventHandler creates a new event handler that forwards K8s events to the given client

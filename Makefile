@@ -31,7 +31,7 @@ IMAGE_TAG_BASE ?= $(IMAGE_REGISTRY)/$(IMAGE_ORG)/flowlogs-pipeline
 IMAGE ?= $(IMAGE_TAG_BASE):$(VERSION)
 
 # Kubernetes namespace for deployments - defaults to current context namespace or "default"
-NAMESPACE ?= $(shell kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null || echo "default")
+NAMESPACE ?= $(shell ns=$$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null); echo "$${ns:-default}")
 
 # Image building tool (docker / podman) - docker is preferred in CI
 OCI_BIN_PATH = $(shell which docker 2>/dev/null || which podman)

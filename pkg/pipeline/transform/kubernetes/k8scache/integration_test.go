@@ -264,15 +264,25 @@ func TestIntegration_MultipleClientsConnect(t *testing.T) {
 			}
 
 			// Receive SyncRequest
-			_, err = stream.Recv()
+			syncMsg, err := stream.Recv()
 			if err != nil {
 				errors <- fmt.Errorf("client %d failed to receive SyncRequest: %w", clientID, err)
 				return
 			}
+			req, ok := syncMsg.Message.(*SyncMessage_Request)
+			if !ok {
+				errors <- fmt.Errorf("client %d expected SyncRequest but got %T", clientID, syncMsg.Message)
+				return
+			}
+			if req.Request.ProcessorId == "" {
+				errors <- fmt.Errorf("client %d received SyncRequest with empty ProcessorId", clientID)
+				return
+			}
 
 			// Send ADD update
+			expectedVersion := int64(clientID + 1)
 			err = stream.Send(&CacheUpdate{
-				Version:    int64(clientID + 1),
+				Version:    expectedVersion,
 				IsSnapshot: false,
 				Operation:  OperationType_OPERATION_ADD,
 				Entries:    []*ResourceEntry{{Kind: "Pod", Name: fmt.Sprintf("pod-%d", clientID), Namespace: "default"}},
@@ -283,9 +293,22 @@ func TestIntegration_MultipleClientsConnect(t *testing.T) {
 			}
 
 			// Receive ACK
-			_, err = stream.Recv()
+			ackMsg, err := stream.Recv()
 			if err != nil {
 				errors <- fmt.Errorf("client %d failed to receive ACK: %w", clientID, err)
+				return
+			}
+			ack, ok := ackMsg.Message.(*SyncMessage_Ack)
+			if !ok {
+				errors <- fmt.Errorf("client %d expected SyncAck but got %T", clientID, ackMsg.Message)
+				return
+			}
+			if !ack.Ack.Success {
+				errors <- fmt.Errorf("client %d received ACK with Success=false, error: %s", clientID, ack.Ack.Error)
+				return
+			}
+			if ack.Ack.Version != expectedVersion {
+				errors <- fmt.Errorf("client %d expected ACK version %d but got %d", clientID, expectedVersion, ack.Ack.Version)
 				return
 			}
 

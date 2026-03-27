@@ -18,13 +18,52 @@
 package k8scache
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 )
+
+// mockClient captures calls to Send* methods for testing
+// It implements the clientSender interface needed by EventHandler
+type mockClient struct {
+	mu          sync.Mutex
+	deletedMeta []*model.ResourceMetaData
+	addedMeta   []*model.ResourceMetaData
+	updatedMeta []*model.ResourceMetaData
+	sendError   error
+}
+
+func (m *mockClient) SendDelete(entries []*model.ResourceMetaData) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.deletedMeta = append(m.deletedMeta, entries...)
+	return m.sendError
+}
+
+func (m *mockClient) SendAdd(entries []*model.ResourceMetaData) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.addedMeta = append(m.addedMeta, entries...)
+	return m.sendError
+}
+
+func (m *mockClient) SendUpdate(entries []*model.ResourceMetaData) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.updatedMeta = append(m.updatedMeta, entries...)
+	return m.sendError
+}
+
+func (m *mockClient) getDeleted() []*model.ResourceMetaData {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.deletedMeta
+}
 
 // createTestPod creates a ResourceMetaData for testing
 func createTestPod(name, namespace string) *model.ResourceMetaData {
@@ -46,19 +85,19 @@ func TestOnDelete_TombstoneEvent(t *testing.T) {
 		Obj: testPod,
 	}
 
-	// Test the tombstone unwrapping logic (same as in OnDelete)
-	var meta *model.ResourceMetaData
-	var ok bool
+	// Create mock client and handler
+	mock := &mockClient{}
+	handler := &EventHandler{client: mock}
 
-	if ts, isTombstone := interface{}(tombstone).(cache.DeletedFinalStateUnknown); isTombstone {
-		meta, ok = ts.Obj.(*model.ResourceMetaData)
-		assert.True(t, ok, "should be able to extract ResourceMetaData from tombstone")
-		assert.NotNil(t, meta, "extracted metadata should not be nil")
-		assert.Equal(t, "test-pod", meta.Name, "metadata name should match")
-		assert.Equal(t, "default", meta.Namespace, "metadata namespace should match")
-	} else {
-		t.Fatal("object should be recognized as tombstone")
-	}
+	// Call the real OnDelete method with tombstone
+	handler.OnDelete(tombstone)
+
+	// Verify the handler extracted and sent the correct metadata
+	deleted := mock.getDeleted()
+	require.Len(t, deleted, 1, "should have sent one delete")
+	assert.Equal(t, "test-pod", deleted[0].Name, "metadata name should match")
+	assert.Equal(t, "default", deleted[0].Namespace, "metadata namespace should match")
+	assert.Equal(t, model.KindPod, deleted[0].Kind, "metadata kind should match")
 }
 
 func TestOnDelete_InvalidTombstone(t *testing.T) {
@@ -68,25 +107,34 @@ func TestOnDelete_InvalidTombstone(t *testing.T) {
 		Obj: "not-a-resource-metadata",
 	}
 
-	// Test that invalid tombstone is handled gracefully
-	var meta *model.ResourceMetaData
-	var ok bool
+	// Create mock client and handler
+	mock := &mockClient{}
+	handler := &EventHandler{client: mock}
 
-	if ts, isTombstone := interface{}(invalidTombstone).(cache.DeletedFinalStateUnknown); isTombstone {
-		meta, ok = ts.Obj.(*model.ResourceMetaData)
-		assert.False(t, ok, "should fail to extract ResourceMetaData from invalid tombstone")
-		assert.Nil(t, meta, "metadata should be nil for invalid tombstone")
-	}
+	// Call the real OnDelete method with invalid tombstone
+	// Should log warning and not send anything
+	handler.OnDelete(invalidTombstone)
+
+	// Verify nothing was sent (handler gracefully handled invalid tombstone)
+	deleted := mock.getDeleted()
+	assert.Empty(t, deleted, "should not send delete for invalid tombstone")
 }
 
 func TestOnDelete_InvalidDirectObject(t *testing.T) {
-	// Test with a completely wrong object type
+	// Test with a completely wrong object type (not a tombstone, not ResourceMetaData)
 	var invalidObj interface{} = "not-a-resource-metadata"
 
-	// Test direct type assertion fails gracefully
-	meta, ok := invalidObj.(*model.ResourceMetaData)
-	assert.False(t, ok, "should fail type assertion on invalid object")
-	assert.Nil(t, meta, "metadata should be nil for invalid object")
+	// Create mock client and handler
+	mock := &mockClient{}
+	handler := &EventHandler{client: mock}
+
+	// Call the real OnDelete method with invalid object
+	// Should log warning and not send anything
+	handler.OnDelete(invalidObj)
+
+	// Verify nothing was sent (handler gracefully handled invalid object)
+	deleted := mock.getDeleted()
+	assert.Empty(t, deleted, "should not send delete for invalid object")
 }
 
 // Integration test that verifies the full OnDelete flow with tombstone
@@ -96,16 +144,18 @@ func TestOnDelete_TombstoneIntegration(t *testing.T) {
 	// 2. Tombstone events (DeletedFinalStateUnknown wrapping ResourceMetaData)
 
 	testCases := []struct {
-		name        string
-		obj         interface{}
-		shouldWork  bool
-		description string
+		name         string
+		obj          interface{}
+		shouldSend   bool
+		expectedName string
+		expectedNS   string
 	}{
 		{
-			name:        "normal delete",
-			obj:         createTestPod("pod1", "default"),
-			shouldWork:  true,
-			description: "direct ResourceMetaData object",
+			name:         "normal delete",
+			obj:          createTestPod("pod1", "default"),
+			shouldSend:   true,
+			expectedName: "pod1",
+			expectedNS:   "default",
 		},
 		{
 			name: "tombstone delete",
@@ -113,8 +163,9 @@ func TestOnDelete_TombstoneIntegration(t *testing.T) {
 				Key: "default/pod2",
 				Obj: createTestPod("pod2", "default"),
 			},
-			shouldWork:  true,
-			description: "tombstone wrapping ResourceMetaData",
+			shouldSend:   true,
+			expectedName: "pod2",
+			expectedNS:   "default",
 		},
 		{
 			name: "invalid tombstone",
@@ -122,34 +173,33 @@ func TestOnDelete_TombstoneIntegration(t *testing.T) {
 				Key: "invalid",
 				Obj: "wrong-type",
 			},
-			shouldWork:  false,
-			description: "tombstone with wrong object type",
+			shouldSend: false,
 		},
 		{
-			name:        "invalid object",
-			obj:         "not-a-resource",
-			shouldWork:  false,
-			description: "completely wrong object type",
+			name:       "invalid object",
+			obj:        "not-a-resource",
+			shouldSend: false,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Extract metadata using same logic as OnDelete
-			var meta *model.ResourceMetaData
-			var ok bool
+			// Create mock client and handler for each test case
+			mock := &mockClient{}
+			handler := &EventHandler{client: mock}
 
-			if tombstone, isTombstone := tc.obj.(cache.DeletedFinalStateUnknown); isTombstone {
-				meta, ok = tombstone.Obj.(*model.ResourceMetaData)
-			} else {
-				meta, ok = tc.obj.(*model.ResourceMetaData)
-			}
+			// Call the real OnDelete method
+			handler.OnDelete(tc.obj)
 
-			if tc.shouldWork {
-				assert.True(t, ok, "should successfully extract metadata for: %s", tc.description)
-				assert.NotNil(t, meta, "metadata should not be nil for: %s", tc.description)
+			// Verify the result
+			deleted := mock.getDeleted()
+			if tc.shouldSend {
+				require.Len(t, deleted, 1, "should have sent one delete")
+				assert.Equal(t, tc.expectedName, deleted[0].Name, "name should match")
+				assert.Equal(t, tc.expectedNS, deleted[0].Namespace, "namespace should match")
+				assert.Equal(t, model.KindPod, deleted[0].Kind, "kind should match")
 			} else {
-				assert.False(t, ok, "should fail to extract metadata for: %s", tc.description)
+				assert.Empty(t, deleted, "should not send delete for invalid input")
 			}
 		})
 	}

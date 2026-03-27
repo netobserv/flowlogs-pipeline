@@ -73,7 +73,39 @@ type processorConnection struct {
 	cancel context.CancelFunc
 	// Reconnect tracking
 	reconnectAttempts int
-	mu                sync.Mutex // Protects reconnection state
+	mu                sync.Mutex // Protects conn, stream, cancel, and reconnectAttempts
+}
+
+// getStream returns a copy of the stream pointer under lock.
+// The caller must not hold pc.mu when calling this method.
+func (pc *processorConnection) getStream() KubernetesCacheService_StreamUpdatesClient {
+	pc.mu.Lock()
+	defer pc.mu.Unlock()
+	return pc.stream
+}
+
+// cancelStream cancels the stream context, which will cause any blocked Send/Recv to return an error.
+// This is used when a timeout occurs to unblock operations and trigger reconnection.
+// The caller must not hold pc.mu when calling this method.
+func (pc *processorConnection) cancelStream() {
+	pc.mu.Lock()
+	defer pc.mu.Unlock()
+	if pc.cancel != nil {
+		pc.cancel()
+	}
+}
+
+// closeConnection closes the connection and cancels the context under lock.
+// The caller must not hold pc.mu when calling this method.
+func (pc *processorConnection) closeConnection() {
+	pc.mu.Lock()
+	defer pc.mu.Unlock()
+	if pc.cancel != nil {
+		pc.cancel()
+	}
+	if pc.conn != nil {
+		pc.conn.Close()
+	}
 }
 
 // NewClient creates a new cache client (informer side)
@@ -132,16 +164,18 @@ func (c *Client) getTransportCredentials() (credentials.TransportCredentials, er
 
 // AddProcessor connects to a new FLP processor server
 func (c *Client) AddProcessor(address string) error {
+	// First check: quick lock to see if already connected
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	if _, exists := c.connections[address]; exists {
+		c.mu.Unlock()
 		clog.WithField("address", address).Debug("processor already connected")
 		return nil
 	}
+	c.mu.Unlock()
 
 	clog.WithField("address", address).Info("connecting to FLP processor")
 
+	// Perform slow network operations without holding the lock
 	// Get transport credentials
 	creds, err := c.getTransportCredentials()
 	if err != nil {
@@ -167,6 +201,19 @@ func (c *Client) AddProcessor(address string) error {
 		return fmt.Errorf("failed to create stream to %s: %w", address, err)
 	}
 
+	// Second check: re-acquire lock and verify no other goroutine added this connection
+	c.mu.Lock()
+	if _, exists := c.connections[address]; exists {
+		c.mu.Unlock()
+		// Another goroutine added this connection while we were connecting
+		// Clean up our newly-created resources
+		cancel()
+		conn.Close()
+		clog.WithField("address", address).Debug("processor was connected by another goroutine, discarding duplicate")
+		return nil
+	}
+
+	// We won the race, store the connection
 	pc := &processorConnection{
 		address: address,
 		conn:    conn,
@@ -176,6 +223,7 @@ func (c *Client) AddProcessor(address string) error {
 	pc.healthy.Store(true)
 
 	c.connections[address] = pc
+	c.mu.Unlock()
 
 	// Start receiver goroutine for this connection
 	go c.receiveFromProcessor(pc)
@@ -195,9 +243,12 @@ func (c *Client) RemoveProcessor(address string) {
 	}
 
 	clog.WithField("address", address).Info("disconnecting from FLP processor")
-	pc.cancel()
-	pc.conn.Close()
 	delete(c.connections, address)
+
+	// Close connection after releasing client lock to avoid holding both locks
+	c.mu.Unlock()
+	pc.closeConnection()
+	c.mu.Lock()
 }
 
 // Start begins processing cache updates and sending them to all connected processors
@@ -209,12 +260,17 @@ func (c *Client) Start() {
 func (c *Client) Stop() {
 	c.cancel()
 	c.mu.Lock()
-	defer c.mu.Unlock()
+	connections := make([]*processorConnection, 0, len(c.connections))
 	for _, pc := range c.connections {
-		pc.cancel()
-		pc.conn.Close()
+		connections = append(connections, pc)
 	}
 	c.connections = make(map[string]*processorConnection)
+	c.mu.Unlock()
+
+	// Close all connections after releasing client lock
+	for _, pc := range connections {
+		pc.closeConnection()
+	}
 }
 
 // SendAdd sends an ADD operation to all connected processors
@@ -311,10 +367,18 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 		go func(pc *processorConnection) {
 			defer wg.Done()
 
+			// Get stream reference under lock
+			stream := pc.getStream()
+			if stream == nil {
+				clog.WithField("address", pc.address).Warn("stream is nil, skipping send")
+				pc.healthy.Store(false)
+				return
+			}
+
 			// Use a channel to signal completion or timeout
 			done := make(chan error, 1)
 			go func() {
-				done <- pc.stream.Send(update)
+				done <- stream.Send(update)
 			}()
 
 			select {
@@ -326,6 +390,16 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 			case <-time.After(sendTimeout):
 				clog.WithField("address", pc.address).Error("send operation timed out")
 				pc.healthy.Store(false)
+
+				// Tear down the stream to unblock the blocked Send() and trigger reconnection
+				// First try to close the send side gracefully
+				if err := stream.CloseSend(); err != nil {
+					clog.WithError(err).WithField("address", pc.address).Warn("failed to close send side of stream")
+				}
+
+				// Cancel the stream context to ensure any blocked operations are unblocked
+				// This will cause receiveFromProcessor to see an error and trigger reconnection
+				pc.cancelStream()
 			}
 		}(pc)
 	}
@@ -430,7 +504,14 @@ func (c *Client) receiveFromProcessor(pc *processorConnection) {
 	}()
 
 	for {
-		msg, err := pc.stream.Recv()
+		// Get stream reference under lock
+		stream := pc.getStream()
+		if stream == nil {
+			clog.WithField("address", pc.address).Warn("stream is nil in receiver, exiting")
+			return
+		}
+
+		msg, err := stream.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				clog.WithField("address", pc.address).Info("processor disconnected (EOF)")
