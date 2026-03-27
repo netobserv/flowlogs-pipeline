@@ -17,6 +17,16 @@ func (k *Informers) AddEventHandler(handler EventHandler) error {
 			return err
 		}
 	}
+	if k.replicaSets != nil {
+		if _, err := k.replicaSets.AddEventHandler(handler); err != nil {
+			return err
+		}
+	}
+	if k.deployments != nil {
+		if _, err := k.deployments.AddEventHandler(handler); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
