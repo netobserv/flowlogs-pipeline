@@ -86,6 +86,74 @@ func Test_EncodeKafka(t *testing.T) {
 	require.Equal(t, expectedOutput, receivedData)
 }
 
+func Test_CompressionDefault(t *testing.T) {
+	test.ResetPromRegistry()
+	pipeline := config.NewIPFIXPipeline("ingest", api.IngestIpfix{})
+	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
+		Address: "any",
+		Topic:   "topic",
+	})
+	newEncode, err := NewEncodeKafka(operational.NewMetrics(&config.MetricsSettings{}), pipeline.GetStageParams()[1])
+	require.NoError(t, err)
+	writer := newEncode.(*encodeKafka).kafkaWriter.(*kafkago.Writer)
+	require.Equal(t, kafkago.Compression(0), writer.Compression)
+}
+
+func Test_CompressionLZ4(t *testing.T) {
+	test.ResetPromRegistry()
+	pipeline := config.NewIPFIXPipeline("ingest", api.IngestIpfix{})
+	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
+		Address:     "any",
+		Topic:       "topic",
+		Compression: "lz4",
+	})
+	newEncode, err := NewEncodeKafka(operational.NewMetrics(&config.MetricsSettings{}), pipeline.GetStageParams()[1])
+	require.NoError(t, err)
+	writer := newEncode.(*encodeKafka).kafkaWriter.(*kafkago.Writer)
+	require.Equal(t, kafkago.Lz4, writer.Compression)
+}
+
+func Test_CompressionZstd(t *testing.T) {
+	test.ResetPromRegistry()
+	pipeline := config.NewIPFIXPipeline("ingest", api.IngestIpfix{})
+	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
+		Address:     "any",
+		Topic:       "topic",
+		Compression: "zstd",
+	})
+	newEncode, err := NewEncodeKafka(operational.NewMetrics(&config.MetricsSettings{}), pipeline.GetStageParams()[1])
+	require.NoError(t, err)
+	writer := newEncode.(*encodeKafka).kafkaWriter.(*kafkago.Writer)
+	require.Equal(t, kafkago.Zstd, writer.Compression)
+}
+
+func Test_CompressionNone(t *testing.T) {
+	test.ResetPromRegistry()
+	pipeline := config.NewIPFIXPipeline("ingest", api.IngestIpfix{})
+	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
+		Address:     "any",
+		Topic:       "topic",
+		Compression: "none",
+	})
+	newEncode, err := NewEncodeKafka(operational.NewMetrics(&config.MetricsSettings{}), pipeline.GetStageParams()[1])
+	require.NoError(t, err)
+	writer := newEncode.(*encodeKafka).kafkaWriter.(*kafkago.Writer)
+	require.Equal(t, kafkago.Compression(0), writer.Compression)
+}
+
+func Test_CompressionInvalid(t *testing.T) {
+	test.ResetPromRegistry()
+	pipeline := config.NewIPFIXPipeline("ingest", api.IngestIpfix{})
+	pipeline.EncodeKafka("encode-kafka", api.EncodeKafka{
+		Address:     "any",
+		Topic:       "topic",
+		Compression: "invalid",
+	})
+	_, err := NewEncodeKafka(operational.NewMetrics(&config.MetricsSettings{}), pipeline.GetStageParams()[1])
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "wrong Kafka compression value")
+}
+
 func Test_TLSConfigEmpty(t *testing.T) {
 	test.ResetPromRegistry()
 	pipeline := config.NewIPFIXPipeline("ingest", api.IngestIpfix{})
