@@ -62,7 +62,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: flp-informers
-  namespace: default
+  namespace: %NAMESPACE%
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

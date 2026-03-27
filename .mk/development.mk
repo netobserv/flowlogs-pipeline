@@ -68,13 +68,13 @@ undeploy-netflow-simulator: ## Undeploy netflow simulator
 
 .PHONY: deploy-flp-informers
 deploy-flp-informers: ## Deploy flp-informers (centralized K8s cache pusher)
-	sed 's|%IMAGE_TAG_BASE%|$(IMAGE_TAG_BASE)|g;s|%VERSION%|$(VERSION)|g' contrib/kubernetes/deployment-flp-informers.yaml > /tmp/deployment-flp-informers.yaml
+	sed 's|%IMAGE_TAG_BASE%|$(IMAGE_TAG_BASE)|g;s|%VERSION%|$(VERSION)|g;s|%NAMESPACE%|$(NAMESPACE)|g' contrib/kubernetes/deployment-flp-informers.yaml > /tmp/deployment-flp-informers.yaml
 	kubectl apply -f /tmp/deployment-flp-informers.yaml
 	kubectl rollout status "deploy/flp-informers" --timeout=600s
 
 .PHONY: undeploy-flp-informers
 undeploy-flp-informers: ## Undeploy flp-informers
-	sed 's|%IMAGE_TAG_BASE%|$(IMAGE_TAG_BASE)|g;s|%VERSION%|$(VERSION)|g' contrib/kubernetes/deployment-flp-informers.yaml > /tmp/deployment-flp-informers.yaml
+	sed 's|%IMAGE_TAG_BASE%|$(IMAGE_TAG_BASE)|g;s|%VERSION%|$(VERSION)|g;s|%NAMESPACE%|$(NAMESPACE)|g' contrib/kubernetes/deployment-flp-informers.yaml > /tmp/deployment-flp-informers.yaml
 	kubectl --ignore-not-found=true delete -f /tmp/deployment-flp-informers.yaml || true
 
 ##@ kind
@@ -141,7 +141,7 @@ local-deployments-deploy-k8scache: prereqs-kind deploy-prometheus deploy-loki de
 
 .PHONY: deploy-k8scache
 deploy-k8scache: ## Deploy FLP with k8scache server enabled
-	sed 's|%IMAGE_TAG_BASE%|$(IMAGE_TAG_BASE)|g;s|%VERSION%|$(VERSION)|g' contrib/kubernetes/deployment-k8scache.yaml > /tmp/deployment-k8scache.yaml
+	sed 's|%IMAGE_TAG_BASE%|$(IMAGE_TAG_BASE)|g;s|%VERSION%|$(VERSION)|g;s|%NAMESPACE%|$(NAMESPACE)|g' contrib/kubernetes/deployment-k8scache.yaml > /tmp/deployment-k8scache.yaml
 	kubectl create configmap flowlogs-pipeline-configuration --from-file=flowlogs-pipeline.conf.yaml=$(FLP_CONF_FILE)
 	kubectl apply -f /tmp/deployment-k8scache.yaml
 	kubectl rollout status "deploy/flowlogs-pipeline" --timeout=600s
