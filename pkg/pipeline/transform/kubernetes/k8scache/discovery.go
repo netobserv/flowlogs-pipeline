@@ -41,6 +41,10 @@ type DiscoveryConfig struct {
 	ProcessorPort int
 	// ResyncInterval is how often to rediscover processors (in seconds)
 	ResyncInterval int
+	// ProcessorServiceName is the headless service name for processor pods (optional).
+	// If set, discovery will use DNS names (e.g., pod-name.service-name.namespace.svc.cluster.local)
+	// instead of pod IPs. This is required for proper TLS certificate validation.
+	ProcessorServiceName string
 }
 
 // StartProcessorDiscovery periodically discovers FLP processor pods and connects the client to them.
@@ -111,7 +115,21 @@ func discoverAndConnect(ctx context.Context, clientset *kubernetes.Clientset, cl
 			continue
 		}
 
-		address := fmt.Sprintf("%s:%d", pod.Status.PodIP, cfg.ProcessorPort)
+		// Build address: prefer DNS name (for TLS) if service name is configured, otherwise use IP
+		var address string
+		if cfg.ProcessorServiceName != "" {
+			// Use DNS name: <pod-name>.<service-name>.<namespace>.svc.cluster.local:port
+			// This is required for proper TLS certificate validation
+			dnsName := fmt.Sprintf("%s.%s.%s.svc.cluster.local", pod.Name, cfg.ProcessorServiceName, namespace)
+			address = fmt.Sprintf("%s:%d", dnsName, cfg.ProcessorPort)
+			log.WithFields(log.Fields{
+				"pod":      pod.Name,
+				"dns_name": dnsName,
+			}).Debug("using DNS name for processor connection (TLS-friendly)")
+		} else {
+			// Fallback to IP address (may cause TLS verification issues)
+			address = fmt.Sprintf("%s:%d", pod.Status.PodIP, cfg.ProcessorPort)
+		}
 
 		// AddProcessorWithTimeout is idempotent (won't duplicate if already connected)
 		// Use a 10-second timeout to avoid blocking the discovery loop for too long

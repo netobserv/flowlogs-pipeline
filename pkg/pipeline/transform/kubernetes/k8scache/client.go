@@ -40,6 +40,10 @@ type ClientConfig struct {
 	TLSCertPath string
 	TLSKeyPath  string
 	TLSCAPath   string
+	// TLSServerName is the expected server name for TLS verification (optional).
+	// If set, this name will be used to validate the server certificate regardless of the connection address.
+	// Useful when connecting to pods by IP but validating against DNS names in the certificate.
+	TLSServerName string
 	// InsecureSkipVerify skips TLS certificate verification (not recommended for production)
 	InsecureSkipVerify bool
 }
@@ -132,6 +136,12 @@ func (c *Client) getTransportCredentials() (credentials.TransportCredentials, er
 		InsecureSkipVerify: c.tlsConfig.InsecureSkipVerify,
 	}
 
+	// Set ServerName if provided (allows connecting by IP while validating against DNS name in certificate)
+	if c.tlsConfig.TLSServerName != "" {
+		tlsConfig.ServerName = c.tlsConfig.TLSServerName
+		clog.WithField("server_name", c.tlsConfig.TLSServerName).Debug("TLS ServerName override configured")
+	}
+
 	// Load client cert/key if provided
 	if c.tlsConfig.TLSCertPath != "" && c.tlsConfig.TLSKeyPath != "" {
 		cert, err := tls.LoadX509KeyPair(c.tlsConfig.TLSCertPath, c.tlsConfig.TLSKeyPath)
@@ -216,9 +226,12 @@ func (c *Client) AddProcessorWithTimeout(address string, timeout time.Duration) 
 		select {
 		case streamChan <- streamResult{stream: stream, err: err}:
 		case <-ctx.Done():
-			// Timeout occurred, clean up
+			// Timeout occurred during stream creation, attempt cleanup
 			if stream != nil {
-				stream.CloseSend()
+				if closeErr := stream.CloseSend(); closeErr != nil {
+					clog.WithError(closeErr).WithField("address", address).
+						Debug("failed to close stream during timeout cleanup")
+				}
 			}
 		}
 	}()
@@ -272,20 +285,18 @@ func (c *Client) AddProcessorWithTimeout(address string, timeout time.Duration) 
 // RemoveProcessor disconnects from a FLP processor
 func (c *Client) RemoveProcessor(address string) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	pc, exists := c.connections[address]
 	if !exists {
+		c.mu.Unlock()
 		return
 	}
 
 	clog.WithField("address", address).Info("disconnecting from FLP processor")
 	delete(c.connections, address)
+	c.mu.Unlock()
 
 	// Close connection after releasing client lock to avoid holding both locks
-	c.mu.Unlock()
 	pc.closeConnection()
-	c.mu.Lock()
 }
 
 // Start begins processing cache updates and sending them to all connected processors

@@ -44,16 +44,18 @@ var (
 )
 
 type options struct {
-	Kubeconfig        string
-	LogLevel          string
-	ProcessorSelector string // Label selector for FLP processors (e.g., "app=flowlogs-pipeline")
-	ProcessorPort     int    // Port where FLP processors listen for gRPC (k8scache.port)
-	ResyncInterval    int    // Interval in seconds to rediscover processors
+	Kubeconfig           string
+	LogLevel             string
+	ProcessorSelector    string // Label selector for FLP processors (e.g., "app=flowlogs-pipeline")
+	ProcessorPort        int    // Port where FLP processors listen for gRPC (k8scache.port)
+	ProcessorServiceName string // Headless service name for DNS-based discovery (optional, required for TLS)
+	ResyncInterval       int    // Interval in seconds to rediscover processors
 	// TLS configuration for gRPC client
 	TLSEnabled         bool
 	TLSCertPath        string
 	TLSKeyPath         string
 	TLSCAPath          string
+	TLSServerName      string
 	InsecureSkipVerify bool
 }
 
@@ -119,12 +121,14 @@ func initFlags() {
 	rootCmd.PersistentFlags().StringVar(&opts.LogLevel, "log-level", "info", "Log level: debug, info, warning, error")
 	rootCmd.PersistentFlags().StringVar(&opts.ProcessorSelector, "processor-selector", "app=flowlogs-pipeline", "Label selector for FLP processor pods")
 	rootCmd.PersistentFlags().IntVar(&opts.ProcessorPort, "processor-port", 9090, "Port where FLP processors listen for gRPC")
+	rootCmd.PersistentFlags().StringVar(&opts.ProcessorServiceName, "processor-service-name", "", "Headless service name for DNS-based discovery (required for TLS)")
 	rootCmd.PersistentFlags().IntVar(&opts.ResyncInterval, "resync-interval", 60, "Interval in seconds to rediscover processors")
 	// TLS configuration
 	rootCmd.PersistentFlags().BoolVar(&opts.TLSEnabled, "tls-enabled", false, "Enable TLS for gRPC connections to processors")
 	rootCmd.PersistentFlags().StringVar(&opts.TLSCertPath, "tls-cert-path", "", "Path to TLS client certificate")
 	rootCmd.PersistentFlags().StringVar(&opts.TLSKeyPath, "tls-key-path", "", "Path to TLS client private key")
 	rootCmd.PersistentFlags().StringVar(&opts.TLSCAPath, "tls-ca-path", "", "Path to TLS CA certificate for server verification")
+	rootCmd.PersistentFlags().StringVar(&opts.TLSServerName, "tls-server-name", "", "Expected server name for TLS verification (e.g., flowlogs-pipeline.namespace.svc)")
 	rootCmd.PersistentFlags().BoolVar(&opts.InsecureSkipVerify, "tls-insecure-skip-verify", false, "Skip TLS certificate verification (not recommended for production)")
 }
 
@@ -147,12 +151,18 @@ func run(_ *cobra.Command, _ []string) {
 		TLSCertPath:        opts.TLSCertPath,
 		TLSKeyPath:         opts.TLSKeyPath,
 		TLSCAPath:          opts.TLSCAPath,
+		TLSServerName:      opts.TLSServerName,
 		InsecureSkipVerify: opts.InsecureSkipVerify,
 	}
 	grpcClient := k8scache.NewClient(&clientConfig)
 
 	if opts.TLSEnabled {
 		log.Info("TLS enabled for gRPC connections to processors")
+		// Warn if neither TLSServerName nor ProcessorServiceName is set (may cause TLS verification issues)
+		if opts.TLSServerName == "" && opts.ProcessorServiceName == "" {
+			log.Warn("TLS enabled but neither --tls-server-name nor --processor-service-name is set. " +
+				"TLS verification may fail when connecting by IP. Consider setting one of these options.")
+		}
 	} else {
 		log.Warn("TLS disabled - connections to processors are insecure (not recommended for production)")
 	}
@@ -183,10 +193,11 @@ func run(_ *cobra.Command, _ []string) {
 	defer cancel()
 
 	discoveryConfig := k8scache.DiscoveryConfig{
-		Kubeconfig:        opts.Kubeconfig,
-		ProcessorSelector: opts.ProcessorSelector,
-		ProcessorPort:     opts.ProcessorPort,
-		ResyncInterval:    opts.ResyncInterval,
+		Kubeconfig:           opts.Kubeconfig,
+		ProcessorSelector:    opts.ProcessorSelector,
+		ProcessorPort:        opts.ProcessorPort,
+		ProcessorServiceName: opts.ProcessorServiceName,
+		ResyncInterval:       opts.ResyncInterval,
 	}
 
 	go func() {
