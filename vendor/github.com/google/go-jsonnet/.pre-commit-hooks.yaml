@@ -4,12 +4,12 @@
   entry: jsonnetfmt
   args: [-i]
   language: golang
-  files: \.(jsonnet|libsonnet)$
+  types: [jsonnet]
   minimum_pre_commit_version: 2.10.1
 - id: jsonnet-lint
   name: jsonnet-lint
   description: Lint jsonnet files.
   entry: jsonnet-lint
   language: golang
-  files: \.(jsonnet|libsonnet)$
+  types: [jsonnet]
   minimum_pre_commit_version: 2.10.1

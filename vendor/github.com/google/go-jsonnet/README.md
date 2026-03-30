@@ -1,31 +1,36 @@
 # go-jsonnet
 
-[![GoDoc Widget]][GoDoc] [![Travis Widget]][Travis] [![Coverage Status Widget]][Coverage Status]
+[![GoDoc Widget]][GoDoc] [![Coverage Status Widget]][Coverage Status]
 
 [GoDoc]: https://godoc.org/github.com/google/go-jsonnet
 [GoDoc Widget]: https://godoc.org/github.com/google/go-jsonnet?status.png
-[Travis]: https://travis-ci.org/google/go-jsonnet
-[Travis Widget]: https://travis-ci.org/google/go-jsonnet.svg?branch=master
 [Coverage Status Widget]: https://coveralls.io/repos/github/google/go-jsonnet/badge.svg?branch=master
 [Coverage Status]: https://coveralls.io/github/google/go-jsonnet?branch=master
 
-This an implementation of [Jsonnet](http://jsonnet.org/) in pure Go. It is a feature complete, production-ready implementation. It is compatible with the original [Jsonnet C++ implementation](https://github.com/google/jsonnet). Bindings to C and Python are available (but not battle-tested yet).
+This an implementation of [Jsonnet](http://jsonnet.org/) in pure Go. It is a feature complete, production-ready implementation. Bindings to C and Python are available (but not battle-tested).
 
-This code is known to work on Go 1.12 and above. We recommend always using the newest stable release of Go.
+This code is known to work on Go 1.24 and above. We recommend always using the newest stable release of Go.
 
-## Installation instructions
+Jsonnet can be used on the command line to evaluate Jsonnet input files and produce JSON, Yaml, or other outputs, or it can be used as a library.
+
+**Security note:** If you are running a system that evaluates untrusted Jsonnet
+code, extra care should be used to defend against data exfiltration risks. By
+default, the `import`, `importstr` and `importbin` language constructs can read
+from any path accessible to the Jsonnet process. The Jsonnet library allows you
+to provide your own logic for processing imports, which is one way to restrict
+imports to known safe sources. You could also consider running Jsonnet inside a
+carefully configured gVisor or Firecracker container or other secure container
+system to provide more general isolation if evaluating untrusted code.
+
+## Installing the command line tool
 
 ```shell
-# go >= 1.17
 # Using `go get` to install binaries is deprecated.
 # The version suffix is mandatory.
 go install github.com/google/go-jsonnet/cmd/jsonnet@latest
 
 # Or other tools in the 'cmd' directory
 go install github.com/google/go-jsonnet/cmd/jsonnet-lint@latest
-
-# go < 1.17
-go get github.com/google/go-jsonnet/cmd/jsonnet
 ```
 
 It's also available on Homebrew:
@@ -33,6 +38,8 @@ It's also available on Homebrew:
 ```
 brew install go-jsonnet
 ```
+
+## Installing tools for working with Jsonnet code (formatter, linter)
 
 `jsonnetfmt` and `jsonnet-lint` are also available as [pre-commit](https://github.com/pre-commit/pre-commit) hooks. Example `.pre-commit-config.yaml`:
 ```yaml
@@ -42,6 +49,8 @@ brew install go-jsonnet
     - id: jsonnet-format
     - id: jsonnet-lint
 ```
+
+## Using the library
 
 It can also be embedded in your own Go programs as a library:
 
@@ -87,7 +96,7 @@ func main() {
 }
 ```
 
-## Build instructions (go 1.12+)
+## Build instructions (go 1.24+)
 
 ```bash
 git clone git@github.com:google/go-jsonnet.git
@@ -123,8 +132,10 @@ Additionally if any files were moved around, see the section [Keeping the Bazel 
 
 ## Building libjsonnet.wasm
 
+The [WASM](https://webassembly.org/) build can be used to embed go-jsonnet for use (client side) in the web browser, or in other WASM execution environments. For example, this is used to evaluate the live code snippets on https://jsonnet.org/
+
 ```bash
-GOOS=js GOARCH=wasm go build -o libjsonnet.wasm ./cmd/wasm 
+GOOS=js GOARCH=wasm go build -o libjsonnet.wasm ./cmd/wasm
 ```
 
 Or if using bazel:
@@ -188,17 +199,6 @@ _replace the FILTER with the name of the test you are working on_
 FILTER=Builtin_manifestJsonEx make benchmark
 ```
 
-## Implementation Notes
-
-We are generating some helper classes on types by using http://clipperhouse.github.io/gen/.  Do the following to regenerate these if necessary:
-
-```bash
-go get github.com/clipperhouse/gen
-go get github.com/clipperhouse/set
-export PATH=$PATH:$GOPATH/bin  # If you haven't already
-go generate
-```
-
 ## Update cpp-jsonnet sub-repo
 
 This repo depends on [the original Jsonnet repo](https://github.com/google/jsonnet). Shared parts include the standard library, headers files for C API and some tests.
@@ -221,19 +221,12 @@ For performance reasons we perform preprocessing on the standard library, so for
 go run cmd/dumpstdlibast/dumpstdlibast.go cpp-jsonnet/stdlib/std.jsonnet > astgen/stdast.go
 ```
 
-**The
-
 The above command creates the _astgen/stdast.go_ file which puts the desugared standard library into the right data structures, which lets us avoid the parsing overhead during execution. Note that this step is not necessary to perform manually when building with Bazel; the Bazel target regenerates the _astgen/stdast.go_ (writing it into Bazel's build sandbox directory tree) file when necessary.
 
 ## Keeping the Bazel files up to date
 Note that we maintain the Go-related Bazel targets with [the Gazelle tool](https://github.com/bazelbuild/bazel-gazelle). The Go module (_go.mod_ in the root directory) remains the primary source of truth. Gazelle analyzes both that file and the rest of the Go files in the repository to create and adjust appropriate Bazel targets for building Go packages and executable programs.
 
-After changing any dependencies within the files covered by this Go module, it is helpful to run _go mod tidy_ to ensure that the module declarations match the state of the Go source code. In order to synchronize the Bazel rules with material changes to the Go module, run the following command to invoke [Gazelle's `update-repos` command](https://github.com/bazelbuild/bazel-gazelle#update-repos):
-```bash
-bazel run //:gazelle -- update-repos -from_file=go.mod -to_macro=bazel/deps.bzl%jsonnet_go_dependencies
-```
-
-Similarly, after adding or removing Go source files, it may be necessary to synchronize the Bazel rules by running the following command:
+After changing any dependencies within the files covered by this Go module, it is helpful to run _go mod tidy_ to ensure that the module declarations match the state of the Go source code. In order to synchronize the Bazel rules with material changes to the Go module, run the gazelle command:
 ```bash
 bazel run //:gazelle
 ```
