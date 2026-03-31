@@ -144,6 +144,11 @@ type BpfFlowMetricsT struct {
 	ObservedDirection  [6]uint8
 	_                  [2]byte
 	ObservedIntf       [6]uint32
+	SslVersion         uint16
+	TlsCipherSuite     uint16
+	TlsKeyShare        uint16
+	TlsTypes           uint8
+	MiscFlags          uint8
 	_                  [4]byte
 }
 
@@ -166,8 +171,10 @@ const (
 	BpfGlobalCountersKeyTNETWORK_EVENTS_ERR_GROUPID_MISMATCH BpfGlobalCountersKeyT = 7
 	BpfGlobalCountersKeyTNETWORK_EVENTS_ERR_UPDATE_MAP_FLOWS BpfGlobalCountersKeyT = 8
 	BpfGlobalCountersKeyTNETWORK_EVENTS_GOOD                 BpfGlobalCountersKeyT = 9
-	BpfGlobalCountersKeyTOBSERVED_INTF_MISSED                BpfGlobalCountersKeyT = 10
-	BpfGlobalCountersKeyTMAX_COUNTERS                        BpfGlobalCountersKeyT = 11
+	BpfGlobalCountersKeyTNETWORK_EVENTS_OVERFLOW             BpfGlobalCountersKeyT = 10
+	BpfGlobalCountersKeyTNETWORK_EVENTS_COOKIE_TOO_BIG       BpfGlobalCountersKeyT = 11
+	BpfGlobalCountersKeyTOBSERVED_INTF_MISSED                BpfGlobalCountersKeyT = 12
+	BpfGlobalCountersKeyTMAX_COUNTERS                        BpfGlobalCountersKeyT = 13
 )
 
 type BpfNetworkEventsMetrics BpfNetworkEventsMetricsT
@@ -337,6 +344,7 @@ type BpfVariableSpecs struct {
 	EnablePca                      *ebpf.VariableSpec `ebpf:"enable_pca"`
 	EnablePktTranslationTracking   *ebpf.VariableSpec `ebpf:"enable_pkt_translation_tracking"`
 	EnableRtt                      *ebpf.VariableSpec `ebpf:"enable_rtt"`
+	EnableTlsUsageTracking         *ebpf.VariableSpec `ebpf:"enable_tls_usage_tracking"`
 	FilterKey                      *ebpf.VariableSpec `ebpf:"filter_key"`
 	FilterValue                    *ebpf.VariableSpec `ebpf:"filter_value"`
 	HasFilterSampling              *ebpf.VariableSpec `ebpf:"has_filter_sampling"`
@@ -421,6 +429,7 @@ type BpfVariables struct {
 	EnablePca                      *ebpf.Variable `ebpf:"enable_pca"`
 	EnablePktTranslationTracking   *ebpf.Variable `ebpf:"enable_pkt_translation_tracking"`
 	EnableRtt                      *ebpf.Variable `ebpf:"enable_rtt"`
+	EnableTlsUsageTracking         *ebpf.Variable `ebpf:"enable_tls_usage_tracking"`
 	FilterKey                      *ebpf.Variable `ebpf:"filter_key"`
 	FilterValue                    *ebpf.Variable `ebpf:"filter_value"`
 	HasFilterSampling              *ebpf.Variable `ebpf:"has_filter_sampling"`

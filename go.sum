@@ -150,8 +150,8 @@ github.com/josharian/intern v1.0.0/go.mod h1:5DoeVV0s6jJacbCEi61lwdGj/aVlrQvzHFF
 github.com/josharian/native v1.0.0/go.mod h1:7X/raswPFr05uY3HiLlYeyQntB6OO7E/d2Cu7qoaN2w=
 github.com/jotak/go-ipfix v0.0.0-20250708115123-407c539ea101 h1:tpaHjydMAy2MTukKIUAVK4xIFUpL12xuexA0FuTVpuo=
 github.com/jotak/go-ipfix v0.0.0-20250708115123-407c539ea101/go.mod h1:GgFbcmEGqMQfA7jDC9UVLKAelNh2sy1jsxyV7Tor3Ig=
-github.com/jotak/netobserv-agent v0.0.0-20260320151221-009ef3c00609 h1:+suvWGI2qs7VsjVPE8COOQxfPadEcX/WjykmH6gdRak=
-github.com/jotak/netobserv-agent v0.0.0-20260320151221-009ef3c00609/go.mod h1:njUYnaZqAamzym8xxIm3pLP6PpJtZdM+hNBsp1H2uPs=
+github.com/jotak/netobserv-agent v0.0.0-20260402154429-d76e08a56211 h1:TN8C3sBb3TJ4R0djibZNCq5p32xRBegNu7DBa9IY8Jo=
+github.com/jotak/netobserv-agent v0.0.0-20260402154429-d76e08a56211/go.mod h1:r/uPUMsWGrGs5iHt0j7VuocUzsuX7O6hNTzbsRNEYMM=
 github.com/jpillora/backoff v1.0.0 h1:uvFg412JmmHBHw7iwprIxkPMI+sGQ4kzOWsMeHnm2EA=
 github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX5e0EB2j4=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=

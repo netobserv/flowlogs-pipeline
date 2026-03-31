@@ -53,11 +53,20 @@ func ToMap(netev ovnmodel.NetworkEvent) map[string]string {
 
 func MapToStrings(flow config.GenericMap) []string {
 	if ne, found := flow["NetworkEvents"]; found {
+		// Check for structured nested data
+		if neList, ok := ne.([]map[string]string); ok {
+			var messages []string
+			for _, ne := range neList {
+				messages = append(messages, itemToString(ne))
+			}
+			return messages
+		}
+		// Check for unstructured nested data
 		if neList, isList := ne.([]any); isList {
 			var messages []string
 			for _, item := range neList {
 				if neItem, isMap := item.(map[string]any); isMap {
-					messages = append(messages, itemToString(neItem))
+					messages = append(messages, itemToStringUnstructured(neItem))
 				}
 			}
 			return messages
@@ -66,7 +75,24 @@ func MapToStrings(flow config.GenericMap) []string {
 	return nil
 }
 
-func itemToString(in map[string]any) string {
+func itemToString(in map[string]string) string {
+	if msg := in["Message"]; msg != "" {
+		return msg
+	}
+	if feat := in["Feature"]; feat == "acl" {
+		aclObj := ovnmodel.ACLEvent{
+			Action:    in["Action"],
+			Actor:     in["Type"],
+			Name:      in["Name"],
+			Namespace: in["Namespace"],
+			Direction: in["Direction"],
+		}
+		return aclObj.String()
+	}
+	return ""
+}
+
+func itemToStringUnstructured(in map[string]any) string {
 	if msg := getAsString(in, "Message"); msg != "" {
 		return msg
 	}

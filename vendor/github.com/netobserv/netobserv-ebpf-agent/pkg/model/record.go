@@ -1,6 +1,7 @@
 package model
 
 import (
+	"crypto/tls"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -25,6 +26,7 @@ const (
 	NetworkEventsMaxEventsMD = 8
 	MaxNetworkEvents         = 4
 	MaxObservedInterfaces    = 6
+	MiscFlagsSSLMismatch     = 0x01
 )
 
 var recordLog = logrus.WithField("component", "model")
@@ -145,8 +147,8 @@ func NewRecord(
 							}
 						} else {
 							record.Metrics.PktDropMetrics.LatestDropCause = cause
-							record.Metrics.PktDropMetrics.Bytes = addUint16(metrics.PktDropMetrics.Bytes, metrics.NetworkEventsMetrics.Bytes[i])
-							record.Metrics.PktDropMetrics.Packets = addUint16(metrics.PktDropMetrics.Packets, metrics.NetworkEventsMetrics.Packets[i])
+							record.Metrics.PktDropMetrics.Bytes = addUint16(record.Metrics.PktDropMetrics.Bytes, metrics.NetworkEventsMetrics.Bytes[i])
+							record.Metrics.PktDropMetrics.Packets = addUint16(record.Metrics.PktDropMetrics.Packets, metrics.NetworkEventsMetrics.Packets[i])
 						}
 					}
 				}
@@ -233,4 +235,23 @@ func AllZeroIP(ip net.IP) bool {
 		return true
 	}
 	return false
+}
+
+func (r *BpfFlowContent) SSLVersionToString() string {
+	if r.SslVersion == 0 {
+		return ""
+	}
+	v := tls.VersionName(r.SslVersion)
+	if r.HasSSLMismatch() {
+		return "~ " + v
+	}
+	return v
+}
+
+func (r *BpfFlowContent) TLSTypesToStrings() []string {
+	return tlsTypesToStrings(r.TlsTypes)
+}
+
+func (r *BpfFlowContent) HasSSLMismatch() bool {
+	return r.MiscFlags&MiscFlagsSSLMismatch > 0
 }
