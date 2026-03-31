@@ -393,8 +393,13 @@ var (
 		},
 		"selectorAlgorithm": {
 			// https://datatracker.ietf.org/doc/html/rfc5477#section-8.2.1
-			// Only "4" Uniform probabilistic Sampling is supported
-			Setter:  func(elt entities.InfoElementWithValue, _ any) { elt.SetUnsigned16Value(4) },
+			Key: "Sampling",
+			Setter: func(elt entities.InfoElementWithValue, rec any) {
+				if interval, ok := rec.(uint32); ok && interval > 0 {
+					// Only "4" Uniform probabilistic Sampling is supported
+					elt.SetUnsigned16Value(4)
+				}
+			},
 			Matcher: func(_ entities.InfoElementWithValue, _ any) bool { return true },
 		},
 		"samplingProbability": {
@@ -410,11 +415,10 @@ var (
 			},
 			Setter: func(elt entities.InfoElementWithValue, rec any) {
 				// interval to probability
-				var p float64 = 1
 				if interval, ok := rec.(uint32); ok && interval > 0 {
-					p = 1.0 / float64(interval)
+					p := 1.0 / float64(interval)
+					elt.SetFloat64Value(p)
 				}
-				elt.SetFloat64Value(p)
 			},
 		},
 	}
