@@ -31,6 +31,18 @@ reviews:
     # generated deepcopy
     - "!**/zz_generated.deepcopy.go"
     - "!vendor/"
+    # Auto-generated documentation
+    - "!docs/api.md"
+    - "!docs/operational-metrics.md"
+    - "!docs/metrics.md"
+
+  path_instructions:
+    - path: "pkg/pipeline/**/*.go"
+      instructions: "Check goroutine leaks, backpressure handling, and performance impact of metrics collection"
+    - path: "pkg/api/**/*.go"
+      instructions: "Verify backward compatibility for config changes and proper struct tag usage"
+    - path: "contrib/kubernetes/**/*.yaml"
+      instructions: "Review resource limits, security contexts, and label selectors"
 
   tools:
     # already run in CI (code-style workflow)
@@ -49,6 +61,8 @@ reviews:
     actionlint:
       enabled: true
     checkov:
+      enabled: true
+    markdownlint:
       enabled: true
 
     # not relevant to this project
@@ -119,6 +133,6 @@ knowledge_base:
     scope: auto
   linked_repositories:
   - repository: "netobserv/netobserv-operator"
-    instructions: "Integrates with netObserv operator"
+    instructions: "Integrates with netobserv operator. flowlogs-pipeline is deployed and configured by the operator. Consider operator integration when reviewing API/config changes."
   - repository: "netobserv/netobserv-ebpf-agent"
-    instructions: "Contains netobserv ebpf agent to collect network packets"
+    instructions: "Receives flow data from the agent. Review protobuf/flow parsing compatibility when agent flow format changes."
