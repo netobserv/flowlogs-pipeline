@@ -174,14 +174,16 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-jsonnet v0.20.0
-## explicit; go 1.17
+# github.com/google/go-jsonnet v0.22.0
+## explicit; go 1.24.5
 github.com/google/go-jsonnet
 github.com/google/go-jsonnet/ast
 github.com/google/go-jsonnet/astgen
+github.com/google/go-jsonnet/internal/ast
 github.com/google/go-jsonnet/internal/errors
 github.com/google/go-jsonnet/internal/parser
 github.com/google/go-jsonnet/internal/program
+github.com/google/go-jsonnet/toolutils
 # github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
@@ -717,6 +719,7 @@ golang.org/x/crypto/blake2b
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/curve25519
+golang.org/x/crypto/sha3
 # golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
 ## explicit; go 1.23.0
 # golang.org/x/net v0.51.0

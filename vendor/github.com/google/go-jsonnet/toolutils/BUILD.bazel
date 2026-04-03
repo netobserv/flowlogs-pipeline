@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+# keep: support old target name.
+alias(
+    name = "go_default_library",
+    actual = ":toolutils",
+)
+
+go_library(
+    name = "toolutils",
+    srcs = ["ast.go"],
+    importpath = "github.com/google/go-jsonnet/toolutils",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//ast",
+        "//internal/parser",
+    ],
+)

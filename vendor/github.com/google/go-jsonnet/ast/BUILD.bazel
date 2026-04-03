@@ -1,15 +1,20 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "ast",
     srcs = [
         "ast.go",
         "clone.go",
         "fodder.go",
-        "identifier_set.go",
+        "identifier.go",
         "location.go",
-        "util.go",
     ],
     importpath = "github.com/google/go-jsonnet/ast",
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "ast_test",
+    srcs = ["identifier_test.go"],
+    embed = [":ast"],
 )

@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ast",
+    srcs = ["ast.go"],
+    importpath = "github.com/google/go-jsonnet/internal/ast",
+    visibility = ["//:__subpackages__"],
+    deps = ["//ast"],
+)

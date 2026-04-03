@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library")
 
 genrule(
     name = "dumpstdlibast",
@@ -9,11 +9,9 @@ genrule(
 )
 
 go_library(
-    name = "go_default_library",
+    name = "astgen",
     srcs = ["stdast.go"],
     importpath = "github.com/google/go-jsonnet/astgen",
-    visibility = ["//visibility:public"],
-    deps = [
-        "//ast:go_default_library",  # keep
-    ],
+    visibility = ["//:__subpackages__"],
+    deps = ["//ast"],
 )

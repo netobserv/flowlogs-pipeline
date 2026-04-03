@@ -1,28 +1,28 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "parser",
     srcs = [
         "context.go",
         "lexer.go",
-        "literalfield_set.go",
         "parser.go",
         "string_util.go",
     ],
     importpath = "github.com/google/go-jsonnet/internal/parser",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//ast:go_default_library",
-        "//internal/errors:go_default_library",
+        "//ast",
+        "//internal/ast",
+        "//internal/errors",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "parser_test",
     srcs = [
         "lexer_test.go",
         "parser_test.go",
     ],
-    embed = [":go_default_library"],
-    deps = ["//ast:go_default_library"],
+    embed = [":parser"],
+    deps = ["//ast"],
 )
