@@ -54,6 +54,8 @@ Flags:
       --health.address string      Health server address (default "0.0.0.0")  
       --health.port int            Health server port (default: disable health server)   
   -h, --help                       help for flowlogs-pipeline  
+      --k8scache.address string    K8s cache sync server address (default "0.0.0.0")  
+      --k8scache.port int          K8s cache sync server port (default: disabled)  
       --log-level string           Log level: debug, info, warning, error (default "error")  
       --metricsSettings string     json for global metrics settings  
       --parameters string          json of config file parameters field  
