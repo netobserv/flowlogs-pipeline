@@ -1,4 +1,4 @@
-name: release to quay.io
+name: release to quay.io, attaching sbom and signing image
 on:
   push:
     tags: [v*]
@@ -7,6 +7,7 @@ env:
   WF_REGISTRY_USER: netobserv+github_ci
   WF_ORG: netobserv
   WF_MULTIARCH_TARGETS: amd64 arm64 ppc64le s390x
+  WF_REGISTRY_NAME: quay.io
 
 jobs:
   push-image:
@@ -37,7 +38,7 @@ jobs:
         with:
           username: ${{ env.WF_REGISTRY_USER }}
           password: ${{ secrets.QUAY_SECRET }}
-          registry: quay.io
+          registry: ${{ env.WF_REGISTRY_NAME }}
       - name: build and push manifest with images
         run: MULTIARCH_TARGETS="${{ env.WF_MULTIARCH_TARGETS }}" IMAGE_ORG=${{ env.WF_ORG }} VERSION=${{ env.tag }} CLEAN_BUILD=1 make images
       - name: extract binaries
@@ -67,3 +68,47 @@ jobs:
                 data: await fs.readFile(`./release-assets/${file}`)
               }); 
             }
+      - name: cosign-installer
+        # You may pin to the exact commit or the version.
+        # uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003
+        uses: sigstore/cosign-installer@v4.1.1
+        #with:
+        # cosign release version to be installed
+        #cosign-release: # optional, default is v3.0.5
+        # Where to install the cosign binary
+        #install-dir: # optional, default is $HOME/.cosign
+        # set to true if install-dir location requires sudo privs
+        # use-sudo: # optional, default is false
+                
+      - name: Sign and verify the image with GitHub OIDC Token
+        run: |
+          cosign sign --yes ${{ env.WF_REGISTRY_NAME }}/${{ env.WF_MULTIARCH_TARGETS }}/${{ env.WF_ORG }}/${{ env.tag }}@${{ steps.create_release.outputs.digest }}
+
+          cosign verify ${{ env.WF_REGISTRY_NAME }}/${{ env.WF_MULTIARCH_TARGETS }}/${{ env.WF_ORG }}/${{ env.tag }}@${{ steps.create_release.outputs.digest }} \
+          --certificate-identity=https://github.com/netobserv/flowlogs-pipeline/blob/main/.github/workflows/release.yml@refs/heads/main \
+          --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+
+      - name: Attest Provenance attestations
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ env.WF_REGISTRY_NAME }}/${{ env.WF_MULTIARCH_TARGETS }}/${{ env.WF_ORG }}/${{ env.tag }}
+          subject-digest: ${{ steps.create_release.outputs.digest }}
+          push-to-registry: true
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.WF_REGISTRY_NAME }}/${{ env.WF_MULTIARCH_TARGETS }}/${{ env.WF_ORG }}/${{ env.tag }}
+          registry-username: ${{ env.WF_REGISTRY_USER }}
+          registry-password: ${{ secrets.QUAY_SECRET }}
+          format: 'spdx-json'
+          output-file: 'sbom.spdx.json'
+
+      - name: Attest SBOM
+        uses: actions/attest-sbom@v3
+        id: attest
+        with:
+          subject-name: ${{ env.WF_REGISTRY_NAME }}/${{ env.WF_MULTIARCH_TARGETS }}/${{ env.WF_ORG }}/${{ env.tag }}
+          subject-digest: ${{ steps.create_release.outputs.digest }}
+          sbom-path: 'sbom.spdx.json'
+          push-to-registry: true
