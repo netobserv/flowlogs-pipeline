@@ -30,6 +30,7 @@ var (
 	startTime  = time.Now()
 	endTime    = startTime.Add(7 * time.Second)
 	fullPBFlow = pbflow.Record{
+		Sampling:  10,
 		Direction: pbflow.Direction_EGRESS,
 		Bytes:     1024,
 		DataLink: &pbflow.DataLink{
