@@ -54,7 +54,9 @@ func (h *EventHandler) OnAdd(obj interface{}, isInInitialList bool) {
 
 	meta, ok := obj.(*model.ResourceMetaData)
 	if !ok {
-		log.Warnf("unexpected object type in OnAdd: %T", obj)
+		// Kubernetes sometimes sends partial metadata objects for optimization.
+		// These don't have the full info we need (IPs, etc), so we skip them.
+		log.Debugf("skipping partial metadata object in OnAdd: %T", obj)
 		return
 	}
 
@@ -68,7 +70,9 @@ func (h *EventHandler) OnAdd(obj interface{}, isInInitialList bool) {
 func (h *EventHandler) OnUpdate(_, newObj interface{}) {
 	meta, ok := newObj.(*model.ResourceMetaData)
 	if !ok {
-		log.Warnf("unexpected object type in OnUpdate: %T", newObj)
+		// Kubernetes sometimes sends partial metadata objects for optimization.
+		// These don't have the full info we need (IPs, etc), so we skip them.
+		log.Debugf("skipping partial metadata object in OnUpdate: %T", newObj)
 		return
 	}
 
@@ -94,7 +98,8 @@ func (h *EventHandler) OnDelete(obj interface{}) {
 		// Extract the actual object from the tombstone
 		meta, ok = tombstone.Obj.(*model.ResourceMetaData)
 		if !ok {
-			log.Warnf("tombstone contained unexpected object type in OnDelete: %T", tombstone.Obj)
+			// Kubernetes sometimes sends partial metadata objects for optimization.
+			log.Debugf("tombstone contained partial metadata object in OnDelete: %T", tombstone.Obj)
 			return
 		}
 		log.Debugf("recovered delete event from tombstone for resource: %s", meta.Name)
@@ -102,7 +107,8 @@ func (h *EventHandler) OnDelete(obj interface{}) {
 		// Not a tombstone, try direct conversion
 		meta, ok = obj.(*model.ResourceMetaData)
 		if !ok {
-			log.Warnf("unexpected object type in OnDelete: %T", obj)
+			// Kubernetes sometimes sends partial metadata objects for optimization.
+			log.Debugf("skipping partial metadata object in OnDelete: %T", obj)
 			return
 		}
 	}
