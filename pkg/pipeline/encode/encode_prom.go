@@ -97,44 +97,31 @@ func (e *Prometheus) ProcessAggHist(m interface{}, _ string, labels map[string]s
 	return nil
 }
 
-func (e *Prometheus) GetCacheEntry(entryLabels map[string]string, m interface{}) interface{} {
-	// In prom_encode, the metrics cache just contains cleanup callbacks
-	switch mv := m.(type) {
-	case *prometheus.CounterVec:
-		return func() { mv.Delete(entryLabels) }
-	case *prometheus.GaugeVec:
-		return func() { mv.Delete(entryLabels) }
-	case *prometheus.HistogramVec:
-		return func() { mv.Delete(entryLabels) }
-	}
+func (e *Prometheus) GetCacheEntry(_ map[string]string, _ interface{}) interface{} {
+	// With Vec-native TTL, no cache entry is needed for Prometheus
 	return nil
 }
 
-// callback function from lru cleanup
-func (e *Prometheus) Cleanup(cleanupFunc interface{}) {
-	cleanupFunc.(func())()
-}
-
 func (e *Prometheus) addCounter(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
+	counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: mInfo.Help, TTL: e.metricCommon.expiryTime}, mInfo.TargetLabels())
 	e.metricCommon.AddCounter(fullMetricName, counter, mInfo)
 	return counter
 }
 
 func (e *Prometheus) addGauge(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
+	gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: mInfo.Help, TTL: e.metricCommon.expiryTime}, mInfo.TargetLabels())
 	e.metricCommon.AddGauge(fullMetricName, gauge, mInfo)
 	return gauge
 }
 
 func (e *Prometheus) addHistogram(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	histogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
+	histogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help, TTL: e.metricCommon.expiryTime}, mInfo.TargetLabels())
 	e.metricCommon.AddHist(fullMetricName, histogram, mInfo)
 	return histogram
 }
 
 func (e *Prometheus) addAgghistogram(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	agghistogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
+	agghistogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help, TTL: e.metricCommon.expiryTime}, mInfo.TargetLabels())
 	e.metricCommon.AddAggHist(fullMetricName, agghistogram, mInfo)
 	return agghistogram
 }
@@ -311,7 +298,7 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 		w.server = promserver.StartServerAsync(cfg.PromConnectionInfo, params.Name, registry)
 	}
 
-	metricCommon := NewMetricsCommonStruct(opMetrics, cfg.MaxMetrics, params.Name, expiryTime, w.Cleanup)
+	metricCommon := NewMetricsCommonStructWithVecTTL(opMetrics, cfg.MaxMetrics, params.Name, expiryTime)
 	w.metricCommon = metricCommon
 
 	// Init metrics

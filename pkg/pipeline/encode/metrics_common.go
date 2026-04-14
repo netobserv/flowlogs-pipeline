@@ -40,12 +40,13 @@ type MetricsCommonStruct struct {
 	counters         map[string]mInfoStruct
 	histos           map[string]mInfoStruct
 	aggHistos        map[string]mInfoStruct
-	mCache           *putils.TimedCache
+	mCache           *putils.TimedCache // nil when using Vec-native TTL (Prometheus path)
 	mCacheLenMetric  prometheus.Gauge
 	metricsProcessed prometheus.Counter
 	metricsDropped   prometheus.Counter
 	errorsCounter    *prometheus.CounterVec
 	expiryTime       time.Duration
+	maxEntries       int
 	exitChan         <-chan struct{}
 }
 
@@ -197,12 +198,20 @@ func (m *MetricsCommonStruct) prepareMetric(mci MetricsCommonInterface, flow con
 	}
 
 	labelSets := extractLabels(flow, flatParts, info)
-	for _, ls := range labelSets {
-		// Update entry for expiry mechanism (the entry itself is its own cleanup function)
-		ok := m.mCache.UpdateCacheEntry(ls.values, func() interface{} {
-			return mci.GetCacheEntry(ls.lMap, mv)
-		})
-		if !ok {
+	if m.mCache != nil {
+		for _, ls := range labelSets {
+			ok := m.mCache.UpdateCacheEntry(ls.values, func() interface{} {
+				return mci.GetCacheEntry(ls.lMap, mv)
+			})
+			if !ok {
+				m.metricsDropped.Inc()
+				return nil, 0
+			}
+		}
+	} else if m.maxEntries > 0 {
+		// Without cache, enforce max entries via Vec child count
+		total := m.countVecChildren()
+		if total >= m.maxEntries {
 			m.metricsDropped.Inc()
 			return nil, 0
 		}
@@ -228,12 +237,19 @@ func (m *MetricsCommonStruct) prepareAggHisto(mci MetricsCommonInterface, flow c
 	}
 
 	labelSets := extractLabels(flow, flatParts, info)
-	for _, ls := range labelSets {
-		// Update entry for expiry mechanism (the entry itself is its own cleanup function)
-		ok := m.mCache.UpdateCacheEntry(ls.values, func() interface{} {
-			return mci.GetCacheEntry(ls.lMap, mc)
-		})
-		if !ok {
+	if m.mCache != nil {
+		for _, ls := range labelSets {
+			ok := m.mCache.UpdateCacheEntry(ls.values, func() interface{} {
+				return mci.GetCacheEntry(ls.lMap, mc)
+			})
+			if !ok {
+				m.metricsDropped.Inc()
+				return nil, nil
+			}
+		}
+	} else if m.maxEntries > 0 {
+		total := m.countVecChildren()
+		if total >= m.maxEntries {
 			m.metricsDropped.Inc()
 			return nil, nil
 		}
@@ -302,9 +318,47 @@ func (m *MetricsCommonStruct) cleanupExpiredEntriesLoop(callback putils.CacheCal
 			log.Debugf("exiting cleanupExpiredEntriesLoop because of signal")
 			return
 		case <-ticker.C:
-			m.mCache.CleanupExpiredEntries(m.expiryTime, callback)
+			if m.mCache != nil {
+				m.mCache.CleanupExpiredEntries(m.expiryTime, callback)
+			} else {
+				m.cleanupVecExpired()
+			}
 		}
 	}
+}
+
+// cleanupVecExpired calls CleanupExpired on each Prometheus Vec and updates the gauge.
+func (m *MetricsCommonStruct) cleanupVecExpired() {
+	allMaps := []map[string]mInfoStruct{m.counters, m.gauges, m.histos, m.aggHistos}
+	for _, store := range allMaps {
+		for _, mInfo := range store {
+			if vec, ok := mInfo.genericMetric.(interface{ CleanupExpired() int }); ok {
+				vec.CleanupExpired()
+			}
+		}
+	}
+	m.mCacheLenMetric.Set(float64(m.countVecChildren()))
+}
+
+// countVecChildren returns the total number of children across all Vecs.
+func (m *MetricsCommonStruct) countVecChildren() int {
+	total := 0
+	allMaps := []map[string]mInfoStruct{m.counters, m.gauges, m.histos, m.aggHistos}
+	for _, store := range allMaps {
+		for _, mInfo := range store {
+			if c, ok := mInfo.genericMetric.(prometheus.Collector); ok {
+				ch := make(chan prometheus.Metric, 1000)
+				go func() {
+					c.Collect(ch)
+					close(ch)
+				}()
+				for range ch {
+					total++
+				}
+			}
+		}
+	}
+	return total
 }
 
 func (m *MetricsCommonStruct) cleanupInfoStructs() {
@@ -323,6 +377,7 @@ func NewMetricsCommonStruct(opMetrics *operational.Metrics, maxCacheEntries int,
 		metricsDropped:   opMetrics.NewCounter(&metricsDropped, name),
 		errorsCounter:    opMetrics.NewCounterVec(&encodePromErrors),
 		expiryTime:       expiryTime.Duration,
+		maxEntries:       maxCacheEntries,
 		exitChan:         putils.ExitChannel(),
 		gauges:           map[string]mInfoStruct{},
 		counters:         map[string]mInfoStruct{},
@@ -330,5 +385,27 @@ func NewMetricsCommonStruct(opMetrics *operational.Metrics, maxCacheEntries int,
 		aggHistos:        map[string]mInfoStruct{},
 	}
 	go m.cleanupExpiredEntriesLoop(callback)
+	return m
+}
+
+// NewMetricsCommonStructWithVecTTL creates a MetricsCommonStruct that relies on
+// Prometheus Vec built-in TTL instead of an external TimedCache.
+func NewMetricsCommonStructWithVecTTL(opMetrics *operational.Metrics, maxCacheEntries int, name string, expiryTime api.Duration) *MetricsCommonStruct {
+	mChacheLenMetric := opMetrics.NewGauge(&mChacheLen, name)
+	m := &MetricsCommonStruct{
+		mCache:           nil, // no external cache needed
+		mCacheLenMetric:  mChacheLenMetric,
+		metricsProcessed: opMetrics.NewCounter(&metricsProcessed, name),
+		metricsDropped:   opMetrics.NewCounter(&metricsDropped, name),
+		errorsCounter:    opMetrics.NewCounterVec(&encodePromErrors),
+		expiryTime:       expiryTime.Duration,
+		maxEntries:       maxCacheEntries,
+		exitChan:         putils.ExitChannel(),
+		gauges:           map[string]mInfoStruct{},
+		counters:         map[string]mInfoStruct{},
+		histos:           map[string]mInfoStruct{},
+		aggHistos:        map[string]mInfoStruct{},
+	}
+	go m.cleanupExpiredEntriesLoop(nil)
 	return m
 }
