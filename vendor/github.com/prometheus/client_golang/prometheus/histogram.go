@@ -378,6 +378,9 @@ type HistogramOpts struct {
 	// string.
 	Help string
 
+	// Unit provides the unit of this Histogram.
+	Unit string
+
 	// ConstLabels are used to attach fixed labels to this metric. Metrics
 	// with the same fully-qualified name must have the same label names in
 	// their ConstLabels.
@@ -495,6 +498,12 @@ type HistogramOpts struct {
 	// 5m is used. To always delete the oldest exemplar, set it to a negative value.
 	NativeHistogramExemplarTTL time.Duration
 
+	// TTL specifies the time-to-live for Vec children. When set to a value > 0,
+	// children that have not been accessed for longer than TTL will be excluded
+	// from Collect output and can be removed via CleanupExpired. This is only
+	// relevant for HistogramVec metrics; it is ignored for non-Vec Histograms.
+	TTL time.Duration
+
 	// now is for testing purposes, by default it's time.Now.
 	now func() time.Time
 
@@ -522,11 +531,12 @@ type HistogramVecOpts struct {
 // for each bucket.
 func NewHistogram(opts HistogramOpts) Histogram {
 	return newHistogram(
-		NewDesc(
+		V2.NewDesc(
 			BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 			opts.Help,
-			nil,
+			UnconstrainedLabels(nil),
 			opts.ConstLabels,
+			WithUnit(opts.Unit),
 		),
 		opts,
 	)
@@ -1190,11 +1200,12 @@ func (v2) NewHistogramVec(opts HistogramVecOpts) *HistogramVec {
 		opts.Help,
 		opts.VariableLabels,
 		opts.ConstLabels,
+		WithUnit(opts.Unit),
 	)
 	return &HistogramVec{
-		MetricVec: NewMetricVec(desc, func(lvs ...string) Metric {
+		MetricVec: NewMetricVecWithTTL(desc, func(lvs ...string) Metric {
 			return newHistogram(desc, opts.HistogramOpts, lvs...)
-		}),
+		}, opts.TTL),
 	}
 }
 

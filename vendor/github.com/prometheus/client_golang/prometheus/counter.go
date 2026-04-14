@@ -85,11 +85,12 @@ type CounterVecOpts struct {
 // Both internal tracking values are added up in the Write method. This has to
 // be taken into account when it comes to precision and overflow behavior.
 func NewCounter(opts CounterOpts) Counter {
-	desc := NewDesc(
+	desc := V2.NewDesc(
 		BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 		opts.Help,
-		nil,
+		UnconstrainedLabels(nil),
 		opts.ConstLabels,
+		WithUnit(opts.Unit),
 	)
 	if opts.now == nil {
 		opts.now = time.Now
@@ -205,20 +206,22 @@ func (v2) NewCounterVec(opts CounterVecOpts) *CounterVec {
 		opts.Help,
 		opts.VariableLabels,
 		opts.ConstLabels,
+		WithUnit(opts.Unit),
 	)
 	if opts.now == nil {
 		opts.now = time.Now
 	}
+	newMetric := func(lvs ...string) Metric {
+		if len(lvs) != len(desc.variableLabels.names) {
+			panic(makeInconsistentCardinalityError(desc.fqName, desc.variableLabels.names, lvs))
+		}
+		result := &counter{desc: desc, labelPairs: MakeLabelPairs(desc, lvs), now: opts.now}
+		result.init(result) // Init self-collection.
+		result.createdTs = timestamppb.New(opts.now())
+		return result
+	}
 	return &CounterVec{
-		MetricVec: NewMetricVec(desc, func(lvs ...string) Metric {
-			if len(lvs) != len(desc.variableLabels.names) {
-				panic(makeInconsistentCardinalityError(desc.fqName, desc.variableLabels.names, lvs))
-			}
-			result := &counter{desc: desc, labelPairs: MakeLabelPairs(desc, lvs), now: opts.now}
-			result.init(result) // Init self-collection.
-			result.createdTs = timestamppb.New(opts.now())
-			return result
-		}),
+		MetricVec: NewMetricVecWithTTL(desc, newMetric, opts.TTL),
 	}
 }
 
@@ -349,10 +352,11 @@ type CounterFunc interface {
 //
 // Check out the ExampleGaugeFunc examples for the similar GaugeFunc.
 func NewCounterFunc(opts CounterOpts, function func() float64) CounterFunc {
-	return newValueFunc(NewDesc(
+	return newValueFunc(V2.NewDesc(
 		BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 		opts.Help,
-		nil,
+		UnconstrainedLabels(nil),
 		opts.ConstLabels,
+		WithUnit(opts.Unit),
 	), CounterValue, function)
 }
