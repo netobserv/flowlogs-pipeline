@@ -91,24 +91,24 @@ func (hs *HealthServer) SetLeader(isLeader bool) {
 }
 
 // healthHandler always returns 200 OK if the process is running
-func (hs *HealthServer) healthHandler(w http.ResponseWriter, r *http.Request) {
+func (hs *HealthServer) healthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }
 
 // readyHandler returns 200 OK only if the service is ready
-func (hs *HealthServer) readyHandler(w http.ResponseWriter, r *http.Request) {
+func (hs *HealthServer) readyHandler(w http.ResponseWriter, _ *http.Request) {
 	if hs.ready.Load() {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Ready"))
+		_, _ = w.Write([]byte("Ready"))
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte("Not Ready"))
+		_, _ = w.Write([]byte("Not Ready"))
 	}
 }
 
 // statusHandler returns detailed status information as JSON
-func (hs *HealthServer) statusHandler(w http.ResponseWriter, r *http.Request) {
+func (hs *HealthServer) statusHandler(w http.ResponseWriter, _ *http.Request) {
 	status := HealthStatus{
 		Status:   "OK",
 		IsLeader: hs.isLeader.Load(),
@@ -117,5 +117,5 @@ func (hs *HealthServer) statusHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(status)
+	_ = json.NewEncoder(w).Encode(status)
 }
