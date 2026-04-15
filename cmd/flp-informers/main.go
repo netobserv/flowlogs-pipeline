@@ -168,14 +168,22 @@ func run(_ *cobra.Command, _ []string) {
 	if err := healthServer.Start(); err != nil {
 		log.WithError(err).Fatal("failed to start health server")
 	}
-	defer healthServer.Stop()
+	defer func() {
+		if err := healthServer.Stop(); err != nil {
+			log.WithError(err).Error("failed to stop health server")
+		}
+	}()
 
 	// Start metrics server
 	metricsServer := informers.NewMetricsServer(opts.MetricsPort)
 	if err := metricsServer.Start(); err != nil {
 		log.WithError(err).Fatal("failed to start metrics server")
 	}
-	defer metricsServer.Stop()
+	defer func() {
+		if err := metricsServer.Stop(); err != nil {
+			log.WithError(err).Error("failed to stop metrics server")
+		}
+	}()
 
 	// Wait for shutdown signal
 	ctx, cancel := context.WithCancel(context.Background())
