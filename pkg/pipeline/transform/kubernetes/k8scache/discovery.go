@@ -90,6 +90,7 @@ func StartProcessorDiscovery(ctx context.Context, client *Client, cfg DiscoveryC
 }
 
 // discoverAndConnect discovers FLP processor pods and connects to them
+// Also removes connections to processors that no longer exist (e.g., pods that restarted with new IPs)
 func discoverAndConnect(ctx context.Context, clientset *kubernetes.Clientset, client *Client, cfg DiscoveryConfig) {
 	namespace := os.Getenv("POD_NAMESPACE")
 	if namespace == "" {
@@ -105,6 +106,9 @@ func discoverAndConnect(ctx context.Context, clientset *kubernetes.Clientset, cl
 	}
 
 	log.WithField("num_pods", len(pods.Items)).Debug("discovered processor pods")
+
+	// Track discovered addresses in this cycle
+	discoveredAddresses := make(map[string]bool)
 
 	for i := range pods.Items {
 		pod := &pods.Items[i]
@@ -131,12 +135,19 @@ func discoverAndConnect(ctx context.Context, clientset *kubernetes.Clientset, cl
 			address = fmt.Sprintf("%s:%d", pod.Status.PodIP, cfg.ProcessorPort)
 		}
 
+		// Mark this address as discovered
+		discoveredAddresses[address] = true
+
 		// AddProcessorWithTimeout is idempotent (won't duplicate if already connected)
 		// Use a 10-second timeout to avoid blocking the discovery loop for too long
 		if err := client.AddProcessorWithTimeout(address, 10*time.Second); err != nil {
 			log.WithError(err).WithField("pod", pod.Name).Error("failed to connect to processor")
 		}
 	}
+
+	// Remove connections to processors that are no longer discovered
+	// This handles cases where pods restart with new IPs or are deleted
+	client.RemoveStaleProcessors(discoveredAddresses)
 }
 
 // getK8sConfig returns the Kubernetes client config (in-cluster or from kubeconfig)

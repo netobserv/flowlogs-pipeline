@@ -54,6 +54,7 @@ type Interface interface {
 	IndexLookup([]string, string) *model.ResourceMetaData
 	GetNodeByName(string) (*model.ResourceMetaData, error)
 	InitFromConfig(string, *Config, *operational.Metrics) error
+	GetAllResources() []*model.ResourceMetaData
 }
 
 type Informers struct {
@@ -606,6 +607,42 @@ func (k *Informers) initInformers(client kubernetes.Interface, metaClient metada
 	metadataInformerFactory.WaitForCacheSync(k.mdStopChan)
 	log.Debugf("kubernetes metadata informers started")
 	return nil
+}
+
+// GetAllResources returns all cached resources (pods, nodes, services) as a snapshot.
+// This is used to send initial snapshots to processors when they connect or restart.
+func (k *Informers) GetAllResources() []*model.ResourceMetaData {
+	var allResources []*model.ResourceMetaData
+
+	// Get all pods
+	if k.pods != nil {
+		for _, obj := range k.pods.GetStore().List() {
+			if meta, ok := obj.(*model.ResourceMetaData); ok {
+				allResources = append(allResources, meta)
+			}
+		}
+	}
+
+	// Get all nodes
+	if k.nodes != nil {
+		for _, obj := range k.nodes.GetStore().List() {
+			if meta, ok := obj.(*model.ResourceMetaData); ok {
+				allResources = append(allResources, meta)
+			}
+		}
+	}
+
+	// Get all services
+	if k.services != nil {
+		for _, obj := range k.services.GetStore().List() {
+			if meta, ok := obj.(*model.ResourceMetaData); ok {
+				allResources = append(allResources, meta)
+			}
+		}
+	}
+
+	log.WithField("count", len(allResources)).Debug("Retrieved all resources for snapshot")
+	return allResources
 }
 
 func isServiceIPSet(ip string) bool {

@@ -26,10 +26,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/internal/informers"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
-	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
+	k8sinformers "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/k8scache"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -57,6 +58,14 @@ type options struct {
 	TLSCAPath          string
 	TLSServerName      string
 	InsecureSkipVerify bool
+	// Cache configuration
+	UpdateBufferSize int // Size of the update channel buffer
+	SendTimeoutSec   int // Timeout in seconds for sending updates to processors
+	BatchSize        int // Maximum number of entries to send in a single update
+	// High availability configuration
+	EnableLeaderElection bool // Enable leader election for HA
+	HealthPort           int  // Port for health check HTTP server
+	MetricsPort          int  // Port for Prometheus metrics HTTP server
 }
 
 var opts = options{}
@@ -130,6 +139,14 @@ func initFlags() {
 	rootCmd.PersistentFlags().StringVar(&opts.TLSCAPath, "tls-ca-path", "", "Path to TLS CA certificate for server verification")
 	rootCmd.PersistentFlags().StringVar(&opts.TLSServerName, "tls-server-name", "", "Expected server name for TLS verification (e.g., flowlogs-pipeline.namespace.svc)")
 	rootCmd.PersistentFlags().BoolVar(&opts.InsecureSkipVerify, "tls-insecure-skip-verify", false, "Skip TLS certificate verification (not recommended for production)")
+	// Cache configuration
+	rootCmd.PersistentFlags().IntVar(&opts.UpdateBufferSize, "update-buffer-size", 100, "Size of the update channel buffer")
+	rootCmd.PersistentFlags().IntVar(&opts.SendTimeoutSec, "send-timeout", 10, "Timeout in seconds for sending updates to processors")
+	rootCmd.PersistentFlags().IntVar(&opts.BatchSize, "batch-size", 100, "Maximum number of entries to send in a single update")
+	// High availability configuration
+	rootCmd.PersistentFlags().BoolVar(&opts.EnableLeaderElection, "enable-leader-election", true, "Enable leader election for high availability")
+	rootCmd.PersistentFlags().IntVar(&opts.HealthPort, "health-port", 8080, "Port for health check HTTP server")
+	rootCmd.PersistentFlags().IntVar(&opts.MetricsPort, "metrics-port", 9091, "Port for Prometheus metrics HTTP server")
 }
 
 func main() {
@@ -143,6 +160,53 @@ func main() {
 func run(_ *cobra.Command, _ []string) {
 	log.Infof("Starting flp-informers version=%s commit=%s", version, commit)
 
+	// Initialize Prometheus metrics
+	informers.InitMetrics()
+
+	// Start health server
+	healthServer := informers.NewHealthServer(opts.HealthPort)
+	if err := healthServer.Start(); err != nil {
+		log.WithError(err).Fatal("failed to start health server")
+	}
+	defer healthServer.Stop()
+
+	// Start metrics server
+	metricsServer := informers.NewMetricsServer(opts.MetricsPort)
+	if err := metricsServer.Start(); err != nil {
+		log.WithError(err).Fatal("failed to start metrics server")
+	}
+	defer metricsServer.Stop()
+
+	// Wait for shutdown signal
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Run with leader election (or as single instance if disabled)
+	leConfig := informers.LeaderElectionConfig{
+		Enabled:   opts.EnableLeaderElection,
+		Namespace: informers.GetNamespace(),
+		Identity:  informers.GetPodName(),
+	}
+
+	go func() {
+		if err := informers.RunWithLeaderElection(ctx, leConfig, healthServer, func(ctx context.Context) {
+			runInformers(ctx, healthServer)
+		}); err != nil {
+			log.WithError(err).Fatal("leader election failed")
+		}
+	}()
+
+	<-sigChan
+	log.Info("Shutdown signal received, stopping...")
+	cancel()
+}
+
+func runInformers(ctx context.Context, healthServer *informers.HealthServer) {
+	log.Info("Starting informers and gRPC client")
+
 	// Create gRPC client
 	processorID := fmt.Sprintf("flp-informers-%d", time.Now().Unix())
 	clientConfig := k8scache.ClientConfig{
@@ -153,6 +217,9 @@ func run(_ *cobra.Command, _ []string) {
 		TLSCAPath:          opts.TLSCAPath,
 		TLSServerName:      opts.TLSServerName,
 		InsecureSkipVerify: opts.InsecureSkipVerify,
+		UpdateBufferSize:   opts.UpdateBufferSize,
+		SendTimeout:        time.Duration(opts.SendTimeoutSec) * time.Second,
+		BatchSize:          opts.BatchSize,
 	}
 	grpcClient := k8scache.NewClient(&clientConfig)
 
@@ -171,8 +238,8 @@ func run(_ *cobra.Command, _ []string) {
 
 	// Initialize Kubernetes informers
 	apiConfig := &api.NetworkTransformKubeConfig{} // Empty config - will use defaults
-	infConfig := informers.NewConfig(apiConfig)
-	inf := &informers.Informers{}
+	infConfig := k8sinformers.NewConfig(apiConfig)
+	inf := &k8sinformers.Informers{}
 	opMetrics := operational.NewMetrics(&config.MetricsSettings{})
 
 	if err := inf.InitFromConfig(opts.Kubeconfig, &infConfig, opMetrics); err != nil {
@@ -181,6 +248,9 @@ func run(_ *cobra.Command, _ []string) {
 
 	log.Info("Kubernetes informers initialized and synced")
 
+	// Set informer data source in gRPC client for snapshot generation
+	grpcClient.SetInformer(inf)
+
 	// Setup informer event handlers to push updates via gRPC
 	handler := k8scache.NewEventHandler(grpcClient)
 	if err := inf.AddEventHandler(handler); err != nil {
@@ -188,10 +258,10 @@ func run(_ *cobra.Command, _ []string) {
 	}
 	log.Info("Informer event handlers registered for cache sync")
 
-	// Start processor discovery in background
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	// Mark as ready
+	healthServer.SetReady(true)
 
+	// Start processor discovery in background
 	discoveryConfig := k8scache.DiscoveryConfig{
 		Kubeconfig:           opts.Kubeconfig,
 		ProcessorSelector:    opts.ProcessorSelector,
@@ -206,12 +276,9 @@ func run(_ *cobra.Command, _ []string) {
 		}
 	}()
 
-	log.Info("flp-informers started - pushing incremental updates only (no initial snapshot)")
+	log.Info("flp-informers started - sending snapshots to new processors (lastVersion=0) and incremental updates to all")
 
-	// Wait for shutdown signal
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan
-
-	log.Info("Shutdown signal received, stopping...")
+	// Wait for context cancellation
+	<-ctx.Done()
+	log.Info("Context cancelled, stopping informers...")
 }
