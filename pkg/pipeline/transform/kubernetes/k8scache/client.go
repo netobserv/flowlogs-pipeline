@@ -27,8 +27,10 @@ const (
 	initialBackoff       = 1 * time.Second
 	maxBackoff           = 60 * time.Second
 	backoffMultiplier    = 2.0
-	// Send timeout
-	sendTimeout = 10 * time.Second
+	// Default values for configurable parameters
+	defaultUpdateBufferSize = 100
+	defaultSendTimeout      = 10 * time.Second
+	defaultBatchSize        = 100
 )
 
 // ClientConfig holds configuration for the gRPC client
@@ -46,6 +48,15 @@ type ClientConfig struct {
 	TLSServerName string
 	// InsecureSkipVerify skips TLS certificate verification (not recommended for production)
 	InsecureSkipVerify bool
+	// Cache configuration (optional, defaults used if 0)
+	UpdateBufferSize int           // Size of the update channel buffer (default: 100)
+	SendTimeout      time.Duration // Timeout for sending updates to processors (default: 10s)
+	BatchSize        int           // Maximum number of entries to send in a single update (default: 100)
+}
+
+// InformerDataSource defines the interface for getting all resources from informers.
+type InformerDataSource interface {
+	GetAllResources() []*model.ResourceMetaData
 }
 
 // Client manages gRPC connections to FLP processor servers and pushes cache updates.
@@ -64,6 +75,12 @@ type Client struct {
 	// ctx and cancel for lifecycle management
 	ctx    context.Context
 	cancel context.CancelFunc
+	// Configurable parameters
+	sendTimeout time.Duration
+	batchSize   int
+	// Informer data source for snapshots
+	informer InformerDataSource
+	infMu    sync.RWMutex
 }
 
 // processorConnection represents a connection to a single FLP processor
@@ -115,13 +132,38 @@ func (pc *processorConnection) closeConnection() {
 // NewClient creates a new cache client (informer side)
 func NewClient(config *ClientConfig) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
+
+	// Set defaults for configurable parameters if not provided
+	bufferSize := config.UpdateBufferSize
+	if bufferSize == 0 {
+		bufferSize = defaultUpdateBufferSize
+	}
+
+	sendTimeout := config.SendTimeout
+	if sendTimeout == 0 {
+		sendTimeout = defaultSendTimeout
+	}
+
+	batchSize := config.BatchSize
+	if batchSize == 0 {
+		batchSize = defaultBatchSize
+	}
+
+	clog.WithFields(log.Fields{
+		"update_buffer_size": bufferSize,
+		"send_timeout":       sendTimeout,
+		"batch_size":         batchSize,
+	}).Info("Cache client configuration")
+
 	return &Client{
 		processorID: config.ProcessorID,
 		tlsConfig:   *config,
 		connections: make(map[string]*processorConnection),
-		updateChan:  make(chan *CacheUpdate, 100), // Buffer for updates
+		updateChan:  make(chan *CacheUpdate, bufferSize),
 		ctx:         ctx,
 		cancel:      cancel,
+		sendTimeout: sendTimeout,
+		batchSize:   batchSize,
 	}
 }
 
@@ -299,6 +341,31 @@ func (c *Client) RemoveProcessor(address string) {
 	pc.closeConnection()
 }
 
+// RemoveStaleProcessors removes connections to processors that are no longer in the discovered set.
+// This is called after discovery to clean up connections to pods that have been deleted or restarted
+// with new IPs. Prevents memory leaks and zombie connections.
+func (c *Client) RemoveStaleProcessors(discoveredAddresses map[string]bool) {
+	c.mu.RLock()
+	var staleAddresses []string
+	for address := range c.connections {
+		if !discoveredAddresses[address] {
+			staleAddresses = append(staleAddresses, address)
+		}
+	}
+	c.mu.RUnlock()
+
+	if len(staleAddresses) > 0 {
+		clog.WithFields(log.Fields{
+			"num_stale":       len(staleAddresses),
+			"stale_addresses": staleAddresses,
+		}).Info("removing stale processor connections")
+
+		for _, address := range staleAddresses {
+			c.RemoveProcessor(address)
+		}
+	}
+}
+
 // Start begins processing cache updates and sending them to all connected processors
 func (c *Client) Start() {
 	go c.processorLoop()
@@ -322,42 +389,144 @@ func (c *Client) Stop() {
 }
 
 // SendAdd sends an ADD operation to all connected processors
+// Entries are sent in batches according to the configured batch size
 func (c *Client) SendAdd(entries []*model.ResourceMetaData) error {
-	version := c.version.Add(1)
-	update := &CacheUpdate{
-		Version:    version,
-		IsSnapshot: false,
-		Operation:  OperationType_OPERATION_ADD,
-		Entries:    metaToResourceEntries(entries),
-	}
-
-	return c.sendUpdate(update)
+	return c.sendBatched(entries, OperationType_OPERATION_ADD, false)
 }
 
 // SendUpdate sends an UPDATE operation to all connected processors
+// Entries are sent in batches according to the configured batch size
 func (c *Client) SendUpdate(entries []*model.ResourceMetaData) error {
-	version := c.version.Add(1)
-	update := &CacheUpdate{
-		Version:    version,
-		IsSnapshot: false,
-		Operation:  OperationType_OPERATION_UPDATE,
-		Entries:    metaToResourceEntries(entries),
-	}
-
-	return c.sendUpdate(update)
+	return c.sendBatched(entries, OperationType_OPERATION_UPDATE, false)
 }
 
 // SendDelete sends a DELETE operation to all connected processors
+// Entries are sent in batches according to the configured batch size
 func (c *Client) SendDelete(entries []*model.ResourceMetaData) error {
-	version := c.version.Add(1)
-	update := &CacheUpdate{
-		Version:    version,
-		IsSnapshot: false,
-		Operation:  OperationType_OPERATION_DELETE,
-		Entries:    metaToResourceEntries(entries),
+	return c.sendBatched(entries, OperationType_OPERATION_DELETE, false)
+}
+
+// sendBatched sends entries in batches to all connected processors
+func (c *Client) sendBatched(entries []*model.ResourceMetaData, operation OperationType, isSnapshot bool) error {
+	if len(entries) == 0 {
+		return nil
 	}
 
-	return c.sendUpdate(update)
+	batchSize := c.batchSize
+	numBatches := (len(entries) + batchSize - 1) / batchSize
+
+	if numBatches > 1 {
+		clog.WithFields(log.Fields{
+			"total_entries": len(entries),
+			"batch_size":    batchSize,
+			"num_batches":   numBatches,
+			"operation":     operation,
+		}).Debug("sending entries in batches")
+	}
+
+	for i := 0; i < len(entries); i += batchSize {
+		end := i + batchSize
+		if end > len(entries) {
+			end = len(entries)
+		}
+
+		batch := entries[i:end]
+		version := c.version.Add(1)
+		update := &CacheUpdate{
+			Version:    version,
+			IsSnapshot: isSnapshot,
+			Operation:  operation,
+			Entries:    metaToResourceEntries(batch),
+		}
+
+		if err := c.sendUpdate(update); err != nil {
+			return fmt.Errorf("failed to send batch %d/%d: %w", (i/batchSize)+1, numBatches, err)
+		}
+	}
+
+	return nil
+}
+
+// SendSnapshot sends a full snapshot to a specific processor.
+// This is used when a processor connects/restarts to get the current state.
+func (c *Client) SendSnapshot(entries []*model.ResourceMetaData, targetAddress string) error {
+	batchSize := c.batchSize
+	numBatches := (len(entries) + batchSize - 1) / batchSize
+
+	clog.WithFields(log.Fields{
+		"num_entries": len(entries),
+		"batch_size":  batchSize,
+		"num_batches": numBatches,
+		"target":      targetAddress,
+	}).Info("sending snapshot to processor")
+
+	// Split entries into batches if needed
+	for i := 0; i < len(entries); i += batchSize {
+		end := i + batchSize
+		if end > len(entries) {
+			end = len(entries)
+		}
+
+		batch := entries[i:end]
+		version := c.version.Add(1)
+		update := &CacheUpdate{
+			Version:    version,
+			IsSnapshot: true,
+			Operation:  OperationType_OPERATION_ADD,
+			Entries:    metaToResourceEntries(batch),
+		}
+
+		// Send directly to the target processor
+		c.mu.RLock()
+		pc, exists := c.connections[targetAddress]
+		c.mu.RUnlock()
+
+		if !exists {
+			return fmt.Errorf("processor %s not found", targetAddress)
+		}
+
+		if !pc.healthy.Load() {
+			return fmt.Errorf("processor %s is not healthy", targetAddress)
+		}
+
+		stream := pc.getStream()
+		if stream == nil {
+			return fmt.Errorf("stream is nil for processor %s", targetAddress)
+		}
+
+		sendCtx, sendCancel := context.WithTimeout(context.Background(), c.sendTimeout)
+		done := make(chan error, 1)
+
+		go func() {
+			select {
+			case <-sendCtx.Done():
+				return
+			case done <- stream.Send(update):
+			}
+		}()
+
+		select {
+		case err := <-done:
+			sendCancel()
+			if err != nil {
+				return fmt.Errorf("failed to send snapshot batch to %s: %w", targetAddress, err)
+			}
+		case <-sendCtx.Done():
+			sendCancel()
+			pc.cancelStream()
+			return fmt.Errorf("timeout sending snapshot batch to %s", targetAddress)
+		}
+
+		clog.WithFields(log.Fields{
+			"batch":       (i / batchSize) + 1,
+			"num_batches": numBatches,
+			"batch_size":  len(batch),
+			"target":      targetAddress,
+		}).Debug("sent snapshot batch")
+	}
+
+	clog.WithField("target", targetAddress).Info("snapshot sent successfully")
+	return nil
 }
 
 // sendUpdate sends an update to the update channel (non-blocking with timeout)
@@ -365,7 +534,7 @@ func (c *Client) sendUpdate(update *CacheUpdate) error {
 	select {
 	case c.updateChan <- update:
 		return nil
-	case <-time.After(5 * time.Second):
+	case <-time.After(c.sendTimeout):
 		return fmt.Errorf("timeout sending update to channel")
 	case <-c.ctx.Done():
 		return c.ctx.Err()
@@ -424,7 +593,7 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 			}
 
 			// Create a context with timeout for this send operation
-			sendCtx, sendCancel := context.WithTimeout(context.Background(), sendTimeout)
+			sendCtx, sendCancel := context.WithTimeout(context.Background(), c.sendTimeout)
 			defer sendCancel()
 
 			// Use a channel to signal completion or timeout
@@ -610,10 +779,42 @@ func (c *Client) handleSyncRequest(pc *processorConnection, req *SyncRequest) {
 		"last_version": req.LastVersion,
 	}).Info("received SyncRequest from processor")
 
-	// Note: We only send incremental updates (ADD/UPDATE/DELETE).
-	// No initial snapshot is sent. Processors start with empty cache and build up
-	// from incoming events. If a processor restarts, it loses enrichment until
-	// resources are updated again (acceptable trade-off per design).
+	// Only send snapshot if LastVersion is 0 (processor is new or restarted)
+	// If LastVersion > 0, the processor is reconnecting and will continue receiving
+	// incremental updates (ADD/UPDATE/DELETE) from where it left off
+	if req.LastVersion == 0 {
+		// Get informer data source
+		c.infMu.RLock()
+		informer := c.informer
+		c.infMu.RUnlock()
+
+		if informer == nil {
+			clog.Warn("informer not set, cannot send snapshot")
+			return
+		}
+
+		// Get all resources from informer cache (local, no K8s API query)
+		allResources := informer.GetAllResources()
+
+		clog.WithFields(log.Fields{
+			"address":       pc.address,
+			"processor_id":  req.ProcessorId,
+			"num_resources": len(allResources),
+		}).Info("sending snapshot to new/restarted processor")
+
+		// Send snapshot to this specific processor
+		if err := c.SendSnapshot(allResources, pc.address); err != nil {
+			clog.WithError(err).WithField("address", pc.address).Error("failed to send snapshot")
+		} else {
+			clog.WithField("address", pc.address).Info("snapshot sent successfully to processor")
+		}
+	} else {
+		clog.WithFields(log.Fields{
+			"address":      pc.address,
+			"processor_id": req.ProcessorId,
+			"last_version": req.LastVersion,
+		}).Info("processor reconnecting with existing state, continuing incremental updates")
+	}
 }
 
 // handleSyncAck handles a SyncAck from a processor
@@ -637,4 +838,12 @@ func (c *Client) handleSyncAck(pc *processorConnection, ack *SyncAck) {
 // GetVersion returns the current cache version
 func (c *Client) GetVersion() int64 {
 	return c.version.Load()
+}
+
+// SetInformer sets the informer data source for obtaining snapshots
+func (c *Client) SetInformer(informer InformerDataSource) {
+	c.infMu.Lock()
+	defer c.infMu.Unlock()
+	c.informer = informer
+	clog.Info("Informer data source set for snapshot generation")
 }
