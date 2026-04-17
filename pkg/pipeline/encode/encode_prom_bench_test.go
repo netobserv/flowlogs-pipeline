@@ -79,10 +79,18 @@ func initOldPathProm(tb testing.TB, params *api.PromEncode) *Prometheus {
 			counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
 			w.metricCommon.AddCounter(fullMetricName, counter, mInfo)
 			reg.MustRegister(counter)
+		case api.MetricGauge:
+			gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
+			w.metricCommon.AddGauge(fullMetricName, gauge, mInfo)
+			reg.MustRegister(gauge)
 		case api.MetricHistogram:
 			histogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
 			w.metricCommon.AddHist(fullMetricName, histogram, mInfo)
 			reg.MustRegister(histogram)
+		case api.MetricAggHistogram:
+			aggHistogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
+			w.metricCommon.AddAggHist(fullMetricName, aggHistogram, mInfo)
+			reg.MustRegister(aggHistogram)
 		}
 	}
 	return w

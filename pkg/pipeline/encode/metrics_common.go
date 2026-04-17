@@ -406,6 +406,12 @@ func NewMetricsCommonStructWithVecTTL(opMetrics *operational.Metrics, maxCacheEn
 		histos:           map[string]mInfoStruct{},
 		aggHistos:        map[string]mInfoStruct{},
 	}
-	go m.cleanupExpiredEntriesLoop(nil)
 	return m
+}
+
+// StartCleanupLoop launches the background goroutine that periodically cleans
+// up expired Vec entries. Must be called after all initial metrics are registered
+// to avoid races between the cleanup goroutine and metric setup.
+func (m *MetricsCommonStruct) StartCleanupLoop() {
+	go m.cleanupExpiredEntriesLoop(nil)
 }

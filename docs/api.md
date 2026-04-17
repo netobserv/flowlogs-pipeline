@@ -55,6 +55,7 @@ Following is the supported API format for kafka encode:
          readTimeout: timeout (in seconds) for read operation performed by the Writer
          batchBytes: limit the maximum size of a request in bytes before being sent to a partition
          batchSize: limit on how many messages will be buffered before being sent to a partition
+         compression: compression codec: none (default), gzip, snappy, lz4, zstd
          tls: TLS client configuration (optional)
              insecureSkipVerify: skip client verifying the server's certificate chain and host name
              caCertPath: path to the CA certificate

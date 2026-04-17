@@ -304,6 +304,8 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	// Init metrics
 	w.resetRegistry()
 
+	w.metricCommon.StartCleanupLoop()
+
 	return w, nil
 }
 
