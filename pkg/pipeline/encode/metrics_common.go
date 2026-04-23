@@ -389,7 +389,7 @@ func NewMetricsCommonStruct(opMetrics *operational.Metrics, maxCacheEntries int,
 }
 
 // NewMetricsCommonStructWithVecTTL creates a MetricsCommonStruct that relies on
-// Prometheus Vec TTL (via prometheus.TTLRegistry in encode_prom) instead of an
+// Prometheus Vec TTL (via *VecOpts.TTL in encode_prom) instead of an
 // external TimedCache.
 func NewMetricsCommonStructWithVecTTL(opMetrics *operational.Metrics, maxCacheEntries int, name string, expiryTime api.Duration) *MetricsCommonStruct {
 	mChacheLenMetric := opMetrics.NewGauge(&mChacheLen, name)

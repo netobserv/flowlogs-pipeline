@@ -102,55 +102,55 @@ func (e *Prometheus) GetCacheEntry(_ map[string]string, _ interface{}) interface
 	return nil
 }
 
-func (e *Prometheus) addCounter(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	var counter *prometheus.CounterVec
-	if ttlReg, ok := e.registerer.(*prometheus.TTLRegistry); ok {
-		counter = ttlReg.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
-	} else {
-		counter = prometheus.NewCounterVec(prometheus.CounterOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
+// vecTTL returns expiryTime when using the Vec-native TTL path (no TimedCache).
+func (e *Prometheus) vecTTL() time.Duration {
+	if e.metricCommon.mCache == nil {
+		return e.metricCommon.expiryTime
 	}
+	return 0
+}
+
+func (e *Prometheus) addCounter(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
+	counter := prometheus.V2.NewCounterVec(prometheus.CounterVecOpts{
+		CounterOpts:    prometheus.CounterOpts{Name: fullMetricName, Help: mInfo.Help},
+		VariableLabels: prometheus.UnconstrainedLabels(mInfo.TargetLabels()),
+		TTL:            e.vecTTL(),
+	})
 	e.metricCommon.AddCounter(fullMetricName, counter, mInfo)
 	return counter
 }
 
 func (e *Prometheus) addGauge(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	var gauge *prometheus.GaugeVec
-	if ttlReg, ok := e.registerer.(*prometheus.TTLRegistry); ok {
-		gauge = ttlReg.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
-	} else {
-		gauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
-	}
+	gauge := prometheus.V2.NewGaugeVec(prometheus.GaugeVecOpts{
+		GaugeOpts:      prometheus.GaugeOpts{Name: fullMetricName, Help: mInfo.Help},
+		VariableLabels: prometheus.UnconstrainedLabels(mInfo.TargetLabels()),
+		TTL:            e.vecTTL(),
+	})
 	e.metricCommon.AddGauge(fullMetricName, gauge, mInfo)
 	return gauge
 }
 
 func (e *Prometheus) addHistogram(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	var histogram *prometheus.HistogramVec
-	if ttlReg, ok := e.registerer.(*prometheus.TTLRegistry); ok {
-		histogram = ttlReg.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
-	} else {
-		histogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
-	}
+	histogram := prometheus.V2.NewHistogramVec(prometheus.HistogramVecOpts{
+		HistogramOpts:  prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help},
+		VariableLabels: prometheus.UnconstrainedLabels(mInfo.TargetLabels()),
+		TTL:            e.vecTTL(),
+	})
 	e.metricCommon.AddHist(fullMetricName, histogram, mInfo)
 	return histogram
 }
 
 func (e *Prometheus) addAgghistogram(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
-	var agghistogram *prometheus.HistogramVec
-	if ttlReg, ok := e.registerer.(*prometheus.TTLRegistry); ok {
-		agghistogram = ttlReg.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
-	} else {
-		agghistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help}, mInfo.TargetLabels())
-	}
+	agghistogram := prometheus.V2.NewHistogramVec(prometheus.HistogramVecOpts{
+		HistogramOpts:  prometheus.HistogramOpts{Name: fullMetricName, Help: mInfo.Help},
+		VariableLabels: prometheus.UnconstrainedLabels(mInfo.TargetLabels()),
+		TTL:            e.vecTTL(),
+	})
 	e.metricCommon.AddAggHist(fullMetricName, agghistogram, mInfo)
 	return agghistogram
 }
 
-// registerIfNeeded registers c unless it was already registered by TTLRegistry constructors.
 func (e *Prometheus) registerIfNeeded(c prometheus.Collector) {
-	if _, ok := e.registerer.(*prometheus.TTLRegistry); ok {
-		return
-	}
 	if err := e.registerer.Register(c); err != nil {
 		plog.Errorf("error in prometheus.Register: %v", err)
 	}
@@ -264,16 +264,8 @@ func (e *Prometheus) checkConfUpdate() {
 
 func (e *Prometheus) resetRegistry() {
 	e.metricCommon.cleanupInfoStructs()
-	var reg prometheus.Gatherer
-	if e.metricCommon.mCache == nil {
-		ttlReg := prometheus.NewTTLRegistry(e.metricCommon.expiryTime)
-		e.registerer = ttlReg
-		reg = ttlReg
-	} else {
-		r := prometheus.NewRegistry()
-		e.registerer = r
-		reg = r
-	}
+	r := prometheus.NewRegistry()
+	e.registerer = r
 	for i := range e.cfg.Metrics {
 		mCfg := &e.cfg.Metrics[i]
 		fullMetricName := e.cfg.Prefix + mCfg.Name
@@ -297,7 +289,8 @@ func (e *Prometheus) resetRegistry() {
 			e.registerIfNeeded(m)
 		}
 	}
-	e.server.SetRegistry(e.regName, reg)
+	// Registry.Gather cleans expired Vec children when Opts.TTL > 0.
+	e.server.SetRegistry(e.regName, r)
 }
 
 func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (Encoder, error) {
@@ -312,8 +305,8 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 	}
 	plog.Debugf("expiryTime = %v", expiryTime)
 
-	// Placeholder gatherer; resetRegistry replaces it with a TTLRegistry (Vec TTL path)
-	// or a plain Registry (TimedCache path) before scraping.
+	// Placeholder gatherer; resetRegistry replaces it before scraping.
+	// Vec TTL is configured via *VecOpts.TTL when TimedCache is not used.
 	registry := prometheus.NewRegistry()
 
 	w := &Prometheus{

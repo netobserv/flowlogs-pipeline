@@ -515,6 +515,10 @@ type HistogramVecOpts struct {
 	// of labels. Each label value will be constrained with the optional Constraint
 	// function, if provided.
 	VariableLabels ConstrainableLabels
+
+	// TTL, if greater than zero, enables per-child expiration for this vector.
+	// See MetricVecOpts.TTL for semantics.
+	TTL time.Duration
 }
 
 // NewHistogram creates a new Histogram based on the provided HistogramOpts. It
@@ -1200,16 +1204,22 @@ func newHistogramVecWithTTL(opts HistogramVecOpts, ttl time.Duration) *Histogram
 		opts.ConstLabels,
 		WithUnit(opts.Unit),
 	)
-	newMetric := func(lvs ...string) Metric {
-		return newHistogram(desc, opts.HistogramOpts, lvs...)
+	if opts.TTL < 0 {
+		panic(fmt.Sprintf("invalid negative ttl: %v", opts.TTL))
 	}
-	if ttl > 0 {
-		return &HistogramVec{
-			MetricVec: NewMetricVecWithTTL(desc, newMetric, ttl),
+	newMetric := func(lvs ...string) Metric {
+		h := newHistogram(desc, opts.HistogramOpts, lvs...)
+		if opts.TTL <= 0 {
+			return h
 		}
+		return newTTLHistogram(h)
 	}
 	return &HistogramVec{
-		MetricVec: NewMetricVec(desc, newMetric),
+		MetricVec: V2.NewMetricVec(MetricVecOpts{
+			Desc:      desc,
+			NewMetric: newMetric,
+			TTL:       opts.TTL,
+		}),
 	}
 }
 
