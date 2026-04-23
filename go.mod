@@ -166,3 +166,6 @@ require (
 )
 
 replace github.com/vmware/go-ipfix => github.com/jotak/go-ipfix v0.0.0-20250708115123-407c539ea101
+
+// Local client_golang (TTLRegistry); switch to upstream tag or fork pseudo-version when published.
+replace github.com/prometheus/client_golang => ../client_golang

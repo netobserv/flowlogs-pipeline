@@ -386,8 +386,8 @@ github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/prometheus/client_golang v1.23.2
-## explicit; go 1.23.0
+# github.com/prometheus/client_golang v1.23.2 => ../client_golang
+## explicit; go 1.25.0
 github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil
 github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil/header
 github.com/prometheus/client_golang/prometheus
@@ -1369,3 +1369,5 @@ sigs.k8s.io/structured-merge-diff/v6/value
 ## explicit; go 1.22
 sigs.k8s.io/yaml
 # github.com/vmware/go-ipfix => github.com/jotak/go-ipfix v0.0.0-20250708115123-407c539ea101
+
+# github.com/prometheus/client_golang => ../client_golang

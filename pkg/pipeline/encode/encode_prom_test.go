@@ -109,15 +109,15 @@ func Test_NewEncodeProm(t *testing.T) {
 	entry := test.GetExtractMockEntry()
 	encodeProm.Encode(entry)
 
-	// verify entries are in cache; one for the gauge and one for the counter
-	entriesMapLen := encodeProm.metricCommon.mCache.GetCacheLen()
-	require.Equal(t, 2, entriesMapLen)
+	// verify entries exist; one for the gauge and one for the counter
+	metricsCount := encodeProm.metricCommon.countVecChildren()
+	require.Equal(t, 2, metricsCount)
 
-	// wait a couple seconds so that the entry will expire
+	// wait a couple seconds so that the entry will expire via Vec TTL
 	time.Sleep(2 * time.Second)
-	encodeProm.metricCommon.mCache.CleanupExpiredEntries(encodeProm.metricCommon.expiryTime, encodeProm.Cleanup)
-	entriesMapLen = encodeProm.metricCommon.mCache.GetCacheLen()
-	require.Equal(t, 0, entriesMapLen)
+	encodeProm.metricCommon.cleanupVecExpired()
+	metricsCount = encodeProm.metricCommon.countVecChildren()
+	require.Equal(t, 0, metricsCount)
 }
 
 func Test_CustomMetric(t *testing.T) {

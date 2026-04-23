@@ -378,6 +378,9 @@ type HistogramOpts struct {
 	// string.
 	Help string
 
+	// Unit provides the unit of this Histogram.
+	Unit string
+
 	// ConstLabels are used to attach fixed labels to this metric. Metrics
 	// with the same fully-qualified name must have the same label names in
 	// their ConstLabels.
@@ -522,11 +525,12 @@ type HistogramVecOpts struct {
 // for each bucket.
 func NewHistogram(opts HistogramOpts) Histogram {
 	return newHistogram(
-		NewDesc(
+		V2.NewDesc(
 			BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 			opts.Help,
-			nil,
+			UnconstrainedLabels(nil),
 			opts.ConstLabels,
+			WithUnit(opts.Unit),
 		),
 		opts,
 	)
@@ -1185,16 +1189,27 @@ func NewHistogramVec(opts HistogramOpts, labelNames []string) *HistogramVec {
 
 // NewHistogramVec creates a new HistogramVec based on the provided HistogramVecOpts.
 func (v2) NewHistogramVec(opts HistogramVecOpts) *HistogramVec {
+	return newHistogramVecWithTTL(opts, 0)
+}
+
+func newHistogramVecWithTTL(opts HistogramVecOpts, ttl time.Duration) *HistogramVec {
 	desc := V2.NewDesc(
 		BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 		opts.Help,
 		opts.VariableLabels,
 		opts.ConstLabels,
+		WithUnit(opts.Unit),
 	)
+	newMetric := func(lvs ...string) Metric {
+		return newHistogram(desc, opts.HistogramOpts, lvs...)
+	}
+	if ttl > 0 {
+		return &HistogramVec{
+			MetricVec: NewMetricVecWithTTL(desc, newMetric, ttl),
+		}
+	}
 	return &HistogramVec{
-		MetricVec: NewMetricVec(desc, func(lvs ...string) Metric {
-			return newHistogram(desc, opts.HistogramOpts, lvs...)
-		}),
+		MetricVec: NewMetricVec(desc, newMetric),
 	}
 }
 
