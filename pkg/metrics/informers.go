@@ -15,9 +15,10 @@
  *
  */
 
-package informers
+package metrics
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,6 +38,18 @@ type Metrics struct {
 	CacheUpdatesTotal       *prometheus.CounterVec
 	CacheSnapshotsSentTotal prometheus.Counter
 	DiscoveryErrors         prometheus.Counter
+	// gRPC communication metrics
+	GrpcBytesSentTotal   prometheus.Counter
+	GrpcBytesRecvTotal   prometheus.Counter
+	GrpcMessagesSentTotal prometheus.Counter
+	GrpcMessagesRecvTotal prometheus.Counter
+	// Processor lifecycle metrics
+	ProcessorConnectionsTotal *prometheus.CounterVec
+	ProcessorLifetimeDuration prometheus.Histogram
+	// UDN disambiguation metrics
+	UdnDisambiguateTotal    prometheus.Counter
+	UdnDisambiguateDuration prometheus.Histogram
+	UdnDisambiguateErrors   prometheus.Counter
 }
 
 // InitMetrics initializes all Prometheus metrics
@@ -65,6 +78,50 @@ func InitMetrics() {
 			Name: "flp_informers_discovery_errors_total",
 			Help: "Total number of processor discovery errors",
 		}),
+		// gRPC communication metrics
+		GrpcBytesSentTotal: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "flp_informers_grpc_bytes_sent_total",
+			Help: "Total number of bytes sent via gRPC to processors",
+		}),
+		GrpcBytesRecvTotal: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "flp_informers_grpc_bytes_received_total",
+			Help: "Total number of bytes received via gRPC from processors",
+		}),
+		GrpcMessagesSentTotal: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "flp_informers_grpc_messages_sent_total",
+			Help: "Total number of gRPC messages sent to processors",
+		}),
+		GrpcMessagesRecvTotal: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "flp_informers_grpc_messages_received_total",
+			Help: "Total number of gRPC messages received from processors",
+		}),
+		// Processor lifecycle metrics
+		ProcessorConnectionsTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "flp_informers_processor_connections_total",
+				Help: "Total number of processor connection events",
+			},
+			[]string{"event"}, // connected, disconnected, reconnected
+		),
+		ProcessorLifetimeDuration: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Name:    "flp_informers_processor_lifetime_duration_seconds",
+			Help:    "Duration of processor connections in seconds",
+			Buckets: []float64{1, 10, 30, 60, 300, 600, 1800, 3600, 7200}, // 1s to 2h
+		}),
+		// UDN disambiguation metrics
+		UdnDisambiguateTotal: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "flp_informers_udn_disambiguate_total",
+			Help: "Total number of UDN disambiguation attempts",
+		}),
+		UdnDisambiguateDuration: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Name:    "flp_informers_udn_disambiguate_duration_seconds",
+			Help:    "Duration of UDN disambiguation operations in seconds",
+			Buckets: prometheus.DefBuckets, // 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10
+		}),
+		UdnDisambiguateErrors: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "flp_informers_udn_disambiguate_errors_total",
+			Help: "Total number of UDN disambiguation errors",
+		}),
 	}
 
 	// Register all metrics
@@ -74,6 +131,15 @@ func InitMetrics() {
 		InformersMetrics.CacheUpdatesTotal,
 		InformersMetrics.CacheSnapshotsSentTotal,
 		InformersMetrics.DiscoveryErrors,
+		InformersMetrics.GrpcBytesSentTotal,
+		InformersMetrics.GrpcBytesRecvTotal,
+		InformersMetrics.GrpcMessagesSentTotal,
+		InformersMetrics.GrpcMessagesRecvTotal,
+		InformersMetrics.ProcessorConnectionsTotal,
+		InformersMetrics.ProcessorLifetimeDuration,
+		InformersMetrics.UdnDisambiguateTotal,
+		InformersMetrics.UdnDisambiguateDuration,
+		InformersMetrics.UdnDisambiguateErrors,
 	)
 }
 
@@ -89,7 +155,7 @@ func NewMetricsServer(port int) *MetricsServer {
 
 	return &MetricsServer{
 		server: &http.Server{
-			Addr:    formatAddress(port),
+			Addr:    fmt.Sprintf(":%d", port),
 			Handler: mux,
 		},
 	}

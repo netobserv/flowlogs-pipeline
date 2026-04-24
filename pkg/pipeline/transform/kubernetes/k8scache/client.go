@@ -12,11 +12,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/metrics"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/model"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/proto"
 )
 
 var clog = log.WithField("component", "k8scache.Client")
@@ -94,7 +96,9 @@ type processorConnection struct {
 	cancel context.CancelFunc
 	// Reconnect tracking
 	reconnectAttempts int
-	mu                sync.Mutex // Protects conn, stream, cancel, and reconnectAttempts
+	// Connection timestamp for lifetime metrics
+	connectedAt time.Time
+	mu          sync.Mutex // Protects conn, stream, cancel, and reconnectAttempts
 }
 
 // getStream returns a copy of the stream pointer under lock.
@@ -305,17 +309,21 @@ func (c *Client) AddProcessorWithTimeout(address string, timeout time.Duration) 
 		return nil
 	}
 
-	// We won the race, store the connection
+	// Store the connection
 	pc := &processorConnection{
-		address: address,
-		conn:    conn,
-		stream:  stream,
-		cancel:  streamCancel,
+		address:     address,
+		conn:        conn,
+		stream:      stream,
+		cancel:      streamCancel,
+		connectedAt: time.Now(),
 	}
 	pc.healthy.Store(true)
 
 	c.connections[address] = pc
 	c.mu.Unlock()
+
+	// Update metrics
+	c.updateConnectionMetrics("connected")
 
 	// Start receiver goroutine for this connection
 	go c.receiveFromProcessor(pc)
@@ -336,6 +344,12 @@ func (c *Client) RemoveProcessor(address string) {
 	clog.WithField("address", address).Info("disconnecting from FLP processor")
 	delete(c.connections, address)
 	c.mu.Unlock()
+
+	// Update metrics - measure lifetime if we have a connection timestamp
+	c.updateConnectionMetrics("disconnected")
+	if !pc.connectedAt.IsZero() {
+		c.observeProcessorLifetime(pc.connectedAt)
+	}
 
 	// Close connection after releasing client lock to avoid holding both locks
 	pc.closeConnection()
@@ -526,6 +540,11 @@ func (c *Client) SendSnapshot(entries []*model.ResourceMetaData, targetAddress s
 	}
 
 	clog.WithField("target", targetAddress).Info("snapshot sent successfully")
+
+	if metrics.InformersMetrics != nil {
+		metrics.InformersMetrics.CacheSnapshotsSentTotal.Inc()
+	}
+
 	return nil
 }
 
@@ -577,6 +596,9 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 		"num_targets": len(connections),
 	}).Debug("broadcasting cache update")
 
+	// Measure message size for metrics
+	messageSize := proto.Size(update)
+
 	// Send to all processors concurrently
 	var wg sync.WaitGroup
 	for _, pc := range connections {
@@ -613,6 +635,9 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 				if err != nil {
 					clog.WithError(err).WithField("address", pc.address).Error("failed to send update")
 					pc.healthy.Store(false)
+				} else {
+					// Update gRPC metrics on successful send
+					c.updateGrpcSentMetrics(messageSize)
 				}
 			case <-sendCtx.Done():
 				clog.WithField("address", pc.address).Error("send operation timed out")
@@ -699,7 +724,11 @@ func (c *Client) reconnect(pc *processorConnection) bool {
 		pc.cancel = cancel
 		pc.healthy.Store(true)
 		pc.reconnectAttempts = 0
+		pc.connectedAt = time.Now() // Reset connection timestamp on reconnect
 		pc.mu.Unlock()
+
+		// Update metrics
+		c.updateConnectionMetrics("reconnected")
 
 		clog.WithFields(log.Fields{
 			"address": address,
@@ -759,6 +788,10 @@ func (c *Client) receiveFromProcessor(pc *processorConnection) {
 			// Reconnection failed, exit
 			return
 		}
+
+		// Update gRPC metrics on successful receive
+		messageSize := proto.Size(msg)
+		c.updateGrpcRecvMetrics(messageSize)
 
 		switch m := msg.Message.(type) {
 		case *SyncMessage_Request:
@@ -846,4 +879,43 @@ func (c *Client) SetInformer(informer InformerDataSource) {
 	defer c.infMu.Unlock()
 	c.informer = informer
 	clog.Info("Informer data source set for snapshot generation")
+}
+
+// updateConnectionMetrics updates processor connection metrics
+func (c *Client) updateConnectionMetrics(event string) {
+	if metrics.InformersMetrics != nil {
+		metrics.InformersMetrics.ProcessorConnectionsTotal.WithLabelValues(event).Inc()
+
+		// Update connected processors gauge
+		switch event {
+		case "connected", "reconnected":
+			metrics.InformersMetrics.ConnectedProcessors.Inc()
+		case "disconnected":
+			metrics.InformersMetrics.ConnectedProcessors.Dec()
+		}
+	}
+}
+
+// observeProcessorLifetime records the lifetime of a processor connection
+func (c *Client) observeProcessorLifetime(connectedAt time.Time) {
+	if metrics.InformersMetrics != nil {
+		lifetime := time.Since(connectedAt).Seconds()
+		metrics.InformersMetrics.ProcessorLifetimeDuration.Observe(lifetime)
+	}
+}
+
+// updateGrpcSentMetrics updates gRPC sent metrics
+func (c *Client) updateGrpcSentMetrics(messageSize int) {
+	if metrics.InformersMetrics != nil {
+		metrics.InformersMetrics.GrpcBytesSentTotal.Add(float64(messageSize))
+		metrics.InformersMetrics.GrpcMessagesSentTotal.Inc()
+	}
+}
+
+// updateGrpcRecvMetrics updates gRPC received metrics
+func (c *Client) updateGrpcRecvMetrics(messageSize int) {
+	if metrics.InformersMetrics != nil {
+		metrics.InformersMetrics.GrpcBytesRecvTotal.Add(float64(messageSize))
+		metrics.InformersMetrics.GrpcMessagesRecvTotal.Inc()
+	}
 }

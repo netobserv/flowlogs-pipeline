@@ -21,6 +21,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/metrics"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -50,7 +51,7 @@ func RunWithLeaderElection(ctx context.Context, config LeaderElectionConfig, hea
 		log.Info("Leader election disabled - running as single instance")
 		healthServer.SetLeader(true)
 		healthServer.SetReady(true)
-		InformersMetrics.IsLeader.Set(1)
+		metrics.InformersMetrics.IsLeader.Set(1)
 		runFunc(ctx)
 		return nil
 	}
@@ -94,13 +95,13 @@ func RunWithLeaderElection(ctx context.Context, config LeaderElectionConfig, hea
 			OnStartedLeading: func(ctx context.Context) {
 				log.Info("Started leading - running informers")
 				healthServer.SetLeader(true)
-				InformersMetrics.IsLeader.Set(1)
+				metrics.InformersMetrics.IsLeader.Set(1)
 				runFunc(ctx)
 			},
 			OnStoppedLeading: func() {
 				log.Info("Stopped leading")
 				healthServer.SetLeader(false)
-				InformersMetrics.IsLeader.Set(0)
+				metrics.InformersMetrics.IsLeader.Set(0)
 			},
 			OnNewLeader: func(identity string) {
 				if identity == config.Identity {
