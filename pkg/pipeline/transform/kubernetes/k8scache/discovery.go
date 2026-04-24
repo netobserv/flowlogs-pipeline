@@ -23,6 +23,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/metrics"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -102,6 +103,9 @@ func discoverAndConnect(ctx context.Context, clientset *kubernetes.Clientset, cl
 	})
 	if err != nil {
 		log.WithError(err).Error("failed to list processor pods")
+		if metrics.InformersMetrics != nil {
+			metrics.InformersMetrics.DiscoveryErrors.Inc()
+		}
 		return
 	}
 
@@ -142,6 +146,9 @@ func discoverAndConnect(ctx context.Context, clientset *kubernetes.Clientset, cl
 		// Use a 10-second timeout to avoid blocking the discovery loop for too long
 		if err := client.AddProcessorWithTimeout(address, 10*time.Second); err != nil {
 			log.WithError(err).WithField("pod", pod.Name).Error("failed to connect to processor")
+			if metrics.InformersMetrics != nil {
+				metrics.InformersMetrics.DiscoveryErrors.Inc()
+			}
 		}
 	}
 

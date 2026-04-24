@@ -29,6 +29,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/internal/informers"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/metrics"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	k8sinformers "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/informers"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/k8scache"
@@ -161,7 +162,7 @@ func run(_ *cobra.Command, _ []string) {
 	log.Infof("Starting flp-informers version=%s commit=%s", version, commit)
 
 	// Initialize Prometheus metrics
-	informers.InitMetrics()
+	metrics.InitMetrics()
 
 	// Start health server
 	healthServer := informers.NewHealthServer(opts.HealthPort)
@@ -175,7 +176,7 @@ func run(_ *cobra.Command, _ []string) {
 	}()
 
 	// Start metrics server
-	metricsServer := informers.NewMetricsServer(opts.MetricsPort)
+	metricsServer := metrics.NewMetricsServer(opts.MetricsPort)
 	if err := metricsServer.Start(); err != nil {
 		log.WithError(err).Fatal("failed to start metrics server")
 	}
