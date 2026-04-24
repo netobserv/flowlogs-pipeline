@@ -143,17 +143,17 @@ func InitMetrics() {
 	)
 }
 
-// MetricsServer provides HTTP endpoint for Prometheus metrics
-type MetricsServer struct {
+// Server provides HTTP endpoint for Prometheus metrics
+type Server struct {
 	server *http.Server
 }
 
-// NewMetricsServer creates a new metrics server listening on the specified port
-func NewMetricsServer(port int) *MetricsServer {
+// NewServer creates a new metrics server listening on the specified port
+func NewServer(port int) *Server {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 
-	return &MetricsServer{
+	return &Server{
 		server: &http.Server{
 			Addr:    fmt.Sprintf(":%d", port),
 			Handler: mux,
@@ -162,7 +162,7 @@ func NewMetricsServer(port int) *MetricsServer {
 }
 
 // Start starts the metrics server in a goroutine
-func (ms *MetricsServer) Start() error {
+func (ms *Server) Start() error {
 	log.WithField("address", ms.server.Addr).Info("Starting metrics server")
 
 	go func() {
@@ -175,7 +175,7 @@ func (ms *MetricsServer) Start() error {
 }
 
 // Stop stops the metrics server gracefully
-func (ms *MetricsServer) Stop() error {
+func (ms *Server) Stop() error {
 	log.Info("Stopping metrics server")
 	return ms.server.Close()
 }

@@ -176,7 +176,7 @@ func run(_ *cobra.Command, _ []string) {
 	}()
 
 	// Start metrics server
-	metricsServer := metrics.NewMetricsServer(opts.MetricsPort)
+	metricsServer := metrics.NewServer(opts.MetricsPort)
 	if err := metricsServer.Start(); err != nil {
 		log.WithError(err).Fatal("failed to start metrics server")
 	}

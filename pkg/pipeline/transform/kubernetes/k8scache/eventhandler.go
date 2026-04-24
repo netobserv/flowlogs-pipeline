@@ -63,10 +63,8 @@ func (h *EventHandler) OnAdd(obj interface{}, isInInitialList bool) {
 
 	if err := h.client.SendAdd([]*model.ResourceMetaData{meta}); err != nil {
 		log.WithError(err).WithField("resource", meta.Name).Error("failed to send ADD")
-	} else {
-		if metrics.InformersMetrics != nil {
-			metrics.InformersMetrics.CacheUpdatesTotal.WithLabelValues("ADD").Inc()
-		}
+	} else if metrics.InformersMetrics != nil {
+		metrics.InformersMetrics.CacheUpdatesTotal.WithLabelValues("ADD").Inc()
 	}
 }
 
@@ -83,10 +81,8 @@ func (h *EventHandler) OnUpdate(_, newObj interface{}) {
 
 	if err := h.client.SendUpdate([]*model.ResourceMetaData{meta}); err != nil {
 		log.WithError(err).WithField("resource", meta.Name).Error("failed to send UPDATE")
-	} else {
-		if metrics.InformersMetrics != nil {
-			metrics.InformersMetrics.CacheUpdatesTotal.WithLabelValues("UPDATE").Inc()
-		}
+	} else if metrics.InformersMetrics != nil {
+		metrics.InformersMetrics.CacheUpdatesTotal.WithLabelValues("UPDATE").Inc()
 	}
 }
 
@@ -124,9 +120,7 @@ func (h *EventHandler) OnDelete(obj interface{}) {
 
 	if err := h.client.SendDelete([]*model.ResourceMetaData{meta}); err != nil {
 		log.WithError(err).WithField("resource", meta.Name).Error("failed to send DELETE")
-	} else {
-		if metrics.InformersMetrics != nil {
-			metrics.InformersMetrics.CacheUpdatesTotal.WithLabelValues("DELETE").Inc()
-		}
+	} else if metrics.InformersMetrics != nil {
+		metrics.InformersMetrics.CacheUpdatesTotal.WithLabelValues("DELETE").Inc()
 	}
 }
