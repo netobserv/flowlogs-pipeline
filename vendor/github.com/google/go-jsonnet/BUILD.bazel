@@ -1,18 +1,23 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
-load(
-    "@bazel_gazelle//:def.bzl",
-    "gazelle",
-)
+load("@gazelle//:def.bzl", "gazelle")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 # gazelle:prefix github.com/google/go-jsonnet
 gazelle(
     name = "gazelle",
 )
 
-go_library(
+# keep: support old target name.
+alias(
     name = "go_default_library",
+    actual = ":go-jsonnet",
+    visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "go-jsonnet",
     srcs = [
         "builtins.go",
+        "debugger.go",
         "doc.go",
         "error_formatter.go",
         "imports.go",
@@ -27,17 +32,19 @@ go_library(
     importpath = "github.com/google/go-jsonnet",
     visibility = ["//visibility:public"],
     deps = [
-        "//ast:go_default_library",
-        "//astgen:go_default_library",
-        "//internal/errors:go_default_library",
-        "//internal/parser:go_default_library",
-        "//internal/program:go_default_library",
-        "@io_k8s_sigs_yaml//:go_default_library",
+        "//ast",
+        "//astgen",
+        "//internal/errors",
+        "//internal/parser",
+        "//internal/program",
+        "//toolutils",
+        "@io_k8s_sigs_yaml//:yaml",
+        "@org_golang_x_crypto//sha3",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "go-jsonnet_test",
     srcs = [
         "builtins_benchmark_test.go",
         "interpreter_test.go",
@@ -45,10 +52,10 @@ go_test(
         "main_test.go",
     ],
     data = glob(["testdata/**"]),
-    embed = [":go_default_library"],
+    embed = [":go-jsonnet"],
     deps = [
-        "//ast:go_default_library",
-        "//internal/parser:go_default_library",
-        "//internal/testutils:go_default_library",
+        "//ast",
+        "//internal/parser",
+        "//internal/testutils",
     ],
 )

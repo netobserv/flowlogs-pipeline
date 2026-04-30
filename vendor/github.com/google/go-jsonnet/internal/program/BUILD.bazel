@@ -1,7 +1,7 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "program",
     srcs = [
         "desugarer.go",
         "program.go",
@@ -10,18 +10,18 @@ go_library(
     importpath = "github.com/google/go-jsonnet/internal/program",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//ast:go_default_library",
-        "//internal/errors:go_default_library",
-        "//internal/parser:go_default_library",
+        "//ast",
+        "//internal/errors",
+        "//internal/parser",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "program_test",
     srcs = [
         "desugarer_test.go",
         "static_analyzer_test.go",
     ],
-    embed = [":go_default_library"],
-    deps = ["//ast:go_default_library"],
+    embed = [":program"],
+    deps = ["//ast"],
 )

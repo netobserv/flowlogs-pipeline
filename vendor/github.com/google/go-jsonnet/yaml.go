@@ -20,19 +20,15 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"strings"
-	"unicode"
 
 	"sigs.k8s.io/yaml"
 )
-
-const separator = "---"
 
 // YAMLToJSONDecoder decodes YAML documents from an io.Reader by
 // separating individual documents. It first converts the YAML
 // body to JSON, then unmarshals the JSON.
 type YAMLToJSONDecoder struct {
-	reader Reader
+	reader *YAMLReader
 }
 
 // NewYAMLToJSONDecoder decodes YAML documents from the provided
@@ -50,7 +46,7 @@ func NewYAMLToJSONDecoder(r io.Reader) *YAMLToJSONDecoder {
 // an error. The decoding rules match json.Unmarshal, not
 // yaml.Unmarshal.
 func (d *YAMLToJSONDecoder) Decode(into interface{}) error {
-	bytes, err := d.reader.Read()
+	bytes, err := d.reader.read()
 	if err != nil && err != io.EOF {
 		return err
 	}
@@ -64,6 +60,10 @@ func (d *YAMLToJSONDecoder) Decode(into interface{}) error {
 	return err
 }
 
+func (d *YAMLToJSONDecoder) IsStream() bool {
+	return d.reader.isStream()
+}
+
 // Reader reads bytes
 type Reader interface {
 	Read() ([]byte, error)
@@ -72,6 +72,8 @@ type Reader interface {
 // YAMLReader reads YAML
 type YAMLReader struct {
 	reader Reader
+	buffer bytes.Buffer
+	stream bool
 }
 
 // NewYAMLReader creates a new YAMLReader
@@ -81,38 +83,49 @@ func NewYAMLReader(r *bufio.Reader) *YAMLReader {
 	}
 }
 
+var docStartMarker = []byte("---")
+
 // Read returns a full YAML document.
-func (r *YAMLReader) Read() ([]byte, error) {
-	var buffer bytes.Buffer
+func (r *YAMLReader) read() ([]byte, error) {
 	for {
 		line, err := r.reader.Read()
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
 
-		sep := len([]byte(separator))
-		if i := bytes.Index(line, []byte(separator)); i == 0 {
-			// We have a potential document terminator
-			i += sep
-			after := line[i:]
-			if len(strings.TrimRightFunc(string(after), unicode.IsSpace)) == 0 {
-				if buffer.Len() != 0 {
-					return buffer.Bytes(), nil
-				}
-				if err == io.EOF {
-					return nil, err
+		// Per https://yaml.org/spec/1.2.2/#912-document-markers
+		// Document content lines are forbidden to contain marker sequences.
+		// The marker sequences are `---` or `...` at the start of the line,
+		// followed by space, tab, CR, LF, or EOF.
+		if bytes.HasPrefix(line, docStartMarker) {
+			end := len(docStartMarker)
+			if end == len(line) || line[end] == '\n' || line[end] == ' ' || line[end] == '\t' {
+				r.stream = true
+				if r.buffer.Len() != 0 {
+					out := append([]byte(nil), r.buffer.Bytes()...)
+					r.buffer.Reset()
+					// The document start marker should be included in the next document.
+					r.buffer.Write(line)
+					return out, nil
 				}
 			}
 		}
+
 		if err == io.EOF {
-			if buffer.Len() != 0 {
+			if r.buffer.Len() != 0 {
 				// If we're at EOF, we have a final, non-terminated line. Return it.
-				return buffer.Bytes(), nil
+				out := append([]byte(nil), r.buffer.Bytes()...)
+				r.buffer.Reset()
+				return out, nil
 			}
 			return nil, err
 		}
-		buffer.Write(line)
+		r.buffer.Write(line)
 	}
+}
+
+func (r *YAMLReader) isStream() bool {
+	return r.stream
 }
 
 // LineReader reads single lines.
