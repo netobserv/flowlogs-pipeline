@@ -69,17 +69,7 @@ jobs:
               }); 
             }
       - name: cosign-installer
-        # You may pin to the exact commit or the version.
-        # uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003
-        uses: sigstore/cosign-installer@v4.1.1
-        #with:
-        # cosign release version to be installed
-        #cosign-release: # optional, default is v3.0.5
-        # Where to install the cosign binary
-        #install-dir: # optional, default is $HOME/.cosign
-        # set to true if install-dir location requires sudo privs
-        # use-sudo: # optional, default is false
-                
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
       - name: Sign and verify the image with GitHub OIDC Token
         run: |
           cosign sign --yes ${{ env.WF_REGISTRY_NAME }}/${{ env.WF_MULTIARCH_TARGETS }}/${{ env.WF_ORG }}/${{ env.tag }}@${{ steps.create_release.outputs.digest }}
@@ -87,16 +77,15 @@ jobs:
           cosign verify ${{ env.WF_REGISTRY_NAME }}/${{ env.WF_MULTIARCH_TARGETS }}/${{ env.WF_ORG }}/${{ env.tag }}@${{ steps.create_release.outputs.digest }} \
           --certificate-identity=https://github.com/netobserv/flowlogs-pipeline/blob/main/.github/workflows/release.yml@refs/heads/main \
           --certificate-oidc-issuer=https://token.actions.githubusercontent.com
-
       - name: Attest Provenance attestations
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3 ; TODO, use "attest" instead
         with:
           subject-name: ${{ env.WF_REGISTRY_NAME }}/${{ env.WF_MULTIARCH_TARGETS }}/${{ env.WF_ORG }}/${{ env.tag }}
           subject-digest: ${{ steps.create_release.outputs.digest }}
           push-to-registry: true
 
       - name: Generate SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           image: ${{ env.WF_REGISTRY_NAME }}/${{ env.WF_MULTIARCH_TARGETS }}/${{ env.WF_ORG }}/${{ env.tag }}
           registry-username: ${{ env.WF_REGISTRY_USER }}
@@ -105,7 +94,7 @@ jobs:
           output-file: 'sbom.spdx.json'
 
       - name: Attest SBOM
-        uses: actions/attest-sbom@v3
+        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3 ; TODO, use "attest" instead
         id: attest
         with:
           subject-name: ${{ env.WF_REGISTRY_NAME }}/${{ env.WF_MULTIARCH_TARGETS }}/${{ env.WF_ORG }}/${{ env.tag }}
