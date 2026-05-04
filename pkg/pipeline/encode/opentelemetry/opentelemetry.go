@@ -245,7 +245,9 @@ func (e *EncodeOtlpLogs) LogWrite(entry config.GenericMap) {
 	now := time.Now()
 	sn := logs.INFO
 	st := "INFO"
-	msgByteArray, _ := json.Marshal(entry)
+	// Filter out null values before marshaling for Body
+	filteredEntry := filterNullValues(entry)
+	msgByteArray, _ := json.Marshal(filteredEntry)
 	msg := string(msgByteArray)
 	// TODO: Decide whether the content should be delivered as Body or as Attributes
 	lrc := logs.LogRecordConfig{
@@ -264,6 +266,16 @@ func (e *EncodeOtlpLogs) LogWrite(entry config.GenericMap) {
 		logs.WithSchemaURL(semconv.SchemaURL),
 	)
 	logger.Emit(logRecord)
+}
+
+func filterNullValues(entry config.GenericMap) config.GenericMap {
+	filtered := make(config.GenericMap, len(entry))
+	for k, v := range entry {
+		if v != nil {
+			filtered[k] = v
+		}
+	}
+	return filtered
 }
 
 func obtainAttributesFromEntry(entry config.GenericMap) *[]attribute.KeyValue {
