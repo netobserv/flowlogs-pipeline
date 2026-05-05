@@ -23,6 +23,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,6 +50,8 @@ parameters:
           output: Protocol
         - input: srcIP
           output: srcIP
+        - input: unused_key
+          output: UnusedKey
 `
 
 const testConfigTransformGenericMaintainTrue = `---
@@ -74,21 +77,37 @@ parameters:
           output: Protocol
         - input: srcIP
           output: srcIP
+        - input: unused_key
+          output: UnusedKey
 `
 
-func getGenericExpectedOutputShort() config.GenericMap {
-	return config.GenericMap{
+func TestNewTransformGenericMaintainFalse(t *testing.T) {
+	newTransform := InitNewTransformGeneric(t, testConfigTransformGenericMaintainFalse)
+	transformGeneric := newTransform.(*Generic)
+	require.Len(t, transformGeneric.rules, 7)
+
+	input := test.GetIngestMockEntry(false)
+	output, ok := transformGeneric.Transform(input)
+	require.True(t, ok)
+	require.Equal(t, config.GenericMap{
 		"SrcAddr":  "10.0.0.1",
 		"srcIP":    "10.0.0.1",
 		"SrcPort":  11777,
 		"Protocol": "tcp",
 		"DstAddr":  "20.0.0.2",
 		"DstPort":  22,
-	}
+	}, output)
 }
 
-func getGenericExpectedOutputLong() config.GenericMap {
-	return config.GenericMap{
+func TestNewTransformGenericMaintainTrue(t *testing.T) {
+	newTransform := InitNewTransformGeneric(t, testConfigTransformGenericMaintainTrue)
+	transformGeneric := newTransform.(*Generic)
+	require.Len(t, transformGeneric.rules, 7)
+
+	input := test.GetIngestMockEntry(false)
+	output, ok := transformGeneric.Transform(input)
+	require.True(t, ok)
+	require.Equal(t, config.GenericMap{
 		"SrcAddr":      "10.0.0.1",
 		"SrcPort":      11777,
 		"Protocol":     "tcp",
@@ -105,31 +124,7 @@ func getGenericExpectedOutputLong() config.GenericMap {
 		"message":      "test message",
 		"dstIP":        "20.0.0.2",
 		"dstPort":      22,
-	}
-}
-
-func TestNewTransformGenericMaintainFalse(t *testing.T) {
-	newTransform := InitNewTransformGeneric(t, testConfigTransformGenericMaintainFalse)
-	transformGeneric := newTransform.(*Generic)
-	require.Len(t, transformGeneric.rules, 6)
-
-	input := test.GetIngestMockEntry(false)
-	output, ok := transformGeneric.Transform(input)
-	require.True(t, ok)
-	expectedOutput := getGenericExpectedOutputShort()
-	require.Equal(t, expectedOutput, output)
-}
-
-func TestNewTransformGenericMaintainTrue(t *testing.T) {
-	newTransform := InitNewTransformGeneric(t, testConfigTransformGenericMaintainTrue)
-	transformGeneric := newTransform.(*Generic)
-	require.Len(t, transformGeneric.rules, 6)
-
-	input := test.GetIngestMockEntry(false)
-	output, ok := transformGeneric.Transform(input)
-	require.True(t, ok)
-	expectedOutput := getGenericExpectedOutputLong()
-	require.Equal(t, expectedOutput, output)
+	}, output)
 }
 
 func InitNewTransformGeneric(t *testing.T, configFile string) Transformer {
@@ -151,6 +146,11 @@ func Test_Transform_Multiplier(t *testing.T) {
 				Output:     "output_var",
 				Multiplier: 10,
 			},
+			{
+				Input:      "unused_key",
+				Output:     "unused_multiplied",
+				Multiplier: 10,
+			},
 		},
 	}
 
@@ -161,27 +161,39 @@ func Test_Transform_Multiplier(t *testing.T) {
 	}
 	output, ok := newGenericTransform.Transform(entry)
 	require.True(t, ok)
-	require.Equal(t, 30, output["output_var"])
-	require.Equal(t, 7, output["other_var"])
+	assert.Equal(t, config.GenericMap{
+		"input_var":  3,
+		"output_var": 30,
+		"other_var":  7,
+	}, output)
 
 	entry = config.GenericMap{
 		"input_var": 4.0,
 	}
 	output, ok = newGenericTransform.Transform(entry)
 	require.True(t, ok)
-	require.Equal(t, 40.0, output["output_var"])
+	assert.Equal(t, config.GenericMap{
+		"input_var":  4.0,
+		"output_var": 40.0,
+	}, output)
 
 	entry = config.GenericMap{
 		"input_var": "not_a_number",
 	}
-	_, ok = newGenericTransform.Transform(entry)
-	require.False(t, ok)
+	output, ok = newGenericTransform.Transform(entry)
+	require.True(t, ok)
+	assert.Equal(t, config.GenericMap{
+		"input_var": "not_a_number",
+	}, output)
 
 	entry = config.GenericMap{
 		"input_var": true,
 	}
-	_, ok = newGenericTransform.Transform(entry)
-	require.False(t, ok)
+	output, ok = newGenericTransform.Transform(entry)
+	require.True(t, ok)
+	assert.Equal(t, config.GenericMap{
+		"input_var": true,
+	}, output)
 
 	entry = config.GenericMap{
 		"input_var": -4.0,
