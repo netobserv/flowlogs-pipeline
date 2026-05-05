@@ -16,7 +16,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/netobserv/gopipes v0.3.0
 	github.com/netobserv/loki-client-go v0.0.0-20251014110557-40bc8d2e6cf3
-	github.com/netobserv/netobserv-ebpf-agent v1.11.3-community.0.20260403152625-7b86af3b9bf7
+	github.com/netobserv/netobserv-ebpf-agent v1.11.3-community.0.20260505134559-24f8cbea14ad
 	github.com/netsampler/goflow2 v1.3.7
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
@@ -135,7 +135,7 @@ require (
 	golang.org/x/crypto v0.49.0 // indirect
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/term v0.41.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
