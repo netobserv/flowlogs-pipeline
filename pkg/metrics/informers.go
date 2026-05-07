@@ -1,20 +1,3 @@
-/*
- * Copyright (C) 2024 Red Hat, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
 package metrics
 
 import (
@@ -37,7 +20,7 @@ type Metrics struct {
 	ConnectedProcessors     prometheus.Gauge
 	CacheUpdatesTotal       *prometheus.CounterVec
 	CacheSnapshotsSentTotal prometheus.Counter
-	DiscoveryErrors         prometheus.Counter
+	ErrorsTotal             *prometheus.CounterVec
 	// gRPC communication metrics
 	GrpcBytesSentTotal   prometheus.Counter
 	GrpcBytesRecvTotal   prometheus.Counter
@@ -49,7 +32,6 @@ type Metrics struct {
 	// UDN disambiguation metrics
 	UdnDisambiguateTotal    prometheus.Counter
 	UdnDisambiguateDuration prometheus.Histogram
-	UdnDisambiguateErrors   prometheus.Counter
 }
 
 // InitMetrics initializes all Prometheus metrics
@@ -74,10 +56,13 @@ func InitMetrics() {
 			Name: "flp_informers_snapshots_sent_total",
 			Help: "Total number of full snapshots sent to processors",
 		}),
-		DiscoveryErrors: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "flp_informers_discovery_errors_total",
-			Help: "Total number of processor discovery errors",
-		}),
+		ErrorsTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "flp_informers_errors_total",
+				Help: "Total number of errors by type",
+			},
+			[]string{"error_type"}, // discovery, udn_disambiguation
+		),
 		// gRPC communication metrics
 		GrpcBytesSentTotal: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "flp_informers_grpc_bytes_sent_total",
@@ -118,10 +103,6 @@ func InitMetrics() {
 			Help:    "Duration of UDN disambiguation operations in seconds",
 			Buckets: prometheus.DefBuckets, // 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10
 		}),
-		UdnDisambiguateErrors: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "flp_informers_udn_disambiguate_errors_total",
-			Help: "Total number of UDN disambiguation errors",
-		}),
 	}
 
 	// Register all metrics
@@ -130,7 +111,7 @@ func InitMetrics() {
 		InformersMetrics.ConnectedProcessors,
 		InformersMetrics.CacheUpdatesTotal,
 		InformersMetrics.CacheSnapshotsSentTotal,
-		InformersMetrics.DiscoveryErrors,
+		InformersMetrics.ErrorsTotal,
 		InformersMetrics.GrpcBytesSentTotal,
 		InformersMetrics.GrpcBytesRecvTotal,
 		InformersMetrics.GrpcMessagesSentTotal,
@@ -139,7 +120,6 @@ func InitMetrics() {
 		InformersMetrics.ProcessorLifetimeDuration,
 		InformersMetrics.UdnDisambiguateTotal,
 		InformersMetrics.UdnDisambiguateDuration,
-		InformersMetrics.UdnDisambiguateErrors,
 	)
 }
 

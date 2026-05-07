@@ -135,7 +135,7 @@ func disambiguateClusterUDN(ctx context.Context, dynClient *dynamic.DynamicClien
 	} else if !errors.IsNotFound(err) {
 		log.Errorf("could not fetch UDN %s: %v", name, err)
 		if metrics.InformersMetrics != nil {
-			metrics.InformersMetrics.UdnDisambiguateErrors.Inc()
+			metrics.InformersMetrics.ErrorsTotal.WithLabelValues("udn_disambiguation").Inc()
 		}
 	}
 	// Does it exist as a cluster-udn?
@@ -152,7 +152,7 @@ func disambiguateClusterUDN(ctx context.Context, dynClient *dynamic.DynamicClien
 	} else if !errors.IsNotFound(err) {
 		log.Errorf("could not fetch CUDN %s: %v", udnName, err)
 		if metrics.InformersMetrics != nil {
-			metrics.InformersMetrics.UdnDisambiguateErrors.Inc()
+			metrics.InformersMetrics.ErrorsTotal.WithLabelValues("udn_disambiguation").Inc()
 		}
 	}
 	return name
