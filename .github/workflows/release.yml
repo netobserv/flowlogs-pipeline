@@ -71,8 +71,8 @@ jobs:
             }
       - name: cosign-installer
         # You may pin to the exact commit or the version.
-        # uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003
-        uses: sigstore/cosign-installer@v4.1.1
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003
+        #uses: sigstore/cosign-installer@v4.1.1
         #with:
         # cosign release version to be installed
         #cosign-release: # optional, default is v3.0.5
