@@ -1,7 +1,7 @@
 ARG BUILDVERSION
 ARG BUILDVERSION_Y
 
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.25 as builder
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.25 AS builder
 ARG BUILDVERSION
 
 WORKDIR /app
@@ -13,7 +13,7 @@ COPY vendor/ vendor/
 COPY cmd/ cmd/
 COPY pkg/ pkg/
 
-ENV GOEXPERIMENT strictfipsruntime
+ENV GOEXPERIMENT=strictfipsruntime
 RUN go build -tags strictfipsruntime -ldflags "-X 'main.BuildVersion=$BUILDVERSION' -X 'main.BuildDate=`date +%Y-%m-%d\ %H:%M`'" "./cmd/flowlogs-pipeline"
 
 # final stage

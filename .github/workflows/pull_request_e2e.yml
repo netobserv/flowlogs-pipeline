@@ -1,10 +1,11 @@
 name: pull request - e2e tests
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
   e2e-tests:
@@ -15,11 +16,13 @@ jobs:
     - name: install make
       run: sudo apt-get install make
     - name: set up go 1.x
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v6
       with:
         go-version: '1.25'
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v6
+      with:
+        persist-credentials: false
     - name: run build
       run: make build
     - name: run end-to-end tests

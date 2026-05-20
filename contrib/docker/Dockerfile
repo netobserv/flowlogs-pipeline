@@ -1,5 +1,5 @@
 ARG TARGETARCH
-FROM docker.io/library/golang:1.25 as builder
+FROM docker.io/library/golang:1.25 AS builder
 
 ARG TARGETARCH=amd64
 ARG LDFLAGS
@@ -18,5 +18,6 @@ RUN CGO_ENABLED=0 GOARCH=$TARGETARCH go build -ldflags "$LDFLAGS" -mod vendor -o
 FROM --platform=linux/$TARGETARCH registry.access.redhat.com/ubi9/ubi-minimal:9.8-1777460003
 
 COPY --from=builder /app/flowlogs-pipeline /app/
+USER 65532:65532
 
 ENTRYPOINT ["/app/flowlogs-pipeline"]
