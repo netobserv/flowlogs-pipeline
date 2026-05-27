@@ -68,8 +68,8 @@ github.com/emicklei/go-restful/v3/log
 ## explicit; go 1.18
 github.com/evanphx/json-patch/v5
 github.com/evanphx/json-patch/v5/internal/json
-# github.com/fsnotify/fsnotify v1.9.0
-## explicit; go 1.17
+# github.com/fsnotify/fsnotify v1.10.1
+## explicit; go 1.23
 github.com/fsnotify/fsnotify
 github.com/fsnotify/fsnotify/internal
 # github.com/fxamacker/cbor/v2 v2.9.0
@@ -309,8 +309,8 @@ github.com/netobserv/loki-client-go/pkg/logproto
 github.com/netobserv/loki-client-go/pkg/metric
 github.com/netobserv/loki-client-go/pkg/metrics
 github.com/netobserv/loki-client-go/pkg/urlutil
-# github.com/netobserv/netobserv-ebpf-agent v1.11.3-community.0.20260505134559-24f8cbea14ad
-## explicit; go 1.25.0
+# github.com/netobserv/netobserv-ebpf-agent v1.11.4-community
+## explicit; go 1.25.7
 github.com/netobserv/netobserv-ebpf-agent/pkg/decode
 github.com/netobserv/netobserv-ebpf-agent/pkg/ebpf
 github.com/netobserv/netobserv-ebpf-agent/pkg/grpc/flow
@@ -711,7 +711,7 @@ golang.org/x/net/websocket
 golang.org/x/oauth2
 golang.org/x/oauth2/clientcredentials
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.43.0
+# golang.org/x/sys v0.44.0
 ## explicit; go 1.25.0
 golang.org/x/sys/cpu
 golang.org/x/sys/plan9
