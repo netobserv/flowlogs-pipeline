@@ -44,6 +44,25 @@ func (h *EventHandler) OnAdd(obj interface{}, isInInitialList bool) {
 		return
 	}
 
+	// Skip pods/nodes/services without IPs - they can't be looked up anyway
+	// We'll send them later in OnUpdate when IPs are assigned
+	if len(meta.IPs) == 0 {
+		log.WithFields(log.Fields{
+			"kind":      meta.Kind,
+			"namespace": meta.Namespace,
+			"name":      meta.Name,
+		}).Debug("Skipping ADD for resource without IPs, will send on UPDATE when IPs are assigned")
+		return
+	}
+
+	// DEBUG: Log IPs being sent
+	log.WithFields(log.Fields{
+		"kind":      meta.Kind,
+		"namespace": meta.Namespace,
+		"name":      meta.Name,
+		"ips":       meta.IPs,
+	}).Debug("Sending ADD with IPs")
+
 	if err := h.client.SendAdd([]*model.ResourceMetaData{meta}); err != nil {
 		log.WithError(err).WithField("resource", meta.Name).Error("failed to send ADD")
 	} else if metrics.InformersMetrics != nil {
@@ -61,6 +80,25 @@ func (h *EventHandler) OnUpdate(_, newObj interface{}) {
 		log.Debugf("skipping partial metadata object in OnUpdate: %T", newObj)
 		return
 	}
+
+	// Skip updates without IPs - wait until IPs are assigned
+	// This covers the case where ADD was skipped and multiple UPDATEs arrive before IPs are ready
+	if len(meta.IPs) == 0 {
+		log.WithFields(log.Fields{
+			"kind":      meta.Kind,
+			"namespace": meta.Namespace,
+			"name":      meta.Name,
+		}).Debug("Skipping UPDATE for resource without IPs, will send when IPs are assigned")
+		return
+	}
+
+	// DEBUG: Log IPs being sent
+	log.WithFields(log.Fields{
+		"kind":      meta.Kind,
+		"namespace": meta.Namespace,
+		"name":      meta.Name,
+		"ips":       meta.IPs,
+	}).Debug("Sending UPDATE with IPs")
 
 	if err := h.client.SendUpdate([]*model.ResourceMetaData{meta}); err != nil {
 		log.WithError(err).WithField("resource", meta.Name).Error("failed to send UPDATE")

@@ -97,6 +97,14 @@ func (s *KubernetesStore) AddOrUpdate(entries []*model.ResourceMetaData) {
 
 	for _, meta := range entries {
 		key := storeKey(meta)
+
+		// DEBUG: Log what we're adding to cache
+		if len(meta.IPs) == 0 {
+			fmt.Printf("WARN: Received entry with EMPTY IPs: %s (key=%s)\n", meta.Kind, key)
+		} else {
+			fmt.Printf("DEBUG: Adding to cache with IPs %v: %s\n", meta.IPs, key)
+		}
+
 		if existing, ok := s.byKey[key]; ok {
 			s.removeFromIndexes(existing)
 		}
@@ -133,8 +141,11 @@ func (s *KubernetesStore) IndexLookup(potentialKeys []string, ip string) *model.
 	}
 	if ip != "" {
 		if meta, ok := s.byIP[ip]; ok {
+			fmt.Printf("DEBUG: Found in cache by IP %s: %s/%s\n", ip, meta.Namespace, meta.Name)
 			return meta
 		}
+		// DEBUG: Not found - log it
+		fmt.Printf("WARN: NOT FOUND in cache by IP: %s (cache has %d IP entries)\n", ip, len(s.byIP))
 	}
 	return nil
 }
