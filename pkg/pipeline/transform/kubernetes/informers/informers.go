@@ -358,10 +358,6 @@ func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory, c
 				ips = append(ips, ip.IP)
 			}
 		}
-		// Fallback to singular PodIP if PodIPs is empty (legacy field populated first)
-		if len(ips) == 0 && pod.Status.PodIP != "" && pod.Status.PodIP != pod.Status.HostIP {
-			ips = append(ips, pod.Status.PodIP)
-		}
 		// Index from secondary network info
 		namedKeys := make(map[string]string)
 		var flatKeys []string
