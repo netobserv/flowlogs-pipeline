@@ -55,14 +55,6 @@ func (h *EventHandler) OnAdd(obj interface{}, isInInitialList bool) {
 		return
 	}
 
-	// DEBUG: Log IPs being sent
-	log.WithFields(log.Fields{
-		"kind":      meta.Kind,
-		"namespace": meta.Namespace,
-		"name":      meta.Name,
-		"ips":       meta.IPs,
-	}).Debug("Sending ADD with IPs")
-
 	if err := h.client.SendAdd([]*model.ResourceMetaData{meta}); err != nil {
 		log.WithError(err).WithField("resource", meta.Name).Error("failed to send ADD")
 	} else if metrics.InformersMetrics != nil {
@@ -91,14 +83,6 @@ func (h *EventHandler) OnUpdate(_, newObj interface{}) {
 		}).Debug("Skipping UPDATE for resource without IPs, will send when IPs are assigned")
 		return
 	}
-
-	// DEBUG: Log IPs being sent
-	log.WithFields(log.Fields{
-		"kind":      meta.Kind,
-		"namespace": meta.Namespace,
-		"name":      meta.Name,
-		"ips":       meta.IPs,
-	}).Debug("Sending UPDATE with IPs")
 
 	if err := h.client.SendUpdate([]*model.ResourceMetaData{meta}); err != nil {
 		log.WithError(err).WithField("resource", meta.Name).Error("failed to send UPDATE")
