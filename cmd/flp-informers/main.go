@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -262,11 +263,35 @@ func runInformers(ctx context.Context, healthServer *informers.HealthServer) {
 		ResyncInterval:       opts.ResyncInterval,
 	}
 
+	// Validate discovery config synchronously to catch startup errors
+	if err := k8scache.ValidateDiscoveryConfig(discoveryConfig); err != nil {
+		log.WithError(err).Fatal("invalid processor discovery configuration")
+	}
+
+	// Start discovery and capture first-run errors (RBAC, pod listing, etc.)
+	errCh := make(chan error, 1)
 	go func() {
-		if err := k8scache.StartProcessorDiscovery(ctx, grpcClient, discoveryConfig); err != nil {
-			log.WithError(err).Error("processor discovery stopped")
-		}
+		errCh <- k8scache.StartProcessorDiscovery(ctx, grpcClient, discoveryConfig)
 	}()
+
+	// Wait for the first discovery attempt to complete or timeout
+	select {
+	case err := <-errCh:
+		// Discovery returned early (either failed or context was canceled immediately)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			log.WithError(err).Fatal("processor discovery failed")
+		}
+		// If context.Canceled, that's normal shutdown - just return
+	case <-time.After(3 * time.Second):
+		// First discovery cycle is taking longer than expected (probably connecting to pods)
+		// This is normal - continue startup and monitor for errors in background
+		log.Info("Processor discovery started, continuing in background")
+		go func() {
+			if err := <-errCh; err != nil && !errors.Is(err, context.Canceled) {
+				log.WithError(err).Error("processor discovery stopped unexpectedly")
+			}
+		}()
+	}
 
 	log.Info("flp-informers started - sending snapshots to new processors (lastVersion=0) and incremental updates to all")
 

@@ -31,6 +31,29 @@ type DiscoveryConfig struct {
 	ProcessorServiceName string
 }
 
+// ValidateDiscoveryConfig validates the discovery configuration and k8s connectivity.
+// This should be called synchronously before launching StartProcessorDiscovery in a goroutine
+// to catch configuration errors at startup rather than silently in the background.
+func ValidateDiscoveryConfig(cfg DiscoveryConfig) error {
+	// Validate ResyncInterval
+	if cfg.ResyncInterval <= 0 {
+		return fmt.Errorf("invalid ResyncInterval: %d (must be positive)", cfg.ResyncInterval)
+	}
+
+	// Validate k8s access by attempting to create config and clientset
+	k8sConfig, err := getK8sConfig(cfg.Kubeconfig)
+	if err != nil {
+		return fmt.Errorf("failed to get k8s config for processor discovery: %w", err)
+	}
+
+	_, err = kubernetes.NewForConfig(k8sConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create k8s clientset: %w", err)
+	}
+
+	return nil
+}
+
 // StartProcessorDiscovery periodically discovers FLP processor pods and connects the client to them.
 // It runs in a loop until the context is cancelled, discovering processors at the configured interval.
 //
@@ -40,6 +63,7 @@ type DiscoveryConfig struct {
 // 3. Connects the client to each discovered processor (idempotent - won't duplicate connections)
 //
 // This function blocks until ctx is cancelled. Run it in a goroutine for background discovery.
+// Call ValidateDiscoveryConfig first to catch configuration errors synchronously.
 func StartProcessorDiscovery(ctx context.Context, client *Client, cfg DiscoveryConfig) error {
 	// Validate ResyncInterval before doing any work
 	if cfg.ResyncInterval <= 0 {
@@ -60,22 +84,28 @@ func StartProcessorDiscovery(ctx context.Context, client *Client, cfg DiscoveryC
 	ticker := time.NewTicker(time.Duration(cfg.ResyncInterval) * time.Second)
 	defer ticker.Stop()
 
-	// Immediate first run
-	discoverAndConnect(ctx, clientset, client, cfg)
+	// Immediate first run - return error on first attempt to catch startup issues
+	if err := discoverAndConnect(ctx, clientset, client, cfg); err != nil {
+		return fmt.Errorf("initial processor discovery failed: %w", err)
+	}
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			discoverAndConnect(ctx, clientset, client, cfg)
+			// Subsequent runs: log errors but don't stop the loop (transient issues are OK)
+			if err := discoverAndConnect(ctx, clientset, client, cfg); err != nil {
+				log.WithError(err).Warn("processor discovery cycle failed")
+			}
 		}
 	}
 }
 
-// discoverAndConnect discovers FLP processor pods and connects to them
-// Also removes connections to processors that no longer exist (e.g., pods that restarted with new IPs)
-func discoverAndConnect(ctx context.Context, clientset *kubernetes.Clientset, client *Client, cfg DiscoveryConfig) {
+// discoverAndConnect discovers FLP processor pods and connects to them.
+// Also removes connections to processors that no longer exist (e.g., pods that restarted with new IPs).
+// Returns error if the discovery operation fails (e.g., RBAC issues, API server unreachable).
+func discoverAndConnect(ctx context.Context, clientset *kubernetes.Clientset, client *Client, cfg DiscoveryConfig) error {
 	namespace := os.Getenv("POD_NAMESPACE")
 	if namespace == "" {
 		namespace = "default"
@@ -89,7 +119,7 @@ func discoverAndConnect(ctx context.Context, clientset *kubernetes.Clientset, cl
 		if metrics.InformersMetrics != nil {
 			metrics.InformersMetrics.ErrorsTotal.WithLabelValues("discovery").Inc()
 		}
-		return
+		return fmt.Errorf("failed to list pods (check RBAC permissions and label selector): %w", err)
 	}
 
 	log.WithField("num_pods", len(pods.Items)).Debug("discovered processor pods")
@@ -138,6 +168,8 @@ func discoverAndConnect(ctx context.Context, clientset *kubernetes.Clientset, cl
 	// Remove connections to processors that are no longer discovered
 	// This handles cases where pods restart with new IPs or are deleted
 	client.RemoveStaleProcessors(discoveredAddresses)
+
+	return nil
 }
 
 // getK8sConfig returns the Kubernetes client config (in-cluster or from kubeconfig)
