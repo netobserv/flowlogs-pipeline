@@ -238,6 +238,7 @@ func runInformers(ctx context.Context, healthServer *informers.HealthServer) {
 	if err := inf.InitFromConfig(opts.Kubeconfig, &infConfig, opMetrics); err != nil {
 		log.WithError(err).Fatal("failed to initialize informers")
 	}
+	defer inf.Stop()
 
 	log.Info("Kubernetes informers initialized and synced")
 

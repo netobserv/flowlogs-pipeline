@@ -222,3 +222,31 @@ func TestOwnershipTracking_MaxDepth(t *testing.T) {
 	require.Equal(t, "Gateway", info.OwnerKind)
 	require.Equal(t, "gateway1", info.OwnerName)
 }
+
+func TestStop(t *testing.T) {
+	inf := &Informers{}
+	inf.stopChan = make(chan struct{})
+	inf.mdStopChan = make(chan struct{})
+
+	// Test calling Stop closes both channels
+	inf.Stop()
+
+	// Verify stopChan is closed
+	select {
+	case <-inf.stopChan:
+		// Channel is closed, good
+	default:
+		t.Fatal("stopChan should be closed after Stop()")
+	}
+
+	// Verify mdStopChan is closed
+	select {
+	case <-inf.mdStopChan:
+		// Channel is closed, good
+	default:
+		t.Fatal("mdStopChan should be closed after Stop()")
+	}
+
+	// Test calling Stop again is idempotent (doesn't panic)
+	inf.Stop()
+}

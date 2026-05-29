@@ -592,6 +592,29 @@ func (k *Informers) initInformers(client kubernetes.Interface, metaClient metada
 	return nil
 }
 
+// Stop gracefully stops the Kubernetes informers by closing the stop channels.
+// This signals the informer factories to stop watching for changes.
+// This method is idempotent - it's safe to call multiple times.
+func (k *Informers) Stop() {
+	// Close stopChan if not already closed
+	select {
+	case <-k.stopChan:
+		// Already closed
+	default:
+		close(k.stopChan)
+	}
+
+	// Close mdStopChan if not already closed
+	select {
+	case <-k.mdStopChan:
+		// Already closed
+	default:
+		close(k.mdStopChan)
+	}
+
+	log.Info("Kubernetes informers stopped")
+}
+
 // GetAllResources returns all cached resources (pods, nodes, services) as a snapshot.
 // This is used to send initial snapshots to processors when they connect or restart.
 func (k *Informers) GetAllResources() []*model.ResourceMetaData {
