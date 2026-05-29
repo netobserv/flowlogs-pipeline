@@ -214,10 +214,6 @@ func (c *Client) getTransportCredentials() (credentials.TransportCredentials, er
 	return credentials.NewTLS(tlsConfig), nil
 }
 
-// AddProcessor connects to a new FLP processor server
-func (c *Client) AddProcessor(address string) error {
-	return c.AddProcessorWithTimeout(address, 30*time.Second)
-}
 
 // AddProcessorWithTimeout connects to a new FLP processor server with a timeout
 func (c *Client) AddProcessorWithTimeout(address string, timeout time.Duration) error {
@@ -457,9 +453,9 @@ func (c *Client) sendBatched(entries []*model.ResourceMetaData, operation Operat
 	return nil
 }
 
-// SendSnapshot sends a full snapshot to a specific processor.
+// sendSnapshot sends a full snapshot to a specific processor.
 // This is used when a processor connects/restarts to get the current state.
-func (c *Client) SendSnapshot(entries []*model.ResourceMetaData, targetAddress string) error {
+func (c *Client) sendSnapshot(entries []*model.ResourceMetaData, targetAddress string) error {
 	batchSize := c.batchSize
 	numBatches := (len(entries) + batchSize - 1) / batchSize
 
@@ -832,7 +828,7 @@ func (c *Client) handleSyncRequest(pc *processorConnection, req *SyncRequest) {
 		}).Info("sending snapshot to new/restarted processor")
 
 		// Send snapshot to this specific processor
-		if err := c.SendSnapshot(allResources, pc.address); err != nil {
+		if err := c.sendSnapshot(allResources, pc.address); err != nil {
 			clog.WithError(err).WithField("address", pc.address).Error("failed to send snapshot")
 		} else {
 			clog.WithField("address", pc.address).Info("snapshot sent successfully to processor")
@@ -864,10 +860,6 @@ func (c *Client) handleSyncAck(pc *processorConnection, ack *SyncAck) {
 	}
 }
 
-// GetVersion returns the current cache version
-func (c *Client) GetVersion() int64 {
-	return c.version.Load()
-}
 
 // SetInformer sets the informer data source for obtaining snapshots
 func (c *Client) SetInformer(informer InformerDataSource) {
