@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v3.19.6
-// source: proto/k8scache.proto
+// source: k8scache.proto
 
 package k8scache
 
@@ -58,11 +58,11 @@ func (x OperationType) String() string {
 }
 
 func (OperationType) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_k8scache_proto_enumTypes[0].Descriptor()
+	return file_k8scache_proto_enumTypes[0].Descriptor()
 }
 
 func (OperationType) Type() protoreflect.EnumType {
-	return &file_proto_k8scache_proto_enumTypes[0]
+	return &file_k8scache_proto_enumTypes[0]
 }
 
 func (x OperationType) Number() protoreflect.EnumNumber {
@@ -71,7 +71,7 @@ func (x OperationType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use OperationType.Descriptor instead.
 func (OperationType) EnumDescriptor() ([]byte, []int) {
-	return file_proto_k8scache_proto_rawDescGZIP(), []int{0}
+	return file_k8scache_proto_rawDescGZIP(), []int{0}
 }
 
 // SyncMessage is sent by FLP processors (server) to the informers (client)
@@ -88,7 +88,7 @@ type SyncMessage struct {
 
 func (x *SyncMessage) Reset() {
 	*x = SyncMessage{}
-	mi := &file_proto_k8scache_proto_msgTypes[0]
+	mi := &file_k8scache_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -100,7 +100,7 @@ func (x *SyncMessage) String() string {
 func (*SyncMessage) ProtoMessage() {}
 
 func (x *SyncMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_k8scache_proto_msgTypes[0]
+	mi := &file_k8scache_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -113,7 +113,7 @@ func (x *SyncMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncMessage.ProtoReflect.Descriptor instead.
 func (*SyncMessage) Descriptor() ([]byte, []int) {
-	return file_proto_k8scache_proto_rawDescGZIP(), []int{0}
+	return file_k8scache_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SyncMessage) GetMessage() isSyncMessage_Message {
@@ -168,7 +168,7 @@ type SyncRequest struct {
 
 func (x *SyncRequest) Reset() {
 	*x = SyncRequest{}
-	mi := &file_proto_k8scache_proto_msgTypes[1]
+	mi := &file_k8scache_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -180,7 +180,7 @@ func (x *SyncRequest) String() string {
 func (*SyncRequest) ProtoMessage() {}
 
 func (x *SyncRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_k8scache_proto_msgTypes[1]
+	mi := &file_k8scache_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -193,7 +193,7 @@ func (x *SyncRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncRequest.ProtoReflect.Descriptor instead.
 func (*SyncRequest) Descriptor() ([]byte, []int) {
-	return file_proto_k8scache_proto_rawDescGZIP(), []int{1}
+	return file_k8scache_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SyncRequest) GetProcessorId() string {
@@ -223,7 +223,7 @@ type SyncAck struct {
 
 func (x *SyncAck) Reset() {
 	*x = SyncAck{}
-	mi := &file_proto_k8scache_proto_msgTypes[2]
+	mi := &file_k8scache_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -235,7 +235,7 @@ func (x *SyncAck) String() string {
 func (*SyncAck) ProtoMessage() {}
 
 func (x *SyncAck) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_k8scache_proto_msgTypes[2]
+	mi := &file_k8scache_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -248,7 +248,7 @@ func (x *SyncAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncAck.ProtoReflect.Descriptor instead.
 func (*SyncAck) Descriptor() ([]byte, []int) {
-	return file_proto_k8scache_proto_rawDescGZIP(), []int{2}
+	return file_k8scache_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *SyncAck) GetProcessorId() string {
@@ -292,7 +292,7 @@ type CacheUpdate struct {
 
 func (x *CacheUpdate) Reset() {
 	*x = CacheUpdate{}
-	mi := &file_proto_k8scache_proto_msgTypes[3]
+	mi := &file_k8scache_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -304,7 +304,7 @@ func (x *CacheUpdate) String() string {
 func (*CacheUpdate) ProtoMessage() {}
 
 func (x *CacheUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_k8scache_proto_msgTypes[3]
+	mi := &file_k8scache_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -317,7 +317,7 @@ func (x *CacheUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CacheUpdate.ProtoReflect.Descriptor instead.
 func (*CacheUpdate) Descriptor() ([]byte, []int) {
-	return file_proto_k8scache_proto_rawDescGZIP(), []int{3}
+	return file_k8scache_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CacheUpdate) GetVersion() int64 {
@@ -375,7 +375,7 @@ type ResourceEntry struct {
 
 func (x *ResourceEntry) Reset() {
 	*x = ResourceEntry{}
-	mi := &file_proto_k8scache_proto_msgTypes[4]
+	mi := &file_k8scache_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -387,7 +387,7 @@ func (x *ResourceEntry) String() string {
 func (*ResourceEntry) ProtoMessage() {}
 
 func (x *ResourceEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_k8scache_proto_msgTypes[4]
+	mi := &file_k8scache_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -400,7 +400,7 @@ func (x *ResourceEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceEntry.ProtoReflect.Descriptor instead.
 func (*ResourceEntry) Descriptor() ([]byte, []int) {
-	return file_proto_k8scache_proto_rawDescGZIP(), []int{4}
+	return file_k8scache_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ResourceEntry) GetKind() string {
@@ -515,11 +515,11 @@ func (x *ResourceEntry) GetResourceVersion() string {
 	return ""
 }
 
-var File_proto_k8scache_proto protoreflect.FileDescriptor
+var File_k8scache_proto protoreflect.FileDescriptor
 
-const file_proto_k8scache_proto_rawDesc = "" +
+const file_k8scache_proto_rawDesc = "" +
 	"\n" +
-	"\x14proto/k8scache.proto\x12\bk8scache\"r\n" +
+	"\x0ek8scache.proto\x12\bk8scache\"r\n" +
 	"\vSyncMessage\x121\n" +
 	"\arequest\x18\x01 \x01(\v2\x15.k8scache.SyncRequestH\x00R\arequest\x12%\n" +
 	"\x03ack\x18\x02 \x01(\v2\x11.k8scache.SyncAckH\x00R\x03ackB\t\n" +
@@ -577,20 +577,20 @@ const file_proto_k8scache_proto_rawDesc = "" +
 	"./k8scacheb\x06proto3"
 
 var (
-	file_proto_k8scache_proto_rawDescOnce sync.Once
-	file_proto_k8scache_proto_rawDescData []byte
+	file_k8scache_proto_rawDescOnce sync.Once
+	file_k8scache_proto_rawDescData []byte
 )
 
-func file_proto_k8scache_proto_rawDescGZIP() []byte {
-	file_proto_k8scache_proto_rawDescOnce.Do(func() {
-		file_proto_k8scache_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_k8scache_proto_rawDesc), len(file_proto_k8scache_proto_rawDesc)))
+func file_k8scache_proto_rawDescGZIP() []byte {
+	file_k8scache_proto_rawDescOnce.Do(func() {
+		file_k8scache_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_k8scache_proto_rawDesc), len(file_k8scache_proto_rawDesc)))
 	})
-	return file_proto_k8scache_proto_rawDescData
+	return file_k8scache_proto_rawDescData
 }
 
-var file_proto_k8scache_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_k8scache_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
-var file_proto_k8scache_proto_goTypes = []any{
+var file_k8scache_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_k8scache_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_k8scache_proto_goTypes = []any{
 	(OperationType)(0),    // 0: k8scache.OperationType
 	(*SyncMessage)(nil),   // 1: k8scache.SyncMessage
 	(*SyncRequest)(nil),   // 2: k8scache.SyncRequest
@@ -601,7 +601,7 @@ var file_proto_k8scache_proto_goTypes = []any{
 	nil,                   // 7: k8scache.ResourceEntry.LabelsEntry
 	nil,                   // 8: k8scache.ResourceEntry.AnnotationsEntry
 }
-var file_proto_k8scache_proto_depIdxs = []int32{
+var file_k8scache_proto_depIdxs = []int32{
 	2, // 0: k8scache.SyncMessage.request:type_name -> k8scache.SyncRequest
 	3, // 1: k8scache.SyncMessage.ack:type_name -> k8scache.SyncAck
 	5, // 2: k8scache.CacheUpdate.entries:type_name -> k8scache.ResourceEntry
@@ -618,12 +618,12 @@ var file_proto_k8scache_proto_depIdxs = []int32{
 	0, // [0:7] is the sub-list for field type_name
 }
 
-func init() { file_proto_k8scache_proto_init() }
-func file_proto_k8scache_proto_init() {
-	if File_proto_k8scache_proto != nil {
+func init() { file_k8scache_proto_init() }
+func file_k8scache_proto_init() {
+	if File_k8scache_proto != nil {
 		return
 	}
-	file_proto_k8scache_proto_msgTypes[0].OneofWrappers = []any{
+	file_k8scache_proto_msgTypes[0].OneofWrappers = []any{
 		(*SyncMessage_Request)(nil),
 		(*SyncMessage_Ack)(nil),
 	}
@@ -631,18 +631,18 @@ func file_proto_k8scache_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_k8scache_proto_rawDesc), len(file_proto_k8scache_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k8scache_proto_rawDesc), len(file_k8scache_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_k8scache_proto_goTypes,
-		DependencyIndexes: file_proto_k8scache_proto_depIdxs,
-		EnumInfos:         file_proto_k8scache_proto_enumTypes,
-		MessageInfos:      file_proto_k8scache_proto_msgTypes,
+		GoTypes:           file_k8scache_proto_goTypes,
+		DependencyIndexes: file_k8scache_proto_depIdxs,
+		EnumInfos:         file_k8scache_proto_enumTypes,
+		MessageInfos:      file_k8scache_proto_msgTypes,
 	}.Build()
-	File_proto_k8scache_proto = out.File
-	file_proto_k8scache_proto_goTypes = nil
-	file_proto_k8scache_proto_depIdxs = nil
+	File_k8scache_proto = out.File
+	file_k8scache_proto_goTypes = nil
+	file_k8scache_proto_depIdxs = nil
 }
