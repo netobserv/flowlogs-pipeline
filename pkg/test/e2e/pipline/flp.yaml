@@ -67,7 +67,7 @@ spec:
   ports:
     - port: 9102
       targetPort: 9102
-      name: prometheous
+      name: prometheus
   selector:
     app: flowlogs-pipeline
 ---

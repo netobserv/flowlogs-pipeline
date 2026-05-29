@@ -48,6 +48,7 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 )
 
 var (
@@ -280,6 +281,28 @@ func startK8sCacheServer(cfg *config.K8sCacheServer) *grpc.Server {
 	// Create cache server
 	cacheServer := k8scache.NewKubernetesCacheServer(ds)
 
+	// Configure keepalive and resource limits to prevent resource exhaustion
+	// These settings protect against misbehaving clients and ensure graceful connection management
+	kaPolicy := keepalive.EnforcementPolicy{
+		MinTime:             5 * time.Second,  // Minimum time between client pings
+		PermitWithoutStream: false,            // Require active stream for keepalive
+	}
+	kaParams := keepalive.ServerParameters{
+		MaxConnectionIdle:     15 * time.Minute, // Close idle connections
+		MaxConnectionAge:      30 * time.Minute, // Max connection lifetime
+		MaxConnectionAgeGrace: 5 * time.Second,  // Grace period before forcing close
+		Time:                  30 * time.Second, // Ping interval when idle
+		Timeout:               10 * time.Second, // Ping timeout
+	}
+
+	// Base server options (applied to both TLS and non-TLS)
+	serverOpts := []grpc.ServerOption{
+		grpc.MaxConcurrentStreams(100),              // Limit concurrent streams per connection
+		grpc.KeepaliveParams(kaParams),              // Configure keepalive behavior
+		grpc.KeepaliveEnforcementPolicy(kaPolicy),   // Enforce keepalive policy
+		grpc.MaxRecvMsgSize(50 * 1024 * 1024),       // 50MB max message size
+	}
+
 	// Create gRPC server with optional TLS
 	var grpcServer *grpc.Server
 	if cfg.TLSEnabled {
@@ -288,10 +311,10 @@ func startK8sCacheServer(cfg *config.K8sCacheServer) *grpc.Server {
 			log.WithError(err).Fatal("failed to configure TLS for K8s cache server")
 			return nil
 		}
-		grpcServer = grpc.NewServer(grpc.Creds(tlsConfig))
+		grpcServer = grpc.NewServer(append(serverOpts, grpc.Creds(tlsConfig))...)
 		log.Info("K8s cache server TLS enabled")
 	} else {
-		grpcServer = grpc.NewServer()
+		grpcServer = grpc.NewServer(serverOpts...)
 		log.Warn("K8s cache server TLS disabled - connections are insecure (not recommended for production)")
 	}
 	k8scache.RegisterKubernetesCacheServiceServer(grpcServer, cacheServer)
@@ -330,6 +353,7 @@ func createServerTLSConfig(cfg *config.K8sCacheServer) (credentials.TransportCre
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		ClientAuth:   tls.NoClientCert, // Default: no client cert required
+		MinVersion:   tls.VersionTLS13, // Enforce TLS 1.3+ to prevent downgrade attacks
 	}
 
 	// If CA is provided, require and verify client certificates
