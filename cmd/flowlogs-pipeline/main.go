@@ -320,7 +320,8 @@ func startK8sCacheServer(cfg *config.K8sCacheServer) *grpc.Server {
 	k8scache.RegisterKubernetesCacheServiceServer(grpcServer, cacheServer)
 
 	// Start listening
-	address := fmt.Sprintf("%s:%d", cfg.Address, cfg.Port)
+	// Use net.JoinHostPort to properly handle IPv6 addresses (adds brackets when needed)
+	address := net.JoinHostPort(cfg.Address, fmt.Sprintf("%d", cfg.Port))
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		log.WithError(err).WithField("address", address).Fatal("failed to start K8s cache server")

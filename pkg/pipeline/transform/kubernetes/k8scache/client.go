@@ -37,8 +37,6 @@ const (
 
 // ClientConfig holds configuration for the gRPC client
 type ClientConfig struct {
-	// ProcessorID identifies this informer instance
-	ProcessorID string
 	// TLS configuration (optional)
 	TLSEnabled  bool
 	TLSCertPath string
@@ -63,8 +61,6 @@ type InformerDataSource interface {
 
 // Client manages gRPC connections to FLP processor servers and pushes cache updates.
 type Client struct {
-	// processorID identifies this informer instance
-	processorID string
 	// TLS configuration
 	tlsConfig ClientConfig
 	// connections tracks active processor connections
@@ -160,7 +156,6 @@ func NewClient(config *ClientConfig) *Client {
 	}).Info("Cache client configuration")
 
 	return &Client{
-		processorID: config.ProcessorID,
 		tlsConfig:   *config,
 		connections: make(map[string]*processorConnection),
 		updateChan:  make(chan *CacheUpdate, bufferSize),

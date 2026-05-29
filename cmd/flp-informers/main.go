@@ -201,9 +201,7 @@ func runInformers(ctx context.Context, healthServer *informers.HealthServer) {
 	log.Info("Starting informers and gRPC client")
 
 	// Create gRPC client
-	processorID := fmt.Sprintf("flp-informers-%d", time.Now().Unix())
 	clientConfig := k8scache.ClientConfig{
-		ProcessorID:        processorID,
 		TLSEnabled:         opts.TLSEnabled,
 		TLSCertPath:        opts.TLSCertPath,
 		TLSKeyPath:         opts.TLSKeyPath,

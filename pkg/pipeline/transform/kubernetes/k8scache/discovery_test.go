@@ -62,8 +62,7 @@ func TestValidateDiscoveryConfig(t *testing.T) {
 func TestStartProcessorDiscovery_InvalidResyncInterval(t *testing.T) {
 	ctx := context.Background()
 	client := NewClient(&ClientConfig{
-		ProcessorID: "test",
-		TLSEnabled:  false,
+		TLSEnabled: false,
 	})
 
 	testCases := []struct {
