@@ -371,6 +371,9 @@ func createServerTLSConfig(cfg *config.K8sCacheServer) (credentials.TransportCre
 		tlsConfig.ClientCAs = caCertPool
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 		log.Info("K8s cache server: mutual TLS enabled (client certificates required)")
+	} else {
+		log.Warn("K8s cache server: TLS enabled but no client certificate verification (no CA provided). " +
+			"Any client with TLS can connect. Use --k8scache.tls-ca-path for mTLS or ensure network policies restrict access.")
 	}
 
 	return credentials.NewTLS(tlsConfig), nil
