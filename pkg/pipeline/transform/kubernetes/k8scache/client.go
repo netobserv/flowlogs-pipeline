@@ -180,6 +180,7 @@ func (c *Client) getTransportCredentials() (credentials.TransportCredentials, er
 
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: c.tlsConfig.InsecureSkipVerify,
+		MinVersion:         tls.VersionTLS12,
 	}
 
 	// Set ServerName if provided (allows connecting by IP while validating against DNS name in certificate)
