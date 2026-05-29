@@ -309,7 +309,6 @@ func startK8sCacheServer(cfg *config.K8sCacheServer) *grpc.Server {
 		tlsConfig, err := createServerTLSConfig(cfg)
 		if err != nil {
 			log.WithError(err).Fatal("failed to configure TLS for K8s cache server")
-			return nil
 		}
 		grpcServer = grpc.NewServer(append(serverOpts, grpc.Creds(tlsConfig))...)
 		log.Info("K8s cache server TLS enabled")
@@ -325,7 +324,6 @@ func startK8sCacheServer(cfg *config.K8sCacheServer) *grpc.Server {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		log.WithError(err).WithField("address", address).Fatal("failed to start K8s cache server")
-		return nil
 	}
 
 	// Start server in background
