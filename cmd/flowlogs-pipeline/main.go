@@ -241,7 +241,20 @@ func run() {
 	}
 	if grpcServer != nil {
 		log.Info("stopping K8s cache sync server")
-		grpcServer.GracefulStop()
+		// GracefulStop can hang indefinitely if StreamUpdates connections are still active
+		// Use a timeout and fall back to force-stop if needed
+		stopped := make(chan struct{})
+		go func() {
+			grpcServer.GracefulStop()
+			close(stopped)
+		}()
+		select {
+		case <-stopped:
+			log.Info("K8s cache sync server stopped gracefully")
+		case <-time.After(5 * time.Second):
+			log.Warn("timed out waiting for K8s cache sync streams to drain; forcing stop")
+			grpcServer.Stop()
+		}
 	}
 
 	// Give all threads a chance to exit and then exit the process
