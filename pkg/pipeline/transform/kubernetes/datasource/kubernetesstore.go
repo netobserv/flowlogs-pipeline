@@ -84,6 +84,9 @@ func (s *KubernetesStore) Replace(entries []*model.ResourceMetaData) {
 	s.bySecondaryKey = make(map[string]*model.ResourceMetaData)
 
 	for _, meta := range entries {
+		if meta == nil {
+			continue // Skip nil entries to avoid panic
+		}
 		key := storeKey(meta)
 		s.byKey[key] = meta
 		s.addToIndexes(meta)
@@ -96,6 +99,9 @@ func (s *KubernetesStore) AddOrUpdate(entries []*model.ResourceMetaData) {
 	defer s.mu.Unlock()
 
 	for _, meta := range entries {
+		if meta == nil {
+			continue // Skip nil entries to avoid panic
+		}
 		key := storeKey(meta)
 		if existing, ok := s.byKey[key]; ok {
 			s.removeFromIndexes(existing)
@@ -112,6 +118,9 @@ func (s *KubernetesStore) Delete(entries []*model.ResourceMetaData) {
 	defer s.mu.Unlock()
 
 	for _, meta := range entries {
+		if meta == nil {
+			continue // Skip nil entries to avoid panic
+		}
 		key := storeKey(meta)
 		if existing, ok := s.byKey[key]; ok {
 			s.removeFromIndexes(existing)
