@@ -627,6 +627,8 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 				if err != nil {
 					clog.WithError(err).WithField("address", pc.address).Error("failed to send update")
 					pc.healthy.Store(false)
+					// Force Recv to unblock so reconnect path can run
+					pc.cancelStream()
 				} else {
 					// Update gRPC metrics on successful send
 					c.updateGrpcSentMetrics(messageSize)
