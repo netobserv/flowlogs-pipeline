@@ -62,7 +62,6 @@ func (d *Datasource) GetNodeByName(name string) (*model.ResourceMetaData, error)
 }
 
 // ApplyCacheAddOrUpdate adds or updates the given entries in the Kubernetes store.
-// This method is thread-safe via the store's internal mutex.
 func (d *Datasource) ApplyCacheAddOrUpdate(entries []*model.ResourceMetaData) {
 	if d.kubernetesStore != nil {
 		d.kubernetesStore.AddOrUpdate(entries)
@@ -70,9 +69,15 @@ func (d *Datasource) ApplyCacheAddOrUpdate(entries []*model.ResourceMetaData) {
 }
 
 // ApplyCacheDelete removes the given entries from the Kubernetes store.
-// This method is thread-safe via the store's internal mutex.
 func (d *Datasource) ApplyCacheDelete(entries []*model.ResourceMetaData) {
 	if d.kubernetesStore != nil {
 		d.kubernetesStore.Delete(entries)
+	}
+}
+
+// ApplyCacheReplace replaces the entire Kubernetes store with the given entries (full snapshot).
+func (d *Datasource) ApplyCacheReplace(entries []*model.ResourceMetaData) {
+	if d.kubernetesStore != nil {
+		d.kubernetesStore.Replace(entries)
 	}
 }

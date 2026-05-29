@@ -454,6 +454,158 @@ func TestKubernetesCacheServer_FallbackToInformers(t *testing.T) {
 	assert.Equal(t, "test-pod-1", informerMeta.Name)
 }
 
+// TestKubernetesCacheServer_SnapshotReplace tests that the server properly handles
+// a full snapshot (is_snapshot=true) by calling Replace() instead of AddOrUpdate()
+func TestKubernetesCacheServer_SnapshotReplace(t *testing.T) {
+	ds := setupTestDatasourceWithStore()
+	server := NewKubernetesCacheServer(ds)
+
+	mockStream := &mockStreamServer{
+		ctx:       context.Background(),
+		sendChan:  make(chan *CacheUpdate, 10),
+		recvMsgs:  make([]*SyncMessage, 0),
+		firstSend: true,
+	}
+
+	// First, send a snapshot with initial data
+	mockStream.sendChan <- &CacheUpdate{
+		Version:    1,
+		IsSnapshot: true, // This is a full snapshot
+		Entries: []*ResourceEntry{
+			{
+				Kind:      "Pod",
+				Namespace: "test-ns",
+				Name:      "snapshot-pod-1",
+				Uid:       "snapshot-pod-uid-1",
+				Ips:       []string{"10.0.10.1"},
+			},
+			{
+				Kind:      "Pod",
+				Namespace: "test-ns",
+				Name:      "snapshot-pod-2",
+				Uid:       "snapshot-pod-uid-2",
+				Ips:       []string{"10.0.10.2"},
+			},
+		},
+	}
+
+	// Then send another snapshot that should replace the entire store
+	mockStream.sendChan <- &CacheUpdate{
+		Version:    2,
+		IsSnapshot: true, // This is a full snapshot
+		Entries: []*ResourceEntry{
+			{
+				Kind:      "Pod",
+				Namespace: "test-ns",
+				Name:      "snapshot-pod-3",
+				Uid:       "snapshot-pod-uid-3",
+				Ips:       []string{"10.0.10.3"},
+			},
+		},
+	}
+
+	close(mockStream.sendChan)
+
+	err := server.StreamUpdates(mockStream)
+	require.NoError(t, err)
+
+	// Verify first snapshot was replaced by second snapshot
+	// The first two pods should NOT be in the store
+	meta1 := ds.IndexLookup(nil, "10.0.10.1")
+	assert.Nil(t, meta1, "First snapshot pod should be replaced")
+
+	meta2 := ds.IndexLookup(nil, "10.0.10.2")
+	assert.Nil(t, meta2, "First snapshot pod should be replaced")
+
+	// Only the third pod from the second snapshot should exist
+	meta3 := ds.IndexLookup(nil, "10.0.10.3")
+	require.NotNil(t, meta3, "Second snapshot pod should exist")
+	assert.Equal(t, "snapshot-pod-3", meta3.Name)
+
+	// Verify ACKs were sent for both snapshots
+	require.Equal(t, 3, len(mockStream.recvMsgs)) // SyncRequest + 2 ACKs
+}
+
+// TestKubernetesCacheServer_InitialSyncWithSnapshot tests the typical scenario where
+// a fresh processor (LastVersion=0) receives a full snapshot from the client
+func TestKubernetesCacheServer_InitialSyncWithSnapshot(t *testing.T) {
+	ds := setupTestDatasourceWithStore()
+	server := NewKubernetesCacheServer(ds)
+
+	mockStream := &mockStreamServer{
+		ctx:       context.Background(),
+		sendChan:  make(chan *CacheUpdate, 10),
+		recvMsgs:  make([]*SyncMessage, 0),
+		firstSend: true,
+	}
+
+	// Server should send SyncRequest with LastVersion=0
+	// Client responds with a full snapshot
+	mockStream.sendChan <- &CacheUpdate{
+		Version:    100, // Some arbitrary version number from the client
+		IsSnapshot: true,
+		Entries: []*ResourceEntry{
+			{
+				Kind:      "Pod",
+				Namespace: "kube-system",
+				Name:      "coredns-1",
+				Ips:       []string{"10.96.0.10"},
+			},
+			{
+				Kind:      "Node",
+				Namespace: "",
+				Name:      "worker-1",
+				Ips:       []string{"192.168.1.10"},
+			},
+		},
+	}
+
+	// After the snapshot, incremental updates follow
+	mockStream.sendChan <- &CacheUpdate{
+		Version:    101,
+		IsSnapshot: false,
+		Operation:  OperationType_OPERATION_ADD,
+		Entries: []*ResourceEntry{
+			{
+				Kind:      "Pod",
+				Namespace: "kube-system",
+				Name:      "coredns-2",
+				Ips:       []string{"10.96.0.11"},
+			},
+		},
+	}
+
+	close(mockStream.sendChan)
+
+	err := server.StreamUpdates(mockStream)
+	require.NoError(t, err)
+
+	// Verify SyncRequest was sent with LastVersion=0
+	require.Greater(t, len(mockStream.recvMsgs), 0)
+	firstMsg := mockStream.recvMsgs[0]
+	req, ok := firstMsg.Message.(*SyncMessage_Request)
+	require.True(t, ok)
+	assert.Equal(t, int64(0), req.Request.LastVersion, "Initial sync should request from version 0")
+
+	// Verify both pods are in the store (snapshot + incremental)
+	pod1 := ds.IndexLookup(nil, "10.96.0.10")
+	require.NotNil(t, pod1)
+	assert.Equal(t, "coredns-1", pod1.Name)
+
+	pod2 := ds.IndexLookup(nil, "10.96.0.11")
+	require.NotNil(t, pod2)
+	assert.Equal(t, "coredns-2", pod2.Name)
+
+	// Verify node is in the store
+	node, err := ds.GetNodeByName("worker-1")
+	require.NoError(t, err)
+	require.NotNil(t, node)
+	assert.Equal(t, "worker-1", node.Name)
+
+	// Verify version was updated to the latest
+	assert.Equal(t, int64(101), server.GetCurrentVersion())
+}
+
 // mockStreamServer implements the server-side stream for testing
 // Note: With the corrected protocol, the server:
 // - Receives CacheUpdate (from client)

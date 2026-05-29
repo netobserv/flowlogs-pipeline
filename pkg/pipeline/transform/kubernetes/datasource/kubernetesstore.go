@@ -73,7 +73,7 @@ func (s *KubernetesStore) addToIndexes(meta *model.ResourceMetaData) {
 }
 
 // Replace replaces the entire store with the given entries (full snapshot).
-// Note: Currently not used. We only support incremental updates (AddOrUpdate/Delete).
+// Used when receiving a full snapshot from the k8s cache sync client (is_snapshot=true).
 func (s *KubernetesStore) Replace(entries []*model.ResourceMetaData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

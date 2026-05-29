@@ -133,9 +133,14 @@ func (s *KubernetesCacheServer) processUpdate(update *CacheUpdate) error {
 
 	entries := resourceEntriesToMeta(update.Entries)
 
-	// Note: is_snapshot field is ignored - we only support incremental updates
-	// If a processor restarts, it starts with empty cache and builds up from incoming ADD/UPDATE events
+	// Handle full snapshot (when client sends is_snapshot=true, typically when LastVersion=0)
+	if update.IsSnapshot {
+		slog.WithField("num_entries", len(entries)).Info("Received full snapshot, replacing store")
+		s.datasource.ApplyCacheReplace(entries)
+		return nil
+	}
 
+	// Handle incremental updates
 	switch update.Operation {
 	case OperationType_OPERATION_ADD, OperationType_OPERATION_UPDATE:
 		slog.WithField("num_entries", len(entries)).Debug("Received ADD/UPDATE")
