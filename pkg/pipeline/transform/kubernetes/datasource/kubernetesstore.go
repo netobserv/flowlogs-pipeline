@@ -40,29 +40,43 @@ func NewKubernetesStore() *KubernetesStore {
 
 // removeFromIndexes removes all index entries for the given meta (by key).
 // Caller must hold mu (write).
+// Only removes entries if they belong to this resource (by UID), preserving "first match wins".
 func (s *KubernetesStore) removeFromIndexes(meta *model.ResourceMetaData) {
 	if meta == nil {
 		return
 	}
 	for _, ip := range meta.IPs {
-		delete(s.byIP, ip)
+		// Only delete if the current owner matches (by UID)
+		if existing, ok := s.byIP[ip]; ok && existing != nil && existing.UID == meta.UID {
+			delete(s.byIP, ip)
+		}
 	}
 	if meta.Kind == model.KindNode && meta.Name != "" {
-		delete(s.byNodeName, meta.Name)
+		// Only delete if the current owner matches (by UID)
+		if existing, ok := s.byNodeName[meta.Name]; ok && existing != nil && existing.UID == meta.UID {
+			delete(s.byNodeName, meta.Name)
+		}
 	}
 	for _, k := range meta.SecondaryNetKeys {
-		delete(s.bySecondaryKey, k)
+		// Only delete if the current owner matches (by UID)
+		if existing, ok := s.bySecondaryKey[k]; ok && existing != nil && existing.UID == meta.UID {
+			delete(s.bySecondaryKey, k)
+		}
 	}
 }
 
 // addToIndexes adds the meta to all index maps.
 // Caller must hold mu (write).
+// Honors "first match wins" for byIP - does not overwrite existing entries.
 func (s *KubernetesStore) addToIndexes(meta *model.ResourceMetaData) {
 	if meta == nil {
 		return
 	}
 	for _, ip := range meta.IPs {
-		s.byIP[ip] = meta
+		// First match wins - don't overwrite existing entry
+		if _, exists := s.byIP[ip]; !exists {
+			s.byIP[ip] = meta
+		}
 	}
 	if meta.Kind == model.KindNode && meta.Name != "" {
 		s.byNodeName[meta.Name] = meta
