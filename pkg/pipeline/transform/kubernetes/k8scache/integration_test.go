@@ -101,6 +101,16 @@ func TestIntegration_ServerReceivesAdd(t *testing.T) {
 	assert.True(t, ack.Ack.Success, "Server should ACK successfully")
 	assert.Equal(t, int64(1), ack.Ack.Version)
 
+	// Verify that the datasource was actually mutated (not just ACKed)
+	// Query by IP to verify the resource was persisted
+	result := ds.IndexLookup(nil, "10.0.0.100")
+	require.NotNil(t, result, "Resource should be found by IP")
+	assert.Equal(t, "Pod", result.Kind)
+	assert.Equal(t, "default", result.Namespace)
+	assert.Equal(t, "test-pod", result.Name)
+	assert.Equal(t, "test-uid", string(result.UID))
+	assert.Contains(t, result.IPs, "10.0.0.100")
+
 	// Close stream
 	err = stream.CloseSend()
 	assert.NoError(t, err)
@@ -113,6 +123,7 @@ func TestIntegration_MultipleUpdatesFlow(t *testing.T) {
 	// Setup
 	_, informers := inf.SetupStubs(testIPInfo, nil, testNodes)
 	ds := &datasource.Datasource{Informers: informers}
+	ds.SetKubernetesStore(datasource.NewKubernetesStore())
 	cacheServer := NewKubernetesCacheServer(ds)
 
 	grpcServer := grpc.NewServer()
@@ -157,7 +168,7 @@ func TestIntegration_MultipleUpdatesFlow(t *testing.T) {
 		IsSnapshot: false,
 		Operation:  OperationType_OPERATION_ADD,
 		Entries: []*ResourceEntry{
-			{Kind: "Pod", Name: "pod1", Namespace: "default"},
+			{Kind: "Pod", Name: "pod1", Namespace: "default", Uid: "uid-pod1", Ips: []string{"10.0.0.1"}},
 		},
 	})
 	require.NoError(t, err)
@@ -170,12 +181,17 @@ func TestIntegration_MultipleUpdatesFlow(t *testing.T) {
 	assert.True(t, ack.Ack.Success)
 	assert.Equal(t, int64(1), ack.Ack.Version)
 
+	// Verify pod1 was added to store
+	result := ds.IndexLookup(nil, "10.0.0.1")
+	require.NotNil(t, result, "pod1 should be found by IP after ADD")
+	assert.Equal(t, "pod1", result.Name)
+
 	// Send second ADD
 	err = stream.Send(&CacheUpdate{
 		Version:    2,
 		IsSnapshot: false,
 		Operation:  OperationType_OPERATION_ADD,
-		Entries:    []*ResourceEntry{{Kind: "Pod", Name: "pod2", Namespace: "default"}},
+		Entries:    []*ResourceEntry{{Kind: "Pod", Name: "pod2", Namespace: "default", Uid: "uid-pod2", Ips: []string{"10.0.0.2"}}},
 	})
 	require.NoError(t, err)
 
@@ -187,12 +203,17 @@ func TestIntegration_MultipleUpdatesFlow(t *testing.T) {
 	assert.True(t, ack.Ack.Success)
 	assert.Equal(t, int64(2), ack.Ack.Version)
 
+	// Verify pod2 was added to store
+	result = ds.IndexLookup(nil, "10.0.0.2")
+	require.NotNil(t, result, "pod2 should be found by IP after ADD")
+	assert.Equal(t, "pod2", result.Name)
+
 	// Send DELETE
 	err = stream.Send(&CacheUpdate{
 		Version:    3,
 		IsSnapshot: false,
 		Operation:  OperationType_OPERATION_DELETE,
-		Entries:    []*ResourceEntry{{Kind: "Pod", Name: "pod1", Namespace: "default"}},
+		Entries:    []*ResourceEntry{{Kind: "Pod", Name: "pod1", Namespace: "default", Uid: "uid-pod1"}},
 	})
 	require.NoError(t, err)
 
@@ -203,6 +224,15 @@ func TestIntegration_MultipleUpdatesFlow(t *testing.T) {
 	require.True(t, ok)
 	assert.True(t, ack.Ack.Success)
 	assert.Equal(t, int64(3), ack.Ack.Version)
+
+	// Verify pod1 was deleted from store
+	result = ds.IndexLookup(nil, "10.0.0.1")
+	assert.Nil(t, result, "pod1 should be removed after DELETE")
+
+	// Verify pod2 is still present
+	result = ds.IndexLookup(nil, "10.0.0.2")
+	require.NotNil(t, result, "pod2 should still be present after deleting pod1")
+	assert.Equal(t, "pod2", result.Name)
 
 	// Verify server state
 	assert.Equal(t, int64(3), cacheServer.GetCurrentVersion())
