@@ -42,9 +42,15 @@ func (s *KubernetesCacheServer) StreamUpdates(stream KubernetesCacheService_Stre
 	// Generate a unique ID for this connection (for logging)
 	connectionID := fmt.Sprintf("flp-%d", time.Now().UnixNano())
 
-	// Send SyncRequest with our current version so the client knows what to send
-	// (full snapshot if 0, or incrementals from that version)
-	lastVersion := s.version.Load()
+	// Resync on Reconnect: Always request a full snapshot when establishing a new stream.
+	// This ensures consistency after any kind of informer-leader failover, network partition,
+	// or other disconnection scenarios, regardless of the cause.
+	// The cost is minimal (snapshot sent only on reconnection, not during normal operation).
+	slog.WithField("connection_id", connectionID).Info("New stream connection - resetting version to request full snapshot")
+	s.version.Store(0)
+
+	// Send SyncRequest with LastVersion=0 to request full snapshot
+	lastVersion := s.version.Load() // Will always be 0
 	err := stream.Send(&SyncMessage{
 		Message: &SyncMessage_Request{
 			Request: &SyncRequest{
