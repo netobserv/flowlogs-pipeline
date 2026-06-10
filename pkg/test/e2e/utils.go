@@ -262,7 +262,7 @@ func LogsFromPods(pods []corev1.Pod, coreV1Client *corev1client.CoreV1Client, na
 			log.Errorf("io.Copy from pod %s error %v", pod.GetName(), err)
 			continue
 		}
-		logsBuilder.WriteString(fmt.Sprintf("Logs from pod %s\n----\n%s\n", pod.GetName(), buf.String()))
+		fmt.Fprintf(&logsBuilder, "Logs from pod %s\n----\n%s\n", pod.GetName(), buf.String())
 	}
 
 	return logsBuilder.String()

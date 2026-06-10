@@ -65,7 +65,7 @@ func iterate(output io.Writer, data interface{}, indent int) {
 			}
 		}
 		return
-	case reflect.Ptr:
+	case reflect.Pointer:
 		// DEBUG code: fmt.Fprintf(output, "%s %s <-- %s \n", strings.Repeat(" ", 4*indent), dataTypeName, dataType)
 		elemType := reflect.TypeOf(data).Elem()
 		zeroElement := reflect.Zero(elemType).Interface()
