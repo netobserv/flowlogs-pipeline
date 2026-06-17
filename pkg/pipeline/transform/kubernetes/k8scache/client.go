@@ -455,9 +455,18 @@ func (c *Client) sendBatched(entries []*model.ResourceMetaData, operation Operat
 
 // sendSnapshot sends a full snapshot to a specific processor.
 // This is used when a processor connects/restarts to get the current state.
+// Large snapshots are split into batches: only the first batch is marked as a snapshot
+// (Replace on the processor); subsequent batches are incremental ADDs.
 func (c *Client) sendSnapshot(entries []*model.ResourceMetaData, targetAddress string) error {
 	batchSize := c.batchSize
+	if batchSize <= 0 {
+		batchSize = defaultBatchSize
+	}
+
 	numBatches := (len(entries) + batchSize - 1) / batchSize
+	if len(entries) == 0 {
+		numBatches = 1
+	}
 
 	clog.WithFields(log.Fields{
 		"num_entries": len(entries),
@@ -466,69 +475,21 @@ func (c *Client) sendSnapshot(entries []*model.ResourceMetaData, targetAddress s
 		"target":      targetAddress,
 	}).Info("sending snapshot to processor")
 
-	// Split entries into batches if needed
-	for i := 0; i < len(entries); i += batchSize {
-		end := i + batchSize
-		if end > len(entries) {
-			end = len(entries)
+	if len(entries) == 0 {
+		if err := c.sendSnapshotBatch(nil, targetAddress, true, 1, numBatches); err != nil {
+			return err
 		}
-
-		batch := entries[i:end]
-		version := c.version.Add(1)
-		update := &CacheUpdate{
-			Version:    version,
-			IsSnapshot: true,
-			Operation:  OperationType_OPERATION_ADD,
-			Entries:    metaToResourceEntries(batch),
-		}
-
-		// Send directly to the target processor
-		c.mu.RLock()
-		pc, exists := c.connections[targetAddress]
-		c.mu.RUnlock()
-
-		if !exists {
-			return fmt.Errorf("processor %s not found", targetAddress)
-		}
-
-		if !pc.healthy.Load() {
-			return fmt.Errorf("processor %s is not healthy", targetAddress)
-		}
-
-		stream := pc.getStream()
-		if stream == nil {
-			return fmt.Errorf("stream is nil for processor %s", targetAddress)
-		}
-
-		sendCtx, sendCancel := context.WithTimeout(context.Background(), c.sendTimeout)
-		done := make(chan error, 1)
-
-		go func() {
-			select {
-			case <-sendCtx.Done():
-				return
-			case done <- stream.Send(update):
+	} else {
+		for i := 0; i < len(entries); i += batchSize {
+			end := i + batchSize
+			if end > len(entries) {
+				end = len(entries)
 			}
-		}()
-
-		select {
-		case err := <-done:
-			sendCancel()
-			if err != nil {
-				return fmt.Errorf("failed to send snapshot batch to %s: %w", targetAddress, err)
+			batchNum := (i / batchSize) + 1
+			if err := c.sendSnapshotBatch(entries[i:end], targetAddress, i == 0, batchNum, numBatches); err != nil {
+				return err
 			}
-		case <-sendCtx.Done():
-			sendCancel()
-			pc.cancelStream()
-			return fmt.Errorf("timeout sending snapshot batch to %s", targetAddress)
 		}
-
-		clog.WithFields(log.Fields{
-			"batch":       (i / batchSize) + 1,
-			"num_batches": numBatches,
-			"batch_size":  len(batch),
-			"target":      targetAddress,
-		}).Debug("sent snapshot batch")
 	}
 
 	clog.WithField("target", targetAddress).Info("snapshot sent successfully")
@@ -536,6 +497,70 @@ func (c *Client) sendSnapshot(entries []*model.ResourceMetaData, targetAddress s
 	if metrics.InformersMetrics != nil {
 		metrics.InformersMetrics.CacheSnapshotsSentTotal.Inc()
 	}
+
+	return nil
+}
+
+func (c *Client) sendSnapshotBatch(
+	entries []*model.ResourceMetaData,
+	targetAddress string,
+	isSnapshot bool,
+	batchNum, numBatches int,
+) error {
+	update := &CacheUpdate{
+		Version:    c.version.Add(1),
+		IsSnapshot: isSnapshot,
+		Operation:  OperationType_OPERATION_ADD,
+		Entries:    metaToResourceEntries(entries),
+	}
+
+	c.mu.RLock()
+	pc, exists := c.connections[targetAddress]
+	c.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("processor %s not found", targetAddress)
+	}
+
+	if !pc.healthy.Load() {
+		return fmt.Errorf("processor %s is not healthy", targetAddress)
+	}
+
+	stream := pc.getStream()
+	if stream == nil {
+		return fmt.Errorf("stream is nil for processor %s", targetAddress)
+	}
+
+	sendCtx, sendCancel := context.WithTimeout(context.Background(), c.sendTimeout)
+	done := make(chan error, 1)
+
+	go func() {
+		select {
+		case <-sendCtx.Done():
+			return
+		case done <- stream.Send(update):
+		}
+	}()
+
+	select {
+	case err := <-done:
+		sendCancel()
+		if err != nil {
+			return fmt.Errorf("failed to send snapshot batch to %s: %w", targetAddress, err)
+		}
+	case <-sendCtx.Done():
+		sendCancel()
+		pc.cancelStream()
+		return fmt.Errorf("timeout sending snapshot batch to %s", targetAddress)
+	}
+
+	clog.WithFields(log.Fields{
+		"batch":        batchNum,
+		"num_batches":  numBatches,
+		"batch_size":   len(entries),
+		"is_snapshot":  isSnapshot,
+		"target":       targetAddress,
+	}).Debug("sent snapshot batch")
 
 	return nil
 }
@@ -598,6 +623,11 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 		go func(pc *processorConnection) {
 			defer wg.Done()
 
+	for _, pc := range connections {
+		wg.Add(1)
+		go func(pc *processorConnection) {
+			defer wg.Done()
+
 			// Get stream reference under lock
 			stream := pc.getStream()
 			if stream == nil {
@@ -606,20 +636,12 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 				return
 			}
 
-			// Create a context with timeout for this send operation
-			sendCtx, sendCancel := context.WithTimeout(context.Background(), c.sendTimeout)
-			defer sendCancel()
-
-			// Use a channel to signal completion or timeout
+			// Race stream.Send against a timeout. stream.Send doesn't accept
+			// a context, so we run it in a separate goroutine and cancel the
+			// underlying stream on timeout to unblock it.
 			done := make(chan error, 1)
 			go func() {
-				select {
-				case <-sendCtx.Done():
-					// Context cancelled, exit goroutine to prevent leak
-					return
-				case done <- stream.Send(update):
-					// Send completed (success or error)
-				}
+				done <- stream.Send(update)
 			}()
 
 			select {
@@ -627,22 +649,16 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 				if err != nil {
 					clog.WithError(err).WithField("address", pc.address).Error("failed to send update")
 					pc.healthy.Store(false)
-					// Force Recv to unblock so reconnect path can run
-					pc.cancelStream()
-				} else {
-					// Update gRPC metrics on successful send
-					c.updateGrpcSentMetrics(messageSize)
 				}
-			case <-sendCtx.Done():
+			case <-time.After(sendTimeout):
 				clog.WithField("address", pc.address).Error("send operation timed out")
 				pc.healthy.Store(false)
-
-				// Cancel the stream context to ensure any blocked operations are unblocked
-				// This will cause receiveFromProcessor to see an error and trigger reconnection
+				// Cancel the stream context so the blocked Send returns an error.
+				// The goroutine will then write to `done` and exit (buffered channel).
+				// This also causes receiveFromProcessor to see an error and trigger reconnection.
 				pc.cancelStream()
 			}
 		}(pc)
-	}
 	wg.Wait()
 }
 
