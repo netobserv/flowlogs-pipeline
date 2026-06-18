@@ -214,7 +214,6 @@ func (c *Client) getTransportCredentials() (credentials.TransportCredentials, er
 	return credentials.NewTLS(tlsConfig), nil
 }
 
-
 // AddProcessorWithTimeout connects to a new FLP processor server with a timeout
 func (c *Client) AddProcessorWithTimeout(address string, timeout time.Duration) error {
 	// First check: quick lock to see if already connected
@@ -555,11 +554,11 @@ func (c *Client) sendSnapshotBatch(
 	}
 
 	clog.WithFields(log.Fields{
-		"batch":        batchNum,
-		"num_batches":  numBatches,
-		"batch_size":   len(entries),
-		"is_snapshot":  isSnapshot,
-		"target":       targetAddress,
+		"batch":       batchNum,
+		"num_batches": numBatches,
+		"batch_size":  len(entries),
+		"is_snapshot": isSnapshot,
+		"target":      targetAddress,
 	}).Debug("sent snapshot batch")
 
 	return nil
@@ -615,14 +614,10 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 
 	// Measure message size for metrics
 	messageSize := proto.Size(update)
+	c.updateGrpcSentMetrics(messageSize)
 
 	// Send to all processors concurrently
 	var wg sync.WaitGroup
-	for _, pc := range connections {
-		wg.Add(1)
-		go func(pc *processorConnection) {
-			defer wg.Done()
-
 	for _, pc := range connections {
 		wg.Add(1)
 		go func(pc *processorConnection) {
@@ -650,7 +645,7 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 					clog.WithError(err).WithField("address", pc.address).Error("failed to send update")
 					pc.healthy.Store(false)
 				}
-			case <-time.After(sendTimeout):
+			case <-time.After(c.sendTimeout):
 				clog.WithField("address", pc.address).Error("send operation timed out")
 				pc.healthy.Store(false)
 				// Cancel the stream context so the blocked Send returns an error.
@@ -659,6 +654,7 @@ func (c *Client) broadcastUpdate(update *CacheUpdate) {
 				pc.cancelStream()
 			}
 		}(pc)
+	}
 	wg.Wait()
 }
 
@@ -877,7 +873,6 @@ func (c *Client) handleSyncAck(pc *processorConnection, ack *SyncAck) {
 		}).Error("received NACK from processor")
 	}
 }
-
 
 // SetInformer sets the informer data source for obtaining snapshots
 func (c *Client) SetInformer(informer InformerDataSource) {

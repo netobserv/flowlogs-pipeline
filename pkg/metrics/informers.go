@@ -22,8 +22,8 @@ type Metrics struct {
 	CacheSnapshotsSentTotal prometheus.Counter
 	ErrorsTotal             *prometheus.CounterVec
 	// gRPC communication metrics
-	GrpcBytesSentTotal   prometheus.Counter
-	GrpcBytesRecvTotal   prometheus.Counter
+	GrpcBytesSentTotal    prometheus.Counter
+	GrpcBytesRecvTotal    prometheus.Counter
 	GrpcMessagesSentTotal prometheus.Counter
 	GrpcMessagesRecvTotal prometheus.Counter
 	// Processor lifecycle metrics

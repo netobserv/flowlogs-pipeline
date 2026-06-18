@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	leaseName      = "flp-informers-lease"
-	leaseDuration  = 15 * time.Second
-	renewDeadline  = 10 * time.Second
-	retryPeriod    = 2 * time.Second
+	leaseName     = "flp-informers-lease"
+	leaseDuration = 15 * time.Second
+	renewDeadline = 10 * time.Second
+	retryPeriod   = 2 * time.Second
 )
 
 // LeaderElectionConfig holds configuration for leader election

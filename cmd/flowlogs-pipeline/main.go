@@ -284,8 +284,8 @@ func startK8sCacheServer(cfg *config.K8sCacheServer) *grpc.Server {
 	// Configure keepalive and resource limits to prevent resource exhaustion
 	// These settings protect against misbehaving clients and ensure graceful connection management
 	kaPolicy := keepalive.EnforcementPolicy{
-		MinTime:             5 * time.Second,  // Minimum time between client pings
-		PermitWithoutStream: false,            // Require active stream for keepalive
+		MinTime:             5 * time.Second, // Minimum time between client pings
+		PermitWithoutStream: false,           // Require active stream for keepalive
 	}
 	kaParams := keepalive.ServerParameters{
 		MaxConnectionIdle:     15 * time.Minute, // Close idle connections
@@ -297,10 +297,10 @@ func startK8sCacheServer(cfg *config.K8sCacheServer) *grpc.Server {
 
 	// Base server options (applied to both TLS and non-TLS)
 	serverOpts := []grpc.ServerOption{
-		grpc.MaxConcurrentStreams(100),              // Limit concurrent streams per connection
-		grpc.KeepaliveParams(kaParams),              // Configure keepalive behavior
-		grpc.KeepaliveEnforcementPolicy(kaPolicy),   // Enforce keepalive policy
-		grpc.MaxRecvMsgSize(50 * 1024 * 1024),       // 50MB max message size
+		grpc.MaxConcurrentStreams(100),            // Limit concurrent streams per connection
+		grpc.KeepaliveParams(kaParams),            // Configure keepalive behavior
+		grpc.KeepaliveEnforcementPolicy(kaPolicy), // Enforce keepalive policy
+		grpc.MaxRecvMsgSize(50 * 1024 * 1024),     // 50MB max message size
 	}
 
 	// Create gRPC server with optional TLS
