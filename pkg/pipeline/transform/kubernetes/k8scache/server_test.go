@@ -2,6 +2,7 @@ package k8scache
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"testing"
 
