@@ -15,7 +15,7 @@ COPY pkg/ pkg/
 RUN CGO_ENABLED=0 GOARCH=$TARGETARCH go build -ldflags "$LDFLAGS" -mod vendor -o flowlogs-pipeline cmd/flowlogs-pipeline/main.go
 
 # final stage
-FROM --platform=linux/$TARGETARCH registry.access.redhat.com/ubi9/ubi-minimal:9.8-1780378819
+FROM --platform=linux/$TARGETARCH registry.access.redhat.com/ubi9/ubi-minimal:9.8-1781496742
 
 COPY --from=builder /app/flowlogs-pipeline /app/
 USER 65532:65532
