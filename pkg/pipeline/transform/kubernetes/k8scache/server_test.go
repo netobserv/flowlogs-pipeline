@@ -527,6 +527,67 @@ func TestKubernetesCacheServer_SnapshotReplace(t *testing.T) {
 	require.Equal(t, 3, len(mockStream.recvMsgs)) // SyncRequest + 2 ACKs
 }
 
+// TestKubernetesCacheServer_MultiBatchSnapshot verifies that a snapshot split across
+// multiple batches (first batch Replace, rest ADD) retains all entries in the store.
+func TestKubernetesCacheServer_MultiBatchSnapshot(t *testing.T) {
+	ds := setupTestDatasourceWithStore()
+	server := NewKubernetesCacheServer(ds)
+
+	mockStream := &mockStreamServer{
+		ctx:       context.Background(),
+		sendChan:  make(chan *CacheUpdate, 10),
+		recvMsgs:  make([]*SyncMessage, 0),
+		firstSend: true,
+	}
+
+	const batchSize = 100
+	const totalEntries = 150
+
+	firstBatch := make([]*ResourceEntry, 0, batchSize)
+	for i := 0; i < batchSize; i++ {
+		firstBatch = append(firstBatch, &ResourceEntry{
+			Kind:      "Pod",
+			Namespace: "test-ns",
+			Name:      fmt.Sprintf("pod-%d", i),
+			Uid:       fmt.Sprintf("uid-%d", i),
+			Ips:       []string{fmt.Sprintf("10.1.%d.1", i)},
+		})
+	}
+	mockStream.sendChan <- &CacheUpdate{
+		Version:    1,
+		IsSnapshot: true,
+		Operation:  OperationType_OPERATION_ADD,
+		Entries:    firstBatch,
+	}
+
+	secondBatch := make([]*ResourceEntry, 0, totalEntries-batchSize)
+	for i := batchSize; i < totalEntries; i++ {
+		secondBatch = append(secondBatch, &ResourceEntry{
+			Kind:      "Pod",
+			Namespace: "test-ns",
+			Name:      fmt.Sprintf("pod-%d", i),
+			Uid:       fmt.Sprintf("uid-%d", i),
+			Ips:       []string{fmt.Sprintf("10.1.%d.1", i)},
+		})
+	}
+	mockStream.sendChan <- &CacheUpdate{
+		Version:    2,
+		IsSnapshot: false,
+		Operation:  OperationType_OPERATION_ADD,
+		Entries:    secondBatch,
+	}
+
+	close(mockStream.sendChan)
+
+	err := server.StreamUpdates(mockStream)
+	require.NoError(t, err)
+
+	for i := 0; i < totalEntries; i++ {
+		meta := ds.IndexLookup(nil, fmt.Sprintf("10.1.%d.1", i))
+		require.NotNil(t, meta, "entry %d should be present after multi-batch snapshot", i)
+	}
+}
+
 // TestKubernetesCacheServer_InitialSyncWithSnapshot tests the typical scenario where
 // a fresh processor (LastVersion=0) receives a full snapshot from the client
 func TestKubernetesCacheServer_InitialSyncWithSnapshot(t *testing.T) {
