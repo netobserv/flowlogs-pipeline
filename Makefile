@@ -42,7 +42,7 @@ endif
 
 ifneq ($(CLEAN_BUILD),)
 	BUILD_DATE := $(shell date +%Y-%m-%d\ %H:%M)
-	BUILD_SHA := $(shell git rev-parse --short HEAD)
+	BUILD_SHA := $(shell git rev-parse --short=8 HEAD)
 	LDFLAGS ?= -X 'main.buildVersion=${VERSION}-${BUILD_SHA}' -X 'main.buildDate=${BUILD_DATE}'
 endif
 
@@ -238,7 +238,6 @@ tar-image: image-build ## Build single arch (amd64) and save as a tar
 	$(OCI_BIN) tag $(IMAGE)-amd64 $(IMAGE)
 	mkdir -p ./out
 	$(OCI_BIN) save -o out/image.tar $(IMAGE)
-	echo $(IMAGE) > ./out/name
 
 .PHONY: goyacc
 goyacc: ## Regenerate filters query langage
