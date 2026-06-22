@@ -178,7 +178,7 @@ func NewEncodeS3(opMetrics *operational.Metrics, params config.StageParam) (Enco
 func (e *encodeS3Writer) connectS3(config *api.EncodeS3) (*minio.Client, error) {
 	// Initialize s3 client object.
 	minioOptions := minio.Options{
-		Creds:  credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
+		Creds:  credentials.NewStaticV4(config.AccessKeyID, string(config.SecretAccessKey), ""),
 		Secure: config.Secure,
 	}
 	s3Client, err := minio.New(config.Endpoint, &minioOptions)
