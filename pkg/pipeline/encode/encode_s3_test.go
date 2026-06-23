@@ -27,6 +27,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -90,6 +91,14 @@ func initNewEncodeS3(t *testing.T, configString string) *encodeS3 {
 	return encodeS3
 }
 
+func Test_RedactedKey(t *testing.T) {
+	v, cfg := test.InitConfig(t, testS3Config1)
+	require.NotNil(t, v)
+
+	asString := fmt.Sprintf("%v", *cfg.Parameters[0].Encode.S3)
+	assert.Equal(t, "{account1 1.2.3.4:9000 accessKey1 [REDACTED] bucket1 1s 3 false map[key1:val1 key2:val2 key3:val3 key4:val4]}", asString)
+}
+
 func Test_EncodeS3(t *testing.T) {
 	utils.InitExitChannel()
 	encodeS3 := initNewEncodeS3(t, testS3Config1)
@@ -97,7 +106,7 @@ func Test_EncodeS3(t *testing.T) {
 	require.Equal(t, "bucket1", encodeS3.s3Params.Bucket)
 	require.Equal(t, "account1", encodeS3.s3Params.Account)
 	require.Equal(t, "accessKey1", encodeS3.s3Params.AccessKeyID)
-	require.Equal(t, "secretAccessKey1", encodeS3.s3Params.SecretAccessKey)
+	require.Equal(t, "secretAccessKey1", string(encodeS3.s3Params.SecretAccessKey))
 
 	entries := test.GetExtractMockEntries2()
 	for i := range entries {
