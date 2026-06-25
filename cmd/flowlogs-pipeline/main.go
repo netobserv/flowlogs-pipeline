@@ -35,6 +35,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/prometheus"
+	"github.com/netobserv/flowlogs-pipeline/pkg/server"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -142,9 +143,8 @@ func initFlags() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", fmt.Sprintf("config file (default is $HOME/%s)", defaultLogFileName))
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "error", "Log level: debug, info, warning, error")
-	rootCmd.PersistentFlags().StringVar(&opts.Health.Address, "health.address", "0.0.0.0", "Health server address")
-	rootCmd.PersistentFlags().IntVar(&opts.Health.Port, "health.port", 0, "Health server port (default: disable health server) ")
-	rootCmd.PersistentFlags().IntVar(&opts.Profile.Port, "profile.port", 0, "Go pprof tool port (default: disabled)")
+	rootCmd.PersistentFlags().StringVar(&opts.HealthAddr, "healthAddr", "", "Health server address such as ':8080' (default: disabled)")
+	rootCmd.PersistentFlags().StringVar(&opts.PprofAddr, "pprofAddr", "", "Go pprof address such as '127.0.0.1:6060', used for profiling (default: disabled). Do not expose publicly.")
 	rootCmd.PersistentFlags().StringVar(&opts.PipeLine, "pipeline", "", "json of config file pipeline field")
 	rootCmd.PersistentFlags().StringVar(&opts.Parameters, "parameters", "", "json of config file parameters field")
 	rootCmd.PersistentFlags().StringVar(&opts.DynamicParameters, "dynamicParameters", "", "json of configmap location for dynamic parameters")
@@ -190,17 +190,18 @@ func run() {
 		os.Exit(1)
 	}
 
-	if opts.Profile.Port != 0 {
+	if opts.PprofAddr != "" {
 		go func() {
-			log.WithField("port", opts.Profile.Port).Info("starting PProf HTTP listener")
-			log.WithError(http.ListenAndServe(fmt.Sprintf(":%d", opts.Profile.Port), nil)).
+			log.WithField("addr", opts.PprofAddr).Info("starting PProf HTTP listener")
+			srv := server.Default(&http.Server{Addr: opts.PprofAddr, Handler: http.DefaultServeMux})
+			log.WithError(srv.ListenAndServe()).
 				Error("PProf HTTP listener stopped working")
 		}()
 	}
 
 	// Start health report server
 	var healthServer *http.Server
-	if opts.Health.Port > 0 {
+	if opts.HealthAddr != "" {
 		healthServer = operational.NewHealthServer(&opts, mainPipeline.IsAlive, mainPipeline.IsReady)
 	}
 
