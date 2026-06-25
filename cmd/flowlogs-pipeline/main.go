@@ -193,7 +193,7 @@ func run() {
 	if opts.PprofAddr != "" {
 		go func() {
 			log.WithField("addr", opts.PprofAddr).Info("starting PProf HTTP listener")
-			srv := server.Default(&http.Server{Addr: opts.PprofAddr})
+			srv := server.Default(&http.Server{Addr: opts.PprofAddr, Handler: http.DefaultServeMux})
 			log.WithError(srv.ListenAndServe()).
 				Error("PProf HTTP listener stopped working")
 		}()
