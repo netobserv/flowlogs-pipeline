@@ -1,4 +1,4 @@
-name: release to quay.io, attaching sbom and signing image
+name: release to quay.io
 on:
   push:
     tags: [v*]
@@ -125,7 +125,7 @@ jobs:
           output-file: 'sbom.spdx.json'
 
       - name: Attest SBOM
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
         id: attest
         with:
           subject-name: ${{ env.WF_IMAGE_NAME }}
