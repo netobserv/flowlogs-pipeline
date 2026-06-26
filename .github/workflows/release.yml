@@ -63,7 +63,7 @@ jobs:
             ${{ env.WF_IMAGE_NAME }}:${{ env.tag }} \
             --format '{{json .Manifest.Digest}}' | tr -d '"')
 
-          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_ENV"
 
       - name: extract binaries
         run: MULTIARCH_TARGETS="${{ env.WF_MULTIARCH_TARGETS }}" IMAGE_ORG=${{ env.WF_ORG }} VERSION=${{ env.tag }} make extract-binaries
@@ -101,22 +101,22 @@ jobs:
       - name: Sign and verify the image with GitHub OIDC Token
         run: |
           cosign sign --yes \
-            ${{ env.WF_IMAGE_NAME }}@${{ steps.image_digest.outputs.digest }}
+            ${{ env.WF_IMAGE_NAME }}@${{ env.digest }}
 
           cosign verify \
-            ${{ env.WF_IMAGE_NAME }}@${{ steps.image_digest.outputs.digest }} \
-            --certificate-identity=https://github.com/netobserv/flowlogs-pipeline/blob/main/.github/workflows/release.yml@refs/heads/main \
+            ${{ env.WF_IMAGE_NAME }}@${{ env.digest }} \
+            --certificate-identity=https://github.com/netobserv/flowlogs-pipeline/.github/workflows/release.yml@refs/tags/${{ env.tag }} \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com
 
       - name: Attest Provenance attestations
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4
         with:
           subject-name: ${{ env.WF_IMAGE_NAME }}
-          subject-digest: ${{ steps.image_digest.outputs.digest }}
+          subject-digest: ${{ env.digest }}
           push-to-registry: true
 
       - name: Generate SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           image: ${{ env.WF_IMAGE_NAME }}:${{ env.tag }}
           registry-username: ${{ env.WF_REGISTRY_USER }}
@@ -125,10 +125,10 @@ jobs:
           output-file: 'sbom.spdx.json'
 
       - name: Attest SBOM
-        uses: actions/attest-sbom@v3
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4
         id: attest
         with:
           subject-name: ${{ env.WF_IMAGE_NAME }}
-          subject-digest: ${{ steps.image_digest.outputs.digest }}
+          subject-digest: ${{ env.digest }}
           sbom-path: 'sbom.spdx.json'
           push-to-registry: true
