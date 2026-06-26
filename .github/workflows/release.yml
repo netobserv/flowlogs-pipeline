@@ -118,7 +118,7 @@ jobs:
       - name: Generate SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
-          image: ${{ env.WF_IMAGE_NAME }}:${{ env.tag }}
+          image: ${{ env.WF_IMAGE_NAME }}@${{ env.digest }}
           registry-username: ${{ env.WF_REGISTRY_USER }}
           registry-password: ${{ secrets.QUAY_SECRET }}
           format: 'spdx-json'
