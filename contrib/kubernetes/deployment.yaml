@@ -23,12 +23,16 @@ spec:
             - containerPort: 6343
             - containerPort: 2055
             - containerPort: 2056
-          # When deployed on KinD, the image is pre-pushed to KinD from the local registry.
-          # When deployed on OCP, OCP will pull the image from quay.io.
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: configuration
               mountPath: "/etc/flowlogs-pipeline/"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: [ALL]
       volumes:
         - name: configuration
           configMap:
@@ -82,9 +86,25 @@ kind: ClusterRole
 metadata:
   name: flowlogs-pipeline
 rules:
-  - apiGroups: ["*"]
-    resources: ["*"]
-    verbs: ["*"]
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  - pods
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
