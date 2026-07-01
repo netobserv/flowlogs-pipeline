@@ -49,14 +49,20 @@ Usage:
   flowlogs-pipeline [flags]  
   
 Flags:  
-      --config string              config file (default is $HOME/.flowlogs-pipeline)  
-      --dynamicParameters string   json of configmap location for dynamic parameters  
+      --config string                   config file (default is $HOME/.flowlogs-pipeline)  
+      --dynamicParameters string        json of configmap location for dynamic parameters
       --healthAddr string          Health server address such as ':8080' (default: disabled)  
-  -h, --help                       help for flowlogs-pipeline  
-      --log-level string           Log level: debug, info, warning, error (default "error")  
-      --metricsSettings string     json for global metrics settings  
-      --parameters string          json of config file parameters field  
-      --pipeline string            json of config file pipeline field  
+  -h, --help                            help for flowlogs-pipeline  
+      --k8scache.address string         K8s cache sync server address (default "0.0.0.0")  
+      --k8scache.port int               K8s cache sync server port (default: disabled)  
+      --k8scache.tls-ca-path string     Path to TLS CA certificate for client verification  
+      --k8scache.tls-cert-path string   Path to TLS server certificate  
+      --k8scache.tls-enabled            Enable TLS for K8s cache sync server  
+      --k8scache.tls-key-path string    Path to TLS server private key  
+      --log-level string                Log level: debug, info, warning, error (default "error")  
+      --metricsSettings string          json for global metrics settings  
+      --parameters string               json of config file parameters field  
+      --pipeline string                 json of config file pipeline field
       --pprofAddr string           Go pprof address such as '127.0.0.1:6060', used for profiling (default: disabled). Do not expose publicly.
 ```
 <!---END-AUTO-flowlogs-pipeline_help--->
@@ -974,6 +980,8 @@ kubernetes
   undeploy-grafana      Undeploy grafana  
   deploy-netflow-simulator  Deploy netflow simulator  
   undeploy-netflow-simulator  Undeploy netflow simulator  
+  deploy-flp-informers  Deploy flp-informers (centralized K8s cache pusher)  
+  undeploy-flp-informers  Undeploy flp-informers  
   
 kind  
   create-kind-cluster   Create cluster  
@@ -987,6 +995,10 @@ End2End
   local-deploy          Deploy locally on kind (with simulated flowlogs)  
   local-cleanup         Undeploy from local kind  
   local-redeploy        Redeploy locally (on current kind)  
+  deploy-k8scache       Deploy FLP with k8scache server enabled  
+  local-deploy-k8scache  Deploy locally on kind with k8scache and flp-informers  
+  local-cleanup-k8scache  Undeploy k8scache setup from local kind  
+  local-redeploy-k8scache  Redeploy locally with k8scache (on current kind)  
   ocp-deploy            Deploy to OCP  
   ocp-cleanup           Undeploy from OCP  
   dev-local-deploy      Deploy locally with simulated netflows  
