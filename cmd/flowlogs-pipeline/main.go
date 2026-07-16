@@ -41,6 +41,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/k8scache"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/prometheus"
+	"github.com/netobserv/flowlogs-pipeline/pkg/tlsprofile"
 	"github.com/netobserv/flowlogs-pipeline/pkg/server"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -351,9 +352,10 @@ func createServerTLSConfig(cfg *config.K8sCacheServer) (credentials.TransportCre
 
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
-		ClientAuth:   tls.NoClientCert, // Default: no client cert required
-		MinVersion:   tls.VersionTLS13, // Enforce TLS 1.3+ to prevent downgrade attacks
+		ClientAuth:   tls.NoClientCert,
+		MinVersion:   tls.VersionTLS13,
 	}
+	tlsprofile.Apply(tlsConfig)
 
 	// If CA is provided, require and verify client certificates
 	if cfg.TLSCAPath != "" {

@@ -12,6 +12,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
+	"github.com/netobserv/flowlogs-pipeline/pkg/tlsprofile"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/decode"
 	grpc "github.com/netobserv/netobserv-ebpf-agent/pkg/grpc/flow"
@@ -74,6 +75,7 @@ func NewGRPCProtobuf(opMetrics *operational.Metrics, params config.StageParam) (
 			ClientAuth:   tls.NoClientCert,
 			MinVersion:   tls.VersionTLS13,
 		}
+		tlsprofile.Apply(tlsCfg)
 		if cfg.ClientCAPath != "" {
 			// mTLS
 			caCert, err := os.ReadFile(cfg.ClientCAPath)

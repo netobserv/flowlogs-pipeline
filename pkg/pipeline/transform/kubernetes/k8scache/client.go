@@ -14,6 +14,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/metrics"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/model"
+	"github.com/netobserv/flowlogs-pipeline/pkg/tlsprofile"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -175,8 +176,9 @@ func (c *Client) getTransportCredentials() (credentials.TransportCredentials, er
 
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: c.tlsConfig.InsecureSkipVerify,
-		MinVersion:         tls.VersionTLS13, // Match server MinVersion to prevent downgrade attacks
+		MinVersion:         tls.VersionTLS13,
 	}
+	tlsprofile.Apply(tlsConfig)
 
 	// Set ServerName if provided (allows connecting by IP while validating against DNS name in certificate)
 	if c.tlsConfig.TLSServerName != "" {
