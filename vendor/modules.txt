@@ -17,6 +17,10 @@ github.com/agoda-com/opentelemetry-logs-go/logs
 github.com/agoda-com/opentelemetry-logs-go/sdk/internal/env
 github.com/agoda-com/opentelemetry-logs-go/sdk/logs
 github.com/agoda-com/opentelemetry-logs-go/semconv
+# github.com/andybalholm/brotli v1.1.1
+## explicit; go 1.13
+github.com/andybalholm/brotli
+github.com/andybalholm/brotli/matchfinder
 # github.com/benbjohnson/clock v1.3.5
 ## explicit; go 1.15
 github.com/benbjohnson/clock
@@ -334,6 +338,43 @@ github.com/netsampler/goflow2/utils
 # github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250227173154-57a2590a1d16
 ## explicit; go 1.22.0
 github.com/ovn-org/ovn-kubernetes/go-controller/observability-lib/model
+# github.com/parquet-go/bitpack v1.0.0
+## explicit; go 1.24.0
+github.com/parquet-go/bitpack
+github.com/parquet-go/bitpack/unsafecast
+# github.com/parquet-go/jsonlite v1.0.0
+## explicit; go 1.23
+github.com/parquet-go/jsonlite
+# github.com/parquet-go/parquet-go v0.30.1
+## explicit; go 1.24.9
+github.com/parquet-go/parquet-go
+github.com/parquet-go/parquet-go/bloom
+github.com/parquet-go/parquet-go/bloom/xxhash
+github.com/parquet-go/parquet-go/compress
+github.com/parquet-go/parquet-go/compress/brotli
+github.com/parquet-go/parquet-go/compress/gzip
+github.com/parquet-go/parquet-go/compress/lz4
+github.com/parquet-go/parquet-go/compress/snappy
+github.com/parquet-go/parquet-go/compress/uncompressed
+github.com/parquet-go/parquet-go/compress/zstd
+github.com/parquet-go/parquet-go/deprecated
+github.com/parquet-go/parquet-go/encoding
+github.com/parquet-go/parquet-go/encoding/bitpacked
+github.com/parquet-go/parquet-go/encoding/bytestreamsplit
+github.com/parquet-go/parquet-go/encoding/delta
+github.com/parquet-go/parquet-go/encoding/plain
+github.com/parquet-go/parquet-go/encoding/rle
+github.com/parquet-go/parquet-go/encoding/thrift
+github.com/parquet-go/parquet-go/format
+github.com/parquet-go/parquet-go/hashprobe
+github.com/parquet-go/parquet-go/hashprobe/aeshash
+github.com/parquet-go/parquet-go/hashprobe/wyhash
+github.com/parquet-go/parquet-go/internal/bytealg
+github.com/parquet-go/parquet-go/internal/debug
+github.com/parquet-go/parquet-go/internal/memory
+github.com/parquet-go/parquet-go/internal/unsafecast
+github.com/parquet-go/parquet-go/sparse
+github.com/parquet-go/parquet-go/variant
 # github.com/pelletier/go-toml/v2 v2.3.1
 ## explicit; go 1.21.0
 github.com/pelletier/go-toml/v2
@@ -533,6 +574,11 @@ github.com/subosito/gotenv
 ## explicit; go 1.24
 github.com/tinylib/msgp/msgp
 github.com/tinylib/msgp/msgp/setof
+# github.com/twpayne/go-geom v1.6.1
+## explicit; go 1.22
+github.com/twpayne/go-geom
+github.com/twpayne/go-geom/encoding/wkb
+github.com/twpayne/go-geom/encoding/wkbcommon
 # github.com/vladimirvivien/gexe v0.5.0
 ## explicit; go 1.23
 github.com/vladimirvivien/gexe
