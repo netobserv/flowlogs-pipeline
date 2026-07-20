@@ -202,6 +202,11 @@ func (b *PipelineBuilderStage) WriteIpfix(name string, ipfix api.WriteIpfix) Pip
 	return b.next(name, NewWriteIpfixParams(name, ipfix))
 }
 
+// WriteFlowBuffer chains the current stage with a WriteFlowBuffer stage and returns that new stage
+func (b *PipelineBuilderStage) WriteFlowBuffer(name string, fb api.WriteFlowBuffer) PipelineBuilderStage {
+	return b.next(name, NewWriteFlowBufferParams(name, fb))
+}
+
 // GetStages returns the current pipeline stages. It can be called from any of the stages, they share the same pipeline reference.
 func (b *PipelineBuilderStage) GetStages() []Stage {
 	return b.pipeline.stages

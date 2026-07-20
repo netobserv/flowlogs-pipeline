@@ -98,3 +98,7 @@ func NewWriteLokiParams(name string, loki api.WriteLoki) StageParam {
 func NewWriteIpfixParams(name string, ipfix api.WriteIpfix) StageParam {
 	return StageParam{Name: name, Write: &Write{Type: api.IpfixType, Ipfix: &ipfix}}
 }
+
+func NewWriteFlowBufferParams(name string, fb api.WriteFlowBuffer) StageParam {
+	return StageParam{Name: name, Write: &Write{Type: api.FlowBufferType, FlowBuffer: &fb}}
+}
