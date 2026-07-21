@@ -14,6 +14,7 @@
 package prometheus
 
 import (
+	"fmt"
 	"math"
 	"sync/atomic"
 	"time"
@@ -65,6 +66,10 @@ type GaugeVecOpts struct {
 	// of labels. Each label value will be constrained with the optional Constraint
 	// function, if provided.
 	VariableLabels ConstrainableLabels
+
+	// TTL, if greater than zero, enables per-child expiration for this vector.
+	// See MetricVecOpts.TTL for semantics.
+	TTL time.Duration
 }
 
 // NewGauge creates a new Gauge based on the provided GaugeOpts.
@@ -76,11 +81,12 @@ type GaugeVecOpts struct {
 // scenarios for Gauges and Counters, where the former tends to be Set-heavy and
 // the latter Inc-heavy.
 func NewGauge(opts GaugeOpts) Gauge {
-	desc := NewDesc(
+	desc := V2.NewDesc(
 		BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 		opts.Help,
-		nil,
+		UnconstrainedLabels(nil),
 		opts.ConstLabels,
+		WithUnit(opts.Unit),
 	)
 	result := &gauge{desc: desc, labelPairs: desc.constLabelPairs}
 	result.init(result) // Init self-collection.
@@ -163,15 +169,27 @@ func (v2) NewGaugeVec(opts GaugeVecOpts) *GaugeVec {
 		opts.Help,
 		opts.VariableLabels,
 		opts.ConstLabels,
+		WithUnit(opts.Unit),
 	)
-	return &GaugeVec{
-		MetricVec: NewMetricVec(desc, func(lvs ...string) Metric {
-			if len(lvs) != len(desc.variableLabels.names) {
-				panic(makeInconsistentCardinalityError(desc.fqName, desc.variableLabels.names, lvs))
-			}
-			result := &gauge{desc: desc, labelPairs: MakeLabelPairs(desc, lvs)}
-			result.init(result) // Init self-collection.
+	if opts.TTL < 0 {
+		panic(fmt.Sprintf("invalid negative ttl: %v", opts.TTL))
+	}
+	newMetric := func(lvs ...string) Metric {
+		if len(lvs) != len(desc.variableLabels.names) {
+			panic(makeInconsistentCardinalityError(desc.fqName, desc.variableLabels.names, lvs))
+		}
+		result := &gauge{desc: desc, labelPairs: MakeLabelPairs(desc, lvs)}
+		result.init(result) // Init self-collection.
+		if opts.TTL <= 0 {
 			return result
+		}
+		return newTTLGauge(result)
+	}
+	return &GaugeVec{
+		MetricVec: V2.NewMetricVec(MetricVecOpts{
+			Desc:      desc,
+			NewMetric: newMetric,
+			TTL:       opts.TTL,
 		}),
 	}
 }
@@ -302,10 +320,11 @@ type GaugeFunc interface {
 // value of 1. Example:
 // https://github.com/prometheus/common/blob/8558a5b7db3c84fa38b4766966059a7bd5bfa2ee/version/info.go#L36-L56
 func NewGaugeFunc(opts GaugeOpts, function func() float64) GaugeFunc {
-	return newValueFunc(NewDesc(
+	return newValueFunc(V2.NewDesc(
 		BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 		opts.Help,
-		nil,
+		UnconstrainedLabels(nil),
 		opts.ConstLabels,
+		WithUnit(opts.Unit),
 	), GaugeValue, function)
 }
