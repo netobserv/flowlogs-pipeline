@@ -1193,10 +1193,6 @@ func NewHistogramVec(opts HistogramOpts, labelNames []string) *HistogramVec {
 
 // NewHistogramVec creates a new HistogramVec based on the provided HistogramVecOpts.
 func (v2) NewHistogramVec(opts HistogramVecOpts) *HistogramVec {
-	return newHistogramVecWithTTL(opts, 0)
-}
-
-func newHistogramVecWithTTL(opts HistogramVecOpts, ttl time.Duration) *HistogramVec {
 	desc := V2.NewDesc(
 		BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 		opts.Help,

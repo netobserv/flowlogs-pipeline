@@ -164,10 +164,6 @@ func NewGaugeVec(opts GaugeOpts, labelNames []string) *GaugeVec {
 
 // NewGaugeVec creates a new GaugeVec based on the provided GaugeVecOpts.
 func (v2) NewGaugeVec(opts GaugeVecOpts) *GaugeVec {
-	return newGaugeVecWithTTL(opts, 0)
-}
-
-func newGaugeVecWithTTL(opts GaugeVecOpts, ttl time.Duration) *GaugeVec {
 	desc := V2.NewDesc(
 		BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 		opts.Help,

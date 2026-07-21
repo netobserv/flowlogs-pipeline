@@ -207,12 +207,6 @@ func NewCounterVec(opts CounterOpts, labelNames []string) *CounterVec {
 
 // NewCounterVec creates a new CounterVec based on the provided CounterVecOpts.
 func (v2) NewCounterVec(opts CounterVecOpts) *CounterVec {
-	return newCounterVecWithTTL(opts, 0)
-}
-
-// newCounterVecWithTTL creates a CounterVec. ttl must be >= 0; ttl == 0 disables
-// TTL behavior (identical to NewMetricVec).
-func newCounterVecWithTTL(opts CounterVecOpts, ttl time.Duration) *CounterVec {
 	desc := V2.NewDesc(
 		BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 		opts.Help,

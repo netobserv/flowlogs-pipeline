@@ -366,9 +366,8 @@ func (m *MetricVec) hashLabels(labels Labels) (uint64, error) {
 // metricWithLabelValues provides the metric and its label values for
 // disambiguation on hash collision.
 type metricWithLabelValues struct {
-	values       []string
-	metric       Metric
-	lastAccessed atomic.Int64 // unix timestamp in milliseconds; only used when TTL > 0
+	values []string
+	metric Metric
 }
 
 // curriedLabelValue sets the curried value for a label at the given index.
@@ -381,7 +380,7 @@ type curriedLabelValue struct {
 // metricVecs.
 type metricMap struct {
 	mtx       sync.RWMutex // Protects metrics.
-	metrics   map[uint64][]*metricWithLabelValues
+	metrics   map[uint64][]metricWithLabelValues
 	desc      *Desc
 	newMetric func(labelValues ...string) Metric
 	ttl       time.Duration // 0 disables TTL; see MetricVecOpts.TTL.
@@ -461,93 +460,6 @@ func (m *metricMap) Reset() {
 	}
 }
 
-// touchByHash updates lastAccessed for a metric found by hash and label values.
-// Acquires RLock internally.
-func (m *metricMap) touchByHash(h uint64, lvs []string, curry []curriedLabelValue) {
-	m.mtx.RLock()
-	defer m.mtx.RUnlock()
-	m.touchByHashRLocked(h, lvs, curry)
-}
-
-func (m *metricMap) touchByHashRLocked(h uint64, lvs []string, curry []curriedLabelValue) {
-	now := time.Now().UnixMilli()
-	metrics, ok := m.metrics[h]
-	if !ok {
-		return
-	}
-	if i := findMetricWithLabelValues(metrics, lvs, curry); i < len(metrics) {
-		metrics[i].lastAccessed.Store(now)
-	}
-}
-
-func (m *metricMap) touchByHashLocked(h uint64, lvs []string, curry []curriedLabelValue) {
-	now := time.Now().UnixMilli()
-	metrics, ok := m.metrics[h]
-	if !ok {
-		return
-	}
-	if i := findMetricWithLabelValues(metrics, lvs, curry); i < len(metrics) {
-		metrics[i].lastAccessed.Store(now)
-	}
-}
-
-func (m *metricMap) touchByHashLabels(h uint64, labels Labels, curry []curriedLabelValue) {
-	m.mtx.RLock()
-	defer m.mtx.RUnlock()
-	m.touchByHashLabelsRLocked(h, labels, curry)
-}
-
-func (m *metricMap) touchByHashLabelsRLocked(h uint64, labels Labels, curry []curriedLabelValue) {
-	now := time.Now().UnixMilli()
-	metrics, ok := m.metrics[h]
-	if !ok {
-		return
-	}
-	if i := findMetricWithLabels(m.desc, metrics, labels, curry); i < len(metrics) {
-		metrics[i].lastAccessed.Store(now)
-	}
-}
-
-func (m *metricMap) touchByHashLabelsLocked(h uint64, labels Labels, curry []curriedLabelValue) {
-	now := time.Now().UnixMilli()
-	metrics, ok := m.metrics[h]
-	if !ok {
-		return
-	}
-	if i := findMetricWithLabels(m.desc, metrics, labels, curry); i < len(metrics) {
-		metrics[i].lastAccessed.Store(now)
-	}
-}
-
-// cleanupExpired removes all children whose lastAccessed is older than TTL.
-func (m *metricMap) cleanupExpired() int {
-	if m.ttl <= 0 {
-		return 0
-	}
-
-	deadline := time.Now().Add(-m.ttl).UnixMilli()
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-
-	var numDeleted int
-	for h, metrics := range m.metrics {
-		remaining := metrics[:0]
-		for i := range metrics {
-			if metrics[i].lastAccessed.Load() >= deadline {
-				remaining = append(remaining, metrics[i])
-			} else {
-				numDeleted++
-			}
-		}
-		if len(remaining) == 0 {
-			delete(m.metrics, h)
-		} else {
-			m.metrics[h] = remaining
-		}
-	}
-	return numDeleted
-}
-
 // deleteByHashWithLabelValues removes the metric from the hash bucket h. If
 // there are multiple matches in the bucket, use lvs to select a metric and
 // remove only that metric.
@@ -570,7 +482,7 @@ func (m *metricMap) deleteByHashWithLabelValues(
 	if len(metrics) > 1 {
 		old := metrics
 		m.metrics[h] = append(metrics[:i], metrics[i+1:]...)
-		old[len(old)-1] = nil
+		old[len(old)-1] = metricWithLabelValues{}
 	} else {
 		delete(m.metrics, h)
 	}
@@ -598,7 +510,7 @@ func (m *metricMap) deleteByHashWithLabels(
 	if len(metrics) > 1 {
 		old := metrics
 		m.metrics[h] = append(metrics[:i], metrics[i+1:]...)
-		old[len(old)-1] = nil
+		old[len(old)-1] = metricWithLabelValues{}
 	} else {
 		delete(m.metrics, h)
 	}
@@ -628,10 +540,10 @@ func (m *metricMap) deleteByLabels(labels Labels, curry []curriedLabelValue) int
 // findMetricWithPartialLabel returns the index of the matching metric or
 // len(metrics) if not found.
 func findMetricWithPartialLabels(
-	desc *Desc, metrics []*metricWithLabelValues, labels Labels, curry []curriedLabelValue,
+	desc *Desc, metrics []metricWithLabelValues, labels Labels, curry []curriedLabelValue,
 ) int {
-	for i := range metrics {
-		if matchPartialLabels(desc, metrics[i].values, labels, curry) {
+	for i, metric := range metrics {
+		if matchPartialLabels(desc, metric.values, labels, curry) {
 			return i
 		}
 	}
@@ -783,10 +695,10 @@ func (m *metricMap) getMetricWithHashAndLabels(
 // findMetricWithLabelValues returns the index of the matching metric or
 // len(metrics) if not found.
 func findMetricWithLabelValues(
-	metrics []*metricWithLabelValues, lvs []string, curry []curriedLabelValue,
+	metrics []metricWithLabelValues, lvs []string, curry []curriedLabelValue,
 ) int {
-	for i := range metrics {
-		if matchLabelValues(metrics[i].values, lvs, curry) {
+	for i, metric := range metrics {
+		if matchLabelValues(metric.values, lvs, curry) {
 			return i
 		}
 	}
@@ -796,10 +708,10 @@ func findMetricWithLabelValues(
 // findMetricWithLabels returns the index of the matching metric or len(metrics)
 // if not found.
 func findMetricWithLabels(
-	desc *Desc, metrics []*metricWithLabelValues, labels Labels, curry []curriedLabelValue,
+	desc *Desc, metrics []metricWithLabelValues, labels Labels, curry []curriedLabelValue,
 ) int {
-	for i := range metrics {
-		if matchLabels(desc, metrics[i].values, labels, curry) {
+	for i, metric := range metrics {
+		if matchLabels(desc, metric.values, labels, curry) {
 			return i
 		}
 	}
