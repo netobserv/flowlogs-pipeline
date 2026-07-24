@@ -22,8 +22,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"os"
-
-	"github.com/netobserv/flowlogs-pipeline/pkg/tlsprofile"
 )
 
 type ClientTLS struct {
@@ -38,7 +36,6 @@ func (c *ClientTLS) Build() (*tls.Config, error) {
 		InsecureSkipVerify: c.InsecureSkipVerify,
 		MinVersion:         tls.VersionTLS13,
 	}
-	tlsprofile.Apply(tlsConfig)
 	if c.CACertPath != "" {
 		caCert, err := os.ReadFile(c.CACertPath)
 		if err != nil {
