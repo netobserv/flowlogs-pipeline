@@ -2,6 +2,7 @@ package write
 
 import (
 	"context"
+	cryptotls "crypto/tls"
 	"encoding/json"
 	"fmt"
 
@@ -46,7 +47,15 @@ func NewWriteGRPC(params config.StageParam) (Writer, error) {
 		return nil, fmt.Errorf("write.grpc param is mandatory: %v", params.Write)
 	}
 	logrus.Debugf("NewWriteGRPC ConnectClient %s:%d...", writeGRPC.hostIP, writeGRPC.hostPort)
-	clientConn, err := grpc.ConnectClient(writeGRPC.hostIP, writeGRPC.hostPort, nil)
+	var tlsCfg *cryptotls.Config
+	if params.Write.GRPC.TLS != nil {
+		var err error
+		tlsCfg, err = params.Write.GRPC.TLS.Build()
+		if err != nil {
+			return nil, fmt.Errorf("failed to build TLS config: %w", err)
+		}
+	}
+	clientConn, err := grpc.ConnectClient(writeGRPC.hostIP, writeGRPC.hostPort, tlsCfg)
 	if err != nil {
 		return nil, err
 	}
