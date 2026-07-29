@@ -75,7 +75,9 @@ func NewGRPCProtobuf(opMetrics *operational.Metrics, params config.StageParam) (
 			ClientAuth:   tls.NoClientCert,
 			MinVersion:   tls.VersionTLS13,
 		}
-		tlsprofile.Apply(tlsCfg)
+		if _, err := tlsprofile.Apply(tlsCfg); err != nil {
+			return nil, fmt.Errorf("invalid TLS profile override: %w", err)
+		}
 		if cfg.ClientCAPath != "" {
 			// mTLS
 			caCert, err := os.ReadFile(cfg.ClientCAPath)

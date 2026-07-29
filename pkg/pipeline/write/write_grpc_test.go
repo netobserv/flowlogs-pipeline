@@ -1,12 +1,14 @@
 package write
 
 import (
+	cryptotls "crypto/tls"
 	"testing"
 
 	"github.com/mariomac/guara/pkg/test"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write/grpc"
+	"github.com/netobserv/flowlogs-pipeline/pkg/tlsprofile"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,4 +41,52 @@ func Test_NewWriteGRPC(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, writer)
+}
+
+func Test_ResolveTLSConfig_NoTLSConfiguration(t *testing.T) {
+	// Explicitly clear all three vars: a TLS_* value inherited from the
+	// parent environment must not make this test nondeterministic.
+	t.Setenv(tlsprofile.EnvMinVersion, "")
+	t.Setenv(tlsprofile.EnvCipherSuites, "")
+	t.Setenv(tlsprofile.EnvCurvePreferences, "")
+
+	tlsCfg, err := resolveTLSConfig(nil)
+	require.NoError(t, err)
+	require.Nil(t, tlsCfg, "no explicit TLS and no env override should keep the connection insecure")
+}
+
+func Test_ResolveTLSConfig_EnvironmentOnlyTLS(t *testing.T) {
+	t.Setenv(tlsprofile.EnvMinVersion, "771")
+	t.Setenv(tlsprofile.EnvCipherSuites, "49199,49200")
+
+	tlsCfg, err := resolveTLSConfig(nil)
+	require.NoError(t, err)
+	require.NotNil(t, tlsCfg, "a valid env override alone should turn on TLS")
+	require.Equal(t, uint16(cryptotls.VersionTLS12), tlsCfg.MinVersion)
+	require.Equal(t, []uint16{49199, 49200}, tlsCfg.CipherSuites)
+}
+
+func Test_ResolveTLSConfig_ExplicitTLSWithOverride(t *testing.T) {
+	t.Setenv(tlsprofile.EnvMinVersion, "771")
+
+	tlsCfg, err := resolveTLSConfig(&api.ClientTLS{InsecureSkipVerify: true})
+	require.NoError(t, err)
+	require.NotNil(t, tlsCfg)
+	require.True(t, tlsCfg.InsecureSkipVerify, "explicit TLS config should still be honored")
+	require.Equal(t, uint16(cryptotls.VersionTLS12), tlsCfg.MinVersion, "env override should apply on top of the explicit TLS config")
+}
+
+func Test_ResolveTLSConfig_MalformedEnvironmentValue(t *testing.T) {
+	t.Setenv(tlsprofile.EnvMinVersion, "not-a-number")
+
+	// Malformed env value with no explicit TLS config.
+	tlsCfg, err := resolveTLSConfig(nil)
+	require.Error(t, err)
+	require.Nil(t, tlsCfg)
+
+	// Malformed env value with an explicit TLS config: the invalid override
+	// must not be silently dropped in favor of the explicit config.
+	tlsCfg, err = resolveTLSConfig(&api.ClientTLS{})
+	require.Error(t, err)
+	require.Nil(t, tlsCfg)
 }
