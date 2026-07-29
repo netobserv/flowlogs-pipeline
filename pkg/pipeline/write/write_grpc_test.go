@@ -66,6 +66,18 @@ func Test_ResolveTLSConfig_EnvironmentOnlyTLS(t *testing.T) {
 	require.Equal(t, []uint16{49199, 49200}, tlsCfg.CipherSuites)
 }
 
+func Test_ResolveTLSConfig_EnvironmentOnlyAllTLS13CipherSuites(t *testing.T) {
+	// No TLS_MIN_VERSION: the base env-only config already defaults to TLS 1.3,
+	// and TLS_CIPHER_SUITES only contains TLS 1.3 suite IDs, which are never
+	// applied to CipherSuites. With nothing actually applied, TLS is not
+	// turned on, same as if no env override had been set at all.
+	t.Setenv(tlsprofile.EnvCipherSuites, "4865,4866,4867")
+
+	tlsCfg, err := resolveTLSConfig(nil)
+	require.NoError(t, err)
+	require.Nil(t, tlsCfg, "an all-TLS-1.3 cipher list has nothing to apply, so TLS should stay off")
+}
+
 func Test_ResolveTLSConfig_ExplicitTLSWithOverride(t *testing.T) {
 	t.Setenv(tlsprofile.EnvMinVersion, "771")
 
