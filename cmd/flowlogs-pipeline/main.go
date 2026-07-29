@@ -41,8 +41,8 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/k8scache"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/prometheus"
-	"github.com/netobserv/flowlogs-pipeline/pkg/tlsprofile"
 	"github.com/netobserv/flowlogs-pipeline/pkg/server"
+	"github.com/netobserv/flowlogs-pipeline/pkg/tlsprofile"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -355,7 +355,9 @@ func createServerTLSConfig(cfg *config.K8sCacheServer) (credentials.TransportCre
 		ClientAuth:   tls.NoClientCert,
 		MinVersion:   tls.VersionTLS13,
 	}
-	tlsprofile.Apply(tlsConfig)
+	if _, err := tlsprofile.Apply(tlsConfig); err != nil {
+		return nil, fmt.Errorf("invalid TLS profile override: %w", err)
+	}
 
 	// If CA is provided, require and verify client certificates
 	if cfg.TLSCAPath != "" {
