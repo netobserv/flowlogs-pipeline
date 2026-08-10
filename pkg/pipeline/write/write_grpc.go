@@ -65,19 +65,28 @@ func NewWriteGRPC(params config.StageParam) (Writer, error) {
 // If cfg is set, it is used to build the explicit TLS configuration, which is
 // then extended with any TLS-profile environment overrides (TLS_MIN_VERSION,
 // TLS_CIPHER_SUITES, TLS_CURVE_PREFERENCES).
-// If cfg is nil, nil is returned and the connection remains insecure: profile
-// env vars only constrain TLS when TLS is already configured, they must not
-// enable it on a previously plaintext writer.
+// If cfg is nil, a TLS configuration is only created when the environment
+// yields at least one valid override; otherwise nil is returned and the
+// connection remains insecure, preserving prior behavior.
 func resolveTLSConfig(cfg *api.ClientTLS) (*cryptotls.Config, error) {
-	if cfg == nil {
-		return nil, nil
+	if cfg != nil {
+		tlsCfg, err := cfg.Build()
+		if err != nil {
+			return nil, fmt.Errorf("failed to build TLS config: %w", err)
+		}
+		if _, err := tlsprofile.Apply(tlsCfg); err != nil {
+			return nil, fmt.Errorf("invalid TLS profile override: %w", err)
+		}
+		return tlsCfg, nil
 	}
-	tlsCfg, err := cfg.Build()
+
+	envCfg := &cryptotls.Config{MinVersion: cryptotls.VersionTLS13}
+	applied, err := tlsprofile.Apply(envCfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build TLS config: %w", err)
-	}
-	if _, err := tlsprofile.Apply(tlsCfg); err != nil {
 		return nil, fmt.Errorf("invalid TLS profile override: %w", err)
 	}
-	return tlsCfg, nil
+	if !applied {
+		return nil, nil
+	}
+	return envCfg, nil
 }
