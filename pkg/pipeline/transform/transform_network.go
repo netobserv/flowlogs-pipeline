@@ -242,58 +242,65 @@ func initNetworkServices(cfg *api.TransformNetwork) (*netdb.ServiceNames, error)
 	return netdb.LoadServicesDB(protos, services)
 }
 
+type networkInitFlags struct {
+	locationDBConfig          *api.NetworkAddLocationRule
+	needToInitKubeData        bool
+	needToInitNetworkServices bool
+	needToInitFRR             bool
+}
+
+func inspectNetworkRules(cfg *api.TransformNetwork) (networkInitFlags, error) {
+	var flags networkInitFlags
+	for _, rule := range cfg.Rules {
+		switch rule.Type {
+		case api.NetworkAddLocation:
+			if rule.AddLocation == nil {
+				return flags, fmt.Errorf("missing configuration for '%s' rule", api.NetworkAddLocation)
+			}
+			flags.locationDBConfig = rule.AddLocation
+		case api.NetworkAddKubernetes, api.NetworkAddKubernetesInfra:
+			flags.needToInitKubeData = true
+		case api.NetworkAddService:
+			flags.needToInitNetworkServices = true
+		case api.NetworkReinterpretDirection:
+			if err := validateReinterpretDirectionConfig(&cfg.DirectionInfo); err != nil {
+				return flags, err
+			}
+		case api.NetworkAddASNLabel:
+			flags.needToInitFRR = true
+		case api.NetworkAddSubnetLabel, api.NetworkAddSubnet, api.NetworkDecodeTCPFlags:
+			// no init required
+		}
+	}
+	return flags, nil
+}
+
 // NewTransformNetwork create a new network transform
 func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metrics) (Transformer, error) {
-	var locationDBConfig *api.NetworkAddLocationRule
-	var needToInitKubeData = false
-	var needToInitNetworkServices = false
-
 	jsonNetworkTransform := api.TransformNetwork{}
 	if params.Transform != nil && params.Transform.Network != nil {
 		jsonNetworkTransform = *params.Transform.Network
 	}
 	jsonNetworkTransform.Preprocess()
 
-	var needToInitFRR = false
-	for _, rule := range jsonNetworkTransform.Rules {
-		switch rule.Type {
-		case api.NetworkAddLocation:
-			if rule.AddLocation == nil {
-				return nil, fmt.Errorf("missing configuration for '%s' rule", api.NetworkAddLocation)
-			}
-			locationDBConfig = rule.AddLocation
-		case api.NetworkAddKubernetes:
-			needToInitKubeData = true
-		case api.NetworkAddKubernetesInfra:
-			needToInitKubeData = true
-		case api.NetworkAddService:
-			needToInitNetworkServices = true
-		case api.NetworkReinterpretDirection:
-			if err := validateReinterpretDirectionConfig(&jsonNetworkTransform.DirectionInfo); err != nil {
-				return nil, err
-			}
-		case api.NetworkAddASNLabel:
-			needToInitFRR = true
-		case api.NetworkAddSubnetLabel, api.NetworkAddSubnet, api.NetworkDecodeTCPFlags:
-			// nothing
-		}
+	flags, err := inspectNetworkRules(&jsonNetworkTransform)
+	if err != nil {
+		return nil, err
 	}
 
-	if locationDBConfig != nil {
-		err := location.InitLocationDB(locationDBConfig.FilePath)
-		if err != nil {
+	if flags.locationDBConfig != nil {
+		if err := location.InitLocationDB(flags.locationDBConfig.FilePath); err != nil {
 			log.Warnf("location.InitLocationDB error: %v", err)
 		}
 	}
 
-	if needToInitKubeData {
-		err := kubernetes.InitInformerDatasource(&jsonNetworkTransform.KubeConfig, opMetrics)
-		if err != nil {
+	if flags.needToInitKubeData {
+		if err := kubernetes.InitInformerDatasource(&jsonNetworkTransform.KubeConfig, opMetrics); err != nil {
 			return nil, err
 		}
 	}
 
-	if needToInitFRR {
+	if flags.needToInitFRR {
 		// Soft-fail: BGP/FRR is optional; enrichment simply no-ops without a store.
 		if err := frr.InitStore(jsonNetworkTransform.KubeConfig.ConfigPath); err != nil {
 			log.Warnf("FRR ASN enrichment disabled: %v", err)
@@ -301,7 +308,7 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 	}
 
 	var servicesDB *netdb.ServiceNames
-	if needToInitNetworkServices {
+	if flags.needToInitNetworkServices {
 		db, err := initNetworkServices(&jsonNetworkTransform)
 		if err != nil {
 			return nil, err
