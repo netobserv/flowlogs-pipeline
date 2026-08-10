@@ -24,10 +24,12 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/frr"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func getMockNetworkTransformRules() api.NetworkTransformRules {
@@ -240,6 +242,54 @@ func InitNewTransformNetwork(t *testing.T, configFile string) Transformer {
 	newTransform, err := NewTransformNetwork(config, nil)
 	require.NoError(t, err)
 	return newTransform
+}
+
+func Test_AddASNLabel(t *testing.T) {
+	frr.ResetStore()
+	t.Cleanup(frr.ResetStore)
+
+	store := frr.NewInformerStore()
+	require.NoError(t, store.LoadConfigs(&unstructured.Unstructured{Object: map[string]interface{}{
+		"metadata": map[string]interface{}{"name": "test", "namespace": "ns"},
+		"spec": map[string]interface{}{
+			"bgp": map[string]interface{}{
+				"routers": []interface{}{
+					map[string]interface{}{
+						"asn":      int64(64512),
+						"prefixes": []interface{}{"10.128.0.0/14"},
+					},
+					map[string]interface{}{
+						"asn":      int64(64513),
+						"vrf":      "blue",
+						"prefixes": []interface{}{"10.128.2.0/24"},
+					},
+				},
+			},
+		},
+	}}))
+	frr.SetStore(store)
+
+	cfg := config.StageParam{
+		Transform: &config.Transform{
+			Network: &api.TransformNetwork{
+				Rules: []api.NetworkTransformRule{
+					{Type: api.NetworkAddASNLabel, AddASNLabel: &api.NetworkAddASNLabelRule{Input: "SrcAddr", Output: "SrcASN"}},
+					{Type: api.NetworkAddASNLabel, AddASNLabel: &api.NetworkAddASNLabelRule{Input: "DstAddr", Output: "DstASN"}},
+				},
+			},
+		},
+	}
+	// Store already injected; InitStore is a no-op when a store is set.
+	tr, err := NewTransformNetwork(cfg, nil)
+	require.NoError(t, err)
+
+	output, ok := tr.Transform(config.GenericMap{
+		"SrcAddr": "10.128.2.8",
+		"DstAddr": "10.129.0.1",
+	})
+	require.True(t, ok)
+	require.Equal(t, "64513", output["SrcASN"]) // LPM: /24 over /14
+	require.Equal(t, "64512", output["DstASN"])
 }
 
 func Test_Categorize(t *testing.T) {

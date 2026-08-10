@@ -29,6 +29,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/frr"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
@@ -154,6 +155,8 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 					}
 				}
 			}
+		case api.NetworkAddASNLabel:
+			frr.Enrich(outputEntry, rule.AddASNLabel)
 
 		default:
 			log.Panicf("unknown type %s for transform.Network rule: %v", rule.Type, rule)
@@ -251,6 +254,7 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 	}
 	jsonNetworkTransform.Preprocess()
 
+	var needToInitFRR = false
 	for _, rule := range jsonNetworkTransform.Rules {
 		switch rule.Type {
 		case api.NetworkAddLocation:
@@ -268,6 +272,8 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 			if err := validateReinterpretDirectionConfig(&jsonNetworkTransform.DirectionInfo); err != nil {
 				return nil, err
 			}
+		case api.NetworkAddASNLabel:
+			needToInitFRR = true
 		case api.NetworkAddSubnetLabel, api.NetworkAddSubnet, api.NetworkDecodeTCPFlags:
 			// nothing
 		}
@@ -284,6 +290,13 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 		err := kubernetes.InitInformerDatasource(&jsonNetworkTransform.KubeConfig, opMetrics)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	if needToInitFRR {
+		// Soft-fail: BGP/FRR is optional; enrichment simply no-ops without a store.
+		if err := frr.InitStore(jsonNetworkTransform.KubeConfig.ConfigPath); err != nil {
+			log.Warnf("FRR ASN enrichment disabled: %v", err)
 		}
 	}
 
