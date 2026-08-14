@@ -52,8 +52,9 @@ type options struct {
 	HealthPort           int  // Port for health check HTTP server
 	MetricsPort          int  // Port for Prometheus metrics HTTP server
 	// Kubernetes informer configuration (must match processor settings)
-	ManagedCNI   string // Comma-separated list of CNI plugins to manage (e.g., "ovn")
-	TrackedKinds string // Comma-separated list of Kubernetes kinds to track (e.g., "Deployment,Gateway")
+	ManagedCNI        string // Comma-separated list of CNI plugins to manage (e.g., "ovn")
+	TrackedKinds      string // Comma-separated list of Kubernetes kinds to track (e.g., "Deployment,Gateway")
+	SecondaryNetworks string // Comma-separated list of secondary network index types (e.g., "ip,mac,interface,udn")
 }
 
 var opts = options{}
@@ -138,6 +139,7 @@ func initFlags() {
 	// Kubernetes informer configuration
 	rootCmd.PersistentFlags().StringVar(&opts.ManagedCNI, "managed-cni", "", "Comma-separated list of CNI plugins to manage (e.g., 'ovn'). Must match processor configuration.")
 	rootCmd.PersistentFlags().StringVar(&opts.TrackedKinds, "tracked-kinds", "", "Comma-separated list of Kubernetes kinds to track for ownership (e.g., 'Deployment,Gateway'). Must match processor configuration.")
+	rootCmd.PersistentFlags().StringVar(&opts.SecondaryNetworks, "secondary-networks", "", "Comma-separated list of secondary network index types (e.g., 'ip,mac,interface,udn'). Must match processor configuration.")
 }
 
 func main() {
@@ -253,6 +255,16 @@ func runInformers(ctx context.Context, healthServer *informers.HealthServer) {
 		for i := range apiConfig.TrackedKinds {
 			apiConfig.TrackedKinds[i] = strings.TrimSpace(apiConfig.TrackedKinds[i])
 		}
+	}
+
+	// Parse comma-separated secondary network index types
+	if opts.SecondaryNetworks != "" {
+		indexTypes := strings.Split(opts.SecondaryNetworks, ",")
+		indexMap := map[string]any{}
+		for _, t := range indexTypes {
+			indexMap[strings.TrimSpace(t)] = nil
+		}
+		apiConfig.SecondaryNetworks = []api.SecondaryNetwork{{Index: indexMap}}
 	}
 
 	infConfig := k8sinformers.NewConfig(apiConfig)
