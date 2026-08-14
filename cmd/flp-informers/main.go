@@ -54,7 +54,7 @@ type options struct {
 	// Kubernetes informer configuration (must match processor settings)
 	ManagedCNI        string // Comma-separated list of CNI plugins to manage (e.g., "ovn")
 	TrackedKinds      string // Comma-separated list of Kubernetes kinds to track (e.g., "Deployment,Gateway")
-	SecondaryNetworks string // Comma-separated list of secondary network index types (e.g., "ip,mac,interface,udn")
+	SecondaryNetworks string // Semicolon-separated index sets, comma-separated within (e.g., "interface,ip;interface,mac;udn")
 }
 
 var opts = options{}
@@ -139,7 +139,7 @@ func initFlags() {
 	// Kubernetes informer configuration
 	rootCmd.PersistentFlags().StringVar(&opts.ManagedCNI, "managed-cni", "", "Comma-separated list of CNI plugins to manage (e.g., 'ovn'). Must match processor configuration.")
 	rootCmd.PersistentFlags().StringVar(&opts.TrackedKinds, "tracked-kinds", "", "Comma-separated list of Kubernetes kinds to track for ownership (e.g., 'Deployment,Gateway'). Must match processor configuration.")
-	rootCmd.PersistentFlags().StringVar(&opts.SecondaryNetworks, "secondary-networks", "", "Comma-separated list of secondary network index types (e.g., 'ip,mac,interface,udn'). Must match processor configuration.")
+	rootCmd.PersistentFlags().StringVar(&opts.SecondaryNetworks, "secondary-networks", "", "Semicolon-separated index sets, comma-separated within (e.g., 'interface,ip;interface,mac;udn'). Must match processor configuration.")
 }
 
 func main() {
@@ -257,19 +257,23 @@ func runInformers(ctx context.Context, healthServer *informers.HealthServer) {
 		}
 	}
 
-	// Parse comma-separated secondary network index types
+	// Parse secondary network index sets (semicolon-separated groups, comma-separated within each group)
 	if opts.SecondaryNetworks != "" {
-		indexTypes := strings.Split(opts.SecondaryNetworks, ",")
-		indexMap := map[string]any{}
-		for _, t := range indexTypes {
-			t = strings.TrimSpace(t)
-			if t == "" {
+		for _, group := range strings.Split(opts.SecondaryNetworks, ";") {
+			group = strings.TrimSpace(group)
+			if group == "" {
 				continue
 			}
-			indexMap[t] = nil
-		}
-		if len(indexMap) > 0 {
-			apiConfig.SecondaryNetworks = []api.SecondaryNetwork{{Index: indexMap}}
+			indexMap := map[string]any{}
+			for _, t := range strings.Split(group, ",") {
+				t = strings.TrimSpace(t)
+				if t != "" {
+					indexMap[t] = nil
+				}
+			}
+			if len(indexMap) > 0 {
+				apiConfig.SecondaryNetworks = append(apiConfig.SecondaryNetworks, api.SecondaryNetwork{Index: indexMap})
+			}
 		}
 	}
 
