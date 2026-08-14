@@ -205,38 +205,7 @@ func run(_ *cobra.Command, _ []string) {
 	cancel()
 }
 
-func runInformers(ctx context.Context, healthServer *informers.HealthServer) {
-	log.Info("Starting informers and gRPC client")
-
-	// Create gRPC client
-	clientConfig := k8scache.ClientConfig{
-		TLSEnabled:         opts.TLSEnabled,
-		TLSCertPath:        opts.TLSCertPath,
-		TLSKeyPath:         opts.TLSKeyPath,
-		TLSCAPath:          opts.TLSCAPath,
-		TLSServerName:      opts.TLSServerName,
-		InsecureSkipVerify: opts.InsecureSkipVerify,
-		UpdateBufferSize:   opts.UpdateBufferSize,
-		SendTimeout:        time.Duration(opts.SendTimeoutSec) * time.Second,
-		BatchSize:          opts.BatchSize,
-	}
-	grpcClient := k8scache.NewClient(&clientConfig)
-
-	if opts.TLSEnabled {
-		log.Info("TLS enabled for gRPC connections to processors")
-		// Warn if neither TLSServerName nor ProcessorServiceName is set (may cause TLS verification issues)
-		if opts.TLSServerName == "" && opts.ProcessorServiceName == "" {
-			log.Warn("TLS enabled but neither --tls-server-name nor --processor-service-name is set. " +
-				"TLS verification may fail when connecting by IP. Consider setting one of these options.")
-		}
-	} else {
-		log.Warn("TLS disabled - connections to processors are insecure (not recommended for production)")
-	}
-	grpcClient.Start()
-	defer grpcClient.Stop()
-
-	// Initialize Kubernetes informers
-	// Parse CLI flags into api config to ensure informer settings match processor settings
+func buildKubeConfig() *api.NetworkTransformKubeConfig {
 	apiConfig := &api.NetworkTransformKubeConfig{
 		ConfigPath: opts.Kubeconfig,
 	}
@@ -277,6 +246,41 @@ func runInformers(ctx context.Context, healthServer *informers.HealthServer) {
 		}
 	}
 
+	return apiConfig
+}
+
+func runInformers(ctx context.Context, healthServer *informers.HealthServer) {
+	log.Info("Starting informers and gRPC client")
+
+	// Create gRPC client
+	clientConfig := k8scache.ClientConfig{
+		TLSEnabled:         opts.TLSEnabled,
+		TLSCertPath:        opts.TLSCertPath,
+		TLSKeyPath:         opts.TLSKeyPath,
+		TLSCAPath:          opts.TLSCAPath,
+		TLSServerName:      opts.TLSServerName,
+		InsecureSkipVerify: opts.InsecureSkipVerify,
+		UpdateBufferSize:   opts.UpdateBufferSize,
+		SendTimeout:        time.Duration(opts.SendTimeoutSec) * time.Second,
+		BatchSize:          opts.BatchSize,
+	}
+	grpcClient := k8scache.NewClient(&clientConfig)
+
+	if opts.TLSEnabled {
+		log.Info("TLS enabled for gRPC connections to processors")
+		// Warn if neither TLSServerName nor ProcessorServiceName is set (may cause TLS verification issues)
+		if opts.TLSServerName == "" && opts.ProcessorServiceName == "" {
+			log.Warn("TLS enabled but neither --tls-server-name nor --processor-service-name is set. " +
+				"TLS verification may fail when connecting by IP. Consider setting one of these options.")
+		}
+	} else {
+		log.Warn("TLS disabled - connections to processors are insecure (not recommended for production)")
+	}
+	grpcClient.Start()
+	defer grpcClient.Stop()
+
+	// Initialize Kubernetes informers
+	apiConfig := buildKubeConfig()
 	infConfig := k8sinformers.NewConfig(apiConfig)
 	inf := &k8sinformers.Informers{}
 	opMetrics := operational.NewMetrics(&config.MetricsSettings{})
