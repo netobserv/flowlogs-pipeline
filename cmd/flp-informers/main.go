@@ -262,9 +262,15 @@ func runInformers(ctx context.Context, healthServer *informers.HealthServer) {
 		indexTypes := strings.Split(opts.SecondaryNetworks, ",")
 		indexMap := map[string]any{}
 		for _, t := range indexTypes {
-			indexMap[strings.TrimSpace(t)] = nil
+			t = strings.TrimSpace(t)
+			if t == "" {
+				continue
+			}
+			indexMap[t] = nil
 		}
-		apiConfig.SecondaryNetworks = []api.SecondaryNetwork{{Index: indexMap}}
+		if len(indexMap) > 0 {
+			apiConfig.SecondaryNetworks = []api.SecondaryNetwork{{Index: indexMap}}
+		}
 	}
 
 	infConfig := k8sinformers.NewConfig(apiConfig)
