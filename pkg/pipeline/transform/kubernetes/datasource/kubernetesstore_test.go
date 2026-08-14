@@ -82,6 +82,43 @@ func TestKubernetesStore_NilEntries(t *testing.T) {
 	})
 }
 
+// TestKubernetesStore_SecondaryNetworkLookup verifies that IndexLookup by secondary
+// network key returns the entry and that Datasource resolves NetworkName from SecondaryNetNames
+func TestKubernetesStore_SecondaryNetworkLookup(t *testing.T) {
+	store := NewKubernetesStore()
+
+	pod := &model.ResourceMetaData{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "udn-pod",
+			Namespace: "udn-ns",
+			UID:       "uid-udn-pod",
+		},
+		Kind:              "Pod",
+		IPs:               []string{"10.0.0.1"},
+		SecondaryNetKeys:  []string{"~~aa:bb:cc:dd:ee:ff"},
+		SecondaryNetNames: map[string]string{"~~aa:bb:cc:dd:ee:ff": "cudn-network"},
+	}
+
+	store.AddOrUpdate([]*model.ResourceMetaData{pod})
+
+	t.Run("lookup by secondary key", func(t *testing.T) {
+		result := store.IndexLookup([]string{"~~aa:bb:cc:dd:ee:ff"}, "")
+		require.NotNil(t, result)
+		require.Equal(t, "udn-pod", result.Name)
+	})
+
+	t.Run("datasource resolves NetworkName from SecondaryNetNames", func(t *testing.T) {
+		ds := &Datasource{}
+		ds.SetKubernetesStore(store)
+
+		result := ds.IndexLookup([]string{"~~aa:bb:cc:dd:ee:ff"}, "")
+		require.NotNil(t, result)
+		require.Equal(t, "udn-pod", result.Name)
+		require.Equal(t, "cudn-network", result.NetworkName)
+	})
+
+}
+
 // TestKubernetesStore_FirstMatchWins verifies that byIP honors "first match wins"
 // and deletion only removes entries owned by the resource being deleted
 func TestKubernetesStore_FirstMatchWins(t *testing.T) {
