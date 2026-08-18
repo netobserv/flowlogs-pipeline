@@ -40,21 +40,13 @@ func NewDatasourceK8sCache() *Datasource {
 }
 
 func (d *Datasource) IndexLookup(potentialKeys []string, ip string) *model.ResourceMetaData {
-	var result *model.ResourceMetaData
 	if d.kubernetesStore != nil {
-		result = d.kubernetesStore.IndexLookup(potentialKeys, ip)
-	} else if d.Informers != nil {
-		result = d.Informers.IndexLookup(potentialKeys, ip)
+		return d.kubernetesStore.IndexLookup(potentialKeys, ip)
 	}
-	if result != nil {
-		for _, key := range potentialKeys {
-			if name, ok := result.SecondaryNetNames[key]; ok {
-				result.NetworkName = name
-				break
-			}
-		}
+	if d.Informers != nil {
+		return d.Informers.IndexLookup(potentialKeys, ip)
 	}
-	return result
+	return nil
 }
 
 func (d *Datasource) GetNodeByName(name string) (*model.ResourceMetaData, error) {

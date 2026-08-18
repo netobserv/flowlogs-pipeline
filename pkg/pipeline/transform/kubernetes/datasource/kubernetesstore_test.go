@@ -101,13 +101,14 @@ func TestKubernetesStore_SecondaryNetworkLookup(t *testing.T) {
 
 	store.AddOrUpdate([]*model.ResourceMetaData{pod})
 
-	t.Run("lookup by secondary key", func(t *testing.T) {
+	t.Run("lookup by secondary key sets NetworkName", func(t *testing.T) {
 		result := store.IndexLookup([]string{"~~aa:bb:cc:dd:ee:ff"}, "")
 		require.NotNil(t, result)
 		require.Equal(t, "udn-pod", result.Name)
+		require.Equal(t, "cudn-network", result.NetworkName)
 	})
 
-	t.Run("datasource resolves NetworkName from SecondaryNetNames", func(t *testing.T) {
+	t.Run("datasource delegates NetworkName to KubernetesStore", func(t *testing.T) {
 		ds := &Datasource{}
 		ds.SetKubernetesStore(store)
 

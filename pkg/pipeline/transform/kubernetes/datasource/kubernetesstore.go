@@ -145,12 +145,14 @@ func (s *KubernetesStore) Delete(entries []*model.ResourceMetaData) {
 
 // IndexLookup finds metadata by secondary network keys first, then by IP.
 // Implements the same semantics as informers.Interface for use when KubernetesStore is the source.
+// When found via a secondary key, NetworkName is set on the result (requires write lock).
 func (s *KubernetesStore) IndexLookup(potentialKeys []string, ip string) *model.ResourceMetaData {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	for _, key := range potentialKeys {
 		if meta, ok := s.bySecondaryKey[key]; ok {
+			meta.NetworkName = meta.SecondaryNetNames[key]
 			return meta
 		}
 	}
