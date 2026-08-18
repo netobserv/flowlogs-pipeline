@@ -43,6 +43,7 @@ func (d *Datasource) IndexLookup(potentialKeys []string, ip string) *model.Resou
 	if d.kubernetesStore != nil {
 		return d.kubernetesStore.IndexLookup(potentialKeys, ip)
 	}
+	// Fallback to local informers if available (nil when k8scache is enabled)
 	if d.Informers != nil {
 		return d.Informers.IndexLookup(potentialKeys, ip)
 	}
