@@ -118,6 +118,18 @@ func TestKubernetesStore_SecondaryNetworkLookup(t *testing.T) {
 		require.Equal(t, "cudn-network", result.NetworkName)
 	})
 
+	t.Run("secondary lookup does not leak NetworkName to IP lookup", func(t *testing.T) {
+		// First: lookup by secondary key sets NetworkName on the returned copy
+		byKey := store.IndexLookup([]string{"~~aa:bb:cc:dd:ee:ff"}, "")
+		require.NotNil(t, byKey)
+		require.Equal(t, "cudn-network", byKey.NetworkName)
+
+		// Second: lookup same pod by IP should not have NetworkName from above
+		byIP := store.IndexLookup(nil, "10.0.0.1")
+		require.NotNil(t, byIP)
+		require.Equal(t, "udn-pod", byIP.Name)
+		require.Empty(t, byIP.NetworkName)
+	})
 }
 
 // TestKubernetesStore_FirstMatchWins verifies that byIP honors "first match wins"
