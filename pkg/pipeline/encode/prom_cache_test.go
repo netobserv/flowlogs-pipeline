@@ -99,8 +99,8 @@ func encodeEntries(promEncode *Prometheus, entries []config.GenericMap) {
 	}
 }
 
-// Test_Prom_Cache tests the integration between encode_prom and timebased_cache.
-// Set a cache size, create many prom metrics, and verify that they interact properly.
+// Test_Prom_Cache tests the integration between encode_prom and Vec TTL.
+// Set a max metrics size, create many prom metrics, and verify that they interact properly.
 func Test_Prom_Cache1(t *testing.T) {
 	var entries []config.GenericMap
 
@@ -113,12 +113,12 @@ func Test_Prom_Cache1(t *testing.T) {
 	entries = utils.GenerateConnectionFlowEntries(10)
 	require.Equal(t, 10, len(entries))
 	encodeEntries(promEncode, entries)
-	require.Equal(t, 10, promEncode.metricCommon.mCache.GetCacheLen())
+	require.Equal(t, 10, promEncode.metricCommon.countVecChildren())
 
 	entries = utils.GenerateConnectionFlowEntries(40)
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
-	require.Equal(t, 30, promEncode.metricCommon.mCache.GetCacheLen())
+	require.Equal(t, 30, promEncode.metricCommon.countVecChildren())
 }
 
 func Test_Prom_Cache2(t *testing.T) {
@@ -133,12 +133,12 @@ func Test_Prom_Cache2(t *testing.T) {
 	entries = utils.GenerateConnectionFlowEntries(10)
 	require.Equal(t, 10, len(entries))
 	encodeEntries(promEncode, entries)
-	require.Equal(t, 20, promEncode.metricCommon.mCache.GetCacheLen())
+	require.Equal(t, 20, promEncode.metricCommon.countVecChildren())
 
 	entries = utils.GenerateConnectionFlowEntries(40)
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
-	require.Equal(t, 30, promEncode.metricCommon.mCache.GetCacheLen())
+	require.Equal(t, 30, promEncode.metricCommon.countVecChildren())
 }
 
 func Test_Prom_Cache3(t *testing.T) {
@@ -153,10 +153,10 @@ func Test_Prom_Cache3(t *testing.T) {
 	entries = utils.GenerateConnectionFlowEntries(10)
 	require.Equal(t, 10, len(entries))
 	encodeEntries(promEncode, entries)
-	require.Equal(t, 20, promEncode.metricCommon.mCache.GetCacheLen())
+	require.Equal(t, 20, promEncode.metricCommon.countVecChildren())
 
 	entries = utils.GenerateConnectionFlowEntries(40)
 	require.Equal(t, 40, len(entries))
 	encodeEntries(promEncode, entries)
-	require.Equal(t, 80, promEncode.metricCommon.mCache.GetCacheLen())
+	require.Equal(t, 80, promEncode.metricCommon.countVecChildren())
 }

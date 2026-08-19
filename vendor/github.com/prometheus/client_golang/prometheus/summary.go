@@ -101,6 +101,9 @@ type SummaryOpts struct {
 	// string.
 	Help string
 
+	// Unit provides the unit of this Summary.
+	Unit string
+
 	// ConstLabels are used to attach fixed labels to this metric. Metrics
 	// with the same fully-qualified name must have the same label names in
 	// their ConstLabels.
@@ -161,6 +164,10 @@ type SummaryVecOpts struct {
 	// of labels. Each label value will be constrained with the optional Constraint
 	// function, if provided.
 	VariableLabels ConstrainableLabels
+
+	// TTL, if greater than zero, enables per-child expiration for this vector.
+	// See MetricVecOpts.TTL for semantics.
+	TTL time.Duration
 }
 
 // Problem with the sliding-window decay algorithm... The Merge method of
@@ -181,11 +188,12 @@ type SummaryVecOpts struct {
 // NewSummary creates a new Summary based on the provided SummaryOpts.
 func NewSummary(opts SummaryOpts) Summary {
 	return newSummary(
-		NewDesc(
+		V2.NewDesc(
 			BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 			opts.Help,
-			nil,
+			UnconstrainedLabels(nil),
 			opts.ConstLabels,
+			WithUnit(opts.Unit),
 		),
 		opts,
 	)
@@ -573,15 +581,28 @@ func (v2) NewSummaryVec(opts SummaryVecOpts) *SummaryVec {
 			panic(errQuantileLabelNotAllowed)
 		}
 	}
+	if opts.TTL < 0 {
+		panic(fmt.Sprintf("invalid negative ttl: %v", opts.TTL))
+	}
 	desc := V2.NewDesc(
 		BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 		opts.Help,
 		opts.VariableLabels,
 		opts.ConstLabels,
+		WithUnit(opts.Unit),
 	)
+	newMetric := func(lvs ...string) Metric {
+		s := newSummary(desc, opts.SummaryOpts, lvs...)
+		if opts.TTL <= 0 {
+			return s
+		}
+		return newTTLSummary(s)
+	}
 	return &SummaryVec{
-		MetricVec: NewMetricVec(desc, func(lvs ...string) Metric {
-			return newSummary(desc, opts.SummaryOpts, lvs...)
+		MetricVec: V2.NewMetricVec(MetricVecOpts{
+			Desc:      desc,
+			NewMetric: newMetric,
+			TTL:       opts.TTL,
 		}),
 	}
 }
