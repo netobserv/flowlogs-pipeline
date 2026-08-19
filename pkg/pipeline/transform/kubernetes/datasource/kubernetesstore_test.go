@@ -82,6 +82,56 @@ func TestKubernetesStore_NilEntries(t *testing.T) {
 	})
 }
 
+// TestKubernetesStore_SecondaryNetworkLookup verifies that IndexLookup by secondary
+// network key returns the entry and that Datasource resolves NetworkName from SecondaryNetNames
+func TestKubernetesStore_SecondaryNetworkLookup(t *testing.T) {
+	store := NewKubernetesStore()
+
+	pod := &model.ResourceMetaData{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "udn-pod",
+			Namespace: "udn-ns",
+			UID:       "uid-udn-pod",
+		},
+		Kind:              "Pod",
+		IPs:               []string{"10.0.0.1"},
+		SecondaryNetKeys:  []string{"~~aa:bb:cc:dd:ee:ff"},
+		SecondaryNetNames: map[string]string{"~~aa:bb:cc:dd:ee:ff": "cudn-network"},
+	}
+
+	store.AddOrUpdate([]*model.ResourceMetaData{pod})
+
+	t.Run("lookup by secondary key sets NetworkName", func(t *testing.T) {
+		result := store.IndexLookup([]string{"~~aa:bb:cc:dd:ee:ff"}, "")
+		require.NotNil(t, result)
+		require.Equal(t, "udn-pod", result.Name)
+		require.Equal(t, "cudn-network", result.NetworkName)
+	})
+
+	t.Run("datasource delegates NetworkName to KubernetesStore", func(t *testing.T) {
+		ds := &Datasource{}
+		ds.SetKubernetesStore(store)
+
+		result := ds.IndexLookup([]string{"~~aa:bb:cc:dd:ee:ff"}, "")
+		require.NotNil(t, result)
+		require.Equal(t, "udn-pod", result.Name)
+		require.Equal(t, "cudn-network", result.NetworkName)
+	})
+
+	t.Run("secondary lookup does not leak NetworkName to IP lookup", func(t *testing.T) {
+		// First: lookup by secondary key sets NetworkName on the returned copy
+		byKey := store.IndexLookup([]string{"~~aa:bb:cc:dd:ee:ff"}, "")
+		require.NotNil(t, byKey)
+		require.Equal(t, "cudn-network", byKey.NetworkName)
+
+		// Second: lookup same pod by IP should not have NetworkName from above
+		byIP := store.IndexLookup(nil, "10.0.0.1")
+		require.NotNil(t, byIP)
+		require.Equal(t, "udn-pod", byIP.Name)
+		require.Empty(t, byIP.NetworkName)
+	})
+}
+
 // TestKubernetesStore_FirstMatchWins verifies that byIP honors "first match wins"
 // and deletion only removes entries owned by the resource being deleted
 func TestKubernetesStore_FirstMatchWins(t *testing.T) {

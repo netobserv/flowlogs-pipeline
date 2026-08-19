@@ -52,8 +52,9 @@ type options struct {
 	HealthPort           int  // Port for health check HTTP server
 	MetricsPort          int  // Port for Prometheus metrics HTTP server
 	// Kubernetes informer configuration (must match processor settings)
-	ManagedCNI   string // Comma-separated list of CNI plugins to manage (e.g., "ovn")
-	TrackedKinds string // Comma-separated list of Kubernetes kinds to track (e.g., "Deployment,Gateway")
+	ManagedCNI        string // Comma-separated list of CNI plugins to manage (e.g., "ovn")
+	TrackedKinds      string // Comma-separated list of Kubernetes kinds to track (e.g., "Deployment,Gateway")
+	SecondaryNetworks string // Semicolon-separated index sets, comma-separated within (e.g., "interface,ip;interface,mac;udn")
 }
 
 var opts = options{}
@@ -138,6 +139,7 @@ func initFlags() {
 	// Kubernetes informer configuration
 	rootCmd.PersistentFlags().StringVar(&opts.ManagedCNI, "managed-cni", "", "Comma-separated list of CNI plugins to manage (e.g., 'ovn'). Must match processor configuration.")
 	rootCmd.PersistentFlags().StringVar(&opts.TrackedKinds, "tracked-kinds", "", "Comma-separated list of Kubernetes kinds to track for ownership (e.g., 'Deployment,Gateway'). Must match processor configuration.")
+	rootCmd.PersistentFlags().StringVar(&opts.SecondaryNetworks, "secondary-networks", "", "Semicolon-separated index sets, comma-separated within (e.g., 'interface,ip;interface,mac;udn'). Must match processor configuration.")
 }
 
 func main() {
@@ -203,6 +205,50 @@ func run(_ *cobra.Command, _ []string) {
 	cancel()
 }
 
+func buildKubeConfig() *api.NetworkTransformKubeConfig {
+	apiConfig := &api.NetworkTransformKubeConfig{
+		ConfigPath: opts.Kubeconfig,
+	}
+
+	// Parse comma-separated ManagedCNI list
+	if opts.ManagedCNI != "" {
+		apiConfig.ManagedCNI = strings.Split(opts.ManagedCNI, ",")
+		for i := range apiConfig.ManagedCNI {
+			apiConfig.ManagedCNI[i] = strings.TrimSpace(apiConfig.ManagedCNI[i])
+		}
+	}
+
+	// Parse comma-separated TrackedKinds list
+	if opts.TrackedKinds != "" {
+		apiConfig.TrackedKinds = strings.Split(opts.TrackedKinds, ",")
+		for i := range apiConfig.TrackedKinds {
+			apiConfig.TrackedKinds[i] = strings.TrimSpace(apiConfig.TrackedKinds[i])
+		}
+	}
+
+	// Parse secondary network index sets (semicolon-separated groups, comma-separated within each group)
+	if opts.SecondaryNetworks != "" {
+		for _, group := range strings.Split(opts.SecondaryNetworks, ";") {
+			group = strings.TrimSpace(group)
+			if group == "" {
+				continue
+			}
+			indexMap := map[string]any{}
+			for _, t := range strings.Split(group, ",") {
+				t = strings.TrimSpace(t)
+				if t != "" {
+					indexMap[t] = nil
+				}
+			}
+			if len(indexMap) > 0 {
+				apiConfig.SecondaryNetworks = append(apiConfig.SecondaryNetworks, api.SecondaryNetwork{Index: indexMap})
+			}
+		}
+	}
+
+	return apiConfig
+}
+
 func runInformers(ctx context.Context, healthServer *informers.HealthServer) {
 	log.Info("Starting informers and gRPC client")
 
@@ -234,27 +280,7 @@ func runInformers(ctx context.Context, healthServer *informers.HealthServer) {
 	defer grpcClient.Stop()
 
 	// Initialize Kubernetes informers
-	// Parse CLI flags into api config to ensure informer settings match processor settings
-	apiConfig := &api.NetworkTransformKubeConfig{
-		ConfigPath: opts.Kubeconfig,
-	}
-
-	// Parse comma-separated ManagedCNI list
-	if opts.ManagedCNI != "" {
-		apiConfig.ManagedCNI = strings.Split(opts.ManagedCNI, ",")
-		for i := range apiConfig.ManagedCNI {
-			apiConfig.ManagedCNI[i] = strings.TrimSpace(apiConfig.ManagedCNI[i])
-		}
-	}
-
-	// Parse comma-separated TrackedKinds list
-	if opts.TrackedKinds != "" {
-		apiConfig.TrackedKinds = strings.Split(opts.TrackedKinds, ",")
-		for i := range apiConfig.TrackedKinds {
-			apiConfig.TrackedKinds[i] = strings.TrimSpace(apiConfig.TrackedKinds[i])
-		}
-	}
-
+	apiConfig := buildKubeConfig()
 	infConfig := k8sinformers.NewConfig(apiConfig)
 	inf := &k8sinformers.Informers{}
 	opMetrics := operational.NewMetrics(&config.MetricsSettings{})
