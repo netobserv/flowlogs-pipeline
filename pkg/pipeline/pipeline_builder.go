@@ -19,6 +19,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/write/flowbuffer"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils/k8sutils"
 	"github.com/netobserv/gopipes/pkg/node"
 	"github.com/prometheus/client_golang/prometheus"
@@ -432,6 +433,8 @@ func getWriter(opMetrics *operational.Metrics, params config.StageParam) (write.
 		writer, err = write.NewWriteLoki(opMetrics, params)
 	case api.IpfixType:
 		writer, err = write.NewWriteIpfix(params)
+	case api.FlowBufferType:
+		writer, err = flowbuffer.NewWriter(params)
 	case api.FakeType:
 		writer, err = write.NewWriteFake(params)
 	default:

@@ -42,6 +42,7 @@ const (
 	FilterType      = "filter"
 	ConnTrackType   = "conntrack"
 	NoneType        = "none"
+	FlowBufferType  = "flowBuffer"
 
 	TagYaml = "yaml"
 	TagDoc  = "doc"
@@ -63,6 +64,7 @@ type API struct {
 	WriteLoki          WriteLoki         `yaml:"loki" doc:"## Write Loki API\nFollowing is the supported API format for writing to loki:\n"`
 	WriteStdout        WriteStdout       `yaml:"stdout" doc:"## Write Standard Output\nFollowing is the supported API format for writing to standard output:\n"`
 	WriteIPFIX         WriteIpfix        `yaml:"ipfix" doc:"## Write IPFIX\nFollowing is the supported API format for writing to an IPFIX collector:\n"`
+	WriteFlowBuffer    WriteFlowBuffer   `yaml:"flowBuffer" doc:"## Write FlowBuffer API\nFollowing is the supported API format for the in-memory flow buffer and query API:\n"`
 	ExtractAggregate   Aggregates        `yaml:"aggregates" doc:"## Aggregate metrics API\nFollowing is the supported API format for specifying metrics aggregations:\n"`
 	ConnectionTracking ConnTrack         `yaml:"conntrack" doc:"## Connection tracking API\nFollowing is the supported API format for specifying connection tracking:\n"`
 	ExtractTimebased   ExtractTimebased  `yaml:"timebased" doc:"## Time-based Filters API\nFollowing is the supported API format for specifying metrics time-based filters:\n"`

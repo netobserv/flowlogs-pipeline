@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2022 IBM, Inc.
+ * Copyright (C) 2026 NetObserv Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +18,23 @@
 
 package api
 
+const (
+	// S3FormatParquet is the default object format (Hive-partitioned Parquet schema v1).
+	S3FormatParquet = "parquet"
+	// S3FormatJSON is the legacy JSON object format (explicit opt-in).
+	S3FormatJSON = "json"
+)
+
 type EncodeS3 struct {
-	Account                string                 `yaml:"account" json:"account" doc:"tenant id for this flow collector"`
+	Account                string                 `yaml:"account" json:"account" doc:"cluster / tenant id used as Hive cluster_id partition"`
 	Endpoint               string                 `yaml:"endpoint" json:"endpoint" doc:"address of s3 server"`
 	AccessKeyID            string                 `yaml:"accessKeyId" json:"accessKeyId" doc:"username to connect to server"`
 	SecretAccessKey        RedactedText           `yaml:"secretAccessKey" json:"secretAccessKey" doc:"password to connect to server"`
 	Bucket                 string                 `yaml:"bucket" json:"bucket" doc:"bucket into which to store objects"`
-	WriteTimeout           Duration               `yaml:"writeTimeout,omitempty" json:"writeTimeout,omitempty" doc:"timeout (in seconds) for write operation"`
-	BatchSize              int                    `yaml:"batchSize,omitempty" json:"batchSize,omitempty" doc:"limit on how many flows will be buffered before being sent to an object"`
+	Prefix                 string                 `yaml:"prefix,omitempty" json:"prefix,omitempty" doc:"optional key prefix before cluster_id partition"`
+	Format                 string                 `yaml:"format,omitempty" json:"format,omitempty" doc:"object format: parquet (default) or json"`
+	WriteTimeout           Duration               `yaml:"writeTimeout,omitempty" json:"writeTimeout,omitempty" doc:"timeout for flush when batch is not full (default: 60s)"`
+	BatchSize              int                    `yaml:"batchSize,omitempty" json:"batchSize,omitempty" doc:"max flows buffered before writing an object (default: 5000 parquet / 10 json)"`
 	Secure                 bool                   `yaml:"secure,omitempty" json:"secure,omitempty" doc:"true for https, false for http (default: false)"`
-	ObjectHeaderParameters map[string]interface{} `yaml:"objectHeaderParameters,omitempty" json:"objectHeaderParameters,omitempty" doc:"parameters to include in object header (key/value pairs)"`
-	// TBD: (TLS?) security parameters
-	// TLS                    *ClientTLS             `yaml:"tls" json:"tls" doc:"TLS client configuration (optional)"`
+	ObjectHeaderParameters map[string]interface{} `yaml:"objectHeaderParameters,omitempty" json:"objectHeaderParameters,omitempty" doc:"parameters to include in JSON object header (json format only)"`
 }
