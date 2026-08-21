@@ -40,6 +40,7 @@ const (
 	GenericType     = "generic"
 	NetworkType     = "network"
 	FilterType      = "filter"
+	AnomalyType     = "anomaly"
 	ConnTrackType   = "conntrack"
 	NoneType        = "none"
 
@@ -60,6 +61,7 @@ type API struct {
 	TransformGeneric   TransformGeneric  `yaml:"generic" doc:"## Transform Generic API\nFollowing is the supported API format for generic transformations:\n"`
 	TransformFilter    TransformFilter   `yaml:"filter" doc:"## Transform Filter API\nFollowing is the supported API format for filter transformations:\n"`
 	TransformNetwork   TransformNetwork  `yaml:"network" doc:"## Transform Network API\nFollowing is the supported API format for network transformations:\n"`
+	TransformAnomaly   TransformAnomaly  `yaml:"anomaly" doc:"## Transform Anomaly API\nFollowing is the supported API format for anomaly detection transformations:\n"`
 	WriteLoki          WriteLoki         `yaml:"loki" doc:"## Write Loki API\nFollowing is the supported API format for writing to loki:\n"`
 	WriteStdout        WriteStdout       `yaml:"stdout" doc:"## Write Standard Output\nFollowing is the supported API format for writing to standard output:\n"`
 	WriteIPFIX         WriteIpfix        `yaml:"ipfix" doc:"## Write IPFIX\nFollowing is the supported API format for writing to an IPFIX collector:\n"`

@@ -52,6 +52,11 @@ func NewTransformNetworkParams(name string, nw api.TransformNetwork) StageParam 
 }
 
 //nolint:gocritic // hugeParam can be ignored: func only used at init
+func NewTransformAnomalyParams(name string, an api.TransformAnomaly) StageParam {
+	return StageParam{Name: name, Transform: &Transform{Type: api.AnomalyType, Anomaly: &an}}
+}
+
+//nolint:gocritic // hugeParam can be ignored: func only used at init
 func NewConnTrackParams(name string, ct api.ConnTrack) StageParam {
 	return StageParam{Name: name, Extract: &Extract{Type: api.ConnTrackType, ConnTrack: &ct}}
 }
