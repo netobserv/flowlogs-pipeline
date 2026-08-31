@@ -142,11 +142,12 @@ type Encode struct {
 }
 
 type Write struct {
-	Type   string           `yaml:"type" json:"type"`
-	Loki   *api.WriteLoki   `yaml:"loki,omitempty" json:"loki,omitempty"`
-	Stdout *api.WriteStdout `yaml:"stdout,omitempty" json:"stdout,omitempty"`
-	Ipfix  *api.WriteIpfix  `yaml:"ipfix,omitempty" json:"ipfix,omitempty"`
-	GRPC   *api.WriteGRPC   `yaml:"grpc,omitempty" json:"grpc,omitempty"`
+	Type       string               `yaml:"type" json:"type"`
+	Loki       *api.WriteLoki       `yaml:"loki,omitempty" json:"loki,omitempty"`
+	Stdout     *api.WriteStdout     `yaml:"stdout,omitempty" json:"stdout,omitempty"`
+	Ipfix      *api.WriteIpfix      `yaml:"ipfix,omitempty" json:"ipfix,omitempty"`
+	GRPC       *api.WriteGRPC       `yaml:"grpc,omitempty" json:"grpc,omitempty"`
+	FlowBuffer *api.WriteFlowBuffer `yaml:"flowBuffer,omitempty" json:"flowBuffer,omitempty"`
 }
 
 // ParseConfig creates the internal unmarshalled representation from the Pipeline and Parameters json

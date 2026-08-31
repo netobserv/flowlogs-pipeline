@@ -62,6 +62,27 @@ var (
 		TypeCounter,
 		"stage",
 	)
+	s3ObjectsWritten = DefineMetric(
+		"s3_objects_written",
+		"Number of S3 objects successfully written",
+		TypeCounter,
+		"stage",
+		"format",
+	)
+	s3BytesWritten = DefineMetric(
+		"s3_bytes_written",
+		"Number of bytes written to S3",
+		TypeCounter,
+		"stage",
+		"format",
+	)
+	s3WriteErrors = DefineMetric(
+		"s3_write_errors",
+		"Number of S3 write errors",
+		TypeCounter,
+		"stage",
+		"format",
+	)
 	stageInQueueSize = DefineMetric(
 		"stage_in_queue_size",
 		"Pipeline stage input queue size (number of elements in queue)",
@@ -233,6 +254,18 @@ func (o *Metrics) NewSummary(def *MetricDefinition, labels ...string) prometheus
 
 func (o *Metrics) CreateRecordsWrittenCounter(stage string) prometheus.Counter {
 	return o.NewCounter(&recordsWritten, stage)
+}
+
+func (o *Metrics) CreateS3ObjectsWrittenCounter(stage, format string) prometheus.Counter {
+	return o.NewCounter(&s3ObjectsWritten, stage, format)
+}
+
+func (o *Metrics) CreateS3BytesWrittenCounter(stage, format string) prometheus.Counter {
+	return o.NewCounter(&s3BytesWritten, stage, format)
+}
+
+func (o *Metrics) CreateS3WriteErrorsCounter(stage, format string) prometheus.Counter {
+	return o.NewCounter(&s3WriteErrors, stage, format)
 }
 
 func (o *Metrics) CreateInQueueSizeGauge(stage string, f func() int) {
