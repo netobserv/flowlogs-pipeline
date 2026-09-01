@@ -175,7 +175,7 @@ func (c *Client) getTransportCredentials() (credentials.TransportCredentials, er
 
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: c.tlsConfig.InsecureSkipVerify,
-		MinVersion:         tls.VersionTLS13, // Match server MinVersion to prevent downgrade attacks
+		MinVersion:         tls.VersionTLS13,
 	}
 
 	// Set ServerName if provided (allows connecting by IP while validating against DNS name in certificate)
