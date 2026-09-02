@@ -5,20 +5,10 @@
 
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: ".github"
-    schedule:
-      interval: "monthly"
-  - package-ecosystem: "docker"
-    directory: "contrib/docker"
-    schedule:
-      interval: "weekly"
-
   - package-ecosystem: "gomod" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
-
     groups:
       k8s:
         applies-to: version-updates
@@ -28,3 +18,15 @@ updates:
         applies-to: version-updates
         patterns:
           - "go.opentelemetry.io/*"
+
+  - package-ecosystem: "docker"
+    directory: "contrib/docker"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "docker.io/library/golang"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
