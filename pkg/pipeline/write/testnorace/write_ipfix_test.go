@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/foxcpp/go-mockdns"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
@@ -139,7 +141,6 @@ var (
 
 func TestEnrichedIPFIXFlow(t *testing.T) {
 	cp := startCollector(t)
-	addr := cp.GetAddress().(*net.UDPAddr)
 
 	flow := decode.PBFlowToMap(&fullPBFlow)
 
@@ -157,9 +158,9 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 	writer, err := write.NewWriteIpfix(config.StageParam{
 		Write: &config.Write{
 			Ipfix: &api.WriteIpfix{
-				TargetHost:   addr.IP.String(),
-				TargetPort:   addr.Port,
-				Transport:    addr.Network(),
+				TargetHost:   cp.udpAddr().IP.String(),
+				TargetPort:   cp.udpAddr().Port,
+				Transport:    cp.udpAddr().Network(),
 				EnterpriseID: 9999,
 			},
 		},
@@ -213,7 +214,6 @@ func TestEnrichedIPFIXFlow(t *testing.T) {
 
 func TestIPv6IPFIXFlow(t *testing.T) {
 	cp := startCollector(t)
-	addr := cp.GetAddress().(*net.UDPAddr)
 
 	flow := decode.PBFlowToMap(&fullPBFlow)
 	// Set as IPv6
@@ -229,9 +229,9 @@ func TestIPv6IPFIXFlow(t *testing.T) {
 	writer, err := write.NewWriteIpfix(config.StageParam{
 		Write: &config.Write{
 			Ipfix: &api.WriteIpfix{
-				TargetHost:   addr.IP.String(),
-				TargetPort:   addr.Port,
-				Transport:    addr.Network(),
+				TargetHost:   cp.udpAddr().IP.String(),
+				TargetPort:   cp.udpAddr().Port,
+				Transport:    cp.udpAddr().Network(),
 				EnterpriseID: 9999,
 			},
 		},
@@ -285,7 +285,6 @@ func TestIPv6IPFIXFlow(t *testing.T) {
 
 func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 	cp := startCollector(t)
-	addr := cp.GetAddress().(*net.UDPAddr)
 
 	flow := decode.PBFlowToMap(&fullPBFlow)
 
@@ -300,9 +299,9 @@ func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 	writer, err := write.NewWriteIpfix(config.StageParam{
 		Write: &config.Write{
 			Ipfix: &api.WriteIpfix{
-				TargetHost:   addr.IP.String(),
-				TargetPort:   addr.Port,
-				Transport:    addr.Network(),
+				TargetHost:   cp.udpAddr().IP.String(),
+				TargetPort:   cp.udpAddr().Port,
+				Transport:    cp.udpAddr().Network(),
 				EnterpriseID: 9999,
 			},
 		},
@@ -356,7 +355,6 @@ func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 
 func TestBasicIPFIXFlow(t *testing.T) {
 	cp := startCollector(t)
-	addr := cp.GetAddress().(*net.UDPAddr)
 
 	flow := decode.PBFlowToMap(&fullPBFlow)
 
@@ -368,9 +366,9 @@ func TestBasicIPFIXFlow(t *testing.T) {
 	writer, err := write.NewWriteIpfix(config.StageParam{
 		Write: &config.Write{
 			Ipfix: &api.WriteIpfix{
-				TargetHost: addr.IP.String(),
-				TargetPort: addr.Port,
-				Transport:  addr.Network(),
+				TargetHost: cp.udpAddr().IP.String(),
+				TargetPort: cp.udpAddr().Port,
+				Transport:  cp.udpAddr().Network(),
 				// No enterprise ID here
 			},
 		},
@@ -420,16 +418,15 @@ func TestBasicIPFIXFlow(t *testing.T) {
 
 func TestICMPIPFIXFlow(t *testing.T) {
 	cp := startCollector(t)
-	addr := cp.GetAddress().(*net.UDPAddr)
 
 	flow := decode.PBFlowToMap(&icmpPBFlow)
 
 	writer, err := write.NewWriteIpfix(config.StageParam{
 		Write: &config.Write{
 			Ipfix: &api.WriteIpfix{
-				TargetHost: addr.IP.String(),
-				TargetPort: addr.Port,
-				Transport:  addr.Network(),
+				TargetHost: cp.udpAddr().IP.String(),
+				TargetPort: cp.udpAddr().Port,
+				Transport:  cp.udpAddr().Network(),
 				// No enterprise ID here
 			},
 		},
@@ -501,22 +498,12 @@ type collect struct {
 	*collector.CollectingProcess
 }
 
-func (c *collect) read(timeout time.Duration) (*entities.Message, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		time.Sleep(timeout)
-		cancel()
-	}()
-	select {
-	case msg := <-c.GetMsgChan():
-		return msg, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+func startCollector(t *testing.T) collect {
+	return startCollectorOnAddr(t, "127.0.0.1", 0)
 }
 
-func startCollector(t *testing.T) collect {
-	address, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+func startCollectorOnAddr(t *testing.T, host string, port uint) collect {
+	address, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port))
 	require.NoError(t, err)
 
 	cp, err := collector.InitCollectingProcess(collector.CollectorInput{
@@ -537,7 +524,7 @@ func startCollector(t *testing.T) collect {
 		if addr == nil || strings.HasSuffix(addr.String(), ":0") {
 			return false, fmt.Errorf("random port is not resolved")
 		}
-		conn, err := net.Dial(cp.GetAddress().Network(), cp.GetAddress().String())
+		conn, err := net.Dial(addr.Network(), addr.String())
 		if err != nil {
 			return false, err
 		}
@@ -548,6 +535,37 @@ func startCollector(t *testing.T) collect {
 	require.NoError(t, err, "Connection timeout in collector setup")
 
 	return collect{CollectingProcess: cp}
+}
+
+func (c *collect) udpAddr() *net.UDPAddr {
+	return c.GetAddress().(*net.UDPAddr)
+}
+
+// drain continuously reads from the collector's message channel, returning a
+// flag that is set to true once at least one message has been received. The
+// goroutine exits by itself when Stop() closes the channel.
+func (c *collect) drain() *atomic.Bool {
+	received := &atomic.Bool{}
+	go func() {
+		for range c.GetMsgChan() {
+			received.Store(true)
+		}
+	}()
+	return received
+}
+
+func (c *collect) read(timeout time.Duration) (*entities.Message, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(timeout)
+		cancel()
+	}()
+	select {
+	case msg := <-c.GetMsgChan():
+		return msg, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 func TestIngestEnriched(t *testing.T) {
@@ -630,3 +648,69 @@ func generateWriteMapping(pen uint32) []api.NetFlowMapField {
 	}
 	return mapping
 }
+
+// TestIPFIXReconnect verifies that, when the collector is addressed by a DNS
+// name and it restarts behind a *different* IP (e.g. a Service/Pod that comes
+// back with a new address), the exporter re-resolves that name and reconnects.
+// See https://github.com/orgs/netobserv/discussions/1649
+func TestIPFIXReconnect(t *testing.T) {
+	const collectorName = "collector.test."
+	const ip1 = "127.0.0.1"
+	const ip2 = "127.0.0.2"
+
+	// In-process mocked DNS server allows to simulate an IP change
+	srv, err := mockdns.NewServerWithLogger(map[string]mockdns.Zone{
+		collectorName: {A: []string{ip1}},
+	}, discardLogger{}, false)
+	require.NoError(t, err)
+	defer srv.Close()
+	srv.PatchNet(net.DefaultResolver)
+	defer mockdns.UnpatchNet(net.DefaultResolver)
+
+	port, err := test.UDPPort()
+	require.NoError(t, err)
+
+	cp := startCollectorOnAddr(t, ip1, port)
+	received := cp.drain()
+
+	flow := decode.PBFlowToMap(&fullPBFlow)
+
+	writer, err := write.NewWriteIpfix(config.StageParam{
+		Write: &config.Write{
+			Ipfix: &api.WriteIpfix{
+				TplSendInterval: api.Duration{Duration: 1 * time.Second},
+				TargetHost:      collectorName,
+				TargetPort:      int(port),
+				Transport:       "udp",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// Sanity check: the first collector receives data.
+	require.Eventually(t, func() bool {
+		writer.Write(flow)
+		return received.Load()
+	}, 5*time.Second, 200*time.Millisecond, "first collector never received data")
+	cp.Stop()
+
+	// Restart the collector on a different loopback IP, same port, and repoint the DNS name to it
+	cp = startCollectorOnAddr(t, ip2, port)
+	received = cp.drain()
+	srv.Resolver().Zones = map[string]mockdns.Zone{
+		collectorName: {A: []string{ip2}},
+	}
+
+	// Make sure the exporter re-Dials on the refresh interval, resolving to 127.0.0.2, and the new collector starts receiving data
+	require.Eventually(t, func() bool {
+		writer.Write(flow)
+		return received.Load()
+	}, 8*time.Second, 500*time.Millisecond,
+		"collector on the new IP never received data: reconnect after DNS change failed")
+	cp.Stop()
+}
+
+// discardLogger silences the mockdns server's per-query trace logging.
+type discardLogger struct{}
+
+func (discardLogger) Printf(string, ...interface{}) {}
