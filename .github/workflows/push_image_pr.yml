@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       pr_id: ${{ steps.extract.outputs.pr_id }}
+      short_sha: ${{ steps.extract.outputs.short_sha }}
       main_image: ${{ steps.extract.outputs.main_image }}
     steps:
       - name: extract PR data
@@ -59,8 +60,11 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: load images
+        env:
+          MAIN_IMAGE: ${{ needs.extract-data.outputs.main_image }}
         run: |
           docker load --input ./image.tar
+          docker image tag ${WF_REGISTRY}/${WF_IMAGE}:tmp $MAIN_IMAGE
       - name: docker login to quay.io
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
