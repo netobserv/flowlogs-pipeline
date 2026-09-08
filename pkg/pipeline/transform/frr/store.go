@@ -67,12 +67,17 @@ type InformerStore struct {
 
 	informer cache.SharedIndexInformer
 	stopCh   chan struct{}
+	ctx      context.Context
+	cancel   context.CancelFunc
 }
 
 func NewInformerStore() *InformerStore {
+	ctx, cancel := context.WithCancel(context.Background())
 	s := &InformerStore{
 		raw:    make(map[string]map[string]uint32),
 		stopCh: make(chan struct{}),
+		ctx:    ctx,
+		cancel: cancel,
 	}
 	s.table.Store(BuildASNTable(nil))
 	return s
@@ -101,10 +106,10 @@ func (s *InformerStore) Start(kubeConfigPath string) error {
 
 	lw := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-			return dynClient.Resource(frrGVR).Namespace(metav1.NamespaceAll).List(context.Background(), options)
+			return dynClient.Resource(frrGVR).Namespace(metav1.NamespaceAll).List(s.ctx, options)
 		},
 		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-			return dynClient.Resource(frrGVR).Namespace(metav1.NamespaceAll).Watch(context.Background(), options)
+			return dynClient.Resource(frrGVR).Namespace(metav1.NamespaceAll).Watch(s.ctx, options)
 		},
 	}
 	return s.startInformer(lw)
@@ -142,6 +147,7 @@ func (s *InformerStore) Stop() {
 	select {
 	case <-s.stopCh:
 	default:
+		s.cancel()
 		close(s.stopCh)
 	}
 }
@@ -154,6 +160,11 @@ func (s *InformerStore) upsert(obj interface{}) {
 	mappings, err := extractASNMappings(u)
 	if err != nil {
 		log.WithError(err).Warnf("failed to extract FRRConfiguration %s/%s", u.GetNamespace(), u.GetName())
+		key := objectKey(u)
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		delete(s.raw, key)
+		s.rebuildLocked()
 		return
 	}
 	key := objectKey(u)
@@ -188,7 +199,13 @@ func (s *InformerStore) rebuildLocked() {
 	merged := make(map[string]uint32)
 	for _, mappings := range s.raw {
 		for cidr, asn := range mappings {
-			merged[cidr] = asn
+			norm, ok := normalizeCIDR(cidr)
+			if !ok {
+				continue
+			}
+			if existing, exists := merged[norm]; !exists || asn < existing {
+				merged[norm] = asn
+			}
 		}
 	}
 	s.table.Store(BuildASNTable(merged))

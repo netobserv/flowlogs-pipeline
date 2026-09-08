@@ -33,9 +33,17 @@ type ASNTable struct {
 	entries []prefixEntry
 }
 
+func normalizeCIDR(cidr string) (string, bool) {
+	_, ipNet, err := net.ParseCIDR(cidr)
+	if err != nil || ipNet == nil {
+		return "", false
+	}
+	return ipNet.String(), true
+}
+
 // BuildASNTable builds a longest-prefix-match table from CIDR → ASN mappings.
 // Invalid CIDRs are skipped. ASN 0 entries are skipped (reserved / invalid for labeling).
-// On duplicate equal-length prefixes, the last write wins.
+// On duplicate normalized prefixes, the lowest ASN wins for determinism.
 func BuildASNTable(cidrs map[string]uint32) *ASNTable {
 	byCIDR := make(map[string]prefixEntry, len(cidrs))
 	for cidr, asn := range cidrs {
@@ -46,11 +54,14 @@ func BuildASNTable(cidrs map[string]uint32) *ASNTable {
 		if err != nil || ipNet == nil {
 			continue
 		}
+		key := ipNet.String()
 		ones, _ := ipNet.Mask.Size()
-		byCIDR[ipNet.String()] = prefixEntry{
-			network: ipNet,
-			bits:    ones,
-			asn:     asn,
+		if existing, exists := byCIDR[key]; !exists || asn < existing.asn {
+			byCIDR[key] = prefixEntry{
+				network: ipNet,
+				bits:    ones,
+				asn:     asn,
+			}
 		}
 	}
 
