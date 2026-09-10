@@ -45,6 +45,7 @@ type Network struct {
 	svcNames     *netdb.ServiceNames
 	snLabels     []subnetLabel
 	ipLabelCache *utils.TimedCache
+	frrStore     frr.Store
 	m            sync.RWMutex
 }
 
@@ -156,7 +157,7 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 				}
 			}
 		case api.NetworkAddASNLabel:
-			frr.Enrich(outputEntry, rule.AddASNLabel)
+			frr.Enrich(n.frrStore, outputEntry, rule.AddASNLabel)
 
 		default:
 			log.Panicf("unknown type %s for transform.Network rule: %v", rule.Type, rule)
@@ -300,10 +301,14 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 		}
 	}
 
+	var frrStore frr.Store
 	if flags.needToInitFRR {
 		// Soft-fail: BGP/FRR is optional; enrichment simply no-ops without a store.
-		if err := frr.InitStore(jsonNetworkTransform.KubeConfig.ConfigPath); err != nil {
+		s, err := frr.InitStore(jsonNetworkTransform.KubeConfig.ConfigPath)
+		if err != nil {
 			log.Warnf("FRR ASN enrichment disabled: %v", err)
+		} else {
+			frrStore = s
 		}
 	}
 
@@ -329,5 +334,6 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 		svcNames:     servicesDB,
 		snLabels:     subnetCats,
 		ipLabelCache: utils.NewQuietExpiringTimedCache(2 * time.Minute),
+		frrStore:     frrStore,
 	}, nil
 }

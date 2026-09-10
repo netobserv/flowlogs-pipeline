@@ -34,18 +34,17 @@ func (s *staticStore) Lookup(ipStr string) (uint32, bool) {
 }
 
 func TestEnrich_WritesStringASN(t *testing.T) {
-	t.Cleanup(ResetStore)
-	SetStore(&staticStore{table: BuildASNTable(map[string]uint32{
+	store := &staticStore{table: BuildASNTable(map[string]uint32{
 		"10.128.0.0/14": 64512,
 		"10.128.2.0/24": 64513,
-	})})
+	})}
 
 	entry := config.GenericMap{
 		"SrcAddr": "10.128.2.8",
 		"DstAddr": "8.8.8.8",
 	}
-	Enrich(entry, &api.NetworkAddASNLabelRule{Input: "SrcAddr", Output: "SrcASN"})
-	Enrich(entry, &api.NetworkAddASNLabelRule{Input: "DstAddr", Output: "DstASN"})
+	Enrich(store, entry, &api.NetworkAddASNLabelRule{Input: "SrcAddr", Output: "SrcASN"})
+	Enrich(store, entry, &api.NetworkAddASNLabelRule{Input: "DstAddr", Output: "DstASN"})
 
 	require.Equal(t, "64513", entry["SrcASN"])
 	_, hasDst := entry["DstASN"]
@@ -53,10 +52,8 @@ func TestEnrich_WritesStringASN(t *testing.T) {
 }
 
 func TestEnrich_NoStoreNoOp(t *testing.T) {
-	t.Cleanup(ResetStore)
-	ResetStore()
 	entry := config.GenericMap{"SrcAddr": "10.128.2.8"}
-	Enrich(entry, &api.NetworkAddASNLabelRule{Input: "SrcAddr", Output: "SrcASN"})
+	Enrich(nil, entry, &api.NetworkAddASNLabelRule{Input: "SrcAddr", Output: "SrcASN"})
 	_, ok := entry["SrcASN"]
 	require.False(t, ok)
 }

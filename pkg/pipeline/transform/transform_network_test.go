@@ -245,9 +245,6 @@ func InitNewTransformNetwork(t *testing.T, configFile string) Transformer {
 }
 
 func Test_AddASNLabel(t *testing.T) {
-	frr.ResetStore()
-	t.Cleanup(frr.ResetStore)
-
 	store := frr.NewInformerStore()
 	require.NoError(t, store.LoadConfigs(&unstructured.Unstructured{Object: map[string]interface{}{
 		"metadata": map[string]interface{}{"name": "test", "namespace": "ns"},
@@ -267,7 +264,6 @@ func Test_AddASNLabel(t *testing.T) {
 			},
 		},
 	}}))
-	frr.SetStore(store)
 
 	cfg := config.StageParam{
 		Transform: &config.Transform{
@@ -279,9 +275,10 @@ func Test_AddASNLabel(t *testing.T) {
 			},
 		},
 	}
-	// Store already injected; InitStore is a no-op when a store is set.
 	tr, err := NewTransformNetwork(cfg, nil)
 	require.NoError(t, err)
+	// Inject the test store directly rather than starting a real informer.
+	tr.(*Network).frrStore = store
 
 	output, ok := tr.Transform(config.GenericMap{
 		"SrcAddr": "10.128.2.8",
