@@ -1,0 +1,3 @@
+{"SrcAddr":"10.128.2.8","DstAddr":"172.20.1.10","SrcPort":34567,"DstPort":443,"Proto":6,"Bytes":3200,"Packets":20}
+{"SrcAddr":"10.129.0.12","DstAddr":"8.8.8.8","SrcPort":23456,"DstPort":53,"Proto":17,"Bytes":900,"Packets":5}
+{"SrcAddr":"192.0.2.1","DstAddr":"10.128.0.5","SrcPort":443,"DstPort":45678,"Proto":6,"Bytes":1500,"Packets":10}

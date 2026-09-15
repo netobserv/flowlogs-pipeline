@@ -253,6 +253,7 @@ Following is the supported API format for network transformations:
                     reinterpret_direction: reinterpret flow direction at the node level (instead of net interface), to ease the deduplication process
                     add_subnet_label: categorize IPs based on known subnets configuration
                     decode_tcp_flags: decode bitwise TCP flags into a string
+                    add_asn_label: add ASN from FRRConfiguration advertised prefixes (LPM)
                  kubernetes_infra: Kubernetes infra rule configuration
                      namespaceNameFields: entries for namespace and name input fields
                              name: name of the object
@@ -296,6 +297,9 @@ Following is the supported API format for network transformations:
                  decode_tcp_flags: Decode bitwise TCP flags into a string
                      input: entry input field
                      output: entry output field
+                 add_asn_label: Add ASN label rule configuration (from FRRConfiguration)
+                     input: entry IP input field
+                     output: entry output field for the ASN (stringified)
          kubeConfig: global configuration related to Kubernetes (optional)
              configPath: path to kubeconfig file (optional)
              secondaryNetworks: configuration for secondary networks
