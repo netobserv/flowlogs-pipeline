@@ -37,12 +37,20 @@ reviews:
     - "!docs/metrics.md"
 
   path_instructions:
+    - path: "**"
+      instructions: |
+        Scope every comment to what materially changed in the diff. If a hunk is only
+        moved, renamed, reindented, reformatted, or has reordered imports with no
+        behavioral change, do not raise findings on it — even if the surrounding code
+        could theoretically be improved. Do not treat relocated existing code as newly
+        introduced. Only flag pre-existing issues when the diff meaningfully changes
+        that code's behavior. Be pragmatic: prefer fewer, high-confidence comments.
     - path: "pkg/pipeline/**/*.go"
       instructions: "Check goroutine leaks, backpressure handling, and performance impact of metrics collection"
     - path: "pkg/api/**/*.go"
-      instructions: "Verify backward compatibility for config changes and proper struct tag usage"
-    - path: "contrib/kubernetes/**/*.yaml"
-      instructions: "Review resource limits, security contexts, and label selectors"
+      instructions: |
+        Verify backward compatibility for config changes and proper struct tag usage.
+        Breaking changes are allowed but must be flagged as such in the pull request with the "breaking-change" label.
 
   tools:
     # already run in CI (code-style workflow)
