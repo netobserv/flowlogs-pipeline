@@ -1,0 +1,40 @@
+# Example: enrich flows with local ASN from FRRConfiguration
+#
+# Stage name "asns" matches the NetObserv Dynamic stage convention (operator
+# can hot-reload this stage later). ASN data itself comes from watching
+# FRRConfiguration CRs (routers[].prefixes / toAdvertise → routers[].asn),
+# matched with longest-prefix match on SrcAddr/DstAddr.
+log-level: info
+metricsSettings:
+  disableGlobalServer: true
+pipeline:
+  - name: ingest_file
+  - name: asns
+    follows: ingest_file
+  - name: write_stdout
+    follows: asns
+parameters:
+  - name: ingest_file
+    ingest:
+      type: file
+      file:
+        filename: /root/flowlogs-pipeline/hack/examples/asn-enrich-sample-flows.jsonl
+      decoder:
+        type: json
+  - name: asns
+    transform:
+      type: network
+      network:
+        rules:
+          - type: add_asn_label
+            add_asn_label:
+              input: SrcAddr
+              output: SrcASN
+          - type: add_asn_label
+            add_asn_label:
+              input: DstAddr
+              output: DstASN
+  - name: write_stdout
+    write:
+      type: stdout
+      stdout: {}

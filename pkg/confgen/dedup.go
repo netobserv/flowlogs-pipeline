@@ -32,7 +32,7 @@ func (cg *ConfGen) dedupe() {
 func dedupeNetworkTransformRules(rules api.NetworkTransformRules) api.NetworkTransformRules {
 	var dedupeSlice []api.NetworkTransformRule
 	for i, rule := range rules {
-		if containsNetworkTransformRule(dedupeSlice, rule) {
+		if containsNetworkTransformRule(dedupeSlice, &rule) {
 			// duplicate aggregateDefinition
 			log.Debugf("Remove duplicate transformation rule %v at index %v", rule, i)
 			continue
@@ -42,9 +42,9 @@ func dedupeNetworkTransformRules(rules api.NetworkTransformRules) api.NetworkTra
 	return dedupeSlice
 }
 
-func containsNetworkTransformRule(slice []api.NetworkTransformRule, rule api.NetworkTransformRule) bool {
+func containsNetworkTransformRule(slice []api.NetworkTransformRule, rule *api.NetworkTransformRule) bool {
 	for _, item := range slice {
-		if reflect.DeepEqual(item, rule) {
+		if reflect.DeepEqual(item, *rule) {
 			return true
 		}
 	}
