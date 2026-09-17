@@ -99,6 +99,21 @@ func (m *IndexerMock) MockPod(primaryIP, name, namespace, nodeIP, ownerName, own
 	}
 }
 
+// MockPodsForIP registers several Pods sharing the same primary IP, so tests can
+// exercise IP contention between live and terminated Pods. Pods are returned by the
+// index in the given order.
+func (m *IndexerMock) MockPodsForIP(ip string, pods ...model.ResourceMetaData) {
+	objs := make([]interface{}, 0, len(pods))
+	for i := range pods {
+		p := pods[i]
+		p.Kind = "Pod"
+		p.IPs = []string{ip}
+		m.parentChecker(&p)
+		objs = append(objs, &p)
+	}
+	m.On("ByIndex", IndexIP, ip).Return(objs, nil)
+}
+
 func (m *IndexerMock) MockNode(ip, name string) {
 	m.On("ByIndex", IndexIP, ip).Return([]interface{}{&model.ResourceMetaData{
 		ObjectMeta: metav1.ObjectMeta{
