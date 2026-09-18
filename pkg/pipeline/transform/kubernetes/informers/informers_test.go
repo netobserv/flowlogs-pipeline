@@ -106,6 +106,51 @@ func TestGetInfo(t *testing.T) {
 	require.Nil(t, info)
 }
 
+// TestGetInfo_TerminatedPodContention checks that a live Pod wins a reused IP over a
+// terminated one, while a terminated Pod is still returned when no live Pod owns the IP.
+func TestGetInfo_TerminatedPodContention(t *testing.T) {
+	metrics := operational.NewMetrics(&config.MetricsSettings{})
+	kubeData := Informers{indexerHitMetric: metrics.CreateIndexerHitCounter()}
+	pidx, hidx, sidx, ridx := SetupIndexerMocks(&kubeData)
+	ridx.FallbackNotFound()
+
+	// A completed pod (e.g. TaskRun) and a running pod both hold 1.2.3.4;
+	// the terminated one is returned first by the index.
+	pidx.MockPodsForIP("1.2.3.4",
+		model.ResourceMetaData{
+			ObjectMeta: metav1.ObjectMeta{Name: "old-taskrun-pod", Namespace: "podNamespace"},
+			OwnerName:  "old-taskrun-pod", OwnerKind: "Pod", HostIP: "10.0.0.1", Terminated: true,
+		},
+		model.ResourceMetaData{
+			ObjectMeta: metav1.ObjectMeta{Name: "running-pod", Namespace: "podNamespace"},
+			OwnerName:  "running-pod", OwnerKind: "Pod", HostIP: "10.0.0.1",
+		},
+	)
+	// A terminated pod with no live contender still keeps its IP.
+	pidx.MockPodsForIP("1.2.3.5",
+		model.ResourceMetaData{
+			ObjectMeta: metav1.ObjectMeta{Name: "lonely-terminated-pod", Namespace: "podNamespace"},
+			OwnerName:  "lonely-terminated-pod", OwnerKind: "Pod", HostIP: "10.0.0.1", Terminated: true,
+		},
+	)
+	pidx.FallbackNotFound()
+	sidx.FallbackNotFound()
+	hidx.MockNode("10.0.0.1", "node1")
+	hidx.FallbackNotFound()
+
+	// Live pod wins the reused IP
+	info := kubeData.IndexLookup(nil, "1.2.3.4")
+	require.NotNil(t, info)
+	require.Equal(t, "running-pod", info.Name)
+	require.False(t, info.Terminated)
+
+	// Terminated pod is still returned when it is the only match
+	info = kubeData.IndexLookup(nil, "1.2.3.5")
+	require.NotNil(t, info)
+	require.Equal(t, "lonely-terminated-pod", info.Name)
+	require.True(t, info.Terminated)
+}
+
 // TestOwnershipTracking_GatewayAPI tests the ownership chain: Pod → ReplicaSet → Deployment → Gateway
 func TestOwnershipTracking_GatewayAPI(t *testing.T) {
 	metrics := operational.NewMetrics(&config.MetricsSettings{})

@@ -107,6 +107,23 @@ func (k *Informers) increaseIndexerHits(kind, namespace, network, warn string) {
 	k.indexerHitMetric.WithLabelValues(kind, namespace, network, warn).Inc()
 }
 
+// preferLive picks the object to return among several sharing the same index key.
+// It returns the first non-terminated object. The returned bool is true when the choice was ambiguous, i.e. there was
+// no live winner and several terminated candidates to pick from arbitrarily.
+func preferLive(objs []interface{}) (*model.ResourceMetaData, bool) {
+	var fallback *model.ResourceMetaData
+	for _, o := range objs {
+		info := o.(*model.ResourceMetaData)
+		if !info.Terminated {
+			return info, false
+		}
+		if fallback == nil {
+			fallback = info
+		}
+	}
+	return fallback, len(objs) > 1
+}
+
 func (k *Informers) infoForCustomKeys(idx cache.Indexer, kind string, potentialKeys []string) (*model.ResourceMetaData, bool) {
 	for _, key := range potentialKeys {
 		objs, err := idx.ByIndex(IndexCustom, key)
@@ -116,11 +133,11 @@ func (k *Informers) infoForCustomKeys(idx cache.Indexer, kind string, potentialK
 			return nil, false
 		}
 		if len(objs) > 0 {
-			info := objs[0].(*model.ResourceMetaData)
+			info, ambiguous := preferLive(objs)
 			info.NetworkName = info.SecondaryNetNames[key]
-			if len(objs) > 1 {
+			if ambiguous {
 				k.increaseIndexerHits(kind, info.Namespace, info.NetworkName, "multiple matches")
-				log.WithField("key", key).Debugf("found %d objects matching this key, returning first", len(objs))
+				log.WithField("key", key).Debugf("found %d terminated objects matching this key and no live one, returning first", len(objs))
 			} else {
 				k.increaseIndexerHits(kind, info.Namespace, info.NetworkName, "")
 			}
@@ -139,11 +156,11 @@ func (k *Informers) infoForIP(idx cache.Indexer, kind string, ip string) (*model
 		return nil, false
 	}
 	if len(objs) > 0 {
-		info := objs[0].(*model.ResourceMetaData)
+		info, ambiguous := preferLive(objs)
 		info.NetworkName = "primary"
-		if len(objs) > 1 {
+		if ambiguous {
 			k.increaseIndexerHits(kind, info.Namespace, "primary", "multiple matches")
-			log.WithField("ip", ip).Debugf("found %d objects matching this IP, returning first", len(objs))
+			log.WithField("ip", ip).Debugf("found %d terminated objects matching this IP and no live one, returning first", len(objs))
 		} else {
 			k.increaseIndexerHits(kind, info.Namespace, "primary", "")
 		}
@@ -400,6 +417,7 @@ func (k *Informers) initPodInformer(informerFactory inf.SharedInformerFactory, c
 			SecondaryNetKeys:  flatKeys,
 			SecondaryNetNames: namedKeys,
 			IPs:               ips,
+			Terminated:        pod.Status.Phase == v1.PodSucceeded || pod.Status.Phase == v1.PodFailed,
 		}
 		if len(pod.OwnerReferences) > 0 {
 			obj.OwnerKind = pod.OwnerReferences[0].Kind

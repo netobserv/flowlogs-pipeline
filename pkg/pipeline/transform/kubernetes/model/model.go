@@ -27,4 +27,5 @@ type ResourceMetaData struct {
 	IPs               []string
 	SecondaryNetKeys  []string
 	SecondaryNetNames map[string]string
+	Terminated        bool // For pods, based on Succeeded/Failed status (jobs, ...)
 }
