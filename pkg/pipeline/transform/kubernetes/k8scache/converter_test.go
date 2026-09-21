@@ -80,6 +80,7 @@ func fillDirectFields(t *testing.T, v reflect.Value) {
 // encounters a field kind it does not know how to fill, so that adding a field of
 // a new kind forces this helper (and the converter) to be revisited.
 func setNonZero(t *testing.T, v reflect.Value, name string) {
+	//nolint:exhaustive
 	switch v.Kind() {
 	case reflect.String:
 		v.SetString("val-" + name)
