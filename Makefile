@@ -268,8 +268,8 @@ prereqs-proto: ## Download the pinned protoc and Go plugins into ./bin
 		&& curl -sSfL https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-$(PROTOC_ARCH).zip -o $(PROTOC_DIR)/protoc.zip \
 		&& unzip -o -d $(PROTOC_DIR) $(PROTOC_DIR)/protoc.zip \
 		&& rm $(PROTOC_DIR)/protoc.zip )
-	GOFLAGS="" go install google.golang.org/protobuf/cmd/protoc-gen-go@$(PROTOC_GEN_GO_VERSION)
-	GOFLAGS="" go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@$(PROTOC_GEN_GO_GRPC_VERSION)
+	GOOS=$$(go env GOHOSTOS) GOARCH=$$(go env GOHOSTARCH) GOFLAGS="" go install google.golang.org/protobuf/cmd/protoc-gen-go@$(PROTOC_GEN_GO_VERSION)
+	GOOS=$$(go env GOHOSTOS) GOARCH=$$(go env GOHOSTARCH) GOFLAGS="" go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@$(PROTOC_GEN_GO_GRPC_VERSION)
 
 .PHONY: proto
 proto: prereqs-proto ## Regenerate protobuf/gRPC Go code
