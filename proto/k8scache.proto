@@ -92,4 +92,6 @@ message ResourceEntry {
   // Kubernetes metadata
   int64 creation_timestamp = 14;  // Unix timestamp
   string resource_version = 15;   // K8s resource version
+
+  bool terminated = 17;      // For Pods: based on Succeeded/Failed status (jobs, ...)
 }

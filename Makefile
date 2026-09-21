@@ -51,6 +51,18 @@ endif
 
 GOLANGCI_LINT_VERSION = v2.12.2
 KIND_VERSION = v0.22.0
+PROTOC_VERSION = 3.19.6
+PROTOC_GEN_GO_VERSION = v1.36.11
+PROTOC_GEN_GO_GRPC_VERSION = v1.6.2
+
+# protoc is downloaded as a prebuilt release archive (it is not a Go tool).
+# The archive naming uses its own OS/arch spelling, hence the translations below.
+PROTOC_OS := $(shell uname -s | tr '[:upper:]' '[:lower:]' | sed 's/darwin/osx/')
+PROTOC_ARCH := $(shell uname -m | sed 's/aarch64/aarch_64/; s/arm64/aarch_64/')
+# Extracted next to the binary so that protoc auto-resolves its bundled
+# well-known types (google/protobuf/*.proto) from <bindir>/../include.
+PROTOC_DIR = $(GOBIN)/protoc-$(PROTOC_VERSION)
+PROTOC = $(PROTOC_DIR)/bin/protoc
 
 FLP_BIN_FILE=flowlogs-pipeline
 CG_BIN_FILE=confgenerator
@@ -247,6 +259,25 @@ goyacc: ## Regenerate filters query langage
 	@echo "### Regenerate filters query langage"
 	GOFLAGS="" go install golang.org/x/tools/cmd/goyacc@v0.32.0
 	goyacc -o pkg/dsl/expr.y.go pkg/dsl/expr.y
+
+.PHONY: prereqs-proto
+prereqs-proto: ## Download the pinned protoc and Go plugins into ./bin
+	@echo "### Checking protoc dependencies"
+	test -f $(PROTOC) || ( \
+		mkdir -p $(PROTOC_DIR) \
+		&& curl -sSfL https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-$(PROTOC_ARCH).zip -o $(PROTOC_DIR)/protoc.zip \
+		&& unzip -o -d $(PROTOC_DIR) $(PROTOC_DIR)/protoc.zip \
+		&& rm $(PROTOC_DIR)/protoc.zip )
+	GOFLAGS="" go install google.golang.org/protobuf/cmd/protoc-gen-go@$(PROTOC_GEN_GO_VERSION)
+	GOFLAGS="" go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@$(PROTOC_GEN_GO_GRPC_VERSION)
+
+.PHONY: proto
+proto: prereqs-proto ## Regenerate protobuf/gRPC Go code
+	@echo "### Regenerate protobuf/gRPC Go code"
+	$(PROTOC) --go_out=./pkg/pipeline/write/grpc ./proto/genericmap.proto
+	$(PROTOC) --go-grpc_out=./pkg/pipeline/write/grpc ./proto/genericmap.proto
+	$(PROTOC) --go_out=./pkg/pipeline/transform/kubernetes/k8scache --go_opt=paths=source_relative -I ./proto k8scache.proto
+	$(PROTOC) --go-grpc_out=./pkg/pipeline/transform/kubernetes/k8scache --go-grpc_opt=paths=source_relative -I ./proto k8scache.proto
 
 include .mk/development.mk
 include .mk/shortcuts.mk
