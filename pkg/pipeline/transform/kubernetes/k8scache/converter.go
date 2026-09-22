@@ -29,6 +29,7 @@ func resourceEntryToMeta(entry *ResourceEntry) *model.ResourceMetaData {
 		IPs:               append([]string(nil), entry.Ips...),
 		SecondaryNetKeys:  append([]string(nil), entry.SecondaryNetKeys...),
 		SecondaryNetNames: entry.SecondaryNetNames,
+		Terminated:        entry.Terminated,
 	}
 	if entry.Uid != "" {
 		meta.UID = types.UID(entry.Uid)
@@ -74,6 +75,7 @@ func metaToResourceEntry(meta *model.ResourceMetaData) *ResourceEntry {
 		Labels:            meta.Labels,
 		Annotations:       meta.Annotations,
 		ResourceVersion:   meta.ResourceVersion,
+		Terminated:        meta.Terminated,
 	}
 	if !meta.CreationTimestamp.IsZero() {
 		entry.CreationTimestamp = meta.CreationTimestamp.Unix()
