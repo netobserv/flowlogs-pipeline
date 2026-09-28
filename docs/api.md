@@ -407,7 +407,9 @@ Following is the supported API format for specifying connection tracking:
                  input: The input field to base the operation on. When omitted, 'name' is used
                  reportMissing: When true, missing input will produce MissingFieldError metric and error logs
          scheduling: list of timeouts and intervals to apply per selector
-                 selector: key-value map to match against connection fields to apply this scheduling
+                 selector: list of key-value pairs to match against connection fields to apply this scheduling. For backward compatibility, a key-value map is also accepted, but this form is deprecated because the keys get lower-cased.
+                         key: name of the field to look for in the flow
+                         value: value of the field to look for in the flow
                  endConnectionTimeout: duration of time to wait from the last flow log to end a connection
                  terminatingTimeout: duration of time to wait from detected FIN flag to end a connection
                  heartbeatInterval: duration of time to wait between heartbeat reports of a connection
@@ -416,6 +418,8 @@ Following is the supported API format for specifying connection tracking:
              fieldName: name of the field containing TCP flags
              detectEndConnection: detect end connections by FIN flag
              swapAB: swap source and destination when the first flowlog contains the SYN_ACK flag
+         protoFieldName: name of the protocol field name (default: Proto)
+         duplicateFieldName: name of the duplicate field name (default: Duplicate)
 </pre>
 ## Time-based Filters API
 Following is the supported API format for specifying metrics time-based filters:

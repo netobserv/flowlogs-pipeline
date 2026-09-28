@@ -18,9 +18,11 @@
 package api
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
 func TestConnTrackValidate(t *testing.T) {
@@ -259,6 +261,53 @@ func TestConnTrackValidate(t *testing.T) {
 			require.ErrorIs(t, err, tt.expectedErr)
 		})
 	}
+}
+
+func TestSelectorsUnmarshal_ListForm(t *testing.T) {
+	// The list form preserves case-sensitive field names (viper-safe).
+	// Note: JSON decodes numbers as float64, yaml.v2 as int.
+	t.Run("json", func(t *testing.T) {
+		var actual Selectors
+		err := json.Unmarshal([]byte(`[{"key":"SrcK8S_Name","value":"pod-a"},{"key":"Proto","value":6}]`), &actual)
+		require.NoError(t, err)
+		require.Equal(t, Selectors{"SrcK8S_Name": "pod-a", "Proto": float64(6)}, actual)
+	})
+	t.Run("yaml", func(t *testing.T) {
+		var actual Selectors
+		err := yaml.Unmarshal([]byte("- key: SrcK8S_Name\n  value: pod-a\n- key: Proto\n  value: 6\n"), &actual)
+		require.NoError(t, err)
+		require.Equal(t, Selectors{"SrcK8S_Name": "pod-a", "Proto": 6}, actual)
+	})
+}
+
+func TestSelectorsUnmarshal_LegacyMapForm(t *testing.T) {
+	// The map form is still accepted for backward compatibility.
+	t.Run("json", func(t *testing.T) {
+		var actual Selectors
+		err := json.Unmarshal([]byte(`{"Proto":6}`), &actual)
+		require.NoError(t, err)
+		require.Equal(t, Selectors{"Proto": float64(6)}, actual)
+	})
+	t.Run("yaml", func(t *testing.T) {
+		var actual Selectors
+		err := yaml.Unmarshal([]byte("Proto: 6\n"), &actual)
+		require.NoError(t, err)
+		require.Equal(t, Selectors{"Proto": 6}, actual)
+	})
+}
+
+func TestSelectorsMarshal_EmitsListForm(t *testing.T) {
+	// Marshaling always emits the list form (sorted by key) so field names travel
+	// as values, surviving viper's key lower-casing.
+	s := Selectors{"SrcK8S_Name": "pod-a", "Proto": 6}
+
+	b, err := json.Marshal(s)
+	require.NoError(t, err)
+	require.JSONEq(t, `[{"key":"Proto","value":6},{"key":"SrcK8S_Name","value":"pod-a"}]`, string(b))
+
+	y, err := yaml.Marshal(s)
+	require.NoError(t, err)
+	require.Equal(t, "- key: Proto\n  value: 6\n- key: SrcK8S_Name\n  value: pod-a\n", string(y))
 }
 
 func TestGetABFields(t *testing.T) {

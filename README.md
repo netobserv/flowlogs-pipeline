@@ -968,6 +968,8 @@ Images
   extract-binaries      Extract all MULTIARCH_TARGETS binaries  
   tar-image             Build single arch (amd64) and save as a tar  
   goyacc                Regenerate filters query langage  
+  prereqs-proto         Download the pinned protoc and Go plugins into ./bin  
+  proto                 Regenerate protobuf/gRPC Go code  
   
 kubernetes  
   deploy                Deploy the image  
