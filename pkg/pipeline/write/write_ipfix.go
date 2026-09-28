@@ -66,9 +66,11 @@ var (
 		"sourceTransportPort",
 		"destinationTransportPort",
 		"octetDeltaCount",
+		"packetDeltaCount",
+		"droppedOctetDeltaCount",
+		"droppedPacketDeltaCount",
 		"flowStartMilliseconds",
 		"flowEndMilliseconds",
-		"packetDeltaCount",
 		"interfaceName",
 		"tcpControlBits",
 		"postNAPTSourceTransportPort",
@@ -102,6 +104,7 @@ var (
 		{Name: "destinationNodeName", ElementId: 7738, DataType: entities.String, Len: 65535},
 	}
 	CustomNetworkFields = []entities.InfoElement{
+		{Name: "latestDroppedCause", ElementId: 7739, DataType: entities.String, Len: 65535},
 		{Name: "timeFlowRttNs", ElementId: 7740, DataType: entities.Unsigned64, Len: 8},
 		{Name: "interfaces", ElementId: 7741, DataType: entities.String, Len: 65535},
 		{Name: "directions", ElementId: 7742, DataType: entities.String, Len: 65535},
@@ -208,6 +211,21 @@ var (
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned64Value() },
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(rec.(uint64)) },
 		},
+		"packetDeltaCount": {
+			Key:    "Packets",
+			Getter: func(elt entities.InfoElementWithValue) any { return uint32(elt.GetUnsigned64Value()) },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(uint32))) },
+		},
+		"droppedOctetDeltaCount": {
+			Key:    "PktDropBytes",
+			Getter: func(elt entities.InfoElementWithValue) any { return uint16(elt.GetUnsigned64Value()) },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(uint16))) },
+		},
+		"droppedPacketDeltaCount": {
+			Key:    "PktDropPackets",
+			Getter: func(elt entities.InfoElementWithValue) any { return uint16(elt.GetUnsigned64Value()) },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(uint16))) },
+		},
 		"flowStartMilliseconds": {
 			Key:    "TimeFlowStartMs",
 			Getter: func(elt entities.InfoElementWithValue) any { return int64(elt.GetUnsigned64Value()) },
@@ -217,11 +235,6 @@ var (
 			Key:    "TimeFlowEndMs",
 			Getter: func(elt entities.InfoElementWithValue) any { return int64(elt.GetUnsigned64Value()) },
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(int64))) },
-		},
-		"packetDeltaCount": {
-			Key:    "Packets",
-			Getter: func(elt entities.InfoElementWithValue) any { return uint32(elt.GetUnsigned64Value()) },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(uint32))) },
 		},
 		"interfaceName": {
 			Key: "Interfaces",
@@ -325,6 +338,11 @@ var (
 		},
 		"destinationNodeName": {
 			Key:    "DstK8S_HostName",
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
+			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetStringValue(rec.(string)) },
+		},
+		"latestDroppedCause": {
+			Key:    "PktDropLatestDropCause",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
 			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetStringValue(rec.(string)) },
 		},
