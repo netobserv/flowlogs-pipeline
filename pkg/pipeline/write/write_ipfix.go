@@ -525,6 +525,7 @@ func prepareTemplate(templateID uint16, enrichEnterpriseID uint32, v6 bool) (ent
 
 func createDataRecord(flow config.GenericMap, elements []entities.InfoElementWithValue) {
 	for _, ieVal := range elements {
+		ieVal.ResetValue()
 		name := ieVal.GetName()
 		if mapping, ok := MapIPFIXKeys[name]; ok {
 			if value := flow[mapping.Key]; value != nil {

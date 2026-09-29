@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -139,162 +140,21 @@ var (
 	}
 )
 
-func TestEnrichedIPFIXFlow(t *testing.T) {
+func TestIPFIXFlowWithEnterpriseID(t *testing.T) {
 	cp := startCollector(t)
-
-	flow := decode.PBFlowToMap(&fullPBFlow)
-
-	// Convert TCP flags
-	flow["Flags"] = utils.DecodeTCPFlags(uint(fullPBFlow.Flags))
-
-	// Add enrichment
-	flow["SrcK8S_Name"] = "pod A"
-	flow["SrcK8S_Namespace"] = "ns1"
-	flow["SrcK8S_HostName"] = "node1"
-	flow["DstK8S_Name"] = "pod B"
-	flow["DstK8S_Namespace"] = "ns2"
-	flow["DstK8S_HostName"] = "node2"
-
-	writer, err := write.NewWriteIpfix(config.StageParam{
-		Write: &config.Write{
-			Ipfix: &api.WriteIpfix{
-				TargetHost:   cp.udpAddr().IP.String(),
-				TargetPort:   cp.udpAddr().Port,
-				Transport:    cp.udpAddr().Network(),
-				EnterpriseID: 9999,
-			},
-		},
-	})
-	require.NoError(t, err)
-
-	writer.Write(flow)
-
-	// Read collector
-	// 1st = IPv4 template
-	tplv4Msg, err := cp.read(5 * time.Second)
-	require.NoError(t, err)
-	// 2nd = IPv6 template (ignore)
-	_, err = cp.read(5 * time.Second)
-	require.NoError(t, err)
-	// 3rd = data record
-	dataMsg, err := cp.read(5 * time.Second)
-	require.NoError(t, err)
-	cp.Stop()
-
-	expectedFields := write.IPv4IANAFields
+	var kubeFields, customNetworkFields, customNetworkFieldsV4, customNetworkFieldsV6 []string
 	for _, f := range write.KubeFields {
-		expectedFields = append(expectedFields, f.Name)
+		kubeFields = append(kubeFields, f.Name)
 	}
 	for _, f := range write.CustomNetworkFields {
-		expectedFields = append(expectedFields, f.Name)
+		customNetworkFields = append(customNetworkFields, f.Name)
 	}
 	for _, f := range write.CustomNetworkFieldsV4 {
-		expectedFields = append(expectedFields, f.Name)
-	}
-
-	// Check template
-	assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
-	templateSet := tplv4Msg.GetSet()
-	templateElements := templateSet.GetRecords()[0].GetOrderedElementList()
-	assert.Len(t, templateElements, len(expectedFields))
-	assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
-
-	// Check data
-	assert.Equal(t, uint16(10), dataMsg.GetVersion())
-	dataSet := dataMsg.GetSet()
-	record := dataSet.GetRecords()[0]
-
-	for _, name := range expectedFields {
-		element, _, exist := record.GetInfoElementWithValue(name)
-		assert.Truef(t, exist, "element with name %s should exist in the record", name)
-		assert.NotNil(t, element)
-		matchElement(t, element, flow)
-	}
-}
-
-func TestIPv6IPFIXFlow(t *testing.T) {
-	cp := startCollector(t)
-
-	flow := decode.PBFlowToMap(&fullPBFlow)
-	// Set as IPv6
-	flow["Etype"] = write.IPv6Type
-	flow["SrcAddr"] = "2001:db8::1111"
-	flow["DstAddr"] = "2001:db8::2222"
-	flow["XlatSrcAddr"] = "2001:db8::3333"
-	flow["XlatDstAddr"] = "2001:db8::4444"
-
-	// Convert TCP flags
-	flow["Flags"] = utils.DecodeTCPFlags(uint(fullPBFlow.Flags))
-
-	writer, err := write.NewWriteIpfix(config.StageParam{
-		Write: &config.Write{
-			Ipfix: &api.WriteIpfix{
-				TargetHost:   cp.udpAddr().IP.String(),
-				TargetPort:   cp.udpAddr().Port,
-				Transport:    cp.udpAddr().Network(),
-				EnterpriseID: 9999,
-			},
-		},
-	})
-	require.NoError(t, err)
-
-	writer.Write(flow)
-
-	// Read collector
-	// 1st = IPv4 template
-	_, err = cp.read(5 * time.Second)
-	require.NoError(t, err)
-	// 2nd = IPv6 template
-	tplv6Msg, err := cp.read(5 * time.Second)
-	require.NoError(t, err)
-	// 3rd = data record
-	dataMsg, err := cp.read(5 * time.Second)
-	require.NoError(t, err)
-	cp.Stop()
-
-	expectedFields := write.IPv6IANAFields
-	for _, f := range write.KubeFields {
-		expectedFields = append(expectedFields, f.Name)
-	}
-	for _, f := range write.CustomNetworkFields {
-		expectedFields = append(expectedFields, f.Name)
+		customNetworkFieldsV4 = append(customNetworkFieldsV4, f.Name)
 	}
 	for _, f := range write.CustomNetworkFieldsV6 {
-		expectedFields = append(expectedFields, f.Name)
+		customNetworkFieldsV6 = append(customNetworkFieldsV6, f.Name)
 	}
-
-	// Check template
-	assert.Equal(t, uint16(10), tplv6Msg.GetVersion())
-	templateSet := tplv6Msg.GetSet()
-	templateElements := templateSet.GetRecords()[0].GetOrderedElementList()
-	assert.Len(t, templateElements, len(expectedFields))
-	assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
-
-	// Check data
-	assert.Equal(t, uint16(10), dataMsg.GetVersion())
-	dataSet := dataMsg.GetSet()
-	record := dataSet.GetRecords()[0]
-
-	for _, name := range expectedFields {
-		element, _, exist := record.GetInfoElementWithValue(name)
-		assert.Truef(t, exist, "element with name %s should exist in the record", name)
-		assert.NotNil(t, element)
-		matchElement(t, element, flow)
-	}
-}
-
-func TestEnrichedIPFIXPartialFlow(t *testing.T) {
-	cp := startCollector(t)
-
-	flow := decode.PBFlowToMap(&fullPBFlow)
-
-	// Add partial enrichment
-	flow["SrcK8S_Name"] = "pod A"
-	flow["SrcK8S_Namespace"] = "ns1"
-	flow["SrcK8S_HostName"] = "node1"
-
-	// Remove a field
-	delete(flow, "TimeFlowRttNs")
 
 	writer, err := write.NewWriteIpfix(config.StageParam{
 		Write: &config.Write{
@@ -308,61 +168,119 @@ func TestEnrichedIPFIXPartialFlow(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	writer.Write(flow)
+	tests := []struct {
+		name           string
+		addFields      map[string]any
+		removeFields   []string
+		expectedFields []string
+	}{
+		{
+			name: "full flow",
+			addFields: map[string]any{
+				// Convert TCP flags
+				"Flags": utils.DecodeTCPFlags(uint(fullPBFlow.Flags)),
+				// Add enrichment
+				"SrcK8S_Name":      "pod A",
+				"SrcK8S_Namespace": "ns1",
+				"SrcK8S_HostName":  "node1",
+				"DstK8S_Name":      "pod B",
+				"DstK8S_Namespace": "ns2",
+				"DstK8S_HostName":  "node2",
+			},
+			expectedFields: slices.Concat(write.IPv4IANAFields, kubeFields, customNetworkFields, customNetworkFieldsV4),
+		},
+		{
+			name: "IPv6 flow",
+			addFields: map[string]any{
+				// Convert TCP flags
+				"Flags": utils.DecodeTCPFlags(uint(fullPBFlow.Flags)),
+				// Set IPv6
+				"Etype":       write.IPv6Type,
+				"SrcAddr":     "2001:db8::1111",
+				"DstAddr":     "2001:db8::2222",
+				"XlatSrcAddr": "2001:db8::3333",
+				"XlatDstAddr": "2001:db8::4444",
+			},
+			expectedFields: slices.Concat(write.IPv6IANAFields, kubeFields, customNetworkFields, customNetworkFieldsV6),
+		},
+		{
+			name: "partial flow",
+			addFields: map[string]any{
+				// Partial enrichment
+				"SrcK8S_Name":      "pod A",
+				"SrcK8S_Namespace": "ns1",
+				"SrcK8S_HostName":  "node1",
+			},
+			removeFields:   []string{"TimeFlowRttNs"},
+			expectedFields: slices.Concat(write.IPv4IANAFields, kubeFields, customNetworkFields, customNetworkFieldsV4),
+		},
+	}
 
-	// Read collector
-	// 1st = IPv4 template
-	tplv4Msg, err := cp.read(5 * time.Second)
-	require.NoError(t, err)
-	// 2nd = IPv6 template (ignore)
-	_, err = cp.read(5 * time.Second)
-	require.NoError(t, err)
-	// 3rd = data record
-	dataMsg, err := cp.read(5 * time.Second)
-	require.NoError(t, err)
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			flow := decode.PBFlowToMap(&fullPBFlow)
+			for k, v := range tt.addFields {
+				flow[k] = v
+			}
+			for _, f := range tt.removeFields {
+				delete(flow, f)
+			}
+			writer.Write(flow)
+
+			// Read collector
+			// First flow: template expected
+			if i == 0 {
+				// 1st = IPv4 template
+				tplv4Msg, err := cp.read(5 * time.Second)
+				require.NoError(t, err)
+
+				// Check IPv4 template
+				assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
+				templateSet := tplv4Msg.GetSet()
+				templateElements := templateSet.GetRecords()[0].GetOrderedElementList()
+				assert.Len(t,
+					templateElements,
+					len(write.IPv4IANAFields)+len(write.KubeFields)+len(write.CustomNetworkFields)+len(write.CustomNetworkFieldsV4),
+				)
+				assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
+
+				// 2nd = IPv6 template (ignore)
+				tplv6Msg, err := cp.read(5 * time.Second)
+				require.NoError(t, err)
+
+				// Check IPv6 template
+				assert.Equal(t, uint16(10), tplv6Msg.GetVersion())
+				templateSet = tplv6Msg.GetSet()
+				templateElements = templateSet.GetRecords()[0].GetOrderedElementList()
+				assert.Len(t,
+					templateElements,
+					len(write.IPv6IANAFields)+len(write.KubeFields)+len(write.CustomNetworkFields)+len(write.CustomNetworkFieldsV6),
+				)
+				assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
+			}
+			// 3rd = data record
+			dataMsg, err := cp.read(5 * time.Second)
+			require.NoError(t, err, "data record read error")
+
+			// Check record
+			assert.Equal(t, uint16(10), dataMsg.GetVersion(), "data record version error")
+			dataSet := dataMsg.GetSet()
+			record := dataSet.GetRecords()[0]
+
+			for _, name := range tt.expectedFields {
+				element, _, exist := record.GetInfoElementWithValue(name)
+				assert.Truef(t, exist, "element '%s' is missing", name)
+				assert.NotNil(t, element, "element '%s' is nil", name)
+				matchElement(t, element, flow)
+			}
+		})
+	}
+
 	cp.Stop()
-
-	expectedFields := write.IPv4IANAFields
-	for _, f := range write.KubeFields {
-		expectedFields = append(expectedFields, f.Name)
-	}
-	for _, f := range write.CustomNetworkFields {
-		expectedFields = append(expectedFields, f.Name)
-	}
-	for _, f := range write.CustomNetworkFieldsV4 {
-		expectedFields = append(expectedFields, f.Name)
-	}
-
-	// Check template
-	assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
-	templateSet := tplv4Msg.GetSet()
-	templateElements := templateSet.GetRecords()[0].GetOrderedElementList()
-	assert.Len(t, templateElements, len(expectedFields))
-	assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
-
-	// Check data
-	assert.Equal(t, uint16(10), dataMsg.GetVersion())
-	dataSet := dataMsg.GetSet()
-	record := dataSet.GetRecords()[0]
-
-	for _, name := range expectedFields {
-		element, _, exist := record.GetInfoElementWithValue(name)
-		assert.Truef(t, exist, "element with name %s should exist in the record", name)
-		assert.NotNil(t, element)
-		matchElement(t, element, flow)
-	}
 }
 
-func TestBasicIPFIXFlow(t *testing.T) {
+func TestIPFIXFlowWithoutEnterpriseID(t *testing.T) {
 	cp := startCollector(t)
-
-	flow := decode.PBFlowToMap(&fullPBFlow)
-
-	// Add partial enrichment (must be ignored)
-	flow["SrcK8S_Name"] = "pod A"
-	flow["SrcK8S_Namespace"] = "ns1"
-	flow["SrcK8S_HostName"] = "node1"
-
 	writer, err := write.NewWriteIpfix(config.StageParam{
 		Write: &config.Write{
 			Ipfix: &api.WriteIpfix{
@@ -375,45 +293,100 @@ func TestBasicIPFIXFlow(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	writer.Write(flow)
+	tests := []struct {
+		name           string
+		addFields      map[string]any
+		expectedFields []string
+	}{
+		{
+			name: "full flow",
+			addFields: map[string]any{
+				// Convert TCP flags
+				"Flags": utils.DecodeTCPFlags(uint(fullPBFlow.Flags)),
+				// Add enrichment (must be ignored)
+				"SrcK8S_Name":      "pod A",
+				"SrcK8S_Namespace": "ns1",
+				"SrcK8S_HostName":  "node1",
+				"DstK8S_Name":      "pod B",
+				"DstK8S_Namespace": "ns2",
+				"DstK8S_HostName":  "node2",
+			},
+			expectedFields: write.IPv4IANAFields,
+		},
+		{
+			name: "IPv6 flow",
+			addFields: map[string]any{
+				// Convert TCP flags
+				"Flags": utils.DecodeTCPFlags(uint(fullPBFlow.Flags)),
+				// Set IPv6
+				"Etype":       write.IPv6Type,
+				"SrcAddr":     "2001:db8::1111",
+				"DstAddr":     "2001:db8::2222",
+				"XlatSrcAddr": "2001:db8::3333",
+				"XlatDstAddr": "2001:db8::4444",
+			},
+			expectedFields: write.IPv6IANAFields,
+		},
+	}
 
-	// Read collector
-	// 1st = IPv4 template
-	tplv4Msg, err := cp.read(5 * time.Second)
-	require.NoError(t, err)
-	// 2nd = IPv6 template (ignore)
-	_, err = cp.read(5 * time.Second)
-	require.NoError(t, err)
-	// 3rd = data record
-	dataMsg, err := cp.read(5 * time.Second)
-	require.NoError(t, err)
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			flow := decode.PBFlowToMap(&fullPBFlow)
+			for k, v := range tt.addFields {
+				flow[k] = v
+			}
+			writer.Write(flow)
+
+			// Read collector
+			// First flow: template expected
+			if i == 0 {
+				// 1st = IPv4 template
+				tplv4Msg, err := cp.read(5 * time.Second)
+				require.NoError(t, err)
+
+				// Check IPv4 template
+				assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
+				templateSet := tplv4Msg.GetSet()
+				templateElements := templateSet.GetRecords()[0].GetOrderedElementList()
+				assert.Len(t, templateElements, len(write.IPv4IANAFields))
+				assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
+
+				// 2nd = IPv6 template (ignore)
+				tplv6Msg, err := cp.read(5 * time.Second)
+				require.NoError(t, err)
+
+				// Check IPv6 template
+				assert.Equal(t, uint16(10), tplv6Msg.GetVersion())
+				templateSet = tplv6Msg.GetSet()
+				templateElements = templateSet.GetRecords()[0].GetOrderedElementList()
+				assert.Len(t, templateElements, len(write.IPv6IANAFields))
+				assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
+			}
+			// 3rd = data record
+			dataMsg, err := cp.read(5 * time.Second)
+			require.NoError(t, err, "data record read error")
+
+			// Check record
+			assert.Equal(t, uint16(10), dataMsg.GetVersion(), "data record version error")
+			dataSet := dataMsg.GetSet()
+			record := dataSet.GetRecords()[0]
+
+			for _, name := range tt.expectedFields {
+				element, _, exist := record.GetInfoElementWithValue(name)
+				assert.Truef(t, exist, "element '%s' is missing", name)
+				assert.NotNil(t, element, "element '%s' is nil", name)
+				matchElement(t, element, flow)
+			}
+			// Make sure enriched fields are absent
+			for _, f := range write.KubeFields {
+				element, _, exist := record.GetInfoElementWithValue(f.Name)
+				assert.Falsef(t, exist, "element '%s' should NOT exist", f.Name)
+				assert.Nil(t, element)
+			}
+		})
+	}
+
 	cp.Stop()
-
-	// Check template
-	assert.Equal(t, uint16(10), tplv4Msg.GetVersion())
-	templateSet := tplv4Msg.GetSet()
-	templateElements := templateSet.GetRecords()[0].GetOrderedElementList()
-	assert.Len(t, templateElements, len(write.IPv4IANAFields))
-	assert.Equal(t, uint32(0), templateElements[0].GetInfoElement().EnterpriseId)
-
-	// Check data
-	assert.Equal(t, uint16(10), dataMsg.GetVersion())
-	dataSet := dataMsg.GetSet()
-	record := dataSet.GetRecords()[0]
-
-	for _, name := range write.IPv4IANAFields {
-		element, _, exist := record.GetInfoElementWithValue(name)
-		assert.Truef(t, exist, "element with name %s should exist in the record", name)
-		assert.NotNil(t, element)
-		matchElement(t, element, flow)
-	}
-
-	// Make sure enriched fields are absent
-	for _, f := range write.KubeFields {
-		element, _, exist := record.GetInfoElementWithValue(f.Name)
-		assert.Falsef(t, exist, "element with name %s should NOT exist in the record", f.Name)
-		assert.Nil(t, element)
-	}
 }
 
 func TestICMPIPFIXFlow(t *testing.T) {
@@ -477,19 +450,16 @@ func TestICMPIPFIXFlow(t *testing.T) {
 func matchElement(t *testing.T, element entities.InfoElementWithValue, flow config.GenericMap) {
 	name := element.GetName()
 	mapping, ok := write.MapIPFIXKeys[name]
-	if !ok {
-		assert.Fail(t, "missing check on element", name)
-		return
-	}
+	require.True(t, ok, "missing IPFIX key '%s'", name)
 	expected := flow[mapping.Key]
 	if mapping.Matcher != nil {
-		assert.True(t, mapping.Matcher(element, expected), "unexpected "+name)
+		assert.True(t, mapping.Matcher(element, expected), "unexpected '%s'", name)
 	} else {
 		value := mapping.Getter(element)
 		if expected == nil {
-			assert.Empty(t, value, "unexpected "+name)
+			assert.Empty(t, value, "unexpected '%s'", name)
 		} else {
-			assert.Equal(t, expected, value, "unexpected "+name)
+			assert.Equal(t, expected, value, "unexpected '%s'", name)
 		}
 	}
 }
