@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,4 +78,30 @@ func TestUnmarshalFromViper(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "netobserv", cfs.Parameters[0].Write.Loki.TenantID)
+}
+
+func TestConnTrackSelectorFromViper(t *testing.T) {
+	// Viper lower-cases all keys, which corrupts case-sensitive connection field names
+	// when the conntrack scheduling selector is expressed as a map. Using the list form
+	// (key/value pairs) keeps the field name as a value, so it survives the round-trip.
+	input := `{"parameters":[{"name":"conntrack","extract":{"type":"conntrack","conntrack":{` +
+		`"scheduling":[{"selector":[{"key":"SrcK8S_Name","value":"pod-a"}],"heartbeatInterval":"30s"}]}}}]}`
+	v := viper.New()
+	v.SetConfigType("yaml")
+	r := bytes.NewReader([]byte(input))
+	err := v.ReadConfig(r)
+	require.NoError(t, err)
+	str := v.Get("parameters")
+	b, err := json.Marshal(str)
+	require.NoError(t, err)
+	cfs, err := ParseConfig(&Options{
+		PipeLine:   "[]",
+		Parameters: string(b),
+	})
+	require.NoError(t, err)
+
+	scheduling := cfs.Parameters[0].Extract.ConnTrack.Scheduling
+	require.Len(t, scheduling, 1)
+	// The case-sensitive field name is preserved (it would be "srck8s_name" if we had used the map form).
+	assert.Equal(t, api.Selectors{"SrcK8S_Name": "pod-a"}, scheduling[0].Selector)
 }

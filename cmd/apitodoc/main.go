@@ -50,17 +50,22 @@ func iterate(output io.Writer, data interface{}, indent int) {
 			fieldName := val.Type().Field(i).Tag.Get(api.TagYaml)
 			fieldName = strings.ReplaceAll(fieldName, ",omitempty", "")
 			fieldDocTag := val.Type().Field(i).Tag.Get(api.TagDoc)
+			fieldDocTypeAliasTag := val.Type().Field(i).Tag.Get(api.TagDocTypeAlias)
 
 			if fieldDocTag != "" {
+				nextType := d.Field(i).Interface()
+				if fieldDocTypeAliasTag != "" {
+					nextType = d.FieldByName(fieldDocTypeAliasTag).Interface()
+				}
 				if fieldDocTag[0:1] == "#" {
 					fmt.Fprintf(output, "\n%s\n", fieldDocTag)
 					fmt.Fprintf(output, "<pre>")
 					fmt.Fprintf(output, "\n%s %s:\n", strings.Repeat(" ", 4*indent), fieldName)
-					iterate(output, d.Field(i).Interface(), newIndent)
+					iterate(output, nextType, newIndent)
 					fmt.Fprintf(output, "</pre>")
 				} else {
 					fmt.Fprintf(output, "%s %s: %s\n", strings.Repeat(" ", 4*newIndent), fieldName, fieldDocTag)
-					iterate(output, d.Field(i).Interface(), newIndent)
+					iterate(output, nextType, newIndent)
 				}
 			}
 		}

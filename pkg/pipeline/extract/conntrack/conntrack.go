@@ -22,6 +22,7 @@ import (
 	"hash"
 	"hash/fnv"
 	"strconv"
+	"syscall"
 
 	"github.com/benbjohnson/clock"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -57,7 +58,7 @@ type conntrackImpl struct {
 }
 
 func (ct *conntrackImpl) filterFlowLog(fl config.GenericMap) bool {
-	if !fl.IsValidProtocol() || !fl.IsTransportProtocol() {
+	if !ct.isValidProtocol(fl) || !ct.isTransportProtocol(fl) {
 		return true
 	}
 	return false
@@ -79,7 +80,7 @@ func (ct *conntrackImpl) Extract(flowLogs []config.GenericMap) []config.GenericM
 			continue
 		}
 
-		if fl.IsDuplicate() {
+		if ct.isDuplicate(fl) {
 			log.Debugf("skipping duplicated flow log %v", fl)
 			ct.metrics.inputRecords.WithLabelValues("duplicate").Inc()
 		} else {
@@ -227,6 +228,7 @@ func (ct *conntrackImpl) getFlowLogDirection(conn connection, flowLogHash totalH
 // NewConnectionTrack creates a new connection track instance
 func NewConnectionTrack(opMetrics *operational.Metrics, params config.StageParam, clock clock.Clock) (extract.Extractor, error) {
 	cfg := params.Extract.ConnTrack
+	cfg.Preprocess()
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("ConnectionTrack config is invalid: %w", err)
 	}
@@ -288,4 +290,31 @@ func addTypeField(record config.GenericMap, recordType api.ConnTrackOutputRecord
 
 func addIsFirstField(record config.GenericMap, isFirst bool) {
 	record[api.IsFirstFieldName] = isFirst
+}
+
+func (ct *conntrackImpl) isDuplicate(flow config.GenericMap) bool {
+	if duplicate, hasKey := flow[ct.config.DuplicateFieldName]; hasKey {
+		if isDuplicate, err := utils.ConvertToBool(duplicate); err == nil {
+			return isDuplicate
+		}
+	}
+	return false
+}
+
+func (ct *conntrackImpl) isValidProtocol(flow config.GenericMap) bool {
+	if _, ok := flow[ct.config.ProtoFieldName]; ok {
+		return true
+	}
+	return false
+}
+
+func (ct *conntrackImpl) isTransportProtocol(flow config.GenericMap) bool {
+	if v, ok := flow[ct.config.ProtoFieldName]; ok {
+		if proto, err := utils.ConvertToFloat64(v); err == nil {
+			if proto == float64(syscall.IPPROTO_TCP) || proto == float64(syscall.IPPROTO_UDP) || proto == float64(syscall.IPPROTO_SCTP) {
+				return true
+			}
+		}
+	}
+	return false
 }
