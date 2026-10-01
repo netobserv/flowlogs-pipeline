@@ -36,9 +36,6 @@ type Config struct {
 	// The tenant ID to use when pushing logs to Loki (empty string means
 	// single tenant mode)
 	TenantID string `yaml:"tenant_id"`
-
-	// Use Loki JSON api as opposed to the snappy protobuf.
-	EncodeJson bool `yaml:"encode_json"`
 }
 
 // NewDefaultConfig creates a default configuration for a given target Loki URL.
@@ -71,7 +68,6 @@ func (c *Config) RegisterFlagsWithPrefix(prefix string, f *flag.FlagSet) {
 	f.Var(&c.ExternalLabels, prefix+"client.external-labels", "list of external labels to add to each log (e.g: --client.external-labels=lb1=v1,lb2=v2)")
 
 	f.StringVar(&c.TenantID, prefix+"client.tenant-id", "", "Tenant ID to use when pushing logs to Loki.")
-	f.BoolVar(&c.EncodeJson, prefix+"client.encode-json", false, "Encode payload in JSON, default to snappy protobuf")
 }
 
 // RegisterFlags registers flags.

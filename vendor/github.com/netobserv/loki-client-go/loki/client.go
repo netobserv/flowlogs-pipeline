@@ -15,7 +15,6 @@ import (
 
 	"github.com/netobserv/loki-client-go/pkg/backoff"
 	"github.com/netobserv/loki-client-go/pkg/metrics"
-	"github.com/prometheus/prometheus/promql/parser"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -23,13 +22,12 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/common/version"
 
+	"github.com/grafana/loki/pkg/push"
 	"github.com/netobserv/loki-client-go/pkg/helpers"
-	"github.com/netobserv/loki-client-go/pkg/logproto"
 )
 
 const (
 	protoContentType = "application/x-protobuf"
-	JSONContentType  = "application/json"
 	maxErrMsgLen     = 1024
 
 	// Label reserved to override the tenant ID while processing
@@ -63,7 +61,7 @@ type Client struct {
 type entry struct {
 	tenantID string
 	labels   model.LabelSet
-	logproto.Entry
+	push.Entry
 }
 
 // New makes a new Client from config
@@ -186,17 +184,7 @@ func (c *Client) run() {
 }
 
 func (c *Client) sendBatch(tenantID string, batch *batch) {
-	var (
-		err          error
-		buf          []byte
-		entriesCount int
-	)
-	if c.cfg.EncodeJson {
-		buf, entriesCount, err = batch.encodeJSON()
-	} else {
-		buf, entriesCount, err = batch.encode()
-	}
-
+	buf, entriesCount, err := batch.encode()
 	if err != nil {
 		level.Error(c.logger).Log("msg", "error encoding batch", "error", err)
 		return
@@ -215,26 +203,6 @@ func (c *Client) sendBatch(tenantID string, batch *batch) {
 		if err == nil {
 			metrics.SentBytes.WithLabelValues(c.cfg.URL.Host, transportHTTP).Add(bufBytes)
 			metrics.SentEntries.WithLabelValues(c.cfg.URL.Host, transportHTTP).Add(float64(entriesCount))
-			for _, s := range batch.streams {
-				lbls, err := parser.NewParser(parser.Options{}).ParseMetric(s.Labels)
-				if err != nil {
-					// is this possible?
-					level.Warn(c.logger).Log("msg", "error converting stream label string to label.Labels, cannot update lagging metric", "error", err)
-					return
-				}
-				var lblSet model.LabelSet
-				for name, value := range lbls.Map() {
-					if name == metrics.LatencyLabel {
-						lblSet = model.LabelSet{
-							model.LabelName(metrics.HostLabel):    model.LabelValue(c.cfg.URL.Host),
-							model.LabelName(metrics.LatencyLabel): model.LabelValue(value),
-						}
-					}
-				}
-				if lblSet != nil {
-					metrics.StreamLag.With(lblSet).Set(time.Since(s.Entries[len(s.Entries)-1].Timestamp).Seconds())
-				}
-			}
 			return
 		}
 
@@ -264,9 +232,6 @@ func (c *Client) send(ctx context.Context, tenantID string, buf []byte) (int, er
 	}
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", protoContentType)
-	if c.cfg.EncodeJson {
-		req.Header.Set("Content-Type", JSONContentType)
-	}
 	req.Header.Set("User-Agent", UserAgent)
 
 	// If the tenant ID is not empty promtail is running in multi-tenant mode, so
@@ -329,14 +294,9 @@ func (c *Client) Handle(ls model.LabelSet, t time.Time, s string) error {
 		delete(ls, ReservedLabelTenantID)
 	}
 
-	c.entries <- entry{tenantID, ls, logproto.Entry{
+	c.entries <- entry{tenantID, ls, push.Entry{
 		Timestamp: t,
 		Line:      s,
 	}}
 	return nil
-}
-
-func (c *Client) UnregisterLatencyMetric(labels model.LabelSet) {
-	labels[metrics.HostLabel] = model.LabelValue(c.cfg.URL.Host)
-	metrics.StreamLag.Delete(labels)
 }
