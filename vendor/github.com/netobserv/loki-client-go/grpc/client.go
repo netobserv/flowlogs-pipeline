@@ -4,20 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
+	"log/slog"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"github.com/gogo/protobuf/proto"
+	"github.com/grafana/loki/pkg/push"
 	"github.com/netobserv/loki-client-go/pkg/backoff"
-	"github.com/netobserv/loki-client-go/pkg/logproto"
 	"github.com/netobserv/loki-client-go/pkg/metrics"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/common/version"
-	"github.com/prometheus/prometheus/promql/parser"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -33,6 +30,7 @@ const (
 
 var (
 	UserAgent = fmt.Sprintf("loki-grpc-client/%s", version.Version)
+	log       = slog.With("component", "grpc-client")
 )
 
 func init() {
@@ -41,10 +39,9 @@ func init() {
 
 // Client for pushing logs via GRPC
 type Client struct {
-	logger  log.Logger
-	cfg     Config
+	cfg     *Config
 	conn    *grpc.ClientConn
-	pusher  logproto.PusherClient
+	pusher  push.PusherClient
 	quit    chan struct{}
 	once    sync.Once
 	entries chan entry
@@ -54,28 +51,12 @@ type Client struct {
 }
 
 // New creates a new GRPC client from config
-func New(cfg Config) (*Client, error) {
-	logger := level.NewFilter(log.NewLogfmtLogger(os.Stdout), level.AllowWarn())
-	return NewWithLogger(cfg, logger)
-}
-
-// NewWithDefault creates a new client with default configuration
-func NewWithDefault(serverAddress string) (*Client, error) {
-	cfg, err := NewDefaultConfig(serverAddress)
-	if err != nil {
-		return nil, err
-	}
-	return New(cfg)
-}
-
-// NewWithLogger creates a new GRPC client with a logger and config
-func NewWithLogger(cfg Config, logger log.Logger) (*Client, error) {
+func New(cfg *Config) (*Client, error) {
 	if cfg.ServerAddress == "" {
 		return nil, errors.New("grpc client needs server address")
 	}
 
 	c := &Client{
-		logger:         log.With(logger, "component", "grpc-client", "host", cfg.ServerAddress),
 		cfg:            cfg,
 		quit:           make(chan struct{}),
 		entries:        make(chan entry),
@@ -97,6 +78,15 @@ func NewWithLogger(cfg Config, logger log.Logger) (*Client, error) {
 	return c, nil
 }
 
+// NewWithDefault creates a new client with default configuration
+func NewWithDefault(serverAddress string) (*Client, error) {
+	cfg, err := NewDefaultConfig(serverAddress)
+	if err != nil {
+		return nil, err
+	}
+	return New(&cfg)
+}
+
 // connect establishes GRPC connection
 func (c *Client) connect() error {
 	opts, err := c.cfg.BuildDialOptions()
@@ -110,9 +100,9 @@ func (c *Client) connect() error {
 	}
 
 	c.conn = conn
-	c.pusher = logproto.NewPusherClient(conn)
+	c.pusher = push.NewPusherClient(conn)
 
-	level.Info(c.logger).Log("msg", "connected to GRPC server", "address", c.cfg.ServerAddress)
+	log.Info("connected to GRPC server", "address", c.cfg.ServerAddress)
 	return nil
 }
 
@@ -205,24 +195,23 @@ func (c *Client) sendBatch(tenantID string, batch *batch) {
 			metrics.SentEntries.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(float64(entriesCount))
 			metrics.SentBytes.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(wireBytes)
 
-			c.updateStreamLagMetrics(req.Streams)
 			return
 		}
 
-		level.Warn(c.logger).Log("msg", "error sending batch via GRPC, will retry", "status", status, "error", err)
+		log.Warn("error sending batch via GRPC, will retry", "status", status, "error", err)
 		metrics.BatchRetries.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Inc()
 		backoffInstance.Wait()
 	}
 
 	// Failed after all retries
 	if err != nil {
-		level.Error(c.logger).Log("msg", "final error sending batch via GRPC", "status", status, "error", err)
+		log.Warn("final error sending batch via GRPC", "status", status, "error", err)
 		metrics.DroppedEntries.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(float64(entriesCount))
 		metrics.DroppedBytes.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(wireBytes)
 	}
 }
 
-func (c *Client) push(ctx context.Context, tenantID string, req *logproto.PushRequest) error {
+func (c *Client) push(ctx context.Context, tenantID string, req *push.PushRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, c.cfg.Timeout)
 	defer cancel()
 
@@ -250,6 +239,7 @@ func (c *Client) getStatusCode(err error) string {
 	}
 
 	// Convert gRPC status codes to HTTP-like status codes for metrics compatibility
+	// nolint:exhaustive
 	switch st.Code() {
 	case codes.OK:
 		return "200"
@@ -290,30 +280,6 @@ func (c *Client) Stop() {
 	c.wg.Wait()
 }
 
-// updateStreamLagMetrics updates lag metrics to match HTTP client behavior
-func (c *Client) updateStreamLagMetrics(streams []logproto.Stream) {
-	for _, s := range streams {
-		lbls, err := parser.NewParser(parser.Options{}).ParseMetric(s.Labels)
-		if err != nil {
-			// is this possible?
-			level.Warn(c.logger).Log("msg", "error converting stream label string to label.Labels, cannot update lagging metric", "error", err)
-			return
-		}
-		var lblSet model.LabelSet
-		for name, value := range lbls.Map() {
-			if name == metrics.LatencyLabel {
-				lblSet = model.LabelSet{
-					model.LabelName(metrics.HostLabel):    model.LabelValue(c.cfg.ServerAddress),
-					model.LabelName(metrics.LatencyLabel): model.LabelValue(value),
-				}
-			}
-		}
-		if lblSet != nil {
-			metrics.StreamLag.With(lblSet).Set(time.Since(s.Entries[len(s.Entries)-1].Timestamp).Seconds())
-		}
-	}
-}
-
 // Handle implements EntryHandler; adds a new line to the next batch; send is async
 func (c *Client) Handle(ls model.LabelSet, t time.Time, s string) error {
 	if len(c.externalLabels) > 0 {
@@ -327,14 +293,9 @@ func (c *Client) Handle(ls model.LabelSet, t time.Time, s string) error {
 		delete(ls, ReservedLabelTenantID)
 	}
 
-	c.entries <- entry{tenantID, ls, logproto.Entry{
+	c.entries <- entry{tenantID, ls, push.Entry{
 		Timestamp: t,
 		Line:      s,
 	}}
 	return nil
-}
-
-func (c *Client) UnregisterLatencyMetric(labels model.LabelSet) {
-	labels[metrics.HostLabel] = model.LabelValue(c.cfg.ServerAddress)
-	metrics.StreamLag.Delete(labels)
 }

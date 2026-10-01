@@ -45,7 +45,7 @@ type Config struct {
 	KeepAliveTimeout time.Duration `yaml:"keep_alive_timeout"`
 
 	// Retry configuration
-	BackoffConfig backoff.BackoffConfig `yaml:"backoff_config"`
+	BackoffConfig backoff.Config `yaml:"backoff_config"`
 
 	// Labels to add to any time series when communicating with loki
 	ExternalLabels labelutil.LabelSet `yaml:"external_labels,omitempty"`
@@ -138,7 +138,7 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	} else {
 		// Set sane defaults
 		cfg = raw{
-			BackoffConfig: backoff.BackoffConfig{
+			BackoffConfig: backoff.Config{
 				MaxBackoff: DefaultMaxBackoff,
 				MaxRetries: DefaultMaxRetries,
 				MinBackoff: DefaultMinBackoff,

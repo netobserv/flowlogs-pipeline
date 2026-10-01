@@ -8,15 +8,15 @@ import (
 	"time"
 )
 
-// BackoffConfig configures a Backoff
-type BackoffConfig struct {
+// Config configures a Backoff
+type Config struct {
 	MinBackoff time.Duration `yaml:"min_period"`  // start backoff at this level
 	MaxBackoff time.Duration `yaml:"max_period"`  // increase exponentially to this level
 	MaxRetries int           `yaml:"max_retries"` // give up after this many; zero means infinite retries
 }
 
-// RegisterFlags for BackoffConfig.
-func (cfg *BackoffConfig) RegisterFlags(prefix string, f *flag.FlagSet) {
+// RegisterFlags for Config.
+func (cfg *Config) RegisterFlags(prefix string, f *flag.FlagSet) {
 	f.DurationVar(&cfg.MinBackoff, prefix+".backoff-min-period", 100*time.Millisecond, "Minimum delay when backing off.")
 	f.DurationVar(&cfg.MaxBackoff, prefix+".backoff-max-period", 10*time.Second, "Maximum delay when backing off.")
 	f.IntVar(&cfg.MaxRetries, prefix+".backoff-retries", 10, "Number of times to backoff and retry before failing.")
@@ -24,7 +24,7 @@ func (cfg *BackoffConfig) RegisterFlags(prefix string, f *flag.FlagSet) {
 
 // Backoff implements exponential backoff with randomized wait times
 type Backoff struct {
-	cfg          BackoffConfig
+	cfg          Config
 	ctx          context.Context
 	numRetries   int
 	nextDelayMin time.Duration
@@ -32,7 +32,7 @@ type Backoff struct {
 }
 
 // New creates a Backoff object. Pass a Context that can also terminate the operation.
-func New(ctx context.Context, cfg BackoffConfig) *Backoff {
+func New(ctx context.Context, cfg Config) *Backoff {
 	return &Backoff{
 		cfg:          cfg,
 		ctx:          ctx,
@@ -106,12 +106,12 @@ func (b *Backoff) NextDelay() time.Duration {
 	return sleepTime
 }
 
-func doubleDuration(value time.Duration, max time.Duration) time.Duration {
-	value = value * 2
+func doubleDuration(value time.Duration, maxx time.Duration) time.Duration {
+	value *= 2
 
-	if value <= max {
+	if value <= maxx {
 		return value
 	}
 
-	return max
+	return maxx
 }

@@ -2,14 +2,11 @@ package metrics
 
 import (
 	"sync"
-	"time"
 
-	"github.com/netobserv/loki-client-go/pkg/metric"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
-	LatencyLabel = "filename"
 	HostLabel    = "host"
 	MetricPrefix = "netobserv"
 )
@@ -58,9 +55,6 @@ var (
 		Help:      "Number of times batches has had to be retried.",
 	}, []string{HostLabel, "transport"})
 
-
-	StreamLag *metric.Gauges
-
 	// CountersWithHost are the counters that have host as a label
 	CountersWithHost = []*prometheus.CounterVec{
 		EncodedBytes, SentBytes, DroppedBytes, SentEntries, DroppedEntries, BatchRetries,
@@ -79,16 +73,5 @@ func RegisterMetrics() {
 		prometheus.MustRegister(DroppedEntries)
 		prometheus.MustRegister(RequestDuration)
 		prometheus.MustRegister(BatchRetries)
-
-		var err error
-		StreamLag, err = metric.NewGauges(MetricPrefix+"_stream_lag_seconds",
-			"Difference between current time and last batch timestamp for successful sends",
-			metric.GaugeConfig{Action: "set"},
-			int64(1*time.Minute.Seconds()),
-		)
-		if err != nil {
-			panic(err)
-		}
-		prometheus.MustRegister(StreamLag)
 	})
 }
