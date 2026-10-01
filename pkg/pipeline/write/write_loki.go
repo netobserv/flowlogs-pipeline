@@ -29,7 +29,6 @@ import (
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 
-	logAdapter "github.com/go-kit/kit/log/logrus"
 	"github.com/netobserv/loki-client-go/grpc"
 	"github.com/netobserv/loki-client-go/loki"
 	"github.com/netobserv/loki-client-go/pkg/backoff"
@@ -78,7 +77,7 @@ func createHTTPClient(c *api.WriteLoki) (emitter, error) {
 		return nil, err
 	}
 
-	client, err := loki.NewWithLogger(cfg, logAdapter.NewLogger(log.WithField("module", "export/loki")))
+	client, err := loki.New(&cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP Loki client: %w", err)
 	}
@@ -92,7 +91,7 @@ func createGRPCClient(c *api.WriteLoki) (emitter, error) {
 		return nil, err
 	}
 
-	client, err := grpc.NewWithLogger(cfg, logAdapter.NewLogger(log.WithField("module", "export/loki-grpc")))
+	client, err := grpc.New(&cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gRPC Loki client: %w", err)
 	}
@@ -122,11 +121,12 @@ func buildHTTPLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 	}
 
 	cfg := loki.Config{
-		TenantID:  c.TenantID,
-		BatchWait: batchWait,
-		BatchSize: c.BatchSize,
-		Timeout:   timeout,
-		BackoffConfig: backoff.BackoffConfig{
+		TenantID:         c.TenantID,
+		BatchWait:        batchWait,
+		BatchSize:        c.BatchSize,
+		Timeout:          timeout,
+		EnableKeepAlives: c.EnableKeepAlives == nil || *c.EnableKeepAlives, // default true
+		BackoffConfig: backoff.Config{
 			MinBackoff: minBackoff,
 			MaxBackoff: maxBackoff,
 			MaxRetries: c.MaxRetries,
@@ -135,6 +135,9 @@ func buildHTTPLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 	if c.ClientConfig != nil {
 		cfg.Client = *c.ClientConfig
 	}
+	// After the copy above: unmarshalling a clientConfig applies the Prometheus
+	// defaults, which turn HTTP/2 on. Our own setting is the one that decides.
+	cfg.Client.EnableHTTP2 = c.EnableHTTP2 != nil && *c.EnableHTTP2
 	var clientURL urlutil.URLValue
 	err = clientURL.Set(strings.TrimSuffix(c.URL, "/") + "/loki/api/v1/push")
 	if err != nil {
@@ -187,7 +190,7 @@ func buildGRPCLokiConfig(c *api.WriteLoki) (grpc.Config, error) {
 		Timeout:          timeout,
 		KeepAlive:        keepAlive,
 		KeepAliveTimeout: keepAliveTimeout,
-		BackoffConfig: backoff.BackoffConfig{
+		BackoffConfig: backoff.Config{
 			MinBackoff: minBackoff,
 			MaxBackoff: maxBackoff,
 			MaxRetries: c.MaxRetries,

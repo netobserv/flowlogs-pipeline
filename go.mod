@@ -7,7 +7,6 @@ require (
 	github.com/agoda-com/opentelemetry-logs-go v0.6.0
 	github.com/benbjohnson/clock v1.3.5
 	github.com/foxcpp/go-mockdns v1.2.0
-	github.com/go-kit/kit v0.13.0
 	github.com/golang/snappy v1.0.0
 	github.com/grafana/loki/pkg/push v0.0.0-20261001104752-7ba6f556340d
 	github.com/heptiolabs/healthcheck v0.0.0-20211123025425-613501dd5deb
@@ -17,7 +16,7 @@ require (
 	github.com/minio/minio-go/v7 v7.3.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/netobserv/gopipes v0.3.0
-	github.com/netobserv/loki-client-go v0.0.0-20260521152535-45c805c1a2e3
+	github.com/netobserv/loki-client-go v0.0.0-20261001140340-1cf9370b12cd
 	github.com/netobserv/netobserv-ebpf-agent v1.12.0-community
 	github.com/netsampler/goflow2 v1.3.7
 	github.com/pkg/errors v0.9.1
@@ -92,8 +91,6 @@ require (
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.1 // indirect
 	github.com/gavv/monotime v0.0.0-20190418164738-30dba4353424 // indirect
-	github.com/go-kit/log v0.2.1 // indirect
-	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
@@ -168,4 +165,4 @@ require (
 
 replace github.com/vmware/go-ipfix => github.com/jotak/go-ipfix v0.0.0-20260902090533-678b953b553c
 
-replace github.com/netobserv/loki-client-go => /w/loki-client-go
+replace github.com/netobserv/loki-client-go => github.com/netobserv/loki-client-go v0.0.0-20261001140340-1cf9370b12cd

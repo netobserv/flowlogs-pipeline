@@ -28,7 +28,7 @@ type Config struct {
 
 	Client config.HTTPClientConfig `yaml:",inline"`
 
-	BackoffConfig backoff.BackoffConfig `yaml:"backoff_config"`
+	BackoffConfig backoff.Config `yaml:"backoff_config"`
 	// The labels to add to any time series or alerts when communicating with loki
 	ExternalLabels labelutil.LabelSet `yaml:"external_labels,omitempty"`
 	Timeout        time.Duration      `yaml:"timeout"`
@@ -36,6 +36,13 @@ type Config struct {
 	// The tenant ID to use when pushing logs to Loki (empty string means
 	// single tenant mode)
 	TenantID string `yaml:"tenant_id"`
+
+	// EnableKeepAlives lets the client reuse TCP connections between pushes.
+	// Off by default: cycling connections lets a load balancer in front of
+	// Loki redistribute traffic instead of pinning it to a few backends.
+	// Worth enabling when small batches push the request rate high enough
+	// that per-request TCP/TLS handshakes become measurable.
+	EnableKeepAlives bool `yaml:"enable_keep_alives"`
 }
 
 // NewDefaultConfig creates a default configuration for a given target Loki URL.
@@ -68,6 +75,8 @@ func (c *Config) RegisterFlagsWithPrefix(prefix string, f *flag.FlagSet) {
 	f.Var(&c.ExternalLabels, prefix+"client.external-labels", "list of external labels to add to each log (e.g: --client.external-labels=lb1=v1,lb2=v2)")
 
 	f.StringVar(&c.TenantID, prefix+"client.tenant-id", "", "Tenant ID to use when pushing logs to Loki.")
+	f.BoolVar(&c.Client.EnableHTTP2, prefix+"client.enable-http2", false, "Allow the client to negotiate HTTP/2.")
+	f.BoolVar(&c.EnableKeepAlives, prefix+"client.enable-keep-alives", false, "Reuse TCP connections between pushes.")
 }
 
 // RegisterFlags registers flags.
@@ -85,7 +94,7 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	} else {
 		// force sane defaults.
 		cfg = raw{
-			BackoffConfig: backoff.BackoffConfig{
+			BackoffConfig: backoff.Config{
 				MaxBackoff: MaxBackoff,
 				MaxRetries: MaxRetries,
 				MinBackoff: MinBackoff,

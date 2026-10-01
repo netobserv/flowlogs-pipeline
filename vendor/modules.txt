@@ -79,18 +79,6 @@ github.com/fxamacker/cbor/v2
 # github.com/gavv/monotime v0.0.0-20190418164738-30dba4353424
 ## explicit
 github.com/gavv/monotime
-# github.com/go-kit/kit v0.13.0
-## explicit; go 1.17
-github.com/go-kit/kit/log
-github.com/go-kit/kit/log/level
-github.com/go-kit/kit/log/logrus
-# github.com/go-kit/log v0.2.1
-## explicit; go 1.17
-github.com/go-kit/log
-github.com/go-kit/log/level
-# github.com/go-logfmt/logfmt v0.6.0
-## explicit; go 1.17
-github.com/go-logfmt/logfmt
 # github.com/go-logr/logr v1.4.4
 ## explicit; go 1.18
 github.com/go-logr/logr
@@ -292,12 +280,11 @@ github.com/mwitkow/go-conntrack
 ## explicit; go 1.18
 github.com/netobserv/gopipes/pkg/node
 github.com/netobserv/gopipes/pkg/node/internal/connect
-# github.com/netobserv/loki-client-go v0.0.0-20260521152535-45c805c1a2e3 => /w/loki-client-go
+# github.com/netobserv/loki-client-go v0.0.0-20261001140340-1cf9370b12cd => github.com/netobserv/loki-client-go v0.0.0-20261001140340-1cf9370b12cd
 ## explicit; go 1.26.7
 github.com/netobserv/loki-client-go/grpc
 github.com/netobserv/loki-client-go/loki
 github.com/netobserv/loki-client-go/pkg/backoff
-github.com/netobserv/loki-client-go/pkg/helpers
 github.com/netobserv/loki-client-go/pkg/labelutil
 github.com/netobserv/loki-client-go/pkg/metrics
 github.com/netobserv/loki-client-go/pkg/urlutil
@@ -1382,4 +1369,4 @@ sigs.k8s.io/structured-merge-diff/v6/value
 ## explicit; go 1.22
 sigs.k8s.io/yaml
 # github.com/vmware/go-ipfix => github.com/jotak/go-ipfix v0.0.0-20260902090533-678b953b553c
-# github.com/netobserv/loki-client-go => /w/loki-client-go
+# github.com/netobserv/loki-client-go => github.com/netobserv/loki-client-go v0.0.0-20261001140340-1cf9370b12cd

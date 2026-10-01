@@ -41,6 +41,7 @@ func newBatch(tenantID string, entries ...entry) *batch {
 }
 
 // add an entry to the batch
+// nolint:gocritic
 func (b *batch) add(entry entry) {
 	b.bytes += len(entry.Line)
 
@@ -65,6 +66,7 @@ func (b *batch) sizeBytes() int {
 
 // sizeBytesAfter returns the size of the batch after the input entry
 // will be added to the batch itself
+// nolint:gocritic
 func (b *batch) sizeBytesAfter(entry entry) int {
 	return b.bytes + len(entry.Line)
 }

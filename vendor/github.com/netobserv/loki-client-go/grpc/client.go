@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
+	"log/slog"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"github.com/gogo/protobuf/proto"
 	"github.com/grafana/loki/pkg/push"
 	"github.com/netobserv/loki-client-go/pkg/backoff"
@@ -32,6 +30,7 @@ const (
 
 var (
 	UserAgent = fmt.Sprintf("loki-grpc-client/%s", version.Version)
+	log       = slog.With("component", "grpc-client")
 )
 
 func init() {
@@ -40,8 +39,7 @@ func init() {
 
 // Client for pushing logs via GRPC
 type Client struct {
-	logger  log.Logger
-	cfg     Config
+	cfg     *Config
 	conn    *grpc.ClientConn
 	pusher  push.PusherClient
 	quit    chan struct{}
@@ -53,28 +51,12 @@ type Client struct {
 }
 
 // New creates a new GRPC client from config
-func New(cfg Config) (*Client, error) {
-	logger := level.NewFilter(log.NewLogfmtLogger(os.Stdout), level.AllowWarn())
-	return NewWithLogger(cfg, logger)
-}
-
-// NewWithDefault creates a new client with default configuration
-func NewWithDefault(serverAddress string) (*Client, error) {
-	cfg, err := NewDefaultConfig(serverAddress)
-	if err != nil {
-		return nil, err
-	}
-	return New(cfg)
-}
-
-// NewWithLogger creates a new GRPC client with a logger and config
-func NewWithLogger(cfg Config, logger log.Logger) (*Client, error) {
+func New(cfg *Config) (*Client, error) {
 	if cfg.ServerAddress == "" {
 		return nil, errors.New("grpc client needs server address")
 	}
 
 	c := &Client{
-		logger:         log.With(logger, "component", "grpc-client", "host", cfg.ServerAddress),
 		cfg:            cfg,
 		quit:           make(chan struct{}),
 		entries:        make(chan entry),
@@ -96,6 +78,15 @@ func NewWithLogger(cfg Config, logger log.Logger) (*Client, error) {
 	return c, nil
 }
 
+// NewWithDefault creates a new client with default configuration
+func NewWithDefault(serverAddress string) (*Client, error) {
+	cfg, err := NewDefaultConfig(serverAddress)
+	if err != nil {
+		return nil, err
+	}
+	return New(&cfg)
+}
+
 // connect establishes GRPC connection
 func (c *Client) connect() error {
 	opts, err := c.cfg.BuildDialOptions()
@@ -111,7 +102,7 @@ func (c *Client) connect() error {
 	c.conn = conn
 	c.pusher = push.NewPusherClient(conn)
 
-	level.Info(c.logger).Log("msg", "connected to GRPC server", "address", c.cfg.ServerAddress)
+	log.Info("connected to GRPC server", "address", c.cfg.ServerAddress)
 	return nil
 }
 
@@ -207,14 +198,14 @@ func (c *Client) sendBatch(tenantID string, batch *batch) {
 			return
 		}
 
-		level.Warn(c.logger).Log("msg", "error sending batch via GRPC, will retry", "status", status, "error", err)
+		log.Warn("error sending batch via GRPC, will retry", "status", status, "error", err)
 		metrics.BatchRetries.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Inc()
 		backoffInstance.Wait()
 	}
 
 	// Failed after all retries
 	if err != nil {
-		level.Error(c.logger).Log("msg", "final error sending batch via GRPC", "status", status, "error", err)
+		log.Warn("final error sending batch via GRPC", "status", status, "error", err)
 		metrics.DroppedEntries.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(float64(entriesCount))
 		metrics.DroppedBytes.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(wireBytes)
 	}
@@ -248,6 +239,7 @@ func (c *Client) getStatusCode(err error) string {
 	}
 
 	// Convert gRPC status codes to HTTP-like status codes for metrics compatibility
+	// nolint:exhaustive
 	switch st.Code() {
 	case codes.OK:
 		return "200"
