@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/golang/snappy"
-	"github.com/netobserv/loki-client-go/pkg/logproto"
+	"github.com/grafana/loki/pkg/push"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,7 +36,7 @@ func FakeLokiHandler(flowsData chan<- map[string]interface{}) http.HandlerFunc {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		pr := logproto.PushRequest{}
+		pr := push.PushRequest{}
 		if err := pr.Unmarshal(decodedBody); err != nil {
 			hlog.WithError(err).Error("can't decode protobuf body")
 			rw.WriteHeader(http.StatusBadRequest)

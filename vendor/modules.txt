@@ -191,6 +191,9 @@ github.com/google/uuid
 # github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 ## explicit; go 1.20
 github.com/gorilla/websocket
+# github.com/grafana/loki/pkg/push v0.0.0-20261001104752-7ba6f556340d
+## explicit; go 1.26.7
+github.com/grafana/loki/pkg/push
 # github.com/grafana/regexp v0.0.0-20250905093917-f7b3be9d1853
 ## explicit; go 1.21
 github.com/grafana/regexp
