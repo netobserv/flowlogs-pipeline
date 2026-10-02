@@ -7,29 +7,24 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
-	"os"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/netobserv/loki-client-go/pkg/backoff"
 	"github.com/netobserv/loki-client-go/pkg/metrics"
-	"github.com/prometheus/prometheus/promql/parser"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/common/version"
 
-	"github.com/netobserv/loki-client-go/pkg/helpers"
-	"github.com/netobserv/loki-client-go/pkg/logproto"
+	"github.com/grafana/loki/pkg/push"
 )
 
 const (
 	protoContentType = "application/x-protobuf"
-	JSONContentType  = "application/json"
 	maxErrMsgLen     = 1024
 
 	// Label reserved to override the tenant ID while processing
@@ -40,7 +35,9 @@ const (
 )
 
 var (
+	// TODO: Check if changing agent is safe
 	UserAgent = fmt.Sprintf("promtail/%s", version.Version)
+	log       = slog.With("component", "http-client")
 )
 
 func init() {
@@ -49,8 +46,7 @@ func init() {
 
 // Client for pushing logs in snappy-compressed protos over HTTP.
 type Client struct {
-	logger  log.Logger
-	cfg     Config
+	cfg     *Config
 	client  *http.Client
 	quit    chan struct{}
 	once    sync.Once
@@ -63,32 +59,16 @@ type Client struct {
 type entry struct {
 	tenantID string
 	labels   model.LabelSet
-	logproto.Entry
+	push.Entry
 }
 
 // New makes a new Client from config
-func New(cfg Config) (*Client, error) {
-	logger := level.NewFilter(log.NewLogfmtLogger(os.Stdout), level.AllowWarn())
-	return NewWithLogger(cfg, logger)
-}
-
-// NewWithDefault creates a new client with default configuration.
-func NewWithDefault(url string) (*Client, error) {
-	cfg, err := NewDefaultConfig(url)
-	if err != nil {
-		return nil, err
-	}
-	return New(cfg)
-}
-
-// NewWithLogger makes a new Client from a logger and a config
-func NewWithLogger(cfg Config, logger log.Logger) (*Client, error) {
+func New(cfg *Config) (*Client, error) {
 	if cfg.URL.URL == nil {
 		return nil, errors.New("client needs target URL")
 	}
 
 	c := &Client{
-		logger:  log.With(logger, "component", "client", "host", cfg.URL.Host),
 		cfg:     cfg,
 		quit:    make(chan struct{}),
 		entries: make(chan entry),
@@ -101,7 +81,18 @@ func NewWithLogger(cfg Config, logger log.Logger) (*Client, error) {
 		return nil, err
 	}
 
-	c.client, err = config.NewClientFromConfig(cfg.Client, "promtail", config.WithKeepAlivesDisabled(), config.WithHTTP2Disabled())
+	// Both the option and the client config have to agree before the transport
+	// negotiates HTTP/2, so mirror Client.EnableHTTP2 here. Callers that never
+	// set it keep the previous behaviour of HTTP/2 and keep-alives both off.
+	var opts []config.HTTPClientOption
+	if !cfg.EnableKeepAlives {
+		opts = append(opts, config.WithKeepAlivesDisabled())
+	}
+	if !cfg.Client.EnableHTTP2 {
+		opts = append(opts, config.WithHTTP2Disabled())
+	}
+
+	c.client, err = config.NewClientFromConfig(cfg.Client, "loki-client", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +108,15 @@ func NewWithLogger(cfg Config, logger log.Logger) (*Client, error) {
 	c.wg.Add(1)
 	go c.run()
 	return c, nil
+}
+
+// NewWithDefault creates a new client with default configuration.
+func NewWithDefault(url string) (*Client, error) {
+	cfg, err := NewDefaultConfig(url)
+	if err != nil {
+		return nil, err
+	}
+	return New(&cfg)
 }
 
 func (c *Client) run() {
@@ -186,19 +186,9 @@ func (c *Client) run() {
 }
 
 func (c *Client) sendBatch(tenantID string, batch *batch) {
-	var (
-		err          error
-		buf          []byte
-		entriesCount int
-	)
-	if c.cfg.EncodeJson {
-		buf, entriesCount, err = batch.encodeJSON()
-	} else {
-		buf, entriesCount, err = batch.encode()
-	}
-
+	buf, entriesCount, err := batch.encode()
 	if err != nil {
-		level.Error(c.logger).Log("msg", "error encoding batch", "error", err)
+		log.Error("error encoding batch", "error", err)
 		return
 	}
 	bufBytes := float64(len(buf))
@@ -215,26 +205,6 @@ func (c *Client) sendBatch(tenantID string, batch *batch) {
 		if err == nil {
 			metrics.SentBytes.WithLabelValues(c.cfg.URL.Host, transportHTTP).Add(bufBytes)
 			metrics.SentEntries.WithLabelValues(c.cfg.URL.Host, transportHTTP).Add(float64(entriesCount))
-			for _, s := range batch.streams {
-				lbls, err := parser.NewParser(parser.Options{}).ParseMetric(s.Labels)
-				if err != nil {
-					// is this possible?
-					level.Warn(c.logger).Log("msg", "error converting stream label string to label.Labels, cannot update lagging metric", "error", err)
-					return
-				}
-				var lblSet model.LabelSet
-				for name, value := range lbls.Map() {
-					if name == metrics.LatencyLabel {
-						lblSet = model.LabelSet{
-							model.LabelName(metrics.HostLabel):    model.LabelValue(c.cfg.URL.Host),
-							model.LabelName(metrics.LatencyLabel): model.LabelValue(value),
-						}
-					}
-				}
-				if lblSet != nil {
-					metrics.StreamLag.With(lblSet).Set(time.Since(s.Entries[len(s.Entries)-1].Timestamp).Seconds())
-				}
-			}
 			return
 		}
 
@@ -243,13 +213,13 @@ func (c *Client) sendBatch(tenantID string, batch *batch) {
 			break
 		}
 
-		level.Warn(c.logger).Log("msg", "error sending batch, will retry", "status", status, "error", err)
+		log.Warn("error sending batch, will retry", "status", status, "error", err)
 		metrics.BatchRetries.WithLabelValues(c.cfg.URL.Host, transportHTTP).Inc()
 		backoff.Wait()
 	}
 
 	if err != nil {
-		level.Error(c.logger).Log("msg", "final error sending batch", "status", status, "error", err)
+		log.Error("final error sending batch", "status", status, "error", err)
 		metrics.DroppedBytes.WithLabelValues(c.cfg.URL.Host, transportHTTP).Add(bufBytes)
 		metrics.DroppedEntries.WithLabelValues(c.cfg.URL.Host, transportHTTP).Add(float64(entriesCount))
 	}
@@ -264,9 +234,6 @@ func (c *Client) send(ctx context.Context, tenantID string, buf []byte) (int, er
 	}
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", protoContentType)
-	if c.cfg.EncodeJson {
-		req.Header.Set("Content-Type", JSONContentType)
-	}
 	req.Header.Set("User-Agent", UserAgent)
 
 	// If the tenant ID is not empty promtail is running in multi-tenant mode, so
@@ -279,7 +246,11 @@ func (c *Client) send(ctx context.Context, tenantID string, buf []byte) (int, er
 	if err != nil {
 		return -1, err
 	}
-	defer helpers.LogError(c.logger, "closing response body", resp.Body.Close)
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Error("error closing response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode/100 != 2 {
 		scanner := bufio.NewScanner(io.LimitReader(resp.Body, maxErrMsgLen))
@@ -288,6 +259,10 @@ func (c *Client) send(ctx context.Context, tenantID string, buf []byte) (int, er
 			line = scanner.Text()
 		}
 		err = fmt.Errorf("server returned HTTP status %s (%d): %s", resp.Status, resp.StatusCode, line)
+	} else {
+		// A success body is normally empty, but an unread one would stop the
+		// transport from reusing the connection when keep-alives are enabled.
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, maxErrMsgLen))
 	}
 	return resp.StatusCode, err
 }
@@ -329,14 +304,9 @@ func (c *Client) Handle(ls model.LabelSet, t time.Time, s string) error {
 		delete(ls, ReservedLabelTenantID)
 	}
 
-	c.entries <- entry{tenantID, ls, logproto.Entry{
+	c.entries <- entry{tenantID, ls, push.Entry{
 		Timestamp: t,
 		Line:      s,
 	}}
 	return nil
-}
-
-func (c *Client) UnregisterLatencyMetric(labels model.LabelSet) {
-	labels[metrics.HostLabel] = model.LabelValue(c.cfg.URL.Host)
-	metrics.StreamLag.Delete(labels)
 }

@@ -336,6 +336,8 @@ Following is the supported API format for writing to loki:
          staticLabels: map of common labels to set on each flow
          ignoreList: map of record fields to be removed from the record
          clientConfig: Loki client configuration, which follows the same structure as the Prometheus HTTP client config described here: https://pkg.go.dev/github.com/prometheus/common/config#HTTPClientConfig
+         enableHttp2: enable HTTP/2 when pushing to Loki (default: false)
+         enableKeepAlives: reuse TCP connections between pushes, rather than opening a new one per batch (default: true)
          timestampLabel: label to use for time indexing
          timestampScale: timestamp units scale (e.g. for UNIX = 1s)
          format: the format of each line: printf (writes using golang's default map printing), fields (writes one key and value field per line) or json (default)
