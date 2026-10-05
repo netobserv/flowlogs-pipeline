@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"strconv"
 	"sync"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/grafana/loki/pkg/push"
 	"github.com/netobserv/loki-client-go/pkg/backoff"
+	"github.com/netobserv/loki-client-go/pkg/callbacks"
 	"github.com/netobserv/loki-client-go/pkg/metrics"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/common/version"
@@ -30,7 +30,6 @@ const (
 
 var (
 	UserAgent = fmt.Sprintf("loki-grpc-client/%s", version.Version)
-	log       = slog.With("component", "grpc-client")
 )
 
 func init() {
@@ -46,12 +45,18 @@ type Client struct {
 	once    sync.Once
 	entries chan entry
 	wg      sync.WaitGroup
+	onSend  callbacks.Send
 
 	externalLabels model.LabelSet
 }
 
 // New creates a new GRPC client from config
 func New(cfg *Config) (*Client, error) {
+	return NewWithSendCallbacks(cfg, nil)
+}
+
+// New creates a new GRPC client from config and send callbacks
+func NewWithSendCallbacks(cfg *Config, onSend callbacks.Send) (*Client, error) {
 	if cfg.ServerAddress == "" {
 		return nil, errors.New("grpc client needs server address")
 	}
@@ -61,6 +66,7 @@ func New(cfg *Config) (*Client, error) {
 		quit:           make(chan struct{}),
 		entries:        make(chan entry),
 		externalLabels: cfg.ExternalLabels.LabelSet,
+		onSend:         onSend,
 	}
 
 	// Initialize connection
@@ -78,15 +84,6 @@ func New(cfg *Config) (*Client, error) {
 	return c, nil
 }
 
-// NewWithDefault creates a new client with default configuration
-func NewWithDefault(serverAddress string) (*Client, error) {
-	cfg, err := NewDefaultConfig(serverAddress)
-	if err != nil {
-		return nil, err
-	}
-	return New(&cfg)
-}
-
 // connect establishes GRPC connection
 func (c *Client) connect() error {
 	opts, err := c.cfg.BuildDialOptions()
@@ -102,7 +99,6 @@ func (c *Client) connect() error {
 	c.conn = conn
 	c.pusher = push.NewPusherClient(conn)
 
-	log.Info("connected to GRPC server", "address", c.cfg.ServerAddress)
 	return nil
 }
 
@@ -191,6 +187,9 @@ func (c *Client) sendBatch(tenantID string, batch *batch) {
 		metrics.RequestDuration.WithLabelValues(status, c.cfg.ServerAddress, transportGRPC).Observe(time.Since(start).Seconds())
 
 		if err == nil {
+			if c.onSend != nil {
+				c.onSend.OnSuccess()
+			}
 			// Success metrics
 			metrics.SentEntries.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(float64(entriesCount))
 			metrics.SentBytes.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(wireBytes)
@@ -198,14 +197,21 @@ func (c *Client) sendBatch(tenantID string, batch *batch) {
 			return
 		}
 
-		log.Warn("error sending batch via GRPC, will retry", "status", status, "error", err)
+		if c.onSend != nil {
+			c.onSend.OnRetry(
+				fmt.Errorf("error sending batch via GRPC: (%s) %w", status, err),
+				backoffInstance.NumRetries(),
+			)
+		}
 		metrics.BatchRetries.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Inc()
 		backoffInstance.Wait()
 	}
 
 	// Failed after all retries
 	if err != nil {
-		log.Warn("final error sending batch via GRPC", "status", status, "error", err)
+		if c.onSend != nil {
+			c.onSend.OnError(fmt.Errorf("error sending batch via GRPC: (%s) %w", status, err))
+		}
 		metrics.DroppedEntries.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(float64(entriesCount))
 		metrics.DroppedBytes.WithLabelValues(c.cfg.ServerAddress, transportGRPC).Add(wireBytes)
 	}

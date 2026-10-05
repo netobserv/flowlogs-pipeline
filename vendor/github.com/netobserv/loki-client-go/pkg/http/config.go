@@ -1,4 +1,4 @@
-package loki
+package http
 
 import (
 	"flag"
