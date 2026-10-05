@@ -1,0 +1,87 @@
+package grpc
+
+import (
+	"time"
+
+	"github.com/grafana/loki/pkg/push"
+	"github.com/prometheus/common/model"
+)
+
+// entry represents a log entry with tenant and label information
+type entry struct {
+	tenantID string
+	labels   model.LabelSet
+	push.Entry
+}
+
+// batch holds pending log streams waiting to be sent to Loki via GRPC.
+// Similar to HTTP batch but optimized for GRPC operations.
+type batch struct {
+	streams   map[string]*push.Stream
+	bytes     int
+	createdAt time.Time
+	tenantID  string // GRPC batches are per-tenant for connection management
+}
+
+// newBatch creates a new batch for a specific tenant
+func newBatch(tenantID string, entries ...entry) *batch {
+	b := &batch{
+		streams:   map[string]*push.Stream{},
+		bytes:     0,
+		createdAt: time.Now(),
+		tenantID:  tenantID,
+	}
+
+	// Add entries to the batch
+	for _, entry := range entries {
+		b.add(entry)
+	}
+
+	return b
+}
+
+// add an entry to the batch
+// nolint:gocritic
+func (b *batch) add(entry entry) {
+	b.bytes += len(entry.Line)
+
+	// Append the entry to an already existing stream (if any)
+	labels := entry.labels.String()
+	if stream, ok := b.streams[labels]; ok {
+		stream.Entries = append(stream.Entries, entry.Entry)
+		return
+	}
+
+	// Add the entry as a new stream
+	b.streams[labels] = &push.Stream{
+		Labels:  labels,
+		Entries: []push.Entry{entry.Entry},
+	}
+}
+
+// sizeBytesAfter returns the size of the batch after the input entry
+// will be added to the batch itself
+// nolint:gocritic
+func (b *batch) sizeBytesAfter(entry entry) int {
+	return b.bytes + len(entry.Line)
+}
+
+// age of the batch since its creation
+func (b *batch) age() time.Duration {
+	return time.Since(b.createdAt)
+}
+
+// createPushRequest creates a push request from the batch
+func (b *batch) createPushRequest() (*push.PushRequest, int) {
+	req := &push.PushRequest{
+		Streams: make([]push.Stream, 0, len(b.streams)),
+	}
+
+	entriesCount := 0
+	for _, stream := range b.streams {
+		req.Streams = append(req.Streams, *stream)
+		entriesCount += len(stream.Entries)
+	}
+
+	return req, entriesCount
+}

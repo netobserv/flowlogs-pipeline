@@ -127,6 +127,37 @@ parameters:
 	assert.NotNil(t, loki.apiConfig.ClientConfig)
 }
 
+func Test_buildLokiConfig_HTTP2AndKeepAlives(t *testing.T) {
+	// A clientConfig block deserializes with the Prometheus defaults, which enable
+	// HTTP/2. Our own setting has to win, otherwise setting an unrelated TLS option
+	// would silently switch the transport over.
+	for _, testData := range []struct {
+		name             string
+		enableHTTP2      bool
+		enableKeepAlives bool
+	}{
+		{"both off unless asked for", false, false},
+		{"both on when asked for", true, true},
+		{"only keepalives", false, true},
+		{"only http/2", true, false},
+	} {
+		t.Run(testData.name, func(t *testing.T) {
+			params := api.WriteLoki{
+				URL:              "http://loki:3100/",
+				ClientConfig:     &promConfig.HTTPClientConfig{EnableHTTP2: true},
+				EnableHTTP2:      &testData.enableHTTP2,
+				EnableKeepAlives: &testData.enableKeepAlives,
+			}
+			params.SetDefaults()
+
+			cfg, err := buildHTTPLokiConfig(&params)
+			require.NoError(t, err)
+			assert.Equal(t, testData.enableHTTP2, cfg.Client.EnableHTTP2)
+			assert.Equal(t, testData.enableKeepAlives, cfg.EnableKeepAlives)
+		})
+	}
+}
+
 func TestLoki_ProcessRecord(t *testing.T) {
 	params := api.WriteLoki{
 		URL:            "http://loki:3100/",
@@ -657,7 +688,7 @@ func BenchmarkWriteLoki(b *testing.B) {
 	require.NoError(b, err)
 
 	hf := hundredFlows()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for _, f := range hf {
 			loki.Write(f)
 		}

@@ -29,10 +29,9 @@ import (
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 
-	logAdapter "github.com/go-kit/kit/log/logrus"
-	"github.com/netobserv/loki-client-go/grpc"
-	"github.com/netobserv/loki-client-go/loki"
 	"github.com/netobserv/loki-client-go/pkg/backoff"
+	"github.com/netobserv/loki-client-go/pkg/grpc"
+	"github.com/netobserv/loki-client-go/pkg/http"
 	"github.com/netobserv/loki-client-go/pkg/urlutil"
 	"github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
@@ -78,7 +77,7 @@ func createHTTPClient(c *api.WriteLoki) (emitter, error) {
 		return nil, err
 	}
 
-	client, err := loki.NewWithLogger(cfg, logAdapter.NewLogger(log.WithField("module", "export/loki")))
+	client, err := http.NewWithSendCallbacks(&cfg, &lokiSendCallbacks{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP Loki client: %w", err)
 	}
@@ -92,7 +91,7 @@ func createGRPCClient(c *api.WriteLoki) (emitter, error) {
 		return nil, err
 	}
 
-	client, err := grpc.NewWithLogger(cfg, logAdapter.NewLogger(log.WithField("module", "export/loki-grpc")))
+	client, err := grpc.NewWithSendCallbacks(&cfg, &lokiSendCallbacks{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gRPC Loki client: %w", err)
 	}
@@ -100,33 +99,34 @@ func createGRPCClient(c *api.WriteLoki) (emitter, error) {
 	return client, nil
 }
 
-func buildHTTPLokiConfig(c *api.WriteLoki) (loki.Config, error) {
+func buildHTTPLokiConfig(c *api.WriteLoki) (http.Config, error) {
 	batchWait, err := time.ParseDuration(c.BatchWait)
 	if err != nil {
-		return loki.Config{}, fmt.Errorf("failed in parsing BatchWait : %w", err)
+		return http.Config{}, fmt.Errorf("failed in parsing BatchWait : %w", err)
 	}
 
 	timeout, err := time.ParseDuration(c.Timeout)
 	if err != nil {
-		return loki.Config{}, fmt.Errorf("failed in parsing Timeout : %w", err)
+		return http.Config{}, fmt.Errorf("failed in parsing Timeout : %w", err)
 	}
 
 	minBackoff, err := time.ParseDuration(c.MinBackoff)
 	if err != nil {
-		return loki.Config{}, fmt.Errorf("failed in parsing MinBackoff : %w", err)
+		return http.Config{}, fmt.Errorf("failed in parsing MinBackoff : %w", err)
 	}
 
 	maxBackoff, err := time.ParseDuration(c.MaxBackoff)
 	if err != nil {
-		return loki.Config{}, fmt.Errorf("failed in parsing MaxBackoff : %w", err)
+		return http.Config{}, fmt.Errorf("failed in parsing MaxBackoff : %w", err)
 	}
 
-	cfg := loki.Config{
-		TenantID:  c.TenantID,
-		BatchWait: batchWait,
-		BatchSize: c.BatchSize,
-		Timeout:   timeout,
-		BackoffConfig: backoff.BackoffConfig{
+	cfg := http.Config{
+		TenantID:         c.TenantID,
+		BatchWait:        batchWait,
+		BatchSize:        c.BatchSize,
+		Timeout:          timeout,
+		EnableKeepAlives: c.EnableKeepAlives == nil || *c.EnableKeepAlives, // default true
+		BackoffConfig: backoff.Config{
 			MinBackoff: minBackoff,
 			MaxBackoff: maxBackoff,
 			MaxRetries: c.MaxRetries,
@@ -135,6 +135,9 @@ func buildHTTPLokiConfig(c *api.WriteLoki) (loki.Config, error) {
 	if c.ClientConfig != nil {
 		cfg.Client = *c.ClientConfig
 	}
+	// After the copy above: unmarshalling a clientConfig applies the Prometheus
+	// defaults, which turn HTTP/2 on. Our own setting is the one that decides.
+	cfg.Client.EnableHTTP2 = c.EnableHTTP2 != nil && *c.EnableHTTP2
 	var clientURL urlutil.URLValue
 	err = clientURL.Set(strings.TrimSuffix(c.URL, "/") + "/loki/api/v1/push")
 	if err != nil {
@@ -187,7 +190,7 @@ func buildGRPCLokiConfig(c *api.WriteLoki) (grpc.Config, error) {
 		Timeout:          timeout,
 		KeepAlive:        keepAlive,
 		KeepAliveTimeout: keepAliveTimeout,
-		BackoffConfig: backoff.BackoffConfig{
+		BackoffConfig: backoff.Config{
 			MinBackoff: minBackoff,
 			MaxBackoff: maxBackoff,
 			MaxRetries: c.MaxRetries,
@@ -364,4 +367,17 @@ func NewWriteLoki(opMetrics *operational.Metrics, params config.StageParam) (*Lo
 	}
 
 	return l, nil
+}
+
+// lokiSendCallbacks implements loki client callbacks.Send for logging
+type lokiSendCallbacks struct{}
+
+func (s *lokiSendCallbacks) OnSuccess() {}
+
+func (s *lokiSendCallbacks) OnError(err error) {
+	log.Error(err.Error())
+}
+
+func (s *lokiSendCallbacks) OnRetry(err error, attempt int) {
+	log.Warnf("%v - will retry (attempt %d)", err, attempt)
 }
