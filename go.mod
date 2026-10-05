@@ -17,7 +17,7 @@ require (
 	github.com/minio/minio-go/v7 v7.3.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/netobserv/gopipes v0.3.0
-	github.com/netobserv/loki-client-go v0.0.0-20261001140340-1cf9370b12cd
+	github.com/netobserv/loki-client-go v0.0.0-20261016170512-ae02d81d4a88
 	github.com/netobserv/netobserv-ebpf-agent v1.12.0-community
 	github.com/netsampler/goflow2 v1.3.8
 	github.com/pkg/errors v0.9.1

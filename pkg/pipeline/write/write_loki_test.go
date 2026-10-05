@@ -138,6 +138,8 @@ func Test_buildLokiConfig_HTTP2AndKeepAlives(t *testing.T) {
 	}{
 		{"both off unless asked for", false, false},
 		{"both on when asked for", true, true},
+		{"only keepalives", false, true},
+		{"only http/2", true, false},
 	} {
 		t.Run(testData.name, func(t *testing.T) {
 			params := api.WriteLoki{

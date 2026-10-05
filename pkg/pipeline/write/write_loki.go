@@ -29,9 +29,9 @@ import (
 	pUtils "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 
-	"github.com/netobserv/loki-client-go/grpc"
-	"github.com/netobserv/loki-client-go/loki"
 	"github.com/netobserv/loki-client-go/pkg/backoff"
+	"github.com/netobserv/loki-client-go/pkg/grpc"
+	"github.com/netobserv/loki-client-go/pkg/http"
 	"github.com/netobserv/loki-client-go/pkg/urlutil"
 	"github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
@@ -77,7 +77,7 @@ func createHTTPClient(c *api.WriteLoki) (emitter, error) {
 		return nil, err
 	}
 
-	client, err := loki.New(&cfg)
+	client, err := http.NewWithSendCallbacks(&cfg, &lokiSendCallbacks{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP Loki client: %w", err)
 	}
@@ -91,7 +91,7 @@ func createGRPCClient(c *api.WriteLoki) (emitter, error) {
 		return nil, err
 	}
 
-	client, err := grpc.New(&cfg)
+	client, err := grpc.NewWithSendCallbacks(&cfg, &lokiSendCallbacks{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gRPC Loki client: %w", err)
 	}
@@ -99,28 +99,28 @@ func createGRPCClient(c *api.WriteLoki) (emitter, error) {
 	return client, nil
 }
 
-func buildHTTPLokiConfig(c *api.WriteLoki) (loki.Config, error) {
+func buildHTTPLokiConfig(c *api.WriteLoki) (http.Config, error) {
 	batchWait, err := time.ParseDuration(c.BatchWait)
 	if err != nil {
-		return loki.Config{}, fmt.Errorf("failed in parsing BatchWait : %w", err)
+		return http.Config{}, fmt.Errorf("failed in parsing BatchWait : %w", err)
 	}
 
 	timeout, err := time.ParseDuration(c.Timeout)
 	if err != nil {
-		return loki.Config{}, fmt.Errorf("failed in parsing Timeout : %w", err)
+		return http.Config{}, fmt.Errorf("failed in parsing Timeout : %w", err)
 	}
 
 	minBackoff, err := time.ParseDuration(c.MinBackoff)
 	if err != nil {
-		return loki.Config{}, fmt.Errorf("failed in parsing MinBackoff : %w", err)
+		return http.Config{}, fmt.Errorf("failed in parsing MinBackoff : %w", err)
 	}
 
 	maxBackoff, err := time.ParseDuration(c.MaxBackoff)
 	if err != nil {
-		return loki.Config{}, fmt.Errorf("failed in parsing MaxBackoff : %w", err)
+		return http.Config{}, fmt.Errorf("failed in parsing MaxBackoff : %w", err)
 	}
 
-	cfg := loki.Config{
+	cfg := http.Config{
 		TenantID:         c.TenantID,
 		BatchWait:        batchWait,
 		BatchSize:        c.BatchSize,
@@ -367,4 +367,17 @@ func NewWriteLoki(opMetrics *operational.Metrics, params config.StageParam) (*Lo
 	}
 
 	return l, nil
+}
+
+// lokiSendCallbacks implements loki client callbacks.Send for logging
+type lokiSendCallbacks struct{}
+
+func (s *lokiSendCallbacks) OnSuccess() {}
+
+func (s *lokiSendCallbacks) OnError(err error) {
+	log.Error(err.Error())
+}
+
+func (s *lokiSendCallbacks) OnRetry(err error, attempt int) {
+	log.Warnf("%v - will retry (attempt %d)", err, attempt)
 }

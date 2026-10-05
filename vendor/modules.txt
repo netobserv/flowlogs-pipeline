@@ -280,11 +280,12 @@ github.com/mwitkow/go-conntrack
 ## explicit; go 1.18
 github.com/netobserv/gopipes/pkg/node
 github.com/netobserv/gopipes/pkg/node/internal/connect
-# github.com/netobserv/loki-client-go v0.0.0-20261001140340-1cf9370b12cd
+# github.com/netobserv/loki-client-go v0.0.0-20261016170512-ae02d81d4a88
 ## explicit; go 1.26.7
-github.com/netobserv/loki-client-go/grpc
-github.com/netobserv/loki-client-go/loki
 github.com/netobserv/loki-client-go/pkg/backoff
+github.com/netobserv/loki-client-go/pkg/callbacks
+github.com/netobserv/loki-client-go/pkg/grpc
+github.com/netobserv/loki-client-go/pkg/http
 github.com/netobserv/loki-client-go/pkg/labelutil
 github.com/netobserv/loki-client-go/pkg/metrics
 github.com/netobserv/loki-client-go/pkg/urlutil

@@ -1,4 +1,4 @@
-package loki
+package http
 
 import (
 	"bufio"
@@ -7,13 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/netobserv/loki-client-go/pkg/backoff"
+	"github.com/netobserv/loki-client-go/pkg/callbacks"
 	"github.com/netobserv/loki-client-go/pkg/metrics"
 
 	"github.com/prometheus/common/config"
@@ -37,7 +37,6 @@ const (
 var (
 	// TODO: Check if changing agent is safe
 	UserAgent = fmt.Sprintf("promtail/%s", version.Version)
-	log       = slog.With("component", "http-client")
 )
 
 func init() {
@@ -52,6 +51,7 @@ type Client struct {
 	once    sync.Once
 	entries chan entry
 	wg      sync.WaitGroup
+	onSend  callbacks.Send
 
 	externalLabels model.LabelSet
 }
@@ -62,18 +62,23 @@ type entry struct {
 	push.Entry
 }
 
-// New makes a new Client from config
+// New makes a new http Client from config
 func New(cfg *Config) (*Client, error) {
+	return NewWithSendCallbacks(cfg, nil)
+}
+
+// New makes a new http client from config and send callbacks
+func NewWithSendCallbacks(cfg *Config, onSend callbacks.Send) (*Client, error) {
 	if cfg.URL.URL == nil {
 		return nil, errors.New("client needs target URL")
 	}
 
 	c := &Client{
-		cfg:     cfg,
-		quit:    make(chan struct{}),
-		entries: make(chan entry),
-
+		cfg:            cfg,
+		quit:           make(chan struct{}),
+		entries:        make(chan entry),
 		externalLabels: cfg.ExternalLabels.LabelSet,
+		onSend:         onSend,
 	}
 
 	err := cfg.Client.Validate()
@@ -108,15 +113,6 @@ func New(cfg *Config) (*Client, error) {
 	c.wg.Add(1)
 	go c.run()
 	return c, nil
-}
-
-// NewWithDefault creates a new client with default configuration.
-func NewWithDefault(url string) (*Client, error) {
-	cfg, err := NewDefaultConfig(url)
-	if err != nil {
-		return nil, err
-	}
-	return New(&cfg)
 }
 
 func (c *Client) run() {
@@ -188,7 +184,9 @@ func (c *Client) run() {
 func (c *Client) sendBatch(tenantID string, batch *batch) {
 	buf, entriesCount, err := batch.encode()
 	if err != nil {
-		log.Error("error encoding batch", "error", err)
+		if c.onSend != nil {
+			c.onSend.OnError(fmt.Errorf("error encoding batch: %w", err))
+		}
 		return
 	}
 	bufBytes := float64(len(buf))
@@ -203,6 +201,9 @@ func (c *Client) sendBatch(tenantID string, batch *batch) {
 		metrics.RequestDuration.WithLabelValues(strconv.Itoa(status), c.cfg.URL.Host, transportHTTP).Observe(time.Since(start).Seconds())
 
 		if err == nil {
+			if c.onSend != nil {
+				c.onSend.OnSuccess()
+			}
 			metrics.SentBytes.WithLabelValues(c.cfg.URL.Host, transportHTTP).Add(bufBytes)
 			metrics.SentEntries.WithLabelValues(c.cfg.URL.Host, transportHTTP).Add(float64(entriesCount))
 			return
@@ -213,13 +214,20 @@ func (c *Client) sendBatch(tenantID string, batch *batch) {
 			break
 		}
 
-		log.Warn("error sending batch, will retry", "status", status, "error", err)
+		if c.onSend != nil {
+			c.onSend.OnRetry(
+				fmt.Errorf("error sending batch via HTTP: %w", err),
+				backoff.NumRetries(),
+			)
+		}
 		metrics.BatchRetries.WithLabelValues(c.cfg.URL.Host, transportHTTP).Inc()
 		backoff.Wait()
 	}
 
 	if err != nil {
-		log.Error("final error sending batch", "status", status, "error", err)
+		if c.onSend != nil {
+			c.onSend.OnError(fmt.Errorf("error sending batch via HTTP: %w", err))
+		}
 		metrics.DroppedBytes.WithLabelValues(c.cfg.URL.Host, transportHTTP).Add(bufBytes)
 		metrics.DroppedEntries.WithLabelValues(c.cfg.URL.Host, transportHTTP).Add(float64(entriesCount))
 	}
@@ -248,7 +256,9 @@ func (c *Client) send(ctx context.Context, tenantID string, buf []byte) (int, er
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Error("error closing response body", "error", err)
+			if c.onSend != nil {
+				c.onSend.OnError(fmt.Errorf("error closing response body: %w", err))
+			}
 		}
 	}()
 

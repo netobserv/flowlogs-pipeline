@@ -1,29 +1,35 @@
-package loki
+package grpc
 
 import (
 	"time"
 
-	"github.com/gogo/protobuf/proto"
-	"github.com/golang/snappy"
-
 	"github.com/grafana/loki/pkg/push"
+	"github.com/prometheus/common/model"
 )
 
-// batch holds pending log streams waiting to be sent to Loki, and it's used
-// to reduce the number of push requests to Loki aggregating multiple log streams
-// and entries in a single batch request. In case of multi-tenant Promtail, log
-// streams for each tenant are stored in a dedicated batch.
+// entry represents a log entry with tenant and label information
+type entry struct {
+	tenantID string
+	labels   model.LabelSet
+	push.Entry
+}
+
+// batch holds pending log streams waiting to be sent to Loki via GRPC.
+// Similar to HTTP batch but optimized for GRPC operations.
 type batch struct {
 	streams   map[string]*push.Stream
 	bytes     int
 	createdAt time.Time
+	tenantID  string // GRPC batches are per-tenant for connection management
 }
 
-func newBatch(entries ...entry) *batch {
+// newBatch creates a new batch for a specific tenant
+func newBatch(tenantID string, entries ...entry) *batch {
 	b := &batch{
 		streams:   map[string]*push.Stream{},
 		bytes:     0,
 		createdAt: time.Now(),
+		tenantID:  tenantID,
 	}
 
 	// Add entries to the batch
@@ -53,11 +59,6 @@ func (b *batch) add(entry entry) {
 	}
 }
 
-// sizeBytes returns the current batch size in bytes
-func (b *batch) sizeBytes() int {
-	return b.bytes
-}
-
 // sizeBytesAfter returns the size of the batch after the input entry
 // will be added to the batch itself
 // nolint:gocritic
@@ -70,21 +71,9 @@ func (b *batch) age() time.Duration {
 	return time.Since(b.createdAt)
 }
 
-// encode the batch as snappy-compressed push request, and returns
-// the encoded bytes and the number of encoded entries
-func (b *batch) encode() ([]byte, int, error) {
-	req, entriesCount := b.createPushRequest()
-	buf, err := proto.Marshal(req)
-	if err != nil {
-		return nil, 0, err
-	}
-	buf = snappy.Encode(nil, buf)
-	return buf, entriesCount, nil
-}
-
-// creates push request and returns it, together with number of entries
+// createPushRequest creates a push request from the batch
 func (b *batch) createPushRequest() (*push.PushRequest, int) {
-	req := push.PushRequest{
+	req := &push.PushRequest{
 		Streams: make([]push.Stream, 0, len(b.streams)),
 	}
 
@@ -93,5 +82,6 @@ func (b *batch) createPushRequest() (*push.PushRequest, int) {
 		req.Streams = append(req.Streams, *stream)
 		entriesCount += len(stream.Entries)
 	}
-	return &req, entriesCount
+
+	return req, entriesCount
 }
