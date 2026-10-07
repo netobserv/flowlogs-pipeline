@@ -6,7 +6,7 @@ require (
 	github.com/Knetic/govaluate v3.0.1-0.20250325060307-7625b7f8c03d+incompatible
 	github.com/agoda-com/opentelemetry-logs-go v0.6.0
 	github.com/benbjohnson/clock v1.3.5
-	github.com/foxcpp/go-mockdns v1.2.0
+	github.com/foxcpp/go-mockdns v1.3.0
 	github.com/go-kit/kit v0.13.0
 	github.com/golang/snappy v1.0.0
 	github.com/heptiolabs/healthcheck v0.0.0-20211123025425-613501dd5deb
