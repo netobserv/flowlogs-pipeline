@@ -314,7 +314,7 @@ github.com/netobserv/netobserv-ebpf-agent/pkg/model
 github.com/netobserv/netobserv-ebpf-agent/pkg/pbflow
 github.com/netobserv/netobserv-ebpf-agent/pkg/utils
 github.com/netobserv/netobserv-ebpf-agent/pkg/utils/networkevents
-# github.com/netsampler/goflow2 v1.3.7
+# github.com/netsampler/goflow2 v1.3.8
 ## explicit; go 1.18
 github.com/netsampler/goflow2/decoders
 github.com/netsampler/goflow2/decoders/netflow
@@ -905,6 +905,9 @@ gopkg.in/ini.v1
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit; go 1.15
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3
 # k8s.io/api v0.37.0
 ## explicit; go 1.26.0
 k8s.io/api/admissionregistration/v1
