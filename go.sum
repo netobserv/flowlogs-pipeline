@@ -256,8 +256,8 @@ github.com/netobserv/loki-client-go v0.0.0-20260521152535-45c805c1a2e3 h1:7P55r4
 github.com/netobserv/loki-client-go v0.0.0-20260521152535-45c805c1a2e3/go.mod h1:E0oJb1UWxeG7QLOi759LRVG3BTPU9RRfGsn7b0LjbPM=
 github.com/netobserv/netobserv-ebpf-agent v1.12.0-community h1:3e18pZzZPjRSm9TPECquVFf/4ntSjpVrb32pmJ8sAT8=
 github.com/netobserv/netobserv-ebpf-agent v1.12.0-community/go.mod h1:ML3ApiUVk+ROiB/oJ6v48PxIVhE9hAt955+oE+q20JM=
-github.com/netsampler/goflow2 v1.3.7 h1:XZaTy8kkMnGXpJ9hS3KbO1McyrFTpVNhVFEx9rNhMmc=
-github.com/netsampler/goflow2 v1.3.7/go.mod h1:4UZsVGVAs//iMCptUHn3WNScztJeUhZH7kDW2+/vDdQ=
+github.com/netsampler/goflow2 v1.3.8 h1:RPQRFy+diYIQSPEobanI0mE6s/HxYrCATaiXJrvNlxg=
+github.com/netsampler/goflow2 v1.3.8/go.mod h1:sdklMQYJojc2Q8VuC+yzS+9r2hK+VrDgDM81CEP0psw=
 github.com/oklog/ulid/v2 v2.1.1 h1:suPZ4ARWLOJLegGFiZZ1dFAkqzhMjL3J1TzI+5wHz8s=
 github.com/oklog/ulid/v2 v2.1.1/go.mod h1:rcEKHmBBKfef9DhnvX7y1HZBYxjXb0cP5ExxNsTT1QQ=
 github.com/onsi/ginkgo/v2 v2.27.2 h1:LzwLj0b89qtIy6SSASkzlNvX6WktqurSHwkk2ipF/Ns=
@@ -561,6 +561,7 @@ gopkg.in/warnings.v0 v0.1.2/go.mod h1:jksf8JmL6Qr/oQM2OXTHunEvvTAsrWBLb6OOjuVWRN
 gopkg.in/yaml.v2 v2.4.0 h1:D8xgwECY7CYvx+Y2n4sBz93Jn9JRvxdiyyo8CTfuKaY=
 gopkg.in/yaml.v2 v2.4.0/go.mod h1:RDklbk79AGWmwhnvt/jBztapEOGDOx6ZbXqjP6csGnQ=
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 k8s.io/api v0.37.0 h1:Z//Vj9N7RA/yS2sDmxyeo7h+RR4zbUrd2vrd3Z0TbB4=
 k8s.io/api v0.37.0/go.mod h1:LKXgcJWMc+f4OLbP5SFR8rulEg07zZhpi/zMULiBImk=
