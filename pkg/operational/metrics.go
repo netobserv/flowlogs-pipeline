@@ -114,8 +114,11 @@ type Metrics struct {
 }
 
 func NewMetrics(settings *config.MetricsSettings) *Metrics {
-	return &Metrics{settings: settings}
-}
+        if settings == nil {
+                settings = &config.MetricsSettings{}
+        }
+        return &Metrics{settings: settings}
+        }
 
 // register will register against the default registry. May panic or not depending on settings
 func (o *Metrics) register(c prometheus.Collector, name string) {
