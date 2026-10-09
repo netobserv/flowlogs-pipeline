@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/foxcpp/go-mockdns"
+	"github.com/miekg/dns"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
@@ -667,9 +668,9 @@ func TestIPFIXReconnect(t *testing.T) {
 	// Restart the collector on a different loopback IP, same port, and repoint the DNS name to it
 	cp = startCollectorOnAddr(t, ip2, port)
 	received = cp.drain()
-	srv.Resolver().Zones = map[string]mockdns.Zone{
-		collectorName: {A: []string{ip2}},
-	}
+	srv.RemoveRR(collectorName, dns.TypeA)
+	err = srv.AppendRR(collectorName, dns.TypeA, ip2)
+	require.NoError(t, err)
 
 	// Make sure the exporter re-Dials on the refresh interval, resolving to 127.0.0.2, and the new collector starts receiving data
 	require.Eventually(t, func() bool {
