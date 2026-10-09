@@ -18,6 +18,7 @@
 package encode
 
 import (
+	"sync"
 	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
@@ -36,16 +37,18 @@ type mInfoStruct struct {
 }
 
 type MetricsCommonStruct struct {
+	vecMu            sync.RWMutex
 	gauges           map[string]mInfoStruct
 	counters         map[string]mInfoStruct
 	histos           map[string]mInfoStruct
 	aggHistos        map[string]mInfoStruct
-	mCache           *putils.TimedCache
+	mCache           *putils.TimedCache // nil when using Vec-native TTL (Prometheus path)
 	mCacheLenMetric  prometheus.Gauge
 	metricsProcessed prometheus.Counter
 	metricsDropped   prometheus.Counter
 	errorsCounter    *prometheus.CounterVec
 	expiryTime       time.Duration
+	admission        *metricAdmission
 	exitChan         <-chan struct{}
 }
 
@@ -85,26 +88,36 @@ var (
 )
 
 func (m *MetricsCommonStruct) AddCounter(name string, g interface{}, info *metrics.Preprocessed) {
+	m.vecMu.Lock()
+	defer m.vecMu.Unlock()
 	mStruct := mInfoStruct{genericMetric: g, info: info}
 	m.counters[name] = mStruct
 }
 
 func (m *MetricsCommonStruct) AddGauge(name string, g interface{}, info *metrics.Preprocessed) {
+	m.vecMu.Lock()
+	defer m.vecMu.Unlock()
 	mStruct := mInfoStruct{genericMetric: g, info: info}
 	m.gauges[name] = mStruct
 }
 
 func (m *MetricsCommonStruct) AddHist(name string, g interface{}, info *metrics.Preprocessed) {
+	m.vecMu.Lock()
+	defer m.vecMu.Unlock()
 	mStruct := mInfoStruct{genericMetric: g, info: info}
 	m.histos[name] = mStruct
 }
 
 func (m *MetricsCommonStruct) AddAggHist(name string, g interface{}, info *metrics.Preprocessed) {
+	m.vecMu.Lock()
+	defer m.vecMu.Unlock()
 	mStruct := mInfoStruct{genericMetric: g, info: info}
 	m.aggHistos[name] = mStruct
 }
 
 func (m *MetricsCommonStruct) MetricCommonEncode(mci MetricsCommonInterface, metricRecord config.GenericMap) {
+	m.vecMu.RLock()
+	defer m.vecMu.RUnlock()
 	log.Tracef("entering MetricCommonEncode. metricRecord = %v", metricRecord)
 
 	// Process counters
@@ -114,13 +127,9 @@ func (m *MetricsCommonStruct) MetricCommonEncode(mci MetricsCommonInterface, met
 			continue
 		}
 		for _, labels := range labelSets {
-			err := mci.ProcessCounter(mInfo.genericMetric, mInfo.info.Name, labels.lMap, value)
-			if err != nil {
-				log.Errorf("labels registering error on %s: %v", mInfo.info.Name, err)
-				m.errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
-				continue
-			}
-			m.metricsProcessed.Inc()
+			m.updateMetric(mInfo, labels, func() error {
+				return mci.ProcessCounter(mInfo.genericMetric, mInfo.info.Name, labels.lMap, value)
+			})
 		}
 	}
 
@@ -131,13 +140,9 @@ func (m *MetricsCommonStruct) MetricCommonEncode(mci MetricsCommonInterface, met
 			continue
 		}
 		for _, labels := range labelSets {
-			err := mci.ProcessGauge(mInfo.genericMetric, mInfo.info.Name, labels.lMap, value, labels.values)
-			if err != nil {
-				log.Errorf("labels registering error on %s: %v", mInfo.info.Name, err)
-				m.errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
-				continue
-			}
-			m.metricsProcessed.Inc()
+			m.updateMetric(mInfo, labels, func() error {
+				return mci.ProcessGauge(mInfo.genericMetric, mInfo.info.Name, labels.lMap, value, labels.values)
+			})
 		}
 	}
 
@@ -148,13 +153,9 @@ func (m *MetricsCommonStruct) MetricCommonEncode(mci MetricsCommonInterface, met
 			continue
 		}
 		for _, labels := range labelSets {
-			err := mci.ProcessHist(mInfo.genericMetric, mInfo.info.Name, labels.lMap, value)
-			if err != nil {
-				log.Errorf("labels registering error on %s: %v", mInfo.info.Name, err)
-				m.errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
-				continue
-			}
-			m.metricsProcessed.Inc()
+			m.updateMetric(mInfo, labels, func() error {
+				return mci.ProcessHist(mInfo.genericMetric, mInfo.info.Name, labels.lMap, value)
+			})
 		}
 	}
 
@@ -165,15 +166,31 @@ func (m *MetricsCommonStruct) MetricCommonEncode(mci MetricsCommonInterface, met
 			continue
 		}
 		for _, labels := range labelSets {
-			err := mci.ProcessAggHist(mInfo.genericMetric, mInfo.info.Name, labels.lMap, values)
-			if err != nil {
-				log.Errorf("labels registering error on %s: %v", mInfo.info.Name, err)
-				m.errorsCounter.WithLabelValues("LabelsRegisteringError", mInfo.info.Name, "").Inc()
-				continue
-			}
-			m.metricsProcessed.Inc()
+			m.updateMetric(mInfo, labels, func() error {
+				return mci.ProcessAggHist(mInfo.genericMetric, mInfo.info.Name, labels.lMap, values)
+			})
 		}
 	}
+}
+
+func (m *MetricsCommonStruct) updateMetric(info mInfoStruct, labels labelsKeyAndMap, mutate func() error) {
+	var err error
+	if m.admission != nil {
+		var admitted bool
+		admitted, err = m.admission.update(info.genericMetric, labels.values, mutate)
+		if !admitted {
+			m.metricsDropped.Inc()
+			return
+		}
+	} else {
+		err = mutate()
+	}
+	if err != nil {
+		log.Errorf("labels registering error on %s: %v", info.info.Name, err)
+		m.errorsCounter.WithLabelValues("LabelsRegisteringError", info.info.Name, "").Inc()
+		return
+	}
+	m.metricsProcessed.Inc()
 }
 
 func (m *MetricsCommonStruct) prepareMetric(mci MetricsCommonInterface, flow config.GenericMap, info *metrics.Preprocessed, mv interface{}) ([]labelsKeyAndMap, float64) {
@@ -197,14 +214,15 @@ func (m *MetricsCommonStruct) prepareMetric(mci MetricsCommonInterface, flow con
 	}
 
 	labelSets := extractLabels(flow, flatParts, info)
-	for _, ls := range labelSets {
-		// Update entry for expiry mechanism (the entry itself is its own cleanup function)
-		ok := m.mCache.UpdateCacheEntry(ls.values, func() interface{} {
-			return mci.GetCacheEntry(ls.lMap, mv)
-		})
-		if !ok {
-			m.metricsDropped.Inc()
-			return nil, 0
+	if m.mCache != nil {
+		for _, ls := range labelSets {
+			ok := m.mCache.UpdateCacheEntry(ls.values, func() interface{} {
+				return mci.GetCacheEntry(ls.lMap, mv)
+			})
+			if !ok {
+				m.metricsDropped.Inc()
+				return nil, 0
+			}
 		}
 	}
 	return labelSets, floatVal
@@ -228,14 +246,15 @@ func (m *MetricsCommonStruct) prepareAggHisto(mci MetricsCommonInterface, flow c
 	}
 
 	labelSets := extractLabels(flow, flatParts, info)
-	for _, ls := range labelSets {
-		// Update entry for expiry mechanism (the entry itself is its own cleanup function)
-		ok := m.mCache.UpdateCacheEntry(ls.values, func() interface{} {
-			return mci.GetCacheEntry(ls.lMap, mc)
-		})
-		if !ok {
-			m.metricsDropped.Inc()
-			return nil, nil
+	if m.mCache != nil {
+		for _, ls := range labelSets {
+			ok := m.mCache.UpdateCacheEntry(ls.values, func() interface{} {
+				return mci.GetCacheEntry(ls.lMap, mc)
+			})
+			if !ok {
+				m.metricsDropped.Inc()
+				return nil, nil
+			}
 		}
 	}
 	return labelSets, values
@@ -302,12 +321,66 @@ func (m *MetricsCommonStruct) cleanupExpiredEntriesLoop(callback putils.CacheCal
 			log.Debugf("exiting cleanupExpiredEntriesLoop because of signal")
 			return
 		case <-ticker.C:
-			m.mCache.CleanupExpiredEntries(m.expiryTime, callback)
+			if m.mCache != nil {
+				m.mCache.CleanupExpiredEntries(m.expiryTime, callback)
+			} else {
+				m.cleanupVecExpired()
+			}
 		}
 	}
 }
 
+// cleanupVecExpired calls CleanupExpired on each Prometheus Vec and updates the gauge.
+func (m *MetricsCommonStruct) cleanupVecExpired() {
+	if m.admission != nil {
+		m.admission.cleanup()
+	}
+	for _, metric := range m.vectorSnapshot() {
+		if vec, ok := metric.(interface{ CleanupExpired() int }); ok {
+			vec.CleanupExpired()
+		}
+	}
+	m.mCacheLenMetric.Set(float64(m.countVecChildren()))
+}
+
+// vectorSnapshot allows cleanup to run without racing metric reconfiguration
+// or holding the definitions lock during collection.
+func (m *MetricsCommonStruct) vectorSnapshot() []interface{} {
+	m.vecMu.RLock()
+	defer m.vecMu.RUnlock()
+	vectors := make([]interface{}, 0, len(m.counters)+len(m.gauges)+len(m.histos)+len(m.aggHistos))
+	for _, store := range []map[string]mInfoStruct{m.counters, m.gauges, m.histos, m.aggHistos} {
+		for _, info := range store {
+			vectors = append(vectors, info.genericMetric)
+		}
+	}
+	return vectors
+}
+
+// countVecChildren returns the total number of children across all Vecs.
+func (m *MetricsCommonStruct) countVecChildren() int {
+	total := 0
+	for _, metric := range m.vectorSnapshot() {
+		if c, ok := metric.(prometheus.Collector); ok {
+			ch := make(chan prometheus.Metric, 1000)
+			go func() {
+				c.Collect(ch)
+				close(ch)
+			}()
+			for range ch {
+				total++
+			}
+		}
+	}
+	return total
+}
+
 func (m *MetricsCommonStruct) cleanupInfoStructs() {
+	m.vecMu.Lock()
+	defer m.vecMu.Unlock()
+	if m.admission != nil {
+		m.admission.reset()
+	}
 	m.gauges = map[string]mInfoStruct{}
 	m.counters = map[string]mInfoStruct{}
 	m.histos = map[string]mInfoStruct{}
@@ -331,4 +404,33 @@ func NewMetricsCommonStruct(opMetrics *operational.Metrics, maxCacheEntries int,
 	}
 	go m.cleanupExpiredEntriesLoop(callback)
 	return m
+}
+
+// NewMetricsCommonStructWithVecTTL creates a MetricsCommonStruct that relies on
+// Prometheus Vec TTL (via *VecOpts.TTL in encode_prom) instead of an
+// external TimedCache.
+func NewMetricsCommonStructWithVecTTL(opMetrics *operational.Metrics, maxCacheEntries int, name string, expiryTime api.Duration) *MetricsCommonStruct {
+	mChacheLenMetric := opMetrics.NewGauge(&mChacheLen, name)
+	m := &MetricsCommonStruct{
+		mCache:           nil, // no external cache needed
+		mCacheLenMetric:  mChacheLenMetric,
+		metricsProcessed: opMetrics.NewCounter(&metricsProcessed, name),
+		metricsDropped:   opMetrics.NewCounter(&metricsDropped, name),
+		errorsCounter:    opMetrics.NewCounterVec(&encodePromErrors),
+		expiryTime:       expiryTime.Duration,
+		admission:        newMetricAdmission(maxCacheEntries, expiryTime.Duration),
+		exitChan:         putils.ExitChannel(),
+		gauges:           map[string]mInfoStruct{},
+		counters:         map[string]mInfoStruct{},
+		histos:           map[string]mInfoStruct{},
+		aggHistos:        map[string]mInfoStruct{},
+	}
+	return m
+}
+
+// StartCleanupLoop launches the background goroutine that periodically cleans
+// up expired Vec entries. Must be called after all initial metrics are registered
+// to avoid races between the cleanup goroutine and metric setup.
+func (m *MetricsCommonStruct) StartCleanupLoop() {
+	go m.cleanupExpiredEntriesLoop(nil)
 }
