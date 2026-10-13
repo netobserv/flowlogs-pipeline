@@ -657,7 +657,7 @@ func BenchmarkWriteLoki(b *testing.B) {
 	require.NoError(b, err)
 
 	hf := hundredFlows()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for _, f := range hf {
 			loki.Write(f)
 		}
