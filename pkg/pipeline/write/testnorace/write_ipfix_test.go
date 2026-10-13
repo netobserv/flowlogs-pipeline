@@ -192,6 +192,7 @@ func TestIPFIXFlowWithEnterpriseID(t *testing.T) {
 				"DstK8S_HostName":  "node2",
 			},
 			expectedFields: slices.Concat(write.IPv4IANAFields, kubeFields, customNetworkFields, customNetworkFieldsV4),
+			expectedUnset:  []string{"sourceServiceName", "destinationServiceName"},
 		},
 		{
 			name: "IPv6 flow",
@@ -218,6 +219,7 @@ func TestIPFIXFlowWithEnterpriseID(t *testing.T) {
 			},
 			removeFields:   []string{"TimeFlowRttNs"},
 			expectedFields: slices.Concat(write.IPv4IANAFields, kubeFields, customNetworkFields, customNetworkFieldsV4),
+			expectedUnset:  []string{"sourceServiceName", "destinationServiceName"},
 		},
 		{
 			name: "node flow",
@@ -228,7 +230,7 @@ func TestIPFIXFlowWithEnterpriseID(t *testing.T) {
 				"SrcK8S_HostName": "node1",
 			},
 			expectedFields: slices.Concat(write.IPv4IANAFields, kubeFields, customNetworkFields, customNetworkFieldsV4),
-			expectedUnset:  []string{"sourcePodName", "sourcePodNamespace"},
+			expectedUnset:  []string{"sourcePodName", "sourcePodNamespace", "sourceServiceName", "destinationServiceName"},
 		},
 		{
 			name: "service flow",
@@ -481,15 +483,15 @@ func matchElement(t *testing.T, element entities.InfoElementWithValue, flow conf
 	expected := flow[mapping.Key]
 	if expectedUnset {
 		value := mapping.Getter(element)
-		assert.Empty(t, value, "unexpected '%s'", name)
+		assert.Empty(t, value, "field '%s' with value '%v' found in record, despite explicitely listed as unexpected", name, value)
 	} else if mapping.Matcher != nil {
-		assert.True(t, mapping.Matcher(element, expected), "unexpected '%s'", name)
+		assert.True(t, mapping.Matcher(element, expected), "field '%s' expecting value '%v' does not satisfy the field matcher", name, expected)
 	} else {
 		value := mapping.Getter(element)
 		if expected == nil {
-			assert.Empty(t, value, "unexpected '%s'", name)
+			assert.Empty(t, value, "field '%s' with value '%v' found in record, despite implicitely unexpected", name, value)
 		} else {
-			assert.Equal(t, expected, value, "unexpected '%s'", name)
+			assert.Equal(t, expected, value, "field '%s' has unexpected value: want '%v', got '%v'", name, expected, value)
 		}
 	}
 }

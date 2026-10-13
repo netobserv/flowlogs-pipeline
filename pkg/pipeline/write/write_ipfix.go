@@ -102,6 +102,8 @@ var (
 		{Name: "destinationPodName", ElementId: 7736, DataType: entities.String, Len: 65535},
 		{Name: "sourceNodeName", ElementId: 7737, DataType: entities.String, Len: 65535},
 		{Name: "destinationNodeName", ElementId: 7738, DataType: entities.String, Len: 65535},
+		{Name: "sourceServiceName", ElementId: 7743, DataType: entities.String, Len: 65535},
+		{Name: "destinationServiceName", ElementId: 7744, DataType: entities.String, Len: 65535},
 	}
 	CustomNetworkFields = []entities.InfoElement{
 		{Name: "latestDroppedCause", ElementId: 7739, DataType: entities.String, Len: 65535},
@@ -383,6 +385,24 @@ var (
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
 			Setter: func(elt entities.InfoElementWithValue, rec any, flow config.GenericMap) {
 				if t, _ := flow.LookupString("DstK8S_Type"); t == "Pod" {
+					elt.SetStringValue(rec.(string))
+				}
+			},
+		},
+		"sourceServiceName": {
+			Key:    "SrcK8S_Name",
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
+			Setter: func(elt entities.InfoElementWithValue, rec any, flow config.GenericMap) {
+				if t, _ := flow.LookupString("SrcK8S_Type"); t == "Service" {
+					elt.SetStringValue(rec.(string))
+				}
+			},
+		},
+		"destinationServiceName": {
+			Key:    "DstK8S_Name",
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
+			Setter: func(elt entities.InfoElementWithValue, rec any, flow config.GenericMap) {
+				if t, _ := flow.LookupString("DstK8S_Type"); t == "Service" {
 					elt.SetStringValue(rec.(string))
 				}
 			},
