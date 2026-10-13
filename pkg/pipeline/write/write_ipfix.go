@@ -45,7 +45,7 @@ type writeIpfix struct {
 type FieldMap struct {
 	Key     string
 	Getter  func(entities.InfoElementWithValue) any
-	Setter  func(entities.InfoElementWithValue, any)
+	Setter  func(entities.InfoElementWithValue, any, config.GenericMap)
 	Matcher func(entities.InfoElementWithValue, any) bool
 	Default func(entities.InfoElementWithValue)
 }
@@ -102,6 +102,8 @@ var (
 		{Name: "destinationPodName", ElementId: 7736, DataType: entities.String, Len: 65535},
 		{Name: "sourceNodeName", ElementId: 7737, DataType: entities.String, Len: 65535},
 		{Name: "destinationNodeName", ElementId: 7738, DataType: entities.String, Len: 65535},
+		{Name: "sourceServiceName", ElementId: 7743, DataType: entities.String, Len: 65535},
+		{Name: "destinationServiceName", ElementId: 7744, DataType: entities.String, Len: 65535},
 	}
 	CustomNetworkFields = []entities.InfoElement{
 		{Name: "latestDroppedCause", ElementId: 7739, DataType: entities.String, Len: 65535},
@@ -116,32 +118,42 @@ var (
 		"sourceIPv4Address": {
 			Key:    "SrcAddr",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+			},
 		},
 		"destinationIPv4Address": {
 			Key:    "DstAddr",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+			},
 		},
 		"sourceIPv6Address": {
 			Key:    "SrcAddr",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+			},
 		},
 		"destinationIPv6Address": {
 			Key:    "DstAddr",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+			},
 		},
 		"nextHeaderIPv6": {
 			Key:    "Proto",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned8Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned8Value(rec.(uint8)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned8Value(rec.(uint8))
+			},
 		},
 		"sourceMacAddress": {
 			Key:    "SrcMac",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetMacAddressValue().String() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) {
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				mac, _ := net.ParseMAC(rec.(string))
 				elt.SetMacAddressValue(mac)
 			},
@@ -149,7 +161,7 @@ var (
 		"destinationMacAddress": {
 			Key:    "DstMac",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetMacAddressValue().String() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) {
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				mac, _ := net.ParseMAC(rec.(string))
 				elt.SetMacAddressValue(mac)
 			},
@@ -157,11 +169,13 @@ var (
 		"ethernetType": {
 			Key:    "Etype",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned16Value(rec.(uint16))
+			},
 		},
 		"flowDirection": {
 			Key: "IfDirections",
-			Setter: func(elt entities.InfoElementWithValue, rec any) {
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				if dirs, ok := rec.([]int); ok && len(dirs) > 0 {
 					elt.SetUnsigned8Value(uint8(dirs[0]))
 				}
@@ -181,7 +195,7 @@ var (
 				}
 				return dirs
 			},
-			Setter: func(elt entities.InfoElementWithValue, rec any) {
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				if dirs, ok := rec.([]int); ok && len(dirs) > 0 {
 					var asStr []string
 					for _, dir := range dirs {
@@ -194,51 +208,69 @@ var (
 		"protocolIdentifier": {
 			Key:    "Proto",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned8Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned8Value(rec.(uint8)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned8Value(rec.(uint8))
+			},
 		},
 		"sourceTransportPort": {
 			Key:    "SrcPort",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned16Value(rec.(uint16))
+			},
 		},
 		"destinationTransportPort": {
 			Key:    "DstPort",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned16Value(rec.(uint16))
+			},
 		},
 		"octetDeltaCount": {
 			Key:    "Bytes",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned64Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(rec.(uint64)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned64Value(rec.(uint64))
+			},
 		},
 		"packetDeltaCount": {
 			Key:    "Packets",
 			Getter: func(elt entities.InfoElementWithValue) any { return uint32(elt.GetUnsigned64Value()) },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(uint32))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned64Value(uint64(rec.(uint32)))
+			},
 		},
 		"droppedOctetDeltaCount": {
 			Key:    "PktDropBytes",
 			Getter: func(elt entities.InfoElementWithValue) any { return uint16(elt.GetUnsigned64Value()) },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(uint16))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned64Value(uint64(rec.(uint16)))
+			},
 		},
 		"droppedPacketDeltaCount": {
 			Key:    "PktDropPackets",
 			Getter: func(elt entities.InfoElementWithValue) any { return uint16(elt.GetUnsigned64Value()) },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(uint16))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned64Value(uint64(rec.(uint16)))
+			},
 		},
 		"flowStartMilliseconds": {
 			Key:    "TimeFlowStartMs",
 			Getter: func(elt entities.InfoElementWithValue) any { return int64(elt.GetUnsigned64Value()) },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(int64))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned64Value(uint64(rec.(int64)))
+			},
 		},
 		"flowEndMilliseconds": {
 			Key:    "TimeFlowEndMs",
 			Getter: func(elt entities.InfoElementWithValue) any { return int64(elt.GetUnsigned64Value()) },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(int64))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned64Value(uint64(rec.(int64)))
+			},
 		},
 		"interfaceName": {
 			Key: "Interfaces",
-			Setter: func(elt entities.InfoElementWithValue, rec any) {
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				if ifs, ok := rec.([]string); ok && len(ifs) > 0 {
 					elt.SetStringValue(ifs[0])
 				}
@@ -253,7 +285,7 @@ var (
 			Getter: func(elt entities.InfoElementWithValue) any {
 				return elt.GetUnsigned16Value()
 			},
-			Setter: func(elt entities.InfoElementWithValue, rec any) {
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				if decoded, isDecoded := rec.([]string); isDecoded {
 					// reencode for ipfix
 					reencoded := utils.EncodeTCPFlags(decoded)
@@ -285,27 +317,35 @@ var (
 		"icmpTypeIPv4": {
 			Key:    "IcmpType",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned8Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned8Value(rec.(uint8)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned8Value(rec.(uint8))
+			},
 		},
 		"icmpCodeIPv4": {
 			Key:    "IcmpCode",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned8Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned8Value(rec.(uint8)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned8Value(rec.(uint8))
+			},
 		},
 		"icmpTypeIPv6": {
 			Key:    "IcmpType",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned8Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned8Value(rec.(uint8)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned8Value(rec.(uint8))
+			},
 		},
 		"icmpCodeIPv6": {
 			Key:    "IcmpCode",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned8Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned8Value(rec.(uint8)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned8Value(rec.(uint8))
+			},
 		},
 		"interfaces": {
 			Key:    "Interfaces",
 			Getter: func(elt entities.InfoElementWithValue) any { return strings.Split(elt.GetStringValue(), ",") },
-			Setter: func(elt entities.InfoElementWithValue, rec any) {
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				if ifs, ok := rec.([]string); ok {
 					elt.SetStringValue(strings.Join(ifs, ","))
 				}
@@ -314,52 +354,100 @@ var (
 		"sourcePodNamespace": {
 			Key:    "SrcK8S_Namespace",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetStringValue(rec.(string)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, flow config.GenericMap) {
+				// Set the pod namespace even when type is Service, since a service and its backend pod belong to the same namespace
+				if t, _ := flow.LookupString("SrcK8S_Type"); t == "Pod" || t == "Service" {
+					elt.SetStringValue(rec.(string))
+				}
+			},
 		},
 		"sourcePodName": {
 			Key:    "SrcK8S_Name",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetStringValue(rec.(string)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, flow config.GenericMap) {
+				if t, _ := flow.LookupString("SrcK8S_Type"); t == "Pod" {
+					elt.SetStringValue(rec.(string))
+				}
+			},
 		},
 		"destinationPodNamespace": {
 			Key:    "DstK8S_Namespace",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetStringValue(rec.(string)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, flow config.GenericMap) {
+				// Set the pod namespace even when type is Service, since a service and its backend pod belong to the same namespace
+				if t, _ := flow.LookupString("DstK8S_Type"); t == "Pod" || t == "Service" {
+					elt.SetStringValue(rec.(string))
+				}
+			},
 		},
 		"destinationPodName": {
 			Key:    "DstK8S_Name",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetStringValue(rec.(string)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, flow config.GenericMap) {
+				if t, _ := flow.LookupString("DstK8S_Type"); t == "Pod" {
+					elt.SetStringValue(rec.(string))
+				}
+			},
+		},
+		"sourceServiceName": {
+			Key:    "SrcK8S_Name",
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
+			Setter: func(elt entities.InfoElementWithValue, rec any, flow config.GenericMap) {
+				if t, _ := flow.LookupString("SrcK8S_Type"); t == "Service" {
+					elt.SetStringValue(rec.(string))
+				}
+			},
+		},
+		"destinationServiceName": {
+			Key:    "DstK8S_Name",
+			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
+			Setter: func(elt entities.InfoElementWithValue, rec any, flow config.GenericMap) {
+				if t, _ := flow.LookupString("DstK8S_Type"); t == "Service" {
+					elt.SetStringValue(rec.(string))
+				}
+			},
 		},
 		"sourceNodeName": {
 			Key:    "SrcK8S_HostName",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetStringValue(rec.(string)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetStringValue(rec.(string))
+			},
 		},
 		"destinationNodeName": {
 			Key:    "DstK8S_HostName",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetStringValue(rec.(string)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetStringValue(rec.(string))
+			},
 		},
 		"latestDroppedCause": {
 			Key:    "PktDropLatestDropCause",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetStringValue() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetStringValue(rec.(string)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetStringValue(rec.(string))
+			},
 		},
 		"timeFlowRttNs": {
 			Key:    "TimeFlowRttNs",
 			Getter: func(elt entities.InfoElementWithValue) any { return int64(elt.GetUnsigned64Value()) },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned64Value(uint64(rec.(int64))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned64Value(uint64(rec.(int64)))
+			},
 		},
 		"postNAPTSourceTransportPort": {
 			Key:    "XlatSrcPort",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned16Value(rec.(uint16))
+			},
 		},
 		"postNAPTDestinationTransportPort": {
 			Key:    "XlatDstPort",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetUnsigned16Value() },
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetUnsigned16Value(rec.(uint16)) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetUnsigned16Value(rec.(uint16))
+			},
 		},
 		"postNATSourceIPv4Address": {
 			Key: "XlatSrcAddr",
@@ -369,7 +457,9 @@ var (
 				}
 				return elt.GetIPAddressValue().String()
 			},
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+			},
 			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L596
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv4zero) },
 		},
@@ -381,7 +471,9 @@ var (
 				}
 				return elt.GetIPAddressValue().String()
 			},
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+			},
 			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L596
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv4zero) },
 		},
@@ -393,7 +485,9 @@ var (
 				}
 				return elt.GetIPAddressValue().String()
 			},
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+			},
 			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L602
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv6zero) },
 		},
@@ -405,14 +499,16 @@ var (
 				}
 				return elt.GetIPAddressValue().String()
 			},
-			Setter: func(elt entities.InfoElementWithValue, rec any) { elt.SetIPAddressValue(net.ParseIP(rec.(string))) },
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
+				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+			},
 			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L602
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv6zero) },
 		},
 		"selectorAlgorithm": {
 			// https://datatracker.ietf.org/doc/html/rfc5477#section-8.2.1
 			Key: "Sampling",
-			Setter: func(elt entities.InfoElementWithValue, rec any) {
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				if interval, ok := rec.(uint32); ok && interval > 0 {
 					// Only "4" Uniform probabilistic Sampling is supported
 					elt.SetUnsigned16Value(4)
@@ -431,7 +527,7 @@ var (
 				}
 				return uint32(1 / p)
 			},
-			Setter: func(elt entities.InfoElementWithValue, rec any) {
+			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				// interval to probability
 				if interval, ok := rec.(uint32); ok && interval > 0 {
 					p := 1.0 / float64(interval)
@@ -547,7 +643,7 @@ func createDataRecord(flow config.GenericMap, elements []entities.InfoElementWit
 		name := ieVal.GetName()
 		if mapping, ok := MapIPFIXKeys[name]; ok {
 			if value := flow[mapping.Key]; value != nil {
-				mapping.Setter(ieVal, value)
+				mapping.Setter(ieVal, value, flow)
 			} else if mapping.Default != nil {
 				mapping.Default(ieVal)
 			}
