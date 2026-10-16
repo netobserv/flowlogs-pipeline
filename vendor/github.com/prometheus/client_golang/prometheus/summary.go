@@ -25,7 +25,6 @@ import (
 	dto "github.com/prometheus/client_model/go"
 
 	"github.com/beorn7/perks/quantile"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -164,6 +163,10 @@ type SummaryVecOpts struct {
 	// of labels. Each label value will be constrained with the optional Constraint
 	// function, if provided.
 	VariableLabels ConstrainableLabels
+
+	// TTL, if greater than zero, enables per-child expiration for this vector.
+	// See MetricVecOpts.TTL for semantics.
+	TTL time.Duration
 }
 
 // Problem with the sliding-window decay algorithm... The Merge method of
@@ -337,8 +340,8 @@ func (s *summary) Write(out *dto.Metric) error {
 	s.bufMtx.Unlock()
 
 	s.flushColdBuf()
-	sum.SampleCount = proto.Uint64(s.cnt)
-	sum.SampleSum = proto.Float64(s.sum)
+	sum.SampleCount = new(s.cnt)
+	sum.SampleSum = new(s.sum)
 
 	for _, rank := range s.sortedObjectives {
 		var q float64
@@ -348,8 +351,8 @@ func (s *summary) Write(out *dto.Metric) error {
 			q = s.headStream.Query(rank)
 		}
 		qs = append(qs, &dto.Quantile{
-			Quantile: proto.Float64(rank),
-			Value:    proto.Float64(q),
+			Quantile: new(rank),
+			Value:    new(q),
 		})
 	}
 
@@ -512,8 +515,8 @@ func (s *noObjectivesSummary) Write(out *dto.Metric) error {
 	}
 
 	sum := &dto.Summary{
-		SampleCount:      proto.Uint64(count),
-		SampleSum:        proto.Float64(math.Float64frombits(atomic.LoadUint64(&coldCounts.sumBits))),
+		SampleCount:      new(count),
+		SampleSum:        new(math.Float64frombits(atomic.LoadUint64(&coldCounts.sumBits))),
 		CreatedTimestamp: s.createdTs,
 	}
 
@@ -584,9 +587,18 @@ func (v2) NewSummaryVec(opts SummaryVecOpts) *SummaryVec {
 		opts.ConstLabels,
 		WithUnit(opts.Unit),
 	)
+	newMetric := func(lvs ...string) Metric {
+		s := newSummary(desc, opts.SummaryOpts, lvs...)
+		if opts.TTL <= 0 {
+			return s
+		}
+		return newTTLSummary(s)
+	}
 	return &SummaryVec{
-		MetricVec: NewMetricVec(desc, func(lvs ...string) Metric {
-			return newSummary(desc, opts.SummaryOpts, lvs...)
+		MetricVec: V2.NewMetricVec(MetricVecOpts{
+			Desc:      desc,
+			NewMetric: newMetric,
+			TTL:       opts.TTL,
 		}),
 	}
 }
@@ -718,13 +730,13 @@ func (s *constSummary) Write(out *dto.Metric) error {
 	}
 	qs := make([]*dto.Quantile, 0, len(s.quantiles))
 
-	sum.SampleCount = proto.Uint64(s.count)
-	sum.SampleSum = proto.Float64(s.sum)
+	sum.SampleCount = new(s.count)
+	sum.SampleSum = new(s.sum)
 
 	for rank, q := range s.quantiles {
 		qs = append(qs, &dto.Quantile{
-			Quantile: proto.Float64(rank),
-			Value:    proto.Float64(q),
+			Quantile: new(rank),
+			Value:    new(q),
 		})
 	}
 

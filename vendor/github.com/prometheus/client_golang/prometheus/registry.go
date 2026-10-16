@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -31,7 +32,6 @@ import (
 	"github.com/cespare/xxhash/v2"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -296,6 +296,7 @@ func (r *Registry) Register(c Collector) error {
 	defer func() {
 		// Drain channel in case of premature return to not leak a goroutine.
 		for range descChan {
+			continue
 		}
 		r.mtx.Unlock()
 	}()
@@ -369,9 +370,7 @@ func (r *Registry) Register(c Collector) error {
 	for hash := range newDescIDs {
 		r.descIDs[hash] = struct{}{}
 	}
-	for name, dimHash := range newDimHashesByName {
-		r.dimHashesByName[name] = dimHash
-	}
+	maps.Copy(r.dimHashesByName, newDimHashesByName)
 	return nil
 }
 
@@ -432,6 +431,11 @@ func (r *Registry) MustGather() []*dto.MetricFamily {
 }
 
 // Gather implements Gatherer.
+//
+// Before Collect, Gather calls CleanupExpired on registered collectors that
+// implement ExpiredCleaner, so expired Vec children can be reclaimed on scrape.
+// This includes collectors registered through wrapping collectors and nested
+// registries. Cleanup panics are recovered and reported as collection errors.
 func (r *Registry) Gather() ([]*dto.MetricFamily, error) {
 	r.mtx.RLock()
 
@@ -476,7 +480,7 @@ func (r *Registry) Gather() ([]*dto.MetricFamily, error) {
 		for {
 			select {
 			case collector := <-checkedCollectors:
-				safeErrs.Append((safeCollect(collector, checkedMetricChan)))
+				safeErrs.Append(safeCollect(collector, checkedMetricChan))
 			case collector := <-uncheckedCollectors:
 				safeErrs.Append(safeCollect(collector, uncheckedMetricChan))
 			default:
@@ -502,10 +506,12 @@ func (r *Registry) Gather() ([]*dto.MetricFamily, error) {
 	defer func() {
 		if checkedMetricChan != nil {
 			for range checkedMetricChan {
+				continue
 			}
 		}
 		if uncheckedMetricChan != nil {
 			for range uncheckedMetricChan {
+				continue
 			}
 		}
 	}()
@@ -608,9 +614,36 @@ func safeCollect(c Collector, ch chan<- Metric) (err error) {
 			ch <- NewInvalidMetric(NewInvalidDesc(err), err)
 		}
 	}()
+	cleanupExpiredCollector(c)
 	c.Collect(ch)
 
 	return err
+}
+
+// cleanupExpiredCollector follows wrapping collectors and nested registries.
+// It runs inside safeCollect so cleanup panics are recovered there.
+func cleanupExpiredCollector(c Collector) {
+	if wc, ok := c.(*wrappingCollector); ok {
+		c = wc.unwrapRecursively()
+	}
+	if cleaner, ok := c.(ExpiredCleaner); ok {
+		cleaner.CleanupExpired()
+		return
+	}
+	if r, ok := c.(*Registry); ok {
+		r.mtx.RLock()
+		collectors := make([]Collector, 0, len(r.collectorsByID)+len(r.uncheckedCollectors))
+		for _, collector := range r.collectorsByID {
+			collectors = append(collectors, collector)
+		}
+		collectors = append(collectors, r.uncheckedCollectors...)
+		r.mtx.RUnlock()
+
+		// Release the registry lock before invoking user-defined cleanup methods.
+		for _, collector := range collectors {
+			cleanupExpiredCollector(collector)
+		}
+	}
 }
 
 // Collect implements Collector.
@@ -641,12 +674,12 @@ func WriteToTextfile(filename string, g Gatherer) error {
 
 	mfs, err := g.Gather()
 	if err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return err
 	}
 	for _, mf := range mfs {
 		if _, err := expfmt.MetricFamilyToText(tmp, mf); err != nil {
-			tmp.Close()
+			_ = tmp.Close()
 			return err
 		}
 	}
@@ -727,10 +760,10 @@ func processMetric(
 		}
 	} else { // New name.
 		metricFamily = &dto.MetricFamily{}
-		metricFamily.Name = proto.String(desc.fqName)
-		metricFamily.Help = proto.String(desc.help)
+		metricFamily.Name = new(desc.fqName)
+		metricFamily.Help = new(desc.help)
 		if desc.unit != "" {
-			metricFamily.Unit = proto.String(desc.unit)
+			metricFamily.Unit = new(desc.unit)
 		}
 		// TODO(beorn7): Simplify switch once Desc has type.
 		switch {
@@ -956,7 +989,8 @@ func checkMetricConsistency(
 		if !utf8.ValidString(labelPair.GetValue()) {
 			return fmt.Errorf(
 				"collected metric %q { %s} has a label named %q whose value is not utf8: %#v",
-				name, dtoMetric, labelName, labelPair.GetValue())
+				name, dtoMetric, labelName, labelPair.GetValue(),
+			)
 		}
 		previousLabelName = labelName
 	}
@@ -981,7 +1015,7 @@ func checkMetricConsistency(
 		h.Write(separatorByteSlice)
 	}
 	if dtoMetric.TimestampMs != nil {
-		h.WriteString(strconv.FormatInt(*(dtoMetric.TimestampMs), 10))
+		h.WriteString(strconv.FormatInt(*dtoMetric.TimestampMs, 10))
 		h.Write(separatorByteSlice)
 	}
 	hSum := h.Sum64()
@@ -1013,7 +1047,7 @@ func checkDescConsistency(
 	copy(lpsFromDesc, desc.constLabelPairs)
 	for _, l := range desc.variableLabels.names {
 		lpsFromDesc = append(lpsFromDesc, &dto.LabelPair{
-			Name: proto.String(l),
+			Name: new(l),
 		})
 	}
 	if len(lpsFromDesc) != len(dtoMetric.Label) {
