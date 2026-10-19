@@ -69,7 +69,7 @@ Flags:
 
 > Note: for API details refer to [docs/api.md](docs/api.md).
 > 
-### YAML configuration files
+## YAML configuration files
 
 FLP accepts YAML configuration files with `--config=/path/to/config.yaml`.
 Structured sections (`pipeline`, `parameters`, `metricsSettings`, and

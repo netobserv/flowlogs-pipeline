@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"sigs.k8s.io/yaml"
@@ -20,7 +21,11 @@ func FileSections(data []byte) (map[string]json.RawMessage, error) {
 	}
 	out := make(map[string]json.RawMessage, len(sections))
 	for key, value := range sections {
-		out[strings.ToLower(key)] = value
+		section := strings.ToLower(key)
+		if _, found := out[section]; found {
+			return nil, fmt.Errorf("duplicate config section %q (keys are case-insensitive)", section)
+		}
+		out[section] = value
 	}
 	return out, nil
 }

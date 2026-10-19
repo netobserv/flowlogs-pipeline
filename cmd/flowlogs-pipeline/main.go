@@ -151,7 +151,7 @@ func bindFlags(cmd *cobra.Command, v *viper.Viper, sections map[string]json.RawM
 		case "pipeline", "parameters", "dynamicParameters", "metricsSettings":
 			value, found := sections[strings.ToLower(f.Name)]
 			envValue := os.Getenv(strings.ToUpper(envPrefix + "_" + f.Name))
-			if !f.Changed && found && envValue == "" {
+			if !f.Changed && found && envValue == "" && string(value) != "null" {
 				// Structured options may also be JSON strings in existing files.
 				str := string(value)
 				if len(value) > 0 && value[0] == '"' {
