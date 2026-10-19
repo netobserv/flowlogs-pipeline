@@ -28,7 +28,6 @@ import (
 	"testing"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
@@ -59,7 +58,6 @@ func GetIngestMockEntry(missingKey bool) config.GenericMap {
 
 func InitConfig(t *testing.T, conf string) (*viper.Viper, *config.Root) {
 	ResetPromRegistry()
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	yamlConfig := []byte(conf)
 	v := viper.New()
 	v.SetConfigType("yaml")
@@ -67,22 +65,15 @@ func InitConfig(t *testing.T, conf string) (*viper.Viper, *config.Root) {
 	err := v.ReadConfig(r)
 	require.NoError(t, err)
 
-	var b []byte
-	pipelineStr := v.Get("pipeline")
-	b, err = json.Marshal(&pipelineStr)
-	if err != nil {
-		fmt.Printf("error marshaling: %v\n", err)
-		return nil, nil
+	sections, err := config.FileSections(yamlConfig)
+	require.NoError(t, err)
+	opts := config.Options{PipeLine: "null", Parameters: "null"}
+	if value, found := sections["pipeline"]; found {
+		opts.PipeLine = string(value)
 	}
-	opts := config.Options{}
-	opts.PipeLine = string(b)
-	parametersStr := v.Get("parameters")
-	b, err = json.Marshal(&parametersStr)
-	if err != nil {
-		fmt.Printf("error marshaling: %v\n", err)
-		return nil, nil
+	if value, found := sections["parameters"]; found {
+		opts.Parameters = string(value)
 	}
-	opts.Parameters = string(b)
 	out, err := config.ParseConfig(&opts)
 	if err != nil {
 		fmt.Printf("error in parsing config file: %v \n", err)

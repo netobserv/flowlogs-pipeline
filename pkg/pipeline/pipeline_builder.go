@@ -2,7 +2,6 @@ package pipeline
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -96,8 +95,7 @@ func getDynConfig(cfg *config.Root) ([]config.StageParam, error) {
 		log.Errorf("Cannot get file in configMap: %v", err)
 		return nil, err
 	}
-	dynConfig := config.HotReloadStruct{}
-	err = json.Unmarshal([]byte(rawConfig), &dynConfig)
+	dynConfig, err := config.ParseDynamicConfig([]byte(rawConfig))
 	if err != nil {
 		log.Errorf("Cannot parse config: %v", err)
 		return nil, err

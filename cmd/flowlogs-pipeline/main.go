@@ -96,7 +96,22 @@ func initConfig() {
 	// If a config file is found, read it in.
 	cfgErr := v.ReadInConfig()
 
-	bindFlags(rootCmd, v)
+	var sections map[string]json.RawMessage
+	if cfgErr == nil {
+		switch strings.ToLower(filepath.Ext(v.ConfigFileUsed())) {
+		case ".yaml", ".yml", ".json":
+			data, err := os.ReadFile(v.ConfigFileUsed())
+			if err != nil {
+				log.Fatal(err)
+			}
+			sections, err = config.FileSections(data)
+			if err != nil {
+				log.Fatalf("Read config error: %v", err)
+			}
+		}
+	}
+
+	bindFlags(rootCmd, v, sections)
 
 	// initialize logger
 	initLogger()
@@ -123,14 +138,35 @@ func dumpConfig(opts *config.Options) {
 	fmt.Printf("Using configuration:\n%s\n", configAsJSON)
 }
 
-func bindFlags(cmd *cobra.Command, v *viper.Viper) {
+func bindFlags(cmd *cobra.Command, v *viper.Viper, sections map[string]json.RawMessage) {
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
 		if strings.Contains(f.Name, ".") {
 			envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, ".", "_"))
 			_ = v.BindEnv(f.Name, fmt.Sprintf("%s_%s", envPrefix, envVarSuffix))
 		}
 
-		// Apply the viper config value to the flag when the flag is not set and viper has a value
+		// Viper lowercases nested map keys. Read structured file sections directly,
+		// while retaining the existing flag > environment > file precedence.
+		switch f.Name {
+		case "pipeline", "parameters", "dynamicParameters", "metricsSettings":
+			value, found := sections[strings.ToLower(f.Name)]
+			envValue := os.Getenv(strings.ToUpper(envPrefix + "_" + f.Name))
+			if !f.Changed && found && envValue == "" {
+				// Structured options may also be JSON strings in existing files.
+				str := string(value)
+				if len(value) > 0 && value[0] == '"' {
+					if err := json.Unmarshal(value, &str); err != nil {
+						log.Fatalf("Invalid config value for %s: %v", f.Name, err)
+					}
+				}
+				if err := cmd.Flags().Set(f.Name, str); err != nil {
+					log.Fatalf("Invalid config value for %s: %v", f.Name, err)
+				}
+				return
+			}
+		}
+
+		// Apply scalar values and environment overrides through Viper.
 		if !f.Changed && v.IsSet(f.Name) {
 			val := v.Get(f.Name)
 			switch val.(type) {

@@ -2,7 +2,6 @@ package pipeline
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/utils/k8sutils"
@@ -84,14 +83,13 @@ func (pcw *pipelineConfigWatcher) handleEvent(eventChannel <-chan watch.Event) {
 
 func (pcw *pipelineConfigWatcher) updateFromConfigmap(cm *corev1.ConfigMap) {
 	if rawConfig, ok := cm.Data[pcw.configFile]; ok {
-		config := config.HotReloadStruct{}
-		err := json.Unmarshal([]byte(rawConfig), &config)
+		dynamicConfig, err := config.ParseDynamicConfig([]byte(rawConfig))
 		if err != nil {
 			log.Errorf("Cannot parse config: %v", err)
 			return
 		}
 		log.Debugf("Received a config update")
-		for _, param := range config.Parameters {
+		for _, param := range dynamicConfig.Parameters {
 			if pentry, ok := pcw.pipelineEntryMap[param.Name]; ok {
 				pcw.updateEntry(pentry, param)
 			} else {
