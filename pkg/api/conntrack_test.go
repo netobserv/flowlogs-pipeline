@@ -264,7 +264,7 @@ func TestConnTrackValidate(t *testing.T) {
 }
 
 func TestSelectorsUnmarshal_ListForm(t *testing.T) {
-	// The list form preserves case-sensitive field names (viper-safe).
+	// The list form preserves case-sensitive field names as values.
 	// Note: JSON decodes numbers as float64, yaml.v2 as int.
 	t.Run("json", func(t *testing.T) {
 		var actual Selectors
@@ -298,7 +298,7 @@ func TestSelectorsUnmarshal_LegacyMapForm(t *testing.T) {
 
 func TestSelectorsMarshal_EmitsListForm(t *testing.T) {
 	// Marshaling always emits the list form (sorted by key) so field names travel
-	// as values, surviving viper's key lower-casing.
+	// as values.
 	s := Selectors{"SrcK8S_Name": "pod-a", "Proto": 6}
 
 	b, err := json.Marshal(s)

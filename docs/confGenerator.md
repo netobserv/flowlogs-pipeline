@@ -32,6 +32,10 @@ Flags:
       --srcFolder string                  source folder (default "network_definitions")
 ```
 
+The `--config` file (or `$HOME/.confgen.yaml` / `$HOME/.confgen.json` when
+`--config` is omitted) can use YAML or JSON. Values from environment variables
+override file values, and explicitly provided flags override both.
+
 > Note: confgenerator is available also from `netobserv/flowlogs-pipeline` quay image. To use execute:  
 > `docker run --entrypoint /app/confgenerator quay.io/netobserv/flowlogs-pipeline:main --help` 
 

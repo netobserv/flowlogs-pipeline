@@ -12,6 +12,7 @@ import (
 
 	"github.com/netobserv/flowlogs-pipeline/internal/informers"
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
+	cliConfig "github.com/netobserv/flowlogs-pipeline/pkg/cli"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/metrics"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
@@ -19,8 +20,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/k8scache"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -72,15 +71,13 @@ This reduces the load on the Kubernetes API server by having a single component
 
 // initConfig reads environment variables that match the prefix
 func initConfig() {
-	v := viper.New()
-
-	// Read environment variables that match prefix
-	// Format: FLP_INFORMERS_<FLAG_NAME_WITH_UNDERSCORES>
-	// Example: FLP_INFORMERS_LOG_LEVEL, FLP_INFORMERS_PROCESSOR_PORT
-	v.SetEnvPrefix(envPrefix)
-	v.AutomaticEnv()
-
-	bindFlags(rootCmd, v)
+	// Environment variables use FLP_INFORMERS_<FLAG_NAME_WITH_UNDERSCORES>.
+	if err := cliConfig.ApplyConfig(rootCmd, nil, func(flagName string) string {
+		suffix := strings.ToUpper(strings.ReplaceAll(flagName, "-", "_"))
+		return envPrefix + "_" + suffix
+	}); err != nil {
+		log.Fatalf("Read config error: %v", err)
+	}
 
 	// Initialize logger
 	initLogger()
@@ -93,24 +90,6 @@ func initLogger() {
 	}
 	log.SetLevel(lvl)
 	log.SetFormatter(&log.TextFormatter{DisableColors: false, FullTimestamp: true, PadLevelText: true, DisableQuote: true})
-}
-
-// bindFlags applies environment variable overrides to flags
-// This follows the same pattern as flowlogs-pipeline/main.go
-func bindFlags(cmd *cobra.Command, v *viper.Viper) {
-	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		// Convert flag name to env var format (e.g., "log-level" -> "LOG_LEVEL")
-		if strings.Contains(f.Name, "-") {
-			envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
-			_ = v.BindEnv(f.Name, fmt.Sprintf("%s_%s", envPrefix, envVarSuffix))
-		}
-
-		// Apply the viper config value to the flag when the flag is not set and viper has a value
-		if !f.Changed && v.IsSet(f.Name) {
-			val := v.Get(f.Name)
-			_ = cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
-		}
-	})
 }
 
 func initFlags() {

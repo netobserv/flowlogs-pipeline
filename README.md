@@ -76,6 +76,9 @@ Structured sections (`pipeline`, `parameters`, `metricsSettings`, and
 `dynamicParameters`) preserve case-sensitive map keys, such as flow field names
 and metric label mappings. Explicit command-line flags override environment
 variables, which override file values. Existing JSON files remain readable.
+Command option files for `flowlogs-pipeline` and `confgenerator` support YAML
+and JSON; without `--config`, each command searches the home directory for its
+default file name with one of those extensions.
 
 Dynamic configuration ConfigMaps also accept YAML, both at startup and on watch
 updates. Set `dynamicParameters.fileName` to the ConfigMap data key containing the

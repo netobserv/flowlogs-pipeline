@@ -32,7 +32,7 @@ import (
 
 	_ "net/http/pprof"
 
-	jsoniter "github.com/json-iterator/go"
+	cliConfig "github.com/netobserv/flowlogs-pipeline/pkg/cli"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/operational"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline"
@@ -45,8 +45,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/tlsprofile"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
@@ -73,52 +71,24 @@ var rootCmd = &cobra.Command{
 
 // initConfig use config file and ENV variables if set.
 func initConfig() {
-	v := viper.New()
-
-	if cfgFile != "" {
-		// Use config file from the flag.
-		v.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		if err != nil {
-			log.Fatal(err)
-		}
-		// Search config in home directory with name ".flowlogs-pipeline" (without extension).
-		v.AddConfigPath(home)
-		v.SetConfigName(defaultLogFileName)
+	_, sections, err := cliConfig.ReadConfig(cfgFile, defaultLogFileName)
+	if err != nil {
+		log.Fatalf("Read config error: %v", err)
 	}
-
-	// Read environment variables that match prefix
-	v.SetEnvPrefix(envPrefix)
-	v.AutomaticEnv()
-
-	// If a config file is found, read it in.
-	cfgErr := v.ReadInConfig()
-
-	var sections map[string]json.RawMessage
-	if cfgErr == nil {
-		switch strings.ToLower(filepath.Ext(v.ConfigFileUsed())) {
-		case ".yaml", ".yml", ".json":
-			data, err := os.ReadFile(v.ConfigFileUsed())
-			if err != nil {
-				log.Fatal(err)
-			}
-			sections, err = config.FileSections(data)
-			if err != nil {
-				log.Fatalf("Read config error: %v", err)
-			}
+	err = cliConfig.ApplyConfig(rootCmd, sections, func(flagName string) string {
+		suffix := flagName
+		if strings.Contains(suffix, ".") {
+			suffix = strings.ReplaceAll(suffix, ".", "_")
 		}
+		return strings.ToUpper(envPrefix + "_" + suffix)
+	})
+	if err != nil {
+		log.Fatalf("Read config error: %v", err)
 	}
-
-	bindFlags(rootCmd, v, sections)
 
 	// initialize logger
 	initLogger()
 
-	if cfgErr != nil {
-		log.Errorf("Read config error: %v", cfgErr)
-	}
 }
 
 func initLogger() {
@@ -136,53 +106,6 @@ func dumpConfig(opts *config.Options) {
 		panic(fmt.Sprintf("error dumping config: %v", err))
 	}
 	fmt.Printf("Using configuration:\n%s\n", configAsJSON)
-}
-
-func bindFlags(cmd *cobra.Command, v *viper.Viper, sections map[string]json.RawMessage) {
-	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		if strings.Contains(f.Name, ".") {
-			envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, ".", "_"))
-			_ = v.BindEnv(f.Name, fmt.Sprintf("%s_%s", envPrefix, envVarSuffix))
-		}
-
-		// Viper lowercases nested map keys. Read structured file sections directly,
-		// while retaining the existing flag > environment > file precedence.
-		switch f.Name {
-		case "pipeline", "parameters", "dynamicParameters", "metricsSettings":
-			value, found := sections[strings.ToLower(f.Name)]
-			envValue := os.Getenv(strings.ToUpper(envPrefix + "_" + f.Name))
-			if !f.Changed && found && envValue == "" && string(value) != "null" {
-				// Structured options may also be JSON strings in existing files.
-				str := string(value)
-				if len(value) > 0 && value[0] == '"' {
-					if err := json.Unmarshal(value, &str); err != nil {
-						log.Fatalf("Invalid config value for %s: %v", f.Name, err)
-					}
-				}
-				if err := cmd.Flags().Set(f.Name, str); err != nil {
-					log.Fatalf("Invalid config value for %s: %v", f.Name, err)
-				}
-				return
-			}
-		}
-
-		// Apply scalar values and environment overrides through Viper.
-		if !f.Changed && v.IsSet(f.Name) {
-			val := v.Get(f.Name)
-			switch val.(type) {
-			case bool, uint, string, int32, int16, int8, int, uint32, uint64, int64, float64, float32, []string, []int:
-				_ = cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
-			default:
-				var jsonNew = jsoniter.ConfigCompatibleWithStandardLibrary
-				b, err := jsonNew.Marshal(&val)
-				if err != nil {
-					log.Fatalf("can't parse flag %s into json with value %v got error %s", f.Name, val, err)
-					return
-				}
-				_ = cmd.Flags().Set(f.Name, string(b))
-			}
-		}
-	})
 }
 
 func initFlags() {

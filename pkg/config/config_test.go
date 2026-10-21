@@ -18,12 +18,10 @@
 package config
 
 import (
-	"bytes"
 	"encoding/json"
 	"testing"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -60,43 +58,26 @@ func TestUnmarshalInline(t *testing.T) {
 	require.Equal(t, 9102, cfs.MetricsSettings.PromConnectionInfo.Port)
 }
 
-func TestUnmarshalFromViper(t *testing.T) {
-	// Make sure unmarshaling from Viper works; the trick is viper uses lower-case keys,
-	// which works with JSON unmarshaler as it's case insensitive, but not with YAML unmarshaler
+func TestUnmarshalConfig(t *testing.T) {
 	input := `{"parameters":[{"name":"loki","write":{"type":"loki","loki":{"tenantID":"netobserv","clientConfig":{"proxy_url":null}}}}]}`
-	v := viper.New()
-	v.SetConfigType("yaml")
-	r := bytes.NewReader([]byte(input))
-	err := v.ReadConfig(r)
-	require.NoError(t, err)
-	str := v.Get("parameters")
-	b, err := json.Marshal(str)
+	sections, err := FileSections([]byte(input))
 	require.NoError(t, err)
 	cfs, err := ParseConfig(&Options{
 		PipeLine:   "[]",
-		Parameters: string(b),
+		Parameters: string(sections["parameters"]),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "netobserv", cfs.Parameters[0].Write.Loki.TenantID)
 }
 
-func TestConnTrackSelectorFromViper(t *testing.T) {
-	// Viper lower-cases all keys, which corrupts case-sensitive connection field names
-	// when the conntrack scheduling selector is expressed as a map. Using the list form
-	// (key/value pairs) keeps the field name as a value, so it survives the round-trip.
+func TestConnTrackSelectorConfigPreservesFieldNameCase(t *testing.T) {
 	input := `{"parameters":[{"name":"conntrack","extract":{"type":"conntrack","conntrack":{` +
-		`"scheduling":[{"selector":[{"key":"SrcK8S_Name","value":"pod-a"}],"heartbeatInterval":"30s"}]}}}]}`
-	v := viper.New()
-	v.SetConfigType("yaml")
-	r := bytes.NewReader([]byte(input))
-	err := v.ReadConfig(r)
-	require.NoError(t, err)
-	str := v.Get("parameters")
-	b, err := json.Marshal(str)
+		`"scheduling":[{"selector":{"SrcK8S_Name":"pod-a"},"heartbeatInterval":"30s"}]}}}]}`
+	sections, err := FileSections([]byte(input))
 	require.NoError(t, err)
 	cfs, err := ParseConfig(&Options{
 		PipeLine:   "[]",
-		Parameters: string(b),
+		Parameters: string(sections["parameters"]),
 	})
 	require.NoError(t, err)
 

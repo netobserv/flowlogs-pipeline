@@ -24,7 +24,7 @@ const baseConfig = `parameters:
 `
 
 func TestConnectionVerification_Pass(t *testing.T) {
-	_, cfg := test.InitConfig(t, baseConfig+`pipeline:
+	cfg := test.InitConfig(t, baseConfig+`pipeline:
 - { follows: ingest1, name: write1 }
 `)
 	_, err := NewPipeline(cfg)
@@ -32,7 +32,7 @@ func TestConnectionVerification_Pass(t *testing.T) {
 }
 
 func TestPipelineIPFIXBackwardCompatible(t *testing.T) {
-	_, cfg := test.InitConfig(t, `
+	cfg := test.InitConfig(t, `
 pipeline:
   - follows: ingest1
     name: write1
@@ -112,7 +112,7 @@ pipeline:
 		failingNodeName: "write1",
 	}} {
 		t.Run(tc.description, func(t *testing.T) {
-			_, cfg := test.InitConfig(t, tc.config)
+			cfg := test.InitConfig(t, tc.config)
 			_, err := NewPipeline(cfg)
 			require.Error(t, err)
 			var castErr *Error

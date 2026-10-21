@@ -31,7 +31,6 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,14 +55,9 @@ func GetIngestMockEntry(missingKey bool) config.GenericMap {
 	return entry
 }
 
-func InitConfig(t *testing.T, conf string) (*viper.Viper, *config.Root) {
+func InitConfig(t *testing.T, conf string) *config.Root {
 	ResetPromRegistry()
 	yamlConfig := []byte(conf)
-	v := viper.New()
-	v.SetConfigType("yaml")
-	r := bytes.NewReader(yamlConfig)
-	err := v.ReadConfig(r)
-	require.NoError(t, err)
 
 	sections, err := config.FileSections(yamlConfig)
 	require.NoError(t, err)
@@ -77,10 +71,10 @@ func InitConfig(t *testing.T, conf string) (*viper.Viper, *config.Root) {
 	out, err := config.ParseConfig(&opts)
 	if err != nil {
 		fmt.Printf("error in parsing config file: %v \n", err)
-		return nil, nil
+		return nil
 	}
 
-	return v, &out
+	return &out
 }
 
 func GetExtractMockEntry() config.GenericMap {

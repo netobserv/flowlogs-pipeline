@@ -24,13 +24,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	jsoniter "github.com/json-iterator/go"
+	cliConfig "github.com/netobserv/flowlogs-pipeline/pkg/cli"
 	"github.com/netobserv/flowlogs-pipeline/pkg/confgen"
-	"github.com/netobserv/flowlogs-pipeline/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -54,32 +51,23 @@ var rootCmd = &cobra.Command{
 
 // initConfig use config file and ENV variables if set.
 func initConfig() {
-	v := viper.New()
-
-	if cfgFile != "" {
-		// Use config file from the flag.
-		v.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		if err != nil {
-			log.Fatal(err)
+	path, sections, err := cliConfig.ReadConfig(cfgFile, defaultLogFileName)
+	if err != nil {
+		log.Fatalf("Read config error: %v", err)
+	}
+	if path != "" {
+		fmt.Println("Using config file:", path)
+	}
+	err = cliConfig.ApplyConfig(rootCmd, sections, func(flagName string) string {
+		suffix := flagName
+		if strings.Contains(suffix, ".") {
+			suffix = strings.ReplaceAll(suffix, ".", "_")
 		}
-		// Search config in home directory with name ".confgen" (without extension).
-		v.AddConfigPath(home)
-		v.SetConfigName(defaultLogFileName)
+		return strings.ToUpper(envPrefix + "_" + suffix)
+	})
+	if err != nil {
+		log.Fatalf("Read config error: %v", err)
 	}
-
-	// Read environment variables that match prefix
-	v.SetEnvPrefix(envPrefix)
-	v.AutomaticEnv()
-
-	// If a config file is found, read it in.
-	if err := v.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", v.ConfigFileUsed())
-	}
-
-	bindFlags(rootCmd, v)
 
 	// initialize logger
 	initLogger()
@@ -97,32 +85,6 @@ func initLogger() {
 func dumpConfig(opts *confgen.Options) {
 	configAsJSON, _ := json.MarshalIndent(opts, "", "\t")
 	log.Infof("configuration:\n%s\n", configAsJSON)
-}
-
-func bindFlags(cmd *cobra.Command, v *viper.Viper) {
-	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		if strings.Contains(f.Name, ".") {
-			envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, ".", "_"))
-			_ = v.BindEnv(f.Name, fmt.Sprintf("%s_%s", envPrefix, envVarSuffix))
-		}
-
-		// Apply the viper config value to the flag when the flag is not set and viper has a value
-		if !f.Changed && v.IsSet(f.Name) {
-			val := v.Get(f.Name)
-			switch val.(type) {
-			case bool, uint, string, int32, int16, int8, int, uint32, uint64, int64, float64, float32, []string, []int:
-				_ = cmd.Flags().Set(f.Name, utils.ConvertToString(val))
-			default:
-				var jsoniterJSON = jsoniter.ConfigCompatibleWithStandardLibrary
-				b, err := jsoniterJSON.Marshal(&val)
-				if err != nil {
-					log.Fatalf("can't parse flag %s into json with value %v got error %s", f.Name, val, err)
-					return
-				}
-				_ = cmd.Flags().Set(f.Name, string(b))
-			}
-		}
-	})
 }
 
 func initFlags() {

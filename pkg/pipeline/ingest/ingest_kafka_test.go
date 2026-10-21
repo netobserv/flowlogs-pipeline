@@ -72,8 +72,7 @@ parameters:
 
 func initNewIngestKafka(t *testing.T, configTemplate string) Ingester {
 	test.ResetPromRegistry()
-	v, cfg := test.InitConfig(t, configTemplate)
-	require.NotNil(t, v)
+	cfg := test.InitConfig(t, configTemplate)
 
 	newIngest, err := NewIngestKafka(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)

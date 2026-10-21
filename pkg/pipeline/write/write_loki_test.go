@@ -84,8 +84,7 @@ parameters:
           baz: bae
           tiki: taka
 `
-	v, cfg := test.InitConfig(t, yamlConfig)
-	require.NotNil(t, v)
+	cfg := test.InitConfig(t, yamlConfig)
 
 	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
@@ -113,8 +112,7 @@ parameters:
         url: "https://foo:8888/"
         clientConfig: {"tls_config":{"insecure_skip_verify":true},"follow_redirects":false,"enable_http2":false,"proxy_url":null}
 `
-	v, cfg := test.InitConfig(t, yamlConfig)
-	require.NotNil(t, v)
+	cfg := test.InitConfig(t, yamlConfig)
 
 	// Due to an issue in prometheus/common HTTP client serde, a null proxy_url ends up as ""
 	// see also https://github.com/netobserv/prometheus-common/commit/df8298253f033b910644548b6902df9d34baa752 (won't be merged upstream)
@@ -260,8 +258,7 @@ parameters:
         url: http://loki:3100/
         timestampScale: %s
 `, testCase.unit)
-			v, cfg := test.InitConfig(t, yamlConf)
-			require.NotNil(t, v)
+			cfg := test.InitConfig(t, yamlConf)
 
 			loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 			require.NoError(t, err)
@@ -301,8 +298,7 @@ func TestTimestampExtraction_LocalTime(t *testing.T) {
 		{name: "zero ts value", tsLabel: "ts", input: map[string]interface{}{"ts": 0}},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			v, cfg := test.InitConfig(t, yamlConfigNoParams)
-			require.NotNil(t, v)
+			cfg := test.InitConfig(t, yamlConfigNoParams)
 
 			loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 			require.NoError(t, err)
@@ -364,7 +360,7 @@ parameters:
       loki:
         url: %s
 `, fakeLoki.URL)
-	_, cfg := test.InitConfig(t, yamlConfig)
+	cfg := test.InitConfig(t, yamlConfig)
 	loki, err := NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 
