@@ -228,11 +228,11 @@ parameters:
 
 2. Using command line parameters:
  
-`./flowlogs-pipeline --pipeline "[{\"name\":\"ingest1\"},{\"follows\":\"ingest1\",\"name\":\"write1\"}]" --parameters "[{\"ingest\":{\"file\":{\"filename\":\"hack/examples/ocp-ipfix-flowlogs.json\"},\"decoder\":{\"type\":\"json\"},\"type\":\"file\"},\"name\":\"ingest1\"},{\"name\":\"write1\",\"write\":{\"type\":\"stdout\"}}]"`
+`./flowlogs-pipeline --pipeline '[{"name":"ingest1"},{"follows":"ingest1","name":"write1"}]' --parameters '[{"ingest":{"file":{"filename":"hack/examples/ocp-ipfix-flowlogs.json","decoder":{"type":"json"}},"type":"file"},"name":"ingest1"},{"name":"write1","write":{"type":"stdout"}}]"'`
 
 Options included in the command line override the options specified in the config file.
 
-`flowlogs-pipeline --log-level debug --pipeline "[{\"name\":\"ingest1\"},{\"follows\":\"ingest1\",\"name\":\"write1\"}]" --config <configFile>`
+`./flowlogs-pipeline --log-level debug --pipeline '[{"name":"ingest_file"},{"follows":"ingest_file","name":"write_stdout"}]' --config <configFile>`
 
 Supported options are provided by running:
 
