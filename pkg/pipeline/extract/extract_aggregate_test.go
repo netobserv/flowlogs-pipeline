@@ -73,7 +73,8 @@ parameters:
 `
 	var err error
 
-	cfg := test.InitConfig(t, yamlConfig)
+	cfg, err := test.InitConfig(t, yamlConfig)
+	require.NoError(t, err)
 
 	extractAggregate, err := NewExtractAggregate(cfg.Parameters[0])
 	require.NoError(t, err)

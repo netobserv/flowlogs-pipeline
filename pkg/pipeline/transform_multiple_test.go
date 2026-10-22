@@ -87,7 +87,8 @@ parameters:
 func TestTransformMultiple(t *testing.T) {
 	var mainPipeline *Pipeline
 	var err error
-	cfg := test.InitConfig(t, testConfigTransformMultiple)
+	cfg, err := test.InitConfig(t, testConfigTransformMultiple)
+	require.NoError(t, err)
 
 	mainPipeline, err = NewPipeline(cfg)
 	require.NoError(t, err)

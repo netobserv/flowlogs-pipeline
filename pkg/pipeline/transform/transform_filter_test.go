@@ -235,7 +235,8 @@ func TestNewTransformFilterAddField(t *testing.T) {
 }
 
 func InitNewTransformFilter(t *testing.T, configFile string) Transformer {
-	cfg := test.InitConfig(t, configFile)
+	cfg, err := test.InitConfig(t, configFile)
+	require.NoError(t, err)
 
 	config := cfg.Parameters[0]
 	newTransform, err := NewTransformFilter(config)

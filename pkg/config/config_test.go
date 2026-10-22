@@ -70,6 +70,13 @@ func TestUnmarshalConfig(t *testing.T) {
 	assert.Equal(t, "netobserv", cfs.Parameters[0].Write.Loki.TenantID)
 }
 
+func TestFileSectionsPreservesSectionKeyCase(t *testing.T) {
+	sections, err := FileSections([]byte("Pipeline: []\n"))
+	require.NoError(t, err)
+	assert.Contains(t, sections, "Pipeline")
+	assert.NotContains(t, sections, "pipeline")
+}
+
 func TestConnTrackSelectorConfigPreservesFieldNameCase(t *testing.T) {
 	input := `{"parameters":[{"name":"conntrack","extract":{"type":"conntrack","conntrack":{` +
 		`"scheduling":[{"selector":{"SrcK8S_Name":"pod-a"},"heartbeatInterval":"30s"}]}}}]}`

@@ -35,8 +35,15 @@ func Test_GetIngestMockEntry(t *testing.T) {
 }
 
 func Test_InitConfig(t *testing.T) {
-	out := InitConfig(t, "")
+	out, err := InitConfig(t, "")
+	require.NoError(t, err)
 	require.NotNil(t, out)
+}
+
+func Test_InitConfigReturnsParseError(t *testing.T) {
+	out, err := InitConfig(t, "parameters: [")
+	require.Error(t, err)
+	require.Nil(t, out)
 }
 
 func Test_GetExtractMockEntry(t *testing.T) {

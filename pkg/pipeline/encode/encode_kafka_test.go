@@ -56,7 +56,8 @@ func (f *fakeKafkaWriter) WriteMessages(_ context.Context, msg ...kafkago.Messag
 }
 
 func initNewEncodeKafka(t *testing.T) Encoder {
-	cfg := test.InitConfig(t, testKafkaConfig)
+	cfg, err := test.InitConfig(t, testKafkaConfig)
+	require.NoError(t, err)
 
 	newEncode, err := NewEncodeKafka(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)

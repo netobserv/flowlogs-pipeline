@@ -44,7 +44,8 @@ parameters:
             OperationType: "avg"
             OperationKey: "value"
 `
-	cfg := test.InitConfig(t, yamlConfig)
+	cfg, err := test.InitConfig(t, yamlConfig)
+	require.NoError(t, err)
 	aggregates, err := NewAggregatesFromConfig(cfg.Parameters[0].Extract.Aggregates)
 	require.NoError(t, err)
 

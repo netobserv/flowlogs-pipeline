@@ -64,7 +64,8 @@ func (f *fakeOltpLoggerProvider) Logger(_ string, _ ...logs.LoggerOption) logs.L
 
 func initNewEncodeOtlpLogs(t *testing.T) encode.Encoder {
 	otlpReceivedData = []logs.LogRecord{}
-	cfg := test.InitConfig(t, testOtlpConfig)
+	cfg, err := test.InitConfig(t, testOtlpConfig)
+	require.NoError(t, err)
 
 	newEncode, err := NewEncodeOtlpLogs(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)

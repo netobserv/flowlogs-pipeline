@@ -51,14 +51,30 @@ func TestApplyConfig(t *testing.T) {
 			wantString:   "default",
 		},
 		{
-			name:         "nested section lookup is case insensitive",
+			name:         "top-level section lookup requires exact case",
+			flagName:     "setting",
+			defaultValue: "default",
+			sections:     map[string]json.RawMessage{"Setting": json.RawMessage(`"file"`)},
+			wantString:   "default",
+		},
+		{
+			name:         "nested section lookup requires exact case",
+			flagName:     "k8scache.port",
+			defaultValue: "0",
+			sections: map[string]json.RawMessage{
+				"k8scache": json.RawMessage(`{"port": 6384}`),
+			},
+			wantString:  "6384",
+			wantChanged: true,
+		},
+		{
+			name:         "nested section lookup does not normalize key case",
 			flagName:     "k8scache.port",
 			defaultValue: "0",
 			sections: map[string]json.RawMessage{
 				"k8scache": json.RawMessage(`{"PoRt": 6384}`),
 			},
-			wantString:  "6384",
-			wantChanged: true,
+			wantString: "0",
 		},
 		{
 			name:        "string slice accepts JSON array",

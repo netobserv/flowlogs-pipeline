@@ -55,12 +55,14 @@ func GetIngestMockEntry(missingKey bool) config.GenericMap {
 	return entry
 }
 
-func InitConfig(t *testing.T, conf string) *config.Root {
+func InitConfig(t *testing.T, conf string) (*config.Root, error) {
 	ResetPromRegistry()
 	yamlConfig := []byte(conf)
 
 	sections, err := config.FileSections(yamlConfig)
-	require.NoError(t, err)
+	if err != nil {
+		return nil, err
+	}
 	opts := config.Options{PipeLine: "null", Parameters: "null"}
 	if value, found := sections["pipeline"]; found {
 		opts.PipeLine = string(value)
@@ -70,11 +72,10 @@ func InitConfig(t *testing.T, conf string) *config.Root {
 	}
 	out, err := config.ParseConfig(&opts)
 	if err != nil {
-		fmt.Printf("error in parsing config file: %v \n", err)
-		return nil
+		return nil, err
 	}
 
-	return &out
+	return &out, nil
 }
 
 func GetExtractMockEntry() config.GenericMap {

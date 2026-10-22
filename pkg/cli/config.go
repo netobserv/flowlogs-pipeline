@@ -102,7 +102,7 @@ func ApplyConfig(cmd *cobra.Command, sections map[string]json.RawMessage, envNam
 }
 
 func configValue(sections map[string]json.RawMessage, flagName string) (json.RawMessage, bool, error) {
-	key := strings.ToLower(flagName)
+	key := flagName
 	if value, found := sections[key]; found {
 		return value, true, nil
 	}
@@ -116,22 +116,12 @@ func configValue(sections map[string]json.RawMessage, flagName string) (json.Raw
 		if err := json.Unmarshal(value, &fields); err != nil {
 			return nil, false, fmt.Errorf("config value for %s must be an object: %w", flagName, err)
 		}
-		var found bool
-		value, found = caseInsensitiveValue(fields, part)
+		value, found = fields[part]
 		if !found {
 			return nil, false, nil
 		}
 	}
 	return value, true, nil
-}
-
-func caseInsensitiveValue(fields map[string]json.RawMessage, key string) (json.RawMessage, bool) {
-	for field, value := range fields {
-		if strings.EqualFold(field, key) {
-			return value, true
-		}
-	}
-	return nil, false
 }
 
 func flagValue(flagType string, raw json.RawMessage) (string, error) {

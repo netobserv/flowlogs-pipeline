@@ -128,7 +128,8 @@ func TestNewTransformGenericMaintainTrue(t *testing.T) {
 }
 
 func InitNewTransformGeneric(t *testing.T, configFile string) Transformer {
-	cfg := test.InitConfig(t, configFile)
+	cfg, err := test.InitConfig(t, configFile)
+	require.NoError(t, err)
 
 	configParams := cfg.Parameters[0]
 	newTransform, err := NewTransformGeneric(configParams)
@@ -220,10 +221,11 @@ parameters:
           output: bytes
           multiplier: 3
 `)
-	cfg := test.InitConfig(t, string(goodConfig))
+	cfg, err := test.InitConfig(t, string(goodConfig))
+	require.NoError(t, err)
 
 	configParams := cfg.Parameters[0]
-	_, err := NewTransformGeneric(configParams)
+	_, err = NewTransformGeneric(configParams)
 	require.NoError(t, err)
 
 	var badConfig = []byte(`
@@ -238,6 +240,7 @@ parameters:
           output: bytes
           multiplier: "not_a_number"
 `)
-	cfg = test.InitConfig(t, string(badConfig))
+	cfg, err = test.InitConfig(t, string(badConfig))
+	require.Error(t, err)
 	require.Nil(t, cfg)
 }
