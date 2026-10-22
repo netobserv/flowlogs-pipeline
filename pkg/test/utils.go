@@ -56,6 +56,7 @@ func GetIngestMockEntry(missingKey bool) config.GenericMap {
 }
 
 func InitConfig(t *testing.T, conf string) (*config.Root, error) {
+	t.Helper()
 	ResetPromRegistry()
 	yamlConfig := []byte(conf)
 
