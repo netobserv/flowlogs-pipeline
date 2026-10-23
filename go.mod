@@ -153,4 +153,4 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 )
 
-replace github.com/vmware/go-ipfix => github.com/jotak/go-ipfix v0.0.0-20260902090533-678b953b553c
+replace github.com/vmware/go-ipfix => github.com/jotak/go-ipfix v0.0.0-20261023103609-bdb8a489ef1e

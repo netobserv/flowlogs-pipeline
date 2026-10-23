@@ -132,8 +132,8 @@ github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLf
 github.com/ip2location/ip2location-go/v9 v9.8.0 h1:drPzGjj1EBl45I33ErMHFtIfsQ3mR85dAQbqMDbi9mc=
 github.com/ip2location/ip2location-go/v9 v9.8.0/go.mod h1:MPLnsKxwQlvd2lBNcQCsLoyzJLDBFizuO67wXXdzoyI=
 github.com/josharian/native v1.0.0/go.mod h1:7X/raswPFr05uY3HiLlYeyQntB6OO7E/d2Cu7qoaN2w=
-github.com/jotak/go-ipfix v0.0.0-20260902090533-678b953b553c h1:EZrGbgYU0Y0fr6SQ6ORcUnLdlV+Z9QPjNJGRisMzumA=
-github.com/jotak/go-ipfix v0.0.0-20260902090533-678b953b553c/go.mod h1:voBodyk01H6V+6jTXCkyg23gtUe3zXOrcIM0ZWz0Se0=
+github.com/jotak/go-ipfix v0.0.0-20261023103609-bdb8a489ef1e h1:fWLfA1x2E5TqKN/jT6XhYlR+QneFkDRUismTRSpW1js=
+github.com/jotak/go-ipfix v0.0.0-20261023103609-bdb8a489ef1e/go.mod h1:voBodyk01H6V+6jTXCkyg23gtUe3zXOrcIM0ZWz0Se0=
 github.com/jpillora/backoff v1.0.0 h1:uvFg412JmmHBHw7iwprIxkPMI+sGQ4kzOWsMeHnm2EA=
 github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX5e0EB2j4=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
