@@ -69,10 +69,6 @@ github.com/evanphx/json-patch/v5/internal/json
 # github.com/foxcpp/go-mockdns v1.3.0
 ## explicit; go 1.13
 github.com/foxcpp/go-mockdns
-# github.com/fsnotify/fsnotify v1.10.1
-## explicit; go 1.23
-github.com/fsnotify/fsnotify
-github.com/fsnotify/fsnotify/internal
 # github.com/fxamacker/cbor/v2 v2.9.1
 ## explicit; go 1.20
 github.com/fxamacker/cbor/v2
@@ -133,10 +129,6 @@ github.com/go-openapi/swag/typeutils
 # github.com/go-openapi/swag/yamlutils v0.28.0
 ## explicit; go 1.25.0
 github.com/go-openapi/swag/yamlutils
-# github.com/go-viper/mapstructure/v2 v2.5.0
-## explicit; go 1.18
-github.com/go-viper/mapstructure/v2
-github.com/go-viper/mapstructure/v2/internal/errors
 # github.com/gogo/protobuf v1.3.2
 ## explicit; go 1.15
 github.com/gogo/protobuf/gogoproto
@@ -317,12 +309,6 @@ github.com/netsampler/goflow2/utils
 # github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250227173154-57a2590a1d16
 ## explicit; go 1.22.0
 github.com/ovn-org/ovn-kubernetes/go-controller/observability-lib/model
-# github.com/pelletier/go-toml/v2 v2.4.3
-## explicit; go 1.21.0
-github.com/pelletier/go-toml/v2
-github.com/pelletier/go-toml/v2/internal/parserbridge
-github.com/pelletier/go-toml/v2/internal/tracker
-github.com/pelletier/go-toml/v2/unstable
 # github.com/philhofer/fwd v1.2.0
 ## explicit; go 1.20
 github.com/philhofer/fwd
@@ -395,9 +381,6 @@ github.com/prometheus/procfs/internal/util
 # github.com/rs/xid v1.6.0
 ## explicit; go 1.16
 github.com/rs/xid
-# github.com/sagikazarmark/locafero v0.11.0
-## explicit; go 1.23.0
-github.com/sagikazarmark/locafero
 # github.com/segmentio/kafka-go v0.4.51
 ## explicit; go 1.23
 github.com/segmentio/kafka-go
@@ -454,34 +437,12 @@ github.com/segmentio/kafka-go/sasl/scram
 # github.com/sirupsen/logrus v1.10.2
 ## explicit; go 1.23
 github.com/sirupsen/logrus
-# github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8
-## explicit; go 1.20
-github.com/sourcegraph/conc
-github.com/sourcegraph/conc/panics
-github.com/sourcegraph/conc/pool
-# github.com/spf13/afero v1.15.0
-## explicit; go 1.23.0
-github.com/spf13/afero
-github.com/spf13/afero/internal/common
-github.com/spf13/afero/mem
-# github.com/spf13/cast v1.10.0
-## explicit; go 1.21.0
-github.com/spf13/cast
-github.com/spf13/cast/internal
 # github.com/spf13/cobra v1.10.2
 ## explicit; go 1.15
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.10
 ## explicit; go 1.12
 github.com/spf13/pflag
-# github.com/spf13/viper v1.21.0
-## explicit; go 1.23.0
-github.com/spf13/viper
-github.com/spf13/viper/internal/encoding/dotenv
-github.com/spf13/viper/internal/encoding/json
-github.com/spf13/viper/internal/encoding/toml
-github.com/spf13/viper/internal/encoding/yaml
-github.com/spf13/viper/internal/features
 # github.com/stretchr/objx v0.5.3
 ## explicit; go 1.20
 github.com/stretchr/objx
@@ -493,9 +454,6 @@ github.com/stretchr/testify/internal/difflib
 github.com/stretchr/testify/internal/spew
 github.com/stretchr/testify/mock
 github.com/stretchr/testify/require
-# github.com/subosito/gotenv v1.6.0
-## explicit; go 1.18
-github.com/subosito/gotenv
 # github.com/tinylib/msgp v1.6.4
 ## explicit; go 1.24
 github.com/tinylib/msgp/msgp
@@ -697,12 +655,6 @@ golang.org/x/sys/windows/registry
 golang.org/x/term
 # golang.org/x/text v0.43.0
 ## explicit; go 1.26.0
-golang.org/x/text/encoding
-golang.org/x/text/encoding/internal
-golang.org/x/text/encoding/internal/identifier
-golang.org/x/text/encoding/unicode
-golang.org/x/text/internal/utf8internal
-golang.org/x/text/runes
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi

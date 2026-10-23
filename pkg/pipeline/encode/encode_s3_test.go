@@ -76,8 +76,8 @@ func (f *fakeS3Writer) putObject(bucket string, objectName string, object map[st
 }
 
 func initNewEncodeS3(t *testing.T, configString string) *encodeS3 {
-	v, cfg := test.InitConfig(t, configString)
-	require.NotNil(t, v)
+	cfg, err := test.InitConfig(t, configString)
+	require.NoError(t, err)
 
 	syncChan = make(chan bool, 10)
 	newEncode, err := NewEncodeS3(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
@@ -92,8 +92,8 @@ func initNewEncodeS3(t *testing.T, configString string) *encodeS3 {
 }
 
 func Test_RedactedKey(t *testing.T) {
-	v, cfg := test.InitConfig(t, testS3Config1)
-	require.NotNil(t, v)
+	cfg, err := test.InitConfig(t, testS3Config1)
+	require.NoError(t, err)
 
 	asString := fmt.Sprintf("%v", *cfg.Parameters[0].Encode.S3)
 	assert.Equal(t, "{account1 1.2.3.4:9000 accessKey1 [REDACTED] bucket1 1s 3 false map[key1:val1 key2:val2 key3:val3 key4:val4]}", asString)

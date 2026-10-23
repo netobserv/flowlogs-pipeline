@@ -409,7 +409,7 @@ Following is the supported API format for specifying connection tracking:
                  input: The input field to base the operation on. When omitted, 'name' is used
                  reportMissing: When true, missing input will produce MissingFieldError metric and error logs
          scheduling: list of timeouts and intervals to apply per selector
-                 selector: list of key-value pairs to match against connection fields to apply this scheduling. For backward compatibility, a key-value map is also accepted, but this form is deprecated because the keys get lower-cased.
+                 selector: list of key-value pairs to match against connection fields to apply this scheduling. For backward compatibility, a key-value map is also accepted, but this form is deprecated.
                          key: name of the field to look for in the flow
                          value: value of the field to look for in the flow
                  endConnectionTimeout: duration of time to wait from the last flow log to end a connection

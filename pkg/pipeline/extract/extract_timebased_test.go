@@ -201,8 +201,8 @@ parameters:
 `
 
 func initTimebased(t *testing.T, yamlConfig string) *timebased {
-	v, cfg := test.InitConfig(t, yamlConfig)
-	require.NotNil(t, v)
+	cfg, err := test.InitConfig(t, yamlConfig)
+	require.NoError(t, err)
 	extractor, err := NewExtractTimebased(cfg.Parameters[0])
 	require.NoError(t, err)
 

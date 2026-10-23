@@ -93,15 +93,15 @@ const (
 )
 
 type ConnTrackSchedulingGroup struct {
-	Selector             Selectors  `yaml:"selector,omitempty" json:"selector,omitempty" doctypealias:"SelectorDocAlias" doc:"list of key-value pairs to match against connection fields to apply this scheduling. For backward compatibility, a key-value map is also accepted, but this form is deprecated because the keys get lower-cased."`
+	Selector             Selectors  `yaml:"selector,omitempty" json:"selector,omitempty" doctypealias:"SelectorDocAlias" doc:"list of key-value pairs to match against connection fields to apply this scheduling. For backward compatibility, a key-value map is also accepted, but this form is deprecated."`
 	SelectorDocAlias     []Selector `yaml:"-" json:"-"` // nolint:unused
 	EndConnectionTimeout Duration   `yaml:"endConnectionTimeout,omitempty" json:"endConnectionTimeout,omitempty" doc:"duration of time to wait from the last flow log to end a connection"`
 	TerminatingTimeout   Duration   `yaml:"terminatingTimeout,omitempty" json:"terminatingTimeout,omitempty" doc:"duration of time to wait from detected FIN flag to end a connection"`
 	HeartbeatInterval    Duration   `yaml:"heartbeatInterval,omitempty" json:"heartbeatInterval,omitempty" doc:"duration of time to wait between heartbeat reports of a connection"`
 }
 
-// Selectors have specific (un)marshaling to temporarily handle 2 variants: either defined as map,
-// or as list of key/values. The map form is deprecated because of viper low-casing all keys. Only
+// Selectors have specific (un)marshaling to handle two variants: either defined
+// as a map or as a list of key/value pairs. The map form is deprecated and only
 // the list form may be supported in the future.
 type Selectors map[string]any
 

@@ -104,8 +104,8 @@ func encodeEntries(promEncode *Prometheus, entries []config.GenericMap) {
 func Test_Prom_Cache1(t *testing.T) {
 	var entries []config.GenericMap
 
-	v, cfg := test.InitConfig(t, yamlConfig1)
-	require.NotNil(t, v)
+	cfg, err := test.InitConfig(t, yamlConfig1)
+	require.NoError(t, err)
 
 	promEncode, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
@@ -124,8 +124,8 @@ func Test_Prom_Cache1(t *testing.T) {
 func Test_Prom_Cache2(t *testing.T) {
 	var entries []config.GenericMap
 
-	v, cfg := test.InitConfig(t, yamlConfig2)
-	require.NotNil(t, v)
+	cfg, err := test.InitConfig(t, yamlConfig2)
+	require.NoError(t, err)
 
 	promEncode, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)
@@ -144,8 +144,8 @@ func Test_Prom_Cache2(t *testing.T) {
 func Test_Prom_Cache3(t *testing.T) {
 	var entries []config.GenericMap
 
-	v, cfg := test.InitConfig(t, yamlConfig3)
-	require.NotNil(t, v)
+	cfg, err := test.InitConfig(t, yamlConfig3)
+	require.NoError(t, err)
 
 	promEncode, err := initProm(cfg.Parameters[0].Encode.Prom)
 	require.NoError(t, err)

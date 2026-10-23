@@ -58,8 +58,8 @@ func Test_transformToLoki(t *testing.T) {
 	transform, err := transform.NewTransformNone()
 	require.NoError(t, err)
 	transformed, _ := transform.Transform(input)
-	v, cfg := test.InitConfig(t, yamlConfigNoParams)
-	require.NotNil(t, v)
+	cfg, err := test.InitConfig(t, yamlConfigNoParams)
+	require.NoError(t, err)
 	loki, err := write.NewWriteLoki(operational.NewMetrics(&config.MetricsSettings{}), cfg.Parameters[0])
 	require.NoError(t, err)
 	loki.Write(transformed)
@@ -107,7 +107,8 @@ parameters:
 func Test_SimplePipeline(t *testing.T) {
 	var mainPipeline *Pipeline
 	var err error
-	_, cfg := test.InitConfig(t, configTemplate)
+	cfg, err := test.InitConfig(t, configTemplate)
+	require.NoError(t, err)
 
 	mainPipeline, err = NewPipeline(cfg)
 	require.NoError(t, err)
@@ -134,7 +135,7 @@ func Test_SimplePipeline(t *testing.T) {
 func TestGRPCProtobuf(t *testing.T) {
 	port, err := test2.FreeTCPPort()
 	require.NoError(t, err)
-	_, cfg := test.InitConfig(t, fmt.Sprintf(`---
+	cfg, err := test.InitConfig(t, fmt.Sprintf(`---
 log-level: debug
 pipeline:
   - name: ingest1
@@ -152,6 +153,7 @@ parameters:
       stdout:
         format: json
 `, port))
+	require.NoError(t, err)
 
 	pipe, err := NewPipeline(cfg)
 	require.NoError(t, err)
@@ -269,7 +271,8 @@ parameters:
 func BenchmarkPipeline(b *testing.B) {
 	logrus.StandardLogger().SetLevel(logrus.ErrorLevel)
 	t := &testing.T{}
-	_, cfg := test.InitConfig(t, strings.ReplaceAll(configTemplate, "type: file", "type: file_chunks"))
+	cfg, err := test.InitConfig(t, strings.ReplaceAll(configTemplate, "type: file", "type: file_chunks"))
+	require.NoError(t, err)
 	if t.Failed() {
 		b.Fatalf("unexpected error loading config")
 	}
@@ -312,7 +315,8 @@ parameters:
 func Test_InvalidPipeline_DuplicatedNames(t *testing.T) {
 	var mainPipeline *Pipeline
 	var err error
-	_, cfg := test.InitConfig(t, invalidConfig)
+	cfg, err := test.InitConfig(t, invalidConfig)
+	require.NoError(t, err)
 
 	mainPipeline, err = NewPipeline(cfg)
 	assert.ErrorContains(t, err, "duplicate stage name 'test' found in pipeline definition")
