@@ -16,6 +16,7 @@ package exporter
 
 import (
 	"bytes"
+	"cmp"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -35,6 +36,9 @@ import (
 const startTemplateID uint16 = 255
 const defaultCheckConnInterval = 10 * time.Second
 const defaultJSONBufferLen = 5000
+
+// defaultDialTimeout bounds the duration of the connection to the collector
+const defaultDialTimeout = 10 * time.Second
 
 type templateValue struct {
 	elements      []*entities.InfoElement
@@ -116,6 +120,10 @@ type ExporterInput struct {
 	// PathMTU, exporter initialization will fail.
 	PathMTU           int
 	CheckConnInterval time.Duration
+	// DialTimeout bounds the duration of the connection to the collector, including the TLS
+	// handshake. If omitted, a default of 10s is used. It is ignored for DTLS, which uses its
+	// own handshake timeout.
+	DialTimeout time.Duration
 }
 
 func calculateMaxMsgSize(proto string, requestedSize int, pathMTU int, isIPv6 bool) (int, error) {
@@ -167,6 +175,7 @@ func InitExportingProcess(input ExporterInput) (*ExportingProcess, error) {
 	}
 	var conn net.Conn
 	var err error
+	dialer := &net.Dialer{Timeout: cmp.Or(input.DialTimeout, defaultDialTimeout)}
 	if input.TLSClientConfig != nil {
 		tlsConfig := input.TLSClientConfig
 		switch input.CollectorProtocol {
@@ -175,7 +184,7 @@ func InitExportingProcess(input ExporterInput) (*ExportingProcess, error) {
 			if configErr != nil {
 				return nil, configErr
 			}
-			conn, err = tls.Dial(input.CollectorProtocol, input.CollectorAddress, config)
+			conn, err = tls.DialWithDialer(dialer, input.CollectorProtocol, input.CollectorAddress, config)
 			if err != nil {
 				return nil, fmt.Errorf("cannot create the TLS connection to the Collector %q: %w", input.CollectorAddress, err)
 			}
@@ -213,7 +222,7 @@ func InitExportingProcess(input ExporterInput) (*ExportingProcess, error) {
 			}
 		}
 	} else {
-		conn, err = net.Dial(input.CollectorProtocol, input.CollectorAddress)
+		conn, err = dialer.Dial(input.CollectorProtocol, input.CollectorAddress)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create the connection to the Collector %q: %w", input.CollectorAddress, err)
 		}
@@ -299,7 +308,7 @@ func InitExportingProcess(input ExporterInput) (*ExportingProcess, error) {
 				case <-ticker.C:
 					// Dial again (e.g. host name resolving to a different IP)
 					klog.V(2).Info("Refreshing connection")
-					conn, err = net.Dial(input.CollectorProtocol, input.CollectorAddress)
+					conn, err = dialer.Dial(input.CollectorProtocol, input.CollectorAddress)
 					if err != nil {
 						klog.Errorf("Cannot connect to the collector %s: %v", input.CollectorAddress, err)
 					} else {

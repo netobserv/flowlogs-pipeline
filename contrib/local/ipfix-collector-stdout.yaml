@@ -1,5 +1,10 @@
 # Use it with:
 # ./flowlogs-pipeline --config=contrib/local/ipfix-collector-stdout.yaml
+# Alongside with an IPFIX export such as (from agent repo) :
+# export FLP_CONFIG=$(cat ./examples/direct-flp/ipfix.json)
+# export EXPORT="direct-flp"
+# sudo -E bin/netobserv-ebpf-agent
+
 log-level: info
 pipeline:
   - name: ingest

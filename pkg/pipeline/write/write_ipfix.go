@@ -53,6 +53,8 @@ type FieldMap struct {
 // IPv6Type value as defined in IEEE 802: https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
 const IPv6Type uint16 = 0x86DD
 
+var zeroMac = make(net.HardwareAddr, 6)
+
 var (
 	ilog = logrus.WithField("component", "write.Ipfix")
 	// See RFC 5102: https://www.rfc-editor.org/rfc/rfc5102
@@ -121,6 +123,7 @@ var (
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
 			},
+			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv4zero) },
 		},
 		"destinationIPv4Address": {
 			Key:    "DstAddr",
@@ -128,6 +131,7 @@ var (
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
 			},
+			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv4zero) },
 		},
 		"sourceIPv6Address": {
 			Key:    "SrcAddr",
@@ -135,6 +139,7 @@ var (
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
 			},
+			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv6zero) },
 		},
 		"destinationIPv6Address": {
 			Key:    "DstAddr",
@@ -142,6 +147,7 @@ var (
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
 				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
 			},
+			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv6zero) },
 		},
 		"nextHeaderIPv6": {
 			Key:    "Proto",
@@ -157,6 +163,7 @@ var (
 				mac, _ := net.ParseMAC(rec.(string))
 				elt.SetMacAddressValue(mac)
 			},
+			Default: func(elt entities.InfoElementWithValue) { elt.SetMacAddressValue(zeroMac) },
 		},
 		"destinationMacAddress": {
 			Key:    "DstMac",
@@ -165,6 +172,7 @@ var (
 				mac, _ := net.ParseMAC(rec.(string))
 				elt.SetMacAddressValue(mac)
 			},
+			Default: func(elt entities.InfoElementWithValue) { elt.SetMacAddressValue(zeroMac) },
 		},
 		"ethernetType": {
 			Key:    "Etype",
