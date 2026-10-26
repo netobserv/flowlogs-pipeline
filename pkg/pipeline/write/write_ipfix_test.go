@@ -58,26 +58,147 @@ func TestCustomFieldsAreFrozen(t *testing.T) {
 	require.Equal(t, frozenCustomFields, actual, "Custom fields don't match the frozen list. If you added new fields, update the frozen list. You must not remove or modify existing fields (unless they weren't released).")
 }
 
-// This test ensures missing fields don't lead to inconsistant records
-// Some element records must be zeroe'd with "Default" mapping implemented.
+// Test both field values and encoded record lengths when an exporter reuses its
+// template elements for complete and incomplete flows.
 func TestDataRecordLengthMatchesEncoding(t *testing.T) {
 	registry.LoadRegistry()
 
-	// Test IPv4 and IPv6 templates
-	for _, isV6 := range []bool{false, true} {
-		_, elements, err := prepareTemplate(256, 0, isV6)
-		require.NoError(t, err)
-
-		// Minimal flow: no Mac / IP etc.
-		createDataRecord(config.GenericMap{}, elements)
-
-		set := entities.NewSet(false)
-		require.NoError(t, set.PrepareSet(entities.Data, 256))
-		require.NoError(t, set.AddRecord(elements, 256))
-
-		buf := &bytes.Buffer{}
-		announced, err := ipfixExporter.WriteIPFIXMsgToBuffer(set, 1, 0, time.Now(), buf)
-		require.NoError(t, err)
-		require.Equal(t, announced, buf.Len())
+	tests := []struct {
+		name          string
+		ipv6          bool
+		first         config.GenericMap
+		partial       config.GenericMap
+		last          config.GenericMap
+		firstExpected map[string]string
+		partialExpect map[string]string
+		lastExpected  map[string]string
+	}{
+		{
+			name: "IPv4",
+			first: config.GenericMap{
+				"SrcAddr": "192.0.2.10", "DstAddr": "192.0.2.20",
+				"SrcMac": "02:00:00:00:00:10", "DstMac": "02:00:00:00:00:20",
+			},
+			partial: config.GenericMap{
+				"SrcAddr": "198.51.100.5", "SrcMac": "02:00:00:00:00:05",
+			},
+			last: config.GenericMap{
+				"SrcAddr": "203.0.113.30", "DstAddr": "203.0.113.40",
+				"SrcMac": "02:00:00:00:00:30", "DstMac": "02:00:00:00:00:40",
+			},
+			firstExpected: map[string]string{
+				"sourceIPv4Address": "192.0.2.10", "destinationIPv4Address": "192.0.2.20",
+				"sourceMacAddress": "02:00:00:00:00:10", "destinationMacAddress": "02:00:00:00:00:20",
+			},
+			partialExpect: map[string]string{
+				"sourceIPv4Address": "198.51.100.5", "destinationIPv4Address": "0.0.0.0",
+				"sourceMacAddress": "02:00:00:00:00:05", "destinationMacAddress": "00:00:00:00:00:00",
+			},
+			lastExpected: map[string]string{
+				"sourceIPv4Address": "203.0.113.30", "destinationIPv4Address": "203.0.113.40",
+				"sourceMacAddress": "02:00:00:00:00:30", "destinationMacAddress": "02:00:00:00:00:40",
+			},
+		},
+		{
+			name: "IPv6",
+			ipv6: true,
+			first: config.GenericMap{
+				"SrcAddr": "2001:db8::10", "DstAddr": "2001:db8::20",
+				"SrcMac": "02:00:00:00:00:10", "DstMac": "02:00:00:00:00:20",
+			},
+			partial: config.GenericMap{
+				"SrcAddr": "2001:db8::5", "SrcMac": "02:00:00:00:00:05",
+			},
+			last: config.GenericMap{
+				"SrcAddr": "2001:db8::30", "DstAddr": "2001:db8::40",
+				"SrcMac": "02:00:00:00:00:30", "DstMac": "02:00:00:00:00:40",
+			},
+			firstExpected: map[string]string{
+				"sourceIPv6Address": "2001:db8::10", "destinationIPv6Address": "2001:db8::20",
+				"sourceMacAddress": "02:00:00:00:00:10", "destinationMacAddress": "02:00:00:00:00:20",
+			},
+			partialExpect: map[string]string{
+				"sourceIPv6Address": "2001:db8::5", "destinationIPv6Address": "::",
+				"sourceMacAddress": "02:00:00:00:00:05", "destinationMacAddress": "00:00:00:00:00:00",
+			},
+			lastExpected: map[string]string{
+				"sourceIPv6Address": "2001:db8::30", "destinationIPv6Address": "2001:db8::40",
+				"sourceMacAddress": "02:00:00:00:00:30", "destinationMacAddress": "02:00:00:00:00:40",
+			},
+		},
 	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			const templateID = 256
+			_, elements, err := prepareTemplate(templateID, 0, tt.ipv6)
+			require.NoError(t, err)
+
+			// Reuse the template elements across full, empty, partial, and full records.
+			// Missing fields must be zeroed, and defaults must not leak into the next flow.
+			records := []struct {
+				name     string
+				flow     config.GenericMap
+				expected map[string]string
+			}{
+				{name: "full values", flow: tt.first, expected: tt.firstExpected},
+				{name: "all values missing", flow: config.GenericMap{}, expected: zeroAddressAndMACValues(tt.ipv6)},
+				{name: "partial values", flow: tt.partial, expected: tt.partialExpect},
+				{name: "full values after defaults", flow: tt.last, expected: tt.lastExpected},
+			}
+
+			for _, record := range records {
+				t.Run(record.name, func(t *testing.T) {
+					createDataRecord(record.flow, elements)
+					assertIPFIXValues(t, elements, record.expected)
+					assertIPFIXRecordLengthMatchesEncoding(t, templateID, elements)
+				})
+			}
+		})
+	}
+}
+
+func zeroAddressAndMACValues(ipv6 bool) map[string]string {
+	addressField, zeroAddress := "sourceIPv4Address", "0.0.0.0"
+	destinationField := "destinationIPv4Address"
+	if ipv6 {
+		addressField, zeroAddress = "sourceIPv6Address", "::"
+		destinationField = "destinationIPv6Address"
+	}
+	return map[string]string{
+		addressField:            zeroAddress,
+		destinationField:        zeroAddress,
+		"sourceMacAddress":      "00:00:00:00:00:00",
+		"destinationMacAddress": "00:00:00:00:00:00",
+	}
+}
+
+func assertIPFIXValues(t *testing.T, elements []entities.InfoElementWithValue, expected map[string]string) {
+	t.Helper()
+	for name, want := range expected {
+		mapping, ok := MapIPFIXKeys[name]
+		require.True(t, ok, "missing IPFIX mapping for %q", name)
+
+		found := false
+		for _, element := range elements {
+			if element.GetName() == name {
+				require.Equal(t, want, mapping.Getter(element), "unexpected value for %s", name)
+				found = true
+				break
+			}
+		}
+		require.True(t, found, "IPFIX element %q is missing from the template", name)
+	}
+}
+
+func assertIPFIXRecordLengthMatchesEncoding(t *testing.T, templateID uint16, elements []entities.InfoElementWithValue) {
+	t.Helper()
+	set := entities.NewSet(false)
+	require.NoError(t, set.PrepareSet(entities.Data, templateID))
+	require.NoError(t, set.AddRecord(elements, templateID))
+
+	buf := &bytes.Buffer{}
+	announced, err := ipfixExporter.WriteIPFIXMsgToBuffer(set, 1, 0, time.Now(), buf)
+	require.NoError(t, err)
+	require.Equal(t, announced, buf.Len(), "IPFIX message length must match its encoded bytes")
 }
