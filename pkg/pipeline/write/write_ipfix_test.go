@@ -2,6 +2,7 @@ package write
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"sort"
 	"testing"
@@ -196,9 +197,13 @@ func assertIPFIXRecordLengthMatchesEncoding(t *testing.T, templateID uint16, ele
 	set := entities.NewSet(false)
 	require.NoError(t, set.PrepareSet(entities.Data, templateID))
 	require.NoError(t, set.AddRecord(elements, templateID))
+	set.UpdateLenInHeader()
 
 	buf := &bytes.Buffer{}
 	announced, err := ipfixExporter.WriteIPFIXMsgToBuffer(set, 1, 0, time.Now(), buf)
 	require.NoError(t, err)
 	require.Equal(t, announced, buf.Len(), "IPFIX message length must match its encoded bytes")
+	setHeaderStart := entities.MsgHeaderLength
+	encodedSetLength := binary.BigEndian.Uint16(buf.Bytes()[setHeaderStart+2 : setHeaderStart+entities.SetHeaderLen])
+	require.Equal(t, uint16(set.GetSetLength()), encodedSetLength, "IPFIX set header length must match its encoded bytes")
 }
