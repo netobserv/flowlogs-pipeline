@@ -16,14 +16,28 @@ package collector
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net"
+	"time"
 
-	"github.com/pion/dtls/v2"
+	"github.com/pion/dtls/v3"
 	"k8s.io/klog/v2"
 )
+
+// dtlsHandshakeTimeout bounds the duration of the DTLS handshake with a client. pion/dtls
+// v2 applied a default 30s timeout to the handshake performed by Accept, while in v3
+// HandshakeContext honors only the context it is given. Without a bound, a peer which
+// starts a handshake and then stops responding would block this goroutine for the
+// lifetime of the process.
+const dtlsHandshakeTimeout = 30 * time.Second
+
+// dtlsHandshaker is the part of *dtls.Conn we need from the net.Conn returned by Accept.
+type dtlsHandshaker interface {
+	HandshakeContext(ctx context.Context) error
+}
 
 func (cp *CollectingProcess) startUDPServer() {
 	var listener net.Listener
@@ -35,12 +49,12 @@ func (cp *CollectingProcess) startUDPServer() {
 		return
 	}
 	if cp.isEncrypted { // use DTLS
-		config, err := cp.createServerDTLSConfig()
+		options, err := cp.createServerDTLSOptions()
 		if err != nil {
 			klog.Error(err)
 			return
 		}
-		listener, err = dtls.Listen("udp", address, config)
+		listener, err = dtls.ListenWithOptions("udp", address, options...)
 		if err != nil {
 			klog.Error(err)
 			return
@@ -48,10 +62,41 @@ func (cp *CollectingProcess) startUDPServer() {
 		defer listener.Close()
 		cp.updateAddress(listener.Addr())
 		klog.Infof("Start dtls collecting process on %s", cp.netAddress)
-		conn, err = listener.Accept()
-		if err != nil {
-			klog.Error(err)
-			return
+		// As of pion/dtls v3, Accept no longer performs the handshake: it happens lazily
+		// on the first Read / Write. We trigger it explicitly so that handshake failures
+		// (e.g. client certificate validation errors) are reported clearly here, instead
+		// of surfacing as an opaque read error below. A handshake failure invalidates
+		// that connection only: we go back to accepting, so that a peer which fails to
+		// authenticate cannot permanently stop the collector from serving a legitimate
+		// exporter. Unlike the plaintext UDP path below, which demultiplexes datagrams
+		// from any number of exporters by source address, this loop serves a single
+		// exporter: it stops accepting once one client has completed the handshake.
+		// Because the handshake runs inline, a peer which starts one and then stops
+		// responding still blocks the loop for dtlsHandshakeTimeout.
+		for {
+			conn, err = listener.Accept()
+			if err != nil {
+				klog.Error(err)
+				return
+			}
+			handshaker, ok := conn.(dtlsHandshaker)
+			if !ok {
+				// Only reachable if pion stops returning *dtls.Conn from Accept. Drop the
+				// connection and keep serving: the listener is still usable.
+				klog.ErrorS(nil, "DTLS listener returned an unexpected connection type", "type", fmt.Sprintf("%T", conn))
+				conn.Close()
+				continue
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), dtlsHandshakeTimeout)
+			err = handshaker.HandshakeContext(ctx)
+			cancel()
+			if err == nil {
+				break
+			}
+			// Remotely triggerable, so this can be noisy: it is logged per failed
+			// handshake, like the per-connection errors on the TCP path.
+			klog.ErrorS(err, "Error during DTLS handshake with client, dropping connection", "client", conn.RemoteAddr())
+			conn.Close()
 		}
 		defer conn.Close()
 		cp.wg.Add(1)
@@ -173,7 +218,7 @@ func (cp *CollectingProcess) createUDPClient(addr string) *transportSession {
 	return session
 }
 
-func (cp *CollectingProcess) createServerDTLSConfig() (*dtls.Config, error) {
+func (cp *CollectingProcess) createServerDTLSOptions() ([]dtls.ServerOption, error) {
 	if cp.tlsMinVersion != 0 && cp.tlsMinVersion != tls.VersionTLS12 {
 		return nil, fmt.Errorf("DTLS 1.2 is the only supported version")
 	}
@@ -181,25 +226,30 @@ func (cp *CollectingProcess) createServerDTLSConfig() (*dtls.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	// If tlsConfig.CipherSuites is nil, cipherSuites should also be nil!
-	var cipherSuites []dtls.CipherSuiteID
-	for _, cipherSuite := range cp.tlsCipherSuites {
-		cipherSuites = append(cipherSuites, dtls.CipherSuiteID(cipherSuite))
+	options := []dtls.ServerOption{
+		dtls.WithCertificates(cert),
+		dtls.WithExtendedMasterSecret(dtls.RequireExtendedMasterSecret),
 	}
-	config := &dtls.Config{
-		Certificates:         []tls.Certificate{cert},
-		ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
-		CipherSuites:         cipherSuites,
+	// If cp.tlsCipherSuites is empty, we must not set the option at all, so that the pion
+	// defaults are used.
+	if len(cp.tlsCipherSuites) > 0 {
+		cipherSuites := make([]dtls.CipherSuiteID, 0, len(cp.tlsCipherSuites))
+		for _, cipherSuite := range cp.tlsCipherSuites {
+			cipherSuites = append(cipherSuites, dtls.CipherSuiteID(cipherSuite))
+		}
+		options = append(options, dtls.WithCipherSuites(cipherSuites...))
 	}
 	if cp.caCert == nil {
-		return config, nil
+		return options, nil
 	}
 	clientCAs := x509.NewCertPool()
 	ok := clientCAs.AppendCertsFromPEM(cp.caCert)
 	if !ok {
 		return nil, fmt.Errorf("failed to parse client CA certificate")
 	}
-	config.ClientAuth = dtls.RequireAndVerifyClientCert
-	config.ClientCAs = clientCAs
-	return config, nil
+	options = append(options,
+		dtls.WithClientAuth(dtls.RequireAndVerifyClientCert),
+		dtls.WithClientCAs(clientCAs),
+	)
+	return options, nil
 }

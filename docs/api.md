@@ -364,6 +364,7 @@ Following is the supported API format for writing to an IPFIX collector:
          transport: Transport protocol (tcp/udp) to be used for the IPFIX connection
          enterpriseId: Enterprise ID for exporting non-standard data
          tplSendInterval: Interval for resending templates to the collector (default: 1m)
+         pathMtu: Path MTU, used to bound the size of the exported IPFIX messages when transport is udp; ignored for tcp (default: 1400)
 </pre>
 ## Aggregate metrics API
 Following is the supported API format for specifying metrics aggregations:

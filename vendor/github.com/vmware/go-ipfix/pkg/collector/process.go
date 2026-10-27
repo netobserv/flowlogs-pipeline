@@ -116,7 +116,7 @@ type CollectorInput struct {
 	// List of supported cipher suites.
 	// From https://pkg.go.dev/crypto/tls#pkg-constants
 	// The order of the list is ignored.Note that TLS 1.3 ciphersuites are not configurable.
-	// For DTLS, cipher suites are from https://pkg.go.dev/github.com/pion/dtls/v2@v2.2.12/internal/ciphersuite#ID.
+	// For DTLS, cipher suites are from https://pkg.go.dev/github.com/pion/dtls/v3@v3.1.8/internal/ciphersuite#ID.
 	TLSCipherSuites []uint16
 	// Min TLS version.
 	// From https://pkg.go.dev/crypto/tls#pkg-constants

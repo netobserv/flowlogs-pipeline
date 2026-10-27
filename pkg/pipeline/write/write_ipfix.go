@@ -55,6 +55,18 @@ const IPv6Type uint16 = 0x86DD
 
 var zeroMac = make(net.HardwareAddr, 6)
 
+// setIPAddress guards against an address that is unparseable, or that belongs to the other family:
+// go-ipfix then fails to encode the whole record, and the flow is dropped instead of exported.
+func setIPAddress(elt entities.InfoElementWithValue, rec any, v6 bool) {
+	ip := net.ParseIP(rec.(string))
+	if v6 && ip.To16() == nil {
+		ip = net.IPv6zero
+	} else if !v6 && ip.To4() == nil {
+		ip = net.IPv4zero
+	}
+	elt.SetIPAddressValue(ip)
+}
+
 var (
 	ilog = logrus.WithField("component", "write.Ipfix")
 	// See RFC 5102: https://www.rfc-editor.org/rfc/rfc5102
@@ -97,6 +109,7 @@ var (
 		"postNATSourceIPv6Address",
 		"postNATDestinationIPv6Address",
 	}, IANAFields...)
+	// DO NOT remove or modify a released field. To deprecate one, move it to "DeprecatedFields"
 	KubeFields = []entities.InfoElement{
 		{Name: "sourcePodNamespace", ElementId: 7733, DataType: entities.String, Len: 65535},
 		{Name: "sourcePodName", ElementId: 7734, DataType: entities.String, Len: 65535},
@@ -107,21 +120,25 @@ var (
 		{Name: "sourceServiceName", ElementId: 7743, DataType: entities.String, Len: 65535},
 		{Name: "destinationServiceName", ElementId: 7744, DataType: entities.String, Len: 65535},
 	}
+	// DO NOT remove or modify a released field. To deprecate one, move it to "DeprecatedFields"
 	CustomNetworkFields = []entities.InfoElement{
 		{Name: "latestDroppedCause", ElementId: 7739, DataType: entities.String, Len: 65535},
 		{Name: "timeFlowRttNs", ElementId: 7740, DataType: entities.Unsigned64, Len: 8},
 		{Name: "interfaces", ElementId: 7741, DataType: entities.String, Len: 65535},
 		{Name: "directions", ElementId: 7742, DataType: entities.String, Len: 65535},
 	}
+	// DO NOT remove or modify a released field. To deprecate one, move it to "DeprecatedFields"
 	CustomNetworkFieldsV4 = []entities.InfoElement{}
+	// DO NOT remove or modify a released field. To deprecate one, move it to "DeprecatedFields"
 	CustomNetworkFieldsV6 = []entities.InfoElement{}
+	DeprecatedFields      = []entities.InfoElement{}
 
 	MapIPFIXKeys = map[string]FieldMap{
 		"sourceIPv4Address": {
 			Key:    "SrcAddr",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
-				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+				setIPAddress(elt, rec, false)
 			},
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv4zero) },
 		},
@@ -129,7 +146,7 @@ var (
 			Key:    "DstAddr",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
-				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+				setIPAddress(elt, rec, false)
 			},
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv4zero) },
 		},
@@ -137,7 +154,7 @@ var (
 			Key:    "SrcAddr",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
-				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+				setIPAddress(elt, rec, true)
 			},
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv6zero) },
 		},
@@ -145,7 +162,7 @@ var (
 			Key:    "DstAddr",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetIPAddressValue().String() },
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
-				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+				setIPAddress(elt, rec, true)
 			},
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv6zero) },
 		},
@@ -160,7 +177,11 @@ var (
 			Key:    "SrcMac",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetMacAddressValue().String() },
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
-				mac, _ := net.ParseMAC(rec.(string))
+				// Guard against unparseable MAC but keep flow valid
+				mac, err := net.ParseMAC(rec.(string))
+				if err != nil {
+					mac = zeroMac
+				}
 				elt.SetMacAddressValue(mac)
 			},
 			Default: func(elt entities.InfoElementWithValue) { elt.SetMacAddressValue(zeroMac) },
@@ -169,7 +190,11 @@ var (
 			Key:    "DstMac",
 			Getter: func(elt entities.InfoElementWithValue) any { return elt.GetMacAddressValue().String() },
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
-				mac, _ := net.ParseMAC(rec.(string))
+				// Guard against unparseable MAC but keep flow valid
+				mac, err := net.ParseMAC(rec.(string))
+				if err != nil {
+					mac = zeroMac
+				}
 				elt.SetMacAddressValue(mac)
 			},
 			Default: func(elt entities.InfoElementWithValue) { elt.SetMacAddressValue(zeroMac) },
@@ -466,7 +491,7 @@ var (
 				return elt.GetIPAddressValue().String()
 			},
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
-				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+				setIPAddress(elt, rec, false)
 			},
 			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L596
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv4zero) },
@@ -480,7 +505,7 @@ var (
 				return elt.GetIPAddressValue().String()
 			},
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
-				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+				setIPAddress(elt, rec, false)
 			},
 			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L596
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv4zero) },
@@ -494,7 +519,7 @@ var (
 				return elt.GetIPAddressValue().String()
 			},
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
-				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+				setIPAddress(elt, rec, true)
 			},
 			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L602
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv6zero) },
@@ -508,7 +533,7 @@ var (
 				return elt.GetIPAddressValue().String()
 			},
 			Setter: func(elt entities.InfoElementWithValue, rec any, _ config.GenericMap) {
-				elt.SetIPAddressValue(net.ParseIP(rec.(string)))
+				setIPAddress(elt, rec, true)
 			},
 			// Force zero-IP by default to avoid go-ipfix throwing an error: https://github.com/vmware/go-ipfix/blob/d9256ccb0ed9e3ae38c3a2bf3d6ce1ce01c9ac4f/pkg/entities/ie.go#L602
 			Default: func(elt entities.InfoElementWithValue) { elt.SetIPAddressValue(net.IPv6zero) },
@@ -718,6 +743,7 @@ func NewWriteIpfix(params config.StageParam) (Writer, error) {
 	input := ipfixExporter.ExporterInput{
 		CollectorAddress:    fmt.Sprintf("%s:%d", ipfixConfigIn.TargetHost, ipfixConfigIn.TargetPort),
 		CollectorProtocol:   ipfixConfigIn.Transport,
+		PathMTU:             ipfixConfigIn.PathMTU,
 		ObservationDomainID: 1,
 		TempRefTimeout:      uint32(ipfixConfigIn.TplSendInterval.Duration.Seconds()),
 	}

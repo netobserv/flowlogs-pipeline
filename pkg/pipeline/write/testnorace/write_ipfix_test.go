@@ -243,6 +243,24 @@ func TestIPFIXFlowWithEnterpriseID(t *testing.T) {
 			expectedFields: slices.Concat(write.IPv4IANAFields, kubeFields, customNetworkFields, customNetworkFieldsV4),
 			expectedUnset:  []string{"destinationPodName"},
 		},
+		{
+			// Long names push the record past go-ipfix's 512B minimum message size, which is what
+			// it falls back to for udp when no path MTU is configured. The record must still arrive.
+			name: "flow with maximum length names",
+			addFields: map[string]any{
+				"Flags":            utils.DecodeTCPFlags(uint(fullPBFlow.Flags)),
+				"SrcK8S_Name":      strings.Repeat("a", 63),
+				"SrcK8S_Type":      "Pod",
+				"SrcK8S_Namespace": strings.Repeat("b", 63),
+				"SrcK8S_HostName":  strings.Repeat("c", 100),
+				"DstK8S_Name":      strings.Repeat("d", 63),
+				"DstK8S_Type":      "Pod",
+				"DstK8S_Namespace": strings.Repeat("e", 63),
+				"DstK8S_HostName":  strings.Repeat("f", 100),
+			},
+			expectedFields: slices.Concat(write.IPv4IANAFields, kubeFields, customNetworkFields, customNetworkFieldsV4),
+			expectedUnset:  []string{"sourceServiceName", "destinationServiceName"},
+		},
 	}
 
 	for i, tt := range tests {

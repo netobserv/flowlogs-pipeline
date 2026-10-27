@@ -8,6 +8,11 @@ If no `enterpriseId` is provided, only IPFIX standard data is exported. The `ent
 
 To date, NetObserv does not have its own PEN assigned, so it is left open for configuration. Use a number that does not conflict with a known vendor on the collecting side.
 
+When `transport` is `udp`, exported messages are capped using `pathMtu` (default: 1400) so they are
+not fragmented. Records that do not fit are dropped and logged, so lower this only to match a
+genuinely smaller path MTU, and raise it if long Kubernetes names are being dropped. It is ignored
+for `tcp`.
+
 ### IPFIX custom elements
 
 <table>
@@ -26,14 +31,11 @@ To date, NetObserv does not have its own PEN assigned, so it is left open for co
     <tr><td><b>destinationPodName</b></td><td>7736</td><td>String</td><td>(variable)</td></tr>
     <tr><td><b>sourceNodeName</b></td><td>7737</td><td>String</td><td>(variable)</td></tr>
     <tr><td><b>destinationNodeName</b></td><td>7738</td><td>String</td><td>(variable)</td></tr>
+    <tr><td><b>latestDroppedCause</b></td><td>7739</td><td>String</td><td>(variable)</td></tr>
     <tr><td><b>timeFlowRttNs</b></td><td>7740</td><td>Unsigned64</td><td>8</td></tr>
     <tr><td><b>interfaces</b></td><td>7741</td><td>String</td><td>(variable)</td></tr>
     <tr><td><b>directions</b></td><td>7742</td><td>String</td><td>(variable)</td></tr>
-    <tr><td><b>xlatSourcePort</b></td><td>7743</td><td>Unsigned16</td><td>2</td></tr>
-    <tr><td><b>xlatDestinationPort</b></td><td>7744</td><td>Unsigned16</td><td>2</td></tr>
-    <tr><td><b>xlatSourceIPv4Address</b></td><td>7745</td><td>Ipv4Address</td><td>4</td></tr>
-    <tr><td><b>xlatDestinationIPv4Address</b></td><td>7746</td><td>Ipv4Address</td><td>4</td></tr>
-    <tr><td><b>xlatSourceIPv6Address</b></td><td>7747</td><td>Ipv6Address</td><td>16</td></tr>
-    <tr><td><b>xlatDestinationIPv6Address</b></td><td>7748</td><td>Ipv6Address</td><td>16</td></tr>
+    <tr><td><b>sourceServiceName</b></td><td>7743</td><td>String</td><td>(variable)</td></tr>
+    <tr><td><b>destinationServiceName</b></td><td>7744</td><td>String</td><td>(variable)</td></tr>
   </tbody>
 </table>
