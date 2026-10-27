@@ -134,6 +134,15 @@ func TestDataRecordLengthMatchesEncoding(t *testing.T) {
 			const templateID = 256
 			_, elements, err := prepareTemplate(templateID, 0, tt.ipv6)
 			require.NoError(t, err)
+			wrongFamilyAddress := "192.0.2.1"
+			validAddress := "192.0.2.10"
+			validAddressField := "sourceIPv4Address"
+			if !tt.ipv6 {
+				wrongFamilyAddress = "2001:db8::1"
+			} else {
+				validAddress = "2001:db8::10"
+				validAddressField = "sourceIPv6Address"
+			}
 
 			// Reuse the template elements across full, empty, partial, and full records.
 			// Missing fields must be zeroed, and defaults must not leak into the next flow.
@@ -145,6 +154,42 @@ func TestDataRecordLengthMatchesEncoding(t *testing.T) {
 				{name: "full values", flow: tt.first, expected: tt.firstExpected},
 				{name: "all values missing", flow: config.GenericMap{}, expected: zeroAddressAndMACValues(tt.ipv6)},
 				{name: "partial values", flow: tt.partial, expected: tt.partialExpect},
+				{
+					name: "unparseable IP and MAC values",
+					flow: config.GenericMap{
+						"SrcAddr": "not-an-ip", "DstAddr": "also-not-an-ip",
+						"SrcMac": "not-a-mac", "DstMac": "also-not-a-mac",
+					},
+					expected: zeroAddressAndMACValues(tt.ipv6),
+				},
+				{
+					name: "invalid destination preserves valid source",
+					flow: config.GenericMap{
+						"SrcAddr": validAddress, "DstAddr": "not-an-ip",
+						"SrcMac": "02:00:00:00:00:10", "DstMac": "not-a-mac",
+					},
+					expected: func() map[string]string {
+						want := zeroAddressAndMACValues(tt.ipv6)
+						want[validAddressField] = validAddress
+						want["sourceMacAddress"] = "02:00:00:00:00:10"
+						return want
+					}(),
+				},
+				{
+					// IPv4 text parses to a 16-byte IPv4-mapped value, so To16 alone
+					// does not detect it as the wrong family for an IPv6 field.
+					name: "wrong-family addresses",
+					flow: config.GenericMap{
+						"SrcAddr": wrongFamilyAddress, "DstAddr": wrongFamilyAddress,
+						"SrcMac": "02:00:00:00:00:10", "DstMac": "02:00:00:00:00:20",
+					},
+					expected: func() map[string]string {
+						want := zeroAddressAndMACValues(tt.ipv6)
+						want["sourceMacAddress"] = "02:00:00:00:00:10"
+						want["destinationMacAddress"] = "02:00:00:00:00:20"
+						return want
+					}(),
+				},
 				{name: "full values after defaults", flow: tt.last, expected: tt.lastExpected},
 			}
 
