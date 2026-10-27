@@ -48,7 +48,7 @@ func (w *WriteIpfix) Validate() error {
 	if w.Transport != "tcp" && w.Transport != "udp" && w.Transport != "" {
 		return errors.New("transport should be tcp/udp")
 	}
-	if w.PathMTU != 0 && w.PathMTU < minPathMTU {
+	if w.Transport == "udp" && w.PathMTU != 0 && w.PathMTU < minPathMTU {
 		return fmt.Errorf("pathMtu should be at least %d", minPathMTU)
 	}
 	return nil

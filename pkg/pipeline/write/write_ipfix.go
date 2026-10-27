@@ -59,10 +59,12 @@ var zeroMac = make(net.HardwareAddr, 6)
 // go-ipfix then fails to encode the whole record, and the flow is dropped instead of exported.
 func setIPAddress(elt entities.InfoElementWithValue, rec any, v6 bool) {
 	ip := net.ParseIP(rec.(string))
-	if v6 && ip.To16() == nil {
-		ip = net.IPv6zero
-	} else if !v6 && ip.To4() == nil {
-		ip = net.IPv4zero
+	if ip == nil || (v6 && ip.To4() != nil) || (!v6 && ip.To4() == nil) {
+		if v6 {
+			ip = net.IPv6zero
+		} else {
+			ip = net.IPv4zero
+		}
 	}
 	elt.SetIPAddressValue(ip)
 }
