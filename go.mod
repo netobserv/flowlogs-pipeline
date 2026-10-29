@@ -21,9 +21,9 @@ require (
 	github.com/netobserv/netobserv-ebpf-agent v1.12.0-community
 	github.com/netsampler/goflow2 v1.3.8
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.25.0
+	github.com/prometheus/client_golang v1.24.2-0.20261029143915-315e02064a4f
 	github.com/prometheus/client_model v0.6.3
-	github.com/prometheus/common v0.72.1
+	github.com/prometheus/common v0.73.0
 	github.com/segmentio/kafka-go v0.4.51
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
@@ -64,7 +64,9 @@ require (
 	github.com/go-openapi/swag/yamlutils v0.28.0 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/pprof v0.0.0-20260302011040-a15ffb7f9dcc // indirect
+	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
+	github.com/pandatix/go-abnf v0.5.1 // indirect
 	github.com/pion/dtls/v3 v3.1.8 // indirect
 	github.com/pion/transport/v4 v4.0.2 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
