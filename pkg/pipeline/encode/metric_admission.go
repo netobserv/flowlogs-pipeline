@@ -117,6 +117,12 @@ func (a *metricAdmission) cleanup() {
 	a.expireLocked(time.Now())
 }
 
+func (a *metricAdmission) count() int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return len(a.entries)
+}
+
 // forget releases slots when a vector is removed or replaced by configuration.
 func (a *metricAdmission) forget(vector interface{}) {
 	a.mu.Lock()
