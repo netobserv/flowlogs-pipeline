@@ -243,6 +243,24 @@ func TestIPFIXFlowWithEnterpriseID(t *testing.T) {
 			expectedFields: slices.Concat(write.IPv4IANAFields, kubeFields, customNetworkFields, customNetworkFieldsV4),
 			expectedUnset:  []string{"destinationPodName"},
 		},
+		{
+			// Long names push the record past go-ipfix's 512B minimum message size, which is what
+			// it falls back to for udp when no path MTU is configured. The record must still arrive.
+			name: "flow with maximum length names",
+			addFields: map[string]any{
+				"Flags":            utils.DecodeTCPFlags(uint(fullPBFlow.Flags)),
+				"SrcK8S_Name":      strings.Repeat("a", 63),
+				"SrcK8S_Type":      "Pod",
+				"SrcK8S_Namespace": strings.Repeat("b", 63),
+				"SrcK8S_HostName":  strings.Repeat("c", 100),
+				"DstK8S_Name":      strings.Repeat("d", 63),
+				"DstK8S_Type":      "Pod",
+				"DstK8S_Namespace": strings.Repeat("e", 63),
+				"DstK8S_HostName":  strings.Repeat("f", 100),
+			},
+			expectedFields: slices.Concat(write.IPv4IANAFields, kubeFields, customNetworkFields, customNetworkFieldsV4),
+			expectedUnset:  []string{"sourceServiceName", "destinationServiceName"},
+		},
 	}
 
 	for i, tt := range tests {
@@ -505,7 +523,7 @@ func startCollector(t *testing.T) collect {
 }
 
 func startCollectorOnAddr(t *testing.T, host string, port uint) collect {
-	address, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port))
+	address, err := net.ResolveUDPAddr("udp", net.JoinHostPort(host, fmt.Sprint(port)))
 	require.NoError(t, err)
 
 	cp, err := collector.InitCollectingProcess(collector.CollectorInput{
@@ -600,7 +618,7 @@ func TestIngestEnriched(t *testing.T) {
 	writer, err := write.NewWriteIpfix(config.StageParam{
 		Write: &config.Write{
 			Ipfix: &api.WriteIpfix{
-				TargetHost:   "0.0.0.0",
+				TargetHost:   "127.0.0.1",
 				TargetPort:   int(collectorPort),
 				Transport:    "udp",
 				EnterpriseID: int(pen),
@@ -610,21 +628,17 @@ func TestIngestEnriched(t *testing.T) {
 	require.NoError(t, err)
 	writer.Write(flow)
 
-	// Wait for flow
-	for {
-		select {
-		case received := <-forwarded:
-			assert.Equal(t, "1.2.3.4", received["SrcAddr"])
-			assert.Equal(t, "127.0.0.1", received["SamplerAddress"])
-			assert.Equal(t, []byte("ns1"), received["CustomBytes_1"])
-			assert.Equal(t, []byte("pod A"), received["CustomBytes_2"])
-			assert.Equal(t, []byte("ns2"), received["CustomBytes_3"])
-			assert.Equal(t, []byte("pod B"), received["CustomBytes_4"])
-			return
-		default:
-			// nothing yet received
-			time.Sleep(50 * time.Millisecond)
-		}
+	// Wait for flow, but fail rather than hang if exporter and collector disagree.
+	select {
+	case received := <-forwarded:
+		assert.Equal(t, "1.2.3.4", received["SrcAddr"])
+		assert.Equal(t, "127.0.0.1", received["SamplerAddress"])
+		assert.Equal(t, []byte("ns1"), received["CustomBytes_1"])
+		assert.Equal(t, []byte("pod A"), received["CustomBytes_2"])
+		assert.Equal(t, []byte("ns2"), received["CustomBytes_3"])
+		assert.Equal(t, []byte("pod B"), received["CustomBytes_4"])
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for IPFIX flow to be ingested")
 	}
 }
 
@@ -660,7 +674,7 @@ func generateWriteMapping(pen uint32) []api.NetFlowMapField {
 func TestIPFIXReconnect(t *testing.T) {
 	const collectorName = "collector.test."
 	const ip1 = "127.0.0.1"
-	const ip2 = "127.0.0.2"
+	const ip2 = "::1"
 
 	// In-process mocked DNS server allows to simulate an IP change
 	srv, err := mockdns.NewServerWithLogger(map[string]mockdns.Zone{
@@ -698,14 +712,16 @@ func TestIPFIXReconnect(t *testing.T) {
 	}, 5*time.Second, 200*time.Millisecond, "first collector never received data")
 	cp.Stop()
 
-	// Restart the collector on a different loopback IP, same port, and repoint the DNS name to it
+	// Restart the collector on the IPv6 loopback address, same port, and repoint DNS to it.
+	// Using both loopback families avoids relying on 127.0.0.2, which macOS does not
+	// necessarily configure as a local address.
 	cp = startCollectorOnAddr(t, ip2, port)
 	received = cp.drain()
 	srv.RemoveRR(collectorName, dns.TypeA)
-	err = srv.AppendRR(collectorName, dns.TypeA, ip2)
+	err = srv.AppendRR(collectorName, dns.TypeAAAA, ip2)
 	require.NoError(t, err)
 
-	// Make sure the exporter re-Dials on the refresh interval, resolving to 127.0.0.2, and the new collector starts receiving data
+	// Make sure the exporter re-Dials on the refresh interval, resolves to ::1, and the new collector receives data.
 	require.Eventually(t, func() bool {
 		writer.Write(flow)
 		return received.Load()

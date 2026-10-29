@@ -166,12 +166,16 @@ clean: ## Clean
 	go clean ./...
 
 TEST_OPTS := -race -coverpkg=./... -covermode=atomic -coverprofile cover.out
+# Normal builds target Linux/amd64 with CGO disabled; tests must target the host
+# so `go test` can execute the generated test binaries (including on macOS).
+TEST_GOOS := $(shell go env GOHOSTOS)
+TEST_GOARCH := $(shell go env GOHOSTARCH)
 .PHONY: tests-unit
 tests-unit: ## Unit tests
 	# tests may rely on non-thread safe libs such as go-ipfix => no -race flag
-	go test $$(go list ./... | grep /testnorace)
-	# enabling CGO is required for -race flag
-	CGO_ENABLED=1 go test -p 1 $(TEST_OPTS) $$(go list ./... | grep -v /e2e | grep -v /testnorace)
+	GOOS=$(TEST_GOOS) GOARCH=$(TEST_GOARCH) go test $$(GOOS=$(TEST_GOOS) GOARCH=$(TEST_GOARCH) go list ./... | grep /testnorace)
+	# The race detector requires CGO, overriding the build default above.
+	CGO_ENABLED=1 GOOS=$(TEST_GOOS) GOARCH=$(TEST_GOARCH) go test -p 1 $(TEST_OPTS) $$(GOOS=$(TEST_GOOS) GOARCH=$(TEST_GOARCH) CGO_ENABLED=1 go list ./... | grep -v /e2e | grep -v /testnorace)
 
 .PHONY: coverage-report
 coverage-report: ## Generate coverage report

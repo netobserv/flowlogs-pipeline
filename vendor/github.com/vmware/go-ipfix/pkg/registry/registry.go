@@ -51,6 +51,7 @@ const (
 	PolicyTypeK8sNetworkPolicy           = uint8(1)
 	PolicyTypeAntreaNetworkPolicy        = uint8(2)
 	PolicyTypeAntreaClusterNetworkPolicy = uint8(3)
+	PolicyTypeK8sClusterNetworkPolicy    = uint8(4)
 )
 
 // placeholder of NetworkPolicyRulePriority for K8s Network Policy.

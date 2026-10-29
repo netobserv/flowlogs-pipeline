@@ -16,6 +16,8 @@ package exporter
 
 import (
 	"bytes"
+	"cmp"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -26,15 +28,25 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/pion/dtls/v2"
+	"github.com/pion/dtls/v3"
+	dtlsnet "github.com/pion/dtls/v3/pkg/net"
 	"k8s.io/klog/v2"
 
 	"github.com/vmware/go-ipfix/pkg/entities"
 )
 
 const startTemplateID uint16 = 255
+
 const defaultCheckConnInterval = 10 * time.Second
 const defaultJSONBufferLen = 5000
+
+// defaultDialTimeout bounds the duration of the connection to the collector
+const defaultDialTimeout = 10 * time.Second
+
+// dtlsHandshakeTimeout bounds the duration of the DTLS handshake with the collector.
+// pion/dtls v2 applied a default 30s timeout to the handshake performed by Dial, while in
+// v3 HandshakeContext honors only the context it is given.
+const dtlsHandshakeTimeout = 30 * time.Second
 
 type templateValue struct {
 	elements      []*entities.InfoElement
@@ -80,7 +92,7 @@ type ExporterTLSClientConfig struct {
 	// List of supported cipher suites.
 	// From https://pkg.go.dev/crypto/tls#pkg-constants
 	// The order of the list is ignored.Note that TLS 1.3 ciphersuites are not configurable.
-	// For DTLS, cipher suites are from https://pkg.go.dev/github.com/pion/dtls/v2@v2.2.12/internal/ciphersuite#ID.
+	// For DTLS, cipher suites are from https://pkg.go.dev/github.com/pion/dtls/v3@v3.1.8/internal/ciphersuite#ID.
 	CipherSuites []uint16
 	// Min TLS version.
 	// From https://pkg.go.dev/crypto/tls#pkg-constants
@@ -116,6 +128,10 @@ type ExporterInput struct {
 	// PathMTU, exporter initialization will fail.
 	PathMTU           int
 	CheckConnInterval time.Duration
+	// DialTimeout bounds the duration of the connection to the collector, including the TLS
+	// handshake. If omitted, a default of 10s is used. It is ignored for DTLS, which uses its
+	// own handshake timeout.
+	DialTimeout time.Duration
 }
 
 func calculateMaxMsgSize(proto string, requestedSize int, pathMTU int, isIPv6 bool) (int, error) {
@@ -167,6 +183,7 @@ func InitExportingProcess(input ExporterInput) (*ExportingProcess, error) {
 	}
 	var conn net.Conn
 	var err error
+	dialer := &net.Dialer{Timeout: cmp.Or(input.DialTimeout, defaultDialTimeout)}
 	if input.TLSClientConfig != nil {
 		tlsConfig := input.TLSClientConfig
 		switch input.CollectorProtocol {
@@ -175,7 +192,7 @@ func InitExportingProcess(input ExporterInput) (*ExportingProcess, error) {
 			if configErr != nil {
 				return nil, configErr
 			}
-			conn, err = tls.Dial(input.CollectorProtocol, input.CollectorAddress, config)
+			conn, err = tls.DialWithDialer(dialer, input.CollectorProtocol, input.CollectorAddress, config)
 			if err != nil {
 				return nil, fmt.Errorf("cannot create the TLS connection to the Collector %q: %w", input.CollectorAddress, err)
 			}
@@ -192,28 +209,61 @@ func InitExportingProcess(input ExporterInput) (*ExportingProcess, error) {
 			if !ok {
 				return nil, fmt.Errorf("failed to parse root certificate")
 			}
-			// If tlsConfig.CipherSuites is nil, cipherSuites should also be nil!
-			var cipherSuites []dtls.CipherSuiteID
-			for _, cipherSuite := range tlsConfig.CipherSuites {
-				cipherSuites = append(cipherSuites, dtls.CipherSuiteID(cipherSuite))
+			options := []dtls.ClientOption{
+				dtls.WithRootCAs(roots),
+				dtls.WithExtendedMasterSecret(dtls.RequireExtendedMasterSecret),
+				dtls.WithServerName(tlsConfig.ServerName),
 			}
-			config := &dtls.Config{
-				RootCAs:              roots,
-				ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
-				ServerName:           tlsConfig.ServerName,
-				CipherSuites:         cipherSuites,
+			// If tlsConfig.CipherSuites is empty, we must not set the option at all, so
+			// that the pion defaults are used.
+			if len(tlsConfig.CipherSuites) > 0 {
+				cipherSuites := make([]dtls.CipherSuiteID, 0, len(tlsConfig.CipherSuites))
+				for _, cipherSuite := range tlsConfig.CipherSuites {
+					cipherSuites = append(cipherSuites, dtls.CipherSuiteID(cipherSuite))
+				}
+				options = append(options, dtls.WithCipherSuites(cipherSuites...))
 			}
 			udpAddr, err := net.ResolveUDPAddr(input.CollectorProtocol, input.CollectorAddress)
 			if err != nil {
 				return nil, err
 			}
-			conn, err = dtls.Dial(udpAddr.Network(), udpAddr, config)
+			// We do not use dtls.Dial, because as of pion/dtls v3 it creates the socket
+			// with net.ListenUDP instead of net.DialUDP: the socket is no longer
+			// connected, which pion needs in order to support net.PacketConn.WriteTo. We
+			// have no use for WriteTo, and an unconnected socket would change our
+			// behavior in 3 ways: the source address of exported packets would be chosen
+			// by a route lookup for every datagram, instead of being fixed when we dial,
+			// the kernel would no longer discard datagrams from sources other than the
+			// collector, and Write would no longer report ICMP errors such as
+			// ECONNREFUSED. It would also make DTLS behave differently from plaintext
+			// UDP, which goes through net.Dial and is therefore connected. We dial the
+			// socket ourselves and pass it to pion as a net.PacketConn: the
+			// PacketConnFromConn wrapper ignores the address given to WriteTo and simply
+			// writes to the connected socket.
+			udpConn, err := net.DialUDP(udpAddr.Network(), nil, udpAddr)
 			if err != nil {
+				return nil, fmt.Errorf("cannot create the UDP connection to the Collector %q: %w", udpAddr.String(), err)
+			}
+			dtlsConn, err := dtls.ClientWithOptions(dtlsnet.PacketConnFromConn(udpConn), udpAddr, options...)
+			if err != nil {
+				udpConn.Close()
 				return nil, fmt.Errorf("cannot create the DTLS connection to the Collector %q: %w", udpAddr.String(), err)
 			}
+			// As of pion/dtls v3, Dial no longer performs the handshake: it happens lazily
+			// on the first Read / Write. We trigger it explicitly so that connection
+			// failures (e.g. certificate validation errors) are reported to the caller
+			// here, instead of when the first IPFIX message is sent.
+			handshakeCtx, cancelHandshake := context.WithTimeout(context.Background(), dtlsHandshakeTimeout)
+			err = dtlsConn.HandshakeContext(handshakeCtx)
+			cancelHandshake()
+			if err != nil {
+				dtlsConn.Close()
+				return nil, fmt.Errorf("error during DTLS handshake with the Collector %q: %w", udpAddr.String(), err)
+			}
+			conn = dtlsConn
 		}
 	} else {
-		conn, err = net.Dial(input.CollectorProtocol, input.CollectorAddress)
+		conn, err = dialer.Dial(input.CollectorProtocol, input.CollectorAddress)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create the connection to the Collector %q: %w", input.CollectorAddress, err)
 		}
@@ -299,7 +349,7 @@ func InitExportingProcess(input ExporterInput) (*ExportingProcess, error) {
 				case <-ticker.C:
 					// Dial again (e.g. host name resolving to a different IP)
 					klog.V(2).Info("Refreshing connection")
-					conn, err = net.Dial(input.CollectorProtocol, input.CollectorAddress)
+					conn, err = dialer.Dial(input.CollectorProtocol, input.CollectorAddress)
 					if err != nil {
 						klog.Errorf("Cannot connect to the collector %s: %v", input.CollectorAddress, err)
 					} else {
