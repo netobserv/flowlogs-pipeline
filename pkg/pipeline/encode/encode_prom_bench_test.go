@@ -43,8 +43,29 @@ func buildBenchFlow(nLabels, cardinality int) config.GenericMap {
 	return m
 }
 
+type legacyCachePrometheus struct {
+	*Prometheus
+}
+
+func (p *legacyCachePrometheus) Encode(metricRecord config.GenericMap) {
+	p.metricCommon.MetricCommonEncode(p, metricRecord)
+	p.checkConfUpdate()
+}
+
+func (p *legacyCachePrometheus) GetCacheEntry(labels map[string]string, metric interface{}) interface{} {
+	vec, ok := metric.(interface {
+		Delete(prometheus.Labels) bool
+	})
+	if !ok {
+		return nil
+	}
+	return func() {
+		vec.Delete(prometheus.Labels(labels))
+	}
+}
+
 // initOldPathProm creates a Prometheus encoder using the old TimedCache path.
-func initOldPathProm(tb testing.TB, params *api.PromEncode) *Prometheus {
+func initOldPathProm(tb testing.TB, params *api.PromEncode) *legacyCachePrometheus {
 	tb.Helper()
 	reg := prometheus.NewRegistry()
 	prometheus.DefaultRegisterer = reg
@@ -57,11 +78,11 @@ func initOldPathProm(tb testing.TB, params *api.PromEncode) *Prometheus {
 		expiryTime.Duration = defaultExpiryTime
 	}
 
-	w := &Prometheus{
+	w := &legacyCachePrometheus{Prometheus: &Prometheus{
 		cfg:        params,
 		registerer: reg,
 		updateChan: make(chan config.StageParam),
-	}
+	}}
 
 	metricCommon := NewMetricsCommonStruct(opMetrics, params.MaxMetrics, "bench", expiryTime, func(cleanupFunc interface{}) {
 		if f, ok := cleanupFunc.(func()); ok {

@@ -340,7 +340,13 @@ func (m *MetricsCommonStruct) cleanupVecExpired() {
 			vec.CleanupExpired()
 		}
 	}
-	m.mCacheLenMetric.Set(float64(m.countVecChildren()))
+	count := 0
+	if m.admission != nil {
+		count = m.admission.count()
+	} else {
+		count = m.countVecChildren()
+	}
+	m.mCacheLenMetric.Set(float64(count))
 }
 
 // vectorSnapshot allows cleanup to run without racing metric reconfiguration

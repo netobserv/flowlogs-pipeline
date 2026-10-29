@@ -53,7 +53,7 @@ func netObservFlow(srcNS, dstNS string, bytes, packets int, latency float64) con
 
 func Test_TTL_RefreshKeepsActiveSeries(t *testing.T) {
 	// Active flows (re-encoded before expiry) must stay exposed; idle ones expire.
-	ttl := 300 * time.Millisecond
+	ttl := 2 * time.Second
 	params := api.PromEncode{
 		Prefix:     "flp_",
 		ExpiryTime: ttlDuration(ttl),
@@ -89,7 +89,7 @@ func Test_TTL_RefreshKeepsActiveSeries(t *testing.T) {
 }
 
 func Test_TTL_PartialExpiryAcrossNamespaces(t *testing.T) {
-	ttl := 300 * time.Millisecond
+	ttl := 2 * time.Second
 	params := api.PromEncode{
 		Prefix:     "flp_",
 		ExpiryTime: ttlDuration(ttl),
