@@ -75,7 +75,6 @@ func TestNetworkTracksOnlyPodSubnetMissesInSeparateSubnetStage(t *testing.T) {
 		},
 		ipLabelCache:      utils.NewQuietExpiringTimedCache(time.Minute),
 		missStreakTracker: tracker,
-		podSubnetLabel:    "Pods",
 	}
 
 	for range 3 {
@@ -359,7 +358,6 @@ parameters:
 
 	networkTransform := InitNewTransformNetwork(t, string(yamlConfig)).(*Network)
 	require.NotNil(t, networkTransform.missStreakTracker)
-	require.Equal(t, kubernetes.DefaultPodSubnetLabel, networkTransform.podSubnetLabel)
 }
 
 func InitNewTransformNetwork(t *testing.T, configFile string) Transformer {

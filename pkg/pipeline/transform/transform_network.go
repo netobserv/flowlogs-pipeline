@@ -48,7 +48,6 @@ type Network struct {
 	ipLabelCache      *utils.TimedCache
 	frrStore          frr.Store
 	missStreakTracker *kubernetes.MissStreakTracker
-	podSubnetLabel    string
 	m                 sync.RWMutex
 }
 
@@ -217,7 +216,7 @@ func (n *Network) hasPodSubnetLabel(output config.GenericMap, side kubernetes.En
 		field = "DstSubnetLabel"
 	}
 	label, found := output.LookupString(field)
-	return found && label == n.podSubnetLabel
+	return found && label == kubernetes.DefaultPodSubnetLabel
 }
 
 func (n *Network) applySubnetLabel(strIP string) string {
@@ -380,12 +379,8 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 	}
 
 	var missStreakTracker *kubernetes.MissStreakTracker
-	podSubnetLabel := kubernetes.DefaultPodSubnetLabel
 	trackingConfig := jsonNetworkTransform.KubeConfig.EnrichmentMissStreak
 	if trackingConfig != nil && !trackingConfig.Disabled {
-		if trackingConfig.PodSubnetLabel != "" {
-			podSubnetLabel = trackingConfig.PodSubnetLabel
-		}
 		trackerConfig := kubernetes.MissStreakTrackerConfig{}
 		trackerConfig.Threshold = trackingConfig.Threshold
 		trackerConfig.TTL = trackingConfig.InactivityTTL.Duration
@@ -407,6 +402,5 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 		ipLabelCache:      utils.NewQuietExpiringTimedCache(2 * time.Minute),
 		frrStore:          frrStore,
 		missStreakTracker: missStreakTracker,
-		podSubnetLabel:    podSubnetLabel,
 	}, nil
 }

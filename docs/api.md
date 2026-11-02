@@ -312,7 +312,6 @@ Following is the supported API format for network transformations:
                  threshold: number of consecutive misses allowed before reporting a long streak (default: 20)
                  inactivityTTL: time without another record after which tracking state expires (default: 10m)
                  capacity: maximum number of endpoint IP streaks held in memory (default: 10000)
-                 podSubnetLabel: subnet label identifying Pod IP records (default: Pods)
          servicesFile: path to services file (optional, default: /etc/services)
          protocolsFile: path to protocols file (optional, default: /etc/protocols)
          subnetLabels: configure subnet and IPs custom labels

@@ -57,11 +57,10 @@ type NetworkTransformKubeConfig struct {
 }
 
 type EnrichmentMissStreakConfig struct {
-	Disabled       bool     `yaml:"disabled,omitempty" json:"disabled,omitempty" doc:"disable consecutive enrichment miss tracking"`
-	Threshold      uint64   `yaml:"threshold,omitempty" json:"threshold,omitempty" doc:"number of consecutive misses allowed before reporting a long streak (default: 20)"`
-	InactivityTTL  Duration `yaml:"inactivityTTL,omitempty" json:"inactivityTTL,omitempty" doc:"time without another record after which tracking state expires (default: 10m)"`
-	Capacity       int      `yaml:"capacity,omitempty" json:"capacity,omitempty" doc:"maximum number of endpoint IP streaks held in memory (default: 10000)"`
-	PodSubnetLabel string   `yaml:"podSubnetLabel,omitempty" json:"podSubnetLabel,omitempty" doc:"subnet label identifying Pod IP records (default: Pods)"`
+	Disabled      bool     `yaml:"disabled,omitempty" json:"disabled,omitempty" doc:"disable consecutive enrichment miss tracking"`
+	Threshold     uint64   `yaml:"threshold,omitempty" json:"threshold,omitempty" doc:"number of consecutive misses allowed before reporting a long streak (default: 20)"`
+	InactivityTTL Duration `yaml:"inactivityTTL,omitempty" json:"inactivityTTL,omitempty" doc:"time without another record after which tracking state expires (default: 10m)"`
+	Capacity      int      `yaml:"capacity,omitempty" json:"capacity,omitempty" doc:"maximum number of endpoint IP streaks held in memory (default: 10000)"`
 }
 
 type TransformNetworkOperationEnum string
