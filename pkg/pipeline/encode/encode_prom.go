@@ -102,12 +102,9 @@ func (e *Prometheus) GetCacheEntry(_ map[string]string, _ interface{}) interface
 	return nil
 }
 
-// vecTTL returns expiryTime when using the Vec-native TTL path (no TimedCache).
+// vecTTL returns the configured expiry time for Prometheus Vec metrics.
 func (e *Prometheus) vecTTL() time.Duration {
-	if e.metricCommon.mCache == nil {
-		return e.metricCommon.expiryTime
-	}
-	return 0
+	return e.metricCommon.expiryTime
 }
 
 func (e *Prometheus) addCounter(fullMetricName string, mInfo *metrics.Preprocessed) prometheus.Collector {
