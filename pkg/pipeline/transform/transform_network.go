@@ -20,6 +20,7 @@ package transform
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"reflect"
 	"strconv"
@@ -42,11 +43,19 @@ var log = logrus.WithField("component", "transform.Network")
 
 type Network struct {
 	api.TransformNetwork
-	svcNames     *netdb.ServiceNames
-	snLabels     []subnetLabel
-	ipLabelCache *utils.TimedCache
-	frrStore     frr.Store
-	m            sync.RWMutex
+	svcNames          *netdb.ServiceNames
+	snLabels          []subnetLabel
+	ipLabelCache      *utils.TimedCache
+	frrStore          frr.Store
+	missStreakTracker *kubernetes.MissStreakTracker
+	podSubnetLabel    string
+	m                 sync.RWMutex
+}
+
+type enrichmentObservation struct {
+	address  netip.Addr
+	enriched bool
+	present  bool
 }
 
 type subnetLabel struct {
@@ -163,8 +172,52 @@ func (n *Network) Transform(inputEntry config.GenericMap) (config.GenericMap, bo
 			log.Panicf("unknown type %s for transform.Network rule: %v", rule.Type, rule)
 		}
 	}
+	n.observeEnrichmentResults(outputEntry)
 
 	return outputEntry, true
+}
+
+func (n *Network) observeEnrichmentResults(output config.GenericMap) {
+	if n.missStreakTracker == nil {
+		return
+	}
+	for i := range 2 {
+		side := kubernetes.EndpointSide(i)
+		observation := inferEnrichmentObservation(output, side)
+		if !observation.present || !n.hasPodSubnetLabel(output, side) {
+			continue
+		}
+		n.missStreakTracker.Observe(side, observation.address, observation.enriched)
+	}
+}
+
+func inferEnrichmentObservation(output config.GenericMap, side kubernetes.EndpointSide) enrichmentObservation {
+	ipField, nameField := "SrcAddr", "SrcK8S_Name"
+	if side == kubernetes.DestinationSide {
+		ipField, nameField = "DstAddr", "DstK8S_Name"
+	}
+	rawIP, found := output.LookupString(ipField)
+	if !found {
+		return enrichmentObservation{}
+	}
+	address, err := netip.ParseAddr(rawIP)
+	if err != nil {
+		return enrichmentObservation{}
+	}
+	enriched := false
+	if name, found := output.LookupString(nameField); found && name != "" {
+		enriched = true
+	}
+	return enrichmentObservation{address: address, enriched: enriched, present: true}
+}
+
+func (n *Network) hasPodSubnetLabel(output config.GenericMap, side kubernetes.EndpointSide) bool {
+	field := "SrcSubnetLabel"
+	if side == kubernetes.DestinationSide {
+		field = "DstSubnetLabel"
+	}
+	label, found := output.LookupString(field)
+	return found && label == n.podSubnetLabel
 }
 
 func (n *Network) applySubnetLabel(strIP string) string {
@@ -326,14 +379,34 @@ func NewTransformNetwork(params config.StageParam, opMetrics *operational.Metric
 		return nil, err
 	}
 
+	var missStreakTracker *kubernetes.MissStreakTracker
+	podSubnetLabel := kubernetes.DefaultPodSubnetLabel
+	trackingConfig := jsonNetworkTransform.KubeConfig.EnrichmentMissStreak
+	if trackingConfig != nil && !trackingConfig.Disabled {
+		if trackingConfig.PodSubnetLabel != "" {
+			podSubnetLabel = trackingConfig.PodSubnetLabel
+		}
+		trackerConfig := kubernetes.MissStreakTrackerConfig{}
+		trackerConfig.Threshold = trackingConfig.Threshold
+		trackerConfig.TTL = trackingConfig.InactivityTTL.Duration
+		trackerConfig.Capacity = trackingConfig.Capacity
+		trackerMetrics := kubernetes.MissStreakTrackerMetrics{}
+		if opMetrics != nil {
+			trackerMetrics.LongMissStreaks = opMetrics.GetOrCreateKubernetesEnrichmentLongMissStreakCounter()
+		}
+		missStreakTracker = kubernetes.NewMissStreakTracker(trackerConfig, trackerMetrics)
+	}
+
 	return &Network{
 		TransformNetwork: api.TransformNetwork{
 			Rules:         jsonNetworkTransform.Rules,
 			DirectionInfo: jsonNetworkTransform.DirectionInfo,
 		},
-		svcNames:     servicesDB,
-		snLabels:     subnetCats,
-		ipLabelCache: utils.NewQuietExpiringTimedCache(2 * time.Minute),
-		frrStore:     frrStore,
+		svcNames:          servicesDB,
+		snLabels:          subnetCats,
+		ipLabelCache:      utils.NewQuietExpiringTimedCache(2 * time.Minute),
+		frrStore:          frrStore,
+		missStreakTracker: missStreakTracker,
+		podSubnetLabel:    podSubnetLabel,
 	}, nil
 }

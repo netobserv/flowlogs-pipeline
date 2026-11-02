@@ -119,6 +119,14 @@ Each table below provides documentation for an exported flowlogs-pipeline operat
 | **Labels** | stage | 
 
 
+### kubernetes_enrichment_long_miss_streaks_total
+| **Name** | kubernetes_enrichment_long_miss_streaks_total |
+|:---|:---|
+| **Description** | Number of times a Pod IP exceeded the configured consecutive Kubernetes enrichment miss threshold |
+| **Type** | counter |
+| **Labels** | side |
+
+
 ### metrics_dropped
 | **Name** | metrics_dropped | 
 |:---|:---|

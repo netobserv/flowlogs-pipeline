@@ -18,19 +18,117 @@
 package transform
 
 import (
+	"net"
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/frr"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/kubernetes/datasource"
 	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/location"
 	netdb "github.com/netobserv/flowlogs-pipeline/pkg/pipeline/transform/netdb"
+	"github.com/netobserv/flowlogs-pipeline/pkg/pipeline/utils"
 	"github.com/netobserv/flowlogs-pipeline/pkg/test"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
+
+func transformCounterValue(t *testing.T, counter prometheus.Counter) float64 {
+	t.Helper()
+	metric := &dto.Metric{}
+	require.NoError(t, counter.Write(metric))
+	return metric.GetCounter().GetValue()
+}
+
+func TestNetworkTracksOnlyPodSubnetMissesInSeparateSubnetStage(t *testing.T) {
+	kubernetes.MockInformers()
+	kubernetes.GetDatasource().SetKubernetesStore(datasource.NewKubernetesStore())
+	longStreaks := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "test_network_kubernetes_enrichment_long_miss_streaks_total",
+		Help: "test",
+	}, []string{"side"})
+	tracker := kubernetes.NewMissStreakTracker(kubernetes.MissStreakTrackerConfig{
+		Threshold: 2,
+		TTL:       time.Minute,
+		Capacity:  10,
+	}, kubernetes.MissStreakTrackerMetrics{LongMissStreaks: longStreaks})
+	enrichmentTransform := Network{
+		TransformNetwork: api.TransformNetwork{Rules: []api.NetworkTransformRule{
+			{Type: api.NetworkAddKubernetes, Kubernetes: &api.K8sRule{IPField: "SrcAddr", Output: "SrcK8S"}},
+			{Type: api.NetworkAddKubernetes, Kubernetes: &api.K8sRule{IPField: "DstAddr", Output: "DstK8S"}},
+		}},
+	}
+	subnetTransform := Network{
+		TransformNetwork: api.TransformNetwork{Rules: []api.NetworkTransformRule{
+			{Type: api.NetworkAddSubnetLabel, AddSubnetLabel: &api.NetworkAddSubnetLabelRule{Input: "SrcAddr", Output: "SrcSubnetLabel"}},
+			{Type: api.NetworkAddSubnetLabel, AddSubnetLabel: &api.NetworkAddSubnetLabelRule{Input: "DstAddr", Output: "DstSubnetLabel"}},
+		}},
+		snLabels: []subnetLabel{
+			{cidrs: []*net.IPNet{mustParseCIDR(t, "10.128.0.0/14")}, name: "Pods"},
+			{cidrs: []*net.IPNet{mustParseCIDR(t, "172.30.0.0/16")}, name: "Services"},
+		},
+		ipLabelCache:      utils.NewQuietExpiringTimedCache(time.Minute),
+		missStreakTracker: tracker,
+		podSubnetLabel:    "Pods",
+	}
+
+	for range 3 {
+		enriched, ok := enrichmentTransform.Transform(config.GenericMap{
+			"SrcAddr": "10.128.2.41",
+			"DstAddr": "172.30.1.10",
+		})
+		require.True(t, ok)
+		output, ok := subnetTransform.Transform(enriched)
+		require.True(t, ok)
+		require.Equal(t, "Pods", output["SrcSubnetLabel"])
+		require.Equal(t, "Services", output["DstSubnetLabel"])
+	}
+	require.Equal(t, float64(1), transformCounterValue(t, longStreaks.WithLabelValues("source")))
+	require.Equal(t, float64(0), transformCounterValue(t, longStreaks.WithLabelValues("destination")))
+
+	// A later record containing Kubernetes metadata is observed as enriched by the
+	// subnet stage and clears the source streak. The same IP can then cross the
+	// threshold again as a new streak.
+	_, ok := subnetTransform.Transform(config.GenericMap{
+		"SrcAddr":     "10.128.2.41",
+		"SrcK8S_Name": "pod-a",
+		"DstAddr":     "172.30.1.10",
+	})
+	require.True(t, ok)
+	for range 3 {
+		_, ok = subnetTransform.Transform(config.GenericMap{
+			"SrcAddr": "10.128.2.41",
+			"DstAddr": "172.30.1.10",
+		})
+		require.True(t, ok)
+	}
+	require.Equal(t, float64(2), transformCounterValue(t, longStreaks.WithLabelValues("source")))
+
+	for range 3 {
+		enriched, ok := enrichmentTransform.Transform(config.GenericMap{
+			"SrcAddr": "172.30.1.10",
+			"DstAddr": "10.128.2.42",
+		})
+		require.True(t, ok)
+		_, ok = subnetTransform.Transform(enriched)
+		require.True(t, ok)
+	}
+	require.Equal(t, float64(2), transformCounterValue(t, longStreaks.WithLabelValues("source")))
+	require.Equal(t, float64(1), transformCounterValue(t, longStreaks.WithLabelValues("destination")))
+}
+
+func mustParseCIDR(t *testing.T, raw string) *net.IPNet {
+	t.Helper()
+	_, cidr, err := net.ParseCIDR(raw)
+	require.NoError(t, err)
+	return cidr
+}
 
 func getMockNetworkTransformRules() api.NetworkTransformRules {
 	return api.NetworkTransformRules{
@@ -226,6 +324,7 @@ parameters:
 `)
 	newNetworkTransform := InitNewTransformNetwork(t, string(yamlConfig)).(*Network)
 	require.NotNil(t, newNetworkTransform)
+	require.Nil(t, newNetworkTransform.missStreakTracker)
 
 	entry := test.GetIngestMockEntry(false)
 	output, ok := newNetworkTransform.Transform(entry)
@@ -233,6 +332,34 @@ parameters:
 
 	require.Equal(t, "10.0.0.1", output["srcIP"])
 	require.Equal(t, "10.0.0.0/24", output["subnetSrcIP"])
+}
+
+func TestNewSubnetTransformInitializesEnrichmentMissTracker(t *testing.T) {
+	var yamlConfig = []byte(`
+pipeline:
+  - name: subnets
+parameters:
+  - name: subnets
+    transform:
+      type: network
+      network:
+        kubeConfig:
+          enrichmentMissStreak:
+            threshold: 2
+        rules:
+        - type: add_subnet_label
+          add_subnet_label:
+            input: SrcAddr
+            output: SrcSubnetLabel
+        subnetLabels:
+        - name: Pods
+          cidrs:
+          - 10.128.0.0/14
+`)
+
+	networkTransform := InitNewTransformNetwork(t, string(yamlConfig)).(*Network)
+	require.NotNil(t, networkTransform.missStreakTracker)
+	require.Equal(t, kubernetes.DefaultPodSubnetLabel, networkTransform.podSubnetLabel)
 }
 
 func InitNewTransformNetwork(t *testing.T, configFile string) Transformer {

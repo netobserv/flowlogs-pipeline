@@ -307,6 +307,12 @@ Following is the supported API format for network transformations:
                      index: fields to use for indexing, must be any combination of 'mac', 'ip', 'interface', or 'udn'
              managedCNI: a list of CNI (network plugins) to manage, for detecting additional interfaces. Currently supported: ovn
              trackedKinds: list of Kubernetes resource kinds to track for ownership chain (e.g., Deployment, Gateway, VirtualMachine). If a resource's owner is in this list, FLP will continue tracking up the ownership chain.
+             enrichmentMissStreak: tracking configuration for consecutive unenriched Pod flow records
+                 disabled: disable consecutive enrichment miss tracking
+                 threshold: number of consecutive misses allowed before reporting a long streak (default: 20)
+                 inactivityTTL: time without another record after which tracking state expires (default: 10m)
+                 capacity: maximum number of endpoint IP streaks held in memory (default: 10000)
+                 podSubnetLabel: subnet label identifying Pod IP records (default: Pods)
          servicesFile: path to services file (optional, default: /etc/services)
          protocolsFile: path to protocols file (optional, default: /etc/protocols)
          subnetLabels: configure subnet and IPs custom labels

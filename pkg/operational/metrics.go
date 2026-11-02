@@ -89,6 +89,12 @@ var (
 		"network",
 		"warning",
 	)
+	kubernetesEnrichmentLongMissStreaks = DefineMetric(
+		"kubernetes_enrichment_long_miss_streaks_total",
+		"Number of times a Pod IP exceeded the configured consecutive Kubernetes enrichment miss threshold",
+		TypeCounter,
+		"side",
+	)
 )
 
 func (def *MetricDefinition) mapLabels(labels []string) prometheus.Labels {
@@ -109,8 +115,9 @@ func verifyMetricType(def *MetricDefinition, t metricType) {
 }
 
 type Metrics struct {
-	settings           *config.MetricsSettings
-	stageDurationHisto *prometheus.HistogramVec
+	settings                            *config.MetricsSettings
+	stageDurationHisto                  *prometheus.HistogramVec
+	kubernetesEnrichmentLongMissStreaks *prometheus.CounterVec
 }
 
 func NewMetrics(settings *config.MetricsSettings) *Metrics {
@@ -252,6 +259,13 @@ func (o *Metrics) GetOrCreateStageDurationHisto() *prometheus.HistogramVec {
 
 func (o *Metrics) CreateIndexerHitCounter() *prometheus.CounterVec {
 	return o.NewCounterVec(&indexerHit)
+}
+
+func (o *Metrics) GetOrCreateKubernetesEnrichmentLongMissStreakCounter() *prometheus.CounterVec {
+	if o.kubernetesEnrichmentLongMissStreaks == nil {
+		o.kubernetesEnrichmentLongMissStreaks = o.NewCounterVec(&kubernetesEnrichmentLongMissStreaks)
+	}
+	return o.kubernetesEnrichmentLongMissStreaks
 }
 
 func GetDocumentation() string {
