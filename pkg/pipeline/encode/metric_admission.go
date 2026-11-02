@@ -35,8 +35,9 @@ type admissionEntry struct {
 	lastSeen time.Time
 }
 
-// metricAdmission tracks only capped Vec children, without retaining child metrics
-// or label maps. The least-recently-updated list makes expiry amortized O(1).
+// metricAdmission tracks admitted children of Vec metrics when maxMetrics is
+// configured. It retains only vector and label keys plus last-update times; the
+// least-recently-updated list makes expiry amortized O(1).
 type metricAdmission struct {
 	mu      sync.Mutex
 	limit   int
