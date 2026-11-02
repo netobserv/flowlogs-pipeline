@@ -14,8 +14,21 @@ stream with `app="netobserv-proxy"` and `_RecordType="proxyRequest"`.
 
 ## Enable with the operator
 
-Set `spec.processor.haproxyLogs.enable: true` on the FlowCollector. Loki is
-required. The optional `port` defaults to UDP 10514. The receiver is exposed by
+Configure a source on the FlowCollector:
+
+```yaml
+spec:
+  processor:
+    proxyCorrelation:
+      enable: true
+      sources:
+        - name: openshift-router
+          type: HAProxy
+          haproxy:
+            port: 10514
+```
+
+Loki is required. The optional `port` defaults to UDP 10514. The receiver is exposed by
 `flowlogs-pipeline-prom` in Service/Direct deployments, and by
 `flowlogs-pipeline-transformer-prom` with Kafka. Kafka deployments receive these
 logs directly in the processors; proxy records bypass Kafka. UDP delivery is best
