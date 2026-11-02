@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -14,6 +15,8 @@ import (
 // CollectorServer wraps a Flow Collector connection & session
 type CollectorServer struct {
 	grpcServer *grpc.Server
+	collector  *collectorAPI
+	closeOnce  sync.Once
 }
 
 type collectorOptions struct {
@@ -45,9 +48,11 @@ func StartCollector(
 		return nil, err
 	}
 	grpcServer := grpc.NewServer(copts.grpcServerOptions...)
-	genericmap.RegisterCollectorServer(grpcServer, &collectorAPI{
+	collector := &collectorAPI{
 		recordForwarder: recordForwarder,
-	})
+		done:            make(chan struct{}),
+	}
+	genericmap.RegisterCollectorServer(grpcServer, collector)
 	reflection.Register(grpcServer)
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
@@ -56,22 +61,53 @@ func StartCollector(
 	}()
 	return &CollectorServer{
 		grpcServer: grpcServer,
+		collector:  collector,
 	}, nil
 }
 
 func (c *CollectorServer) Close() error {
-	c.grpcServer.Stop()
+	c.closeOnce.Do(func() {
+		c.collector.close()
+		c.grpcServer.Stop()
+		c.collector.wg.Wait()
+	})
 	return nil
 }
 
 type collectorAPI struct {
 	genericmap.UnimplementedCollectorServer
 	recordForwarder chan<- *genericmap.Flow
+	done            chan struct{}
+	mu              sync.RWMutex
+	closed          bool
+	wg              sync.WaitGroup
 }
 
 var okReply = &genericmap.CollectorReply{}
 
 func (c *collectorAPI) Send(_ context.Context, records *genericmap.Flow) (*genericmap.CollectorReply, error) {
-	c.recordForwarder <- records
+	c.mu.RLock()
+	if c.closed {
+		c.mu.RUnlock()
+		return nil, context.Canceled
+	}
+	c.wg.Add(1)
+	c.mu.RUnlock()
+	defer c.wg.Done()
+
+	select {
+	case c.recordForwarder <- records:
+	case <-c.done:
+		return nil, context.Canceled
+	}
 	return okReply, nil
+}
+
+func (c *collectorAPI) close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.closed {
+		c.closed = true
+		close(c.done)
+	}
 }
