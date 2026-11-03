@@ -29,8 +29,8 @@ spec:
 ```
 
 Loki is required. The optional `port` defaults to UDP 10514. The receiver is exposed by
-`flowlogs-pipeline-prom` in Service/Direct deployments, and by
-`flowlogs-pipeline-transformer-prom` with Kafka. Kafka deployments receive these
+`flowlogs-pipeline-proxy` in Service/Direct deployments, and by
+`flowlogs-pipeline-transformer-proxy` with Kafka. Kafka deployments receive these
 logs directly in the processors; proxy records bypass Kafka. UDP delivery is best
 effort and is not durable.
 
