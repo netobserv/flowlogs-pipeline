@@ -10,6 +10,11 @@ Following is the supported API format for prometheus encode:
              tls: TLS configuration for the endpoint
                  certPath: path to the certificate file
                  keyPath: path to the key file
+             auth: authentication configuration for the endpoint (optional); includes:
+                 type: (enum) authentication mode, one of the following:
+                    disabled: no authentication (default)
+                    kubernetes: delegate to the Kubernetes API: callers must provide a bearer token accepted by a TokenReview, and be granted access by a SubjectAccessReview on the requested path
+                 kubeConfigPath: path to kubeconfig file, to run outside of a cluster (optional)
          metrics: list of prometheus metric definitions, each includes:
                  name: the metric name
                  type: (enum) one of the following:

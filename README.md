@@ -921,6 +921,61 @@ If a `prefix` is specified, then the specified prefix is prepended to each of th
 A different `prefix` may be specified on an `encode prom` stage to be prepended to the prometheus metrics defined in that stage.
 The `suppressDefaultMetrics` parameter may be set to `true` in order to suppress the reporting of the default Prometheus metrics, such as `Go` and process metrics.
 
+#### Authenticating the metrics endpoint
+
+By default the metrics endpoint is not authenticated: anyone able to reach the port can read all metrics.
+When running on Kubernetes, authentication can be delegated to the Kubernetes API:
+
+```
+metricsSettings:
+  port: 9102
+  tls:
+    certPath: /etc/tls/private/tls.crt
+    keyPath: /etc/tls/private/tls.key
+  auth:
+    type: kubernetes
+```
+
+With `type: kubernetes`, every request must carry a bearer token. FLP validates it with a
+`TokenReview` and then checks the caller's access with a `SubjectAccessReview`, the same mechanism
+used by the NetObserv operator for its own metrics endpoint. Authentication is opt-in: when the
+`auth` section is omitted, or `type` is `disabled`, the endpoint behaves as before.
+
+This requires RBAC on both sides. FLP's own ServiceAccount must be allowed to submit the reviews:
+
+```yaml
+rules:
+- apiGroups: [authentication.k8s.io]
+  resources: [tokenreviews]
+  verbs: [create]
+- apiGroups: [authorization.k8s.io]
+  resources: [subjectaccessreviews]
+  verbs: [create]
+```
+
+and the scraping client (for instance Prometheus) must be granted access to the endpoint path.
+Note this is a *non-resource* URL rule, since the authorization check is made against the request path:
+
+```yaml
+rules:
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+```
+
+A Prometheus `ServiceMonitor` then scrapes with its ServiceAccount token:
+
+```yaml
+endpoints:
+- port: prometheus
+  scheme: https
+  bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+```
+
+The same `auth` settings are available on an `encode prom` stage that defines its own connection info.
+Outside of a cluster, `auth.kubeConfigPath` points FLP at a kubeconfig file instead of using the
+in-cluster configuration. If authentication is configured but cannot be set up, the metrics server
+does not start, rather than falling back to serving metrics unauthenticated.
+
 # Development
 
 ## Build
