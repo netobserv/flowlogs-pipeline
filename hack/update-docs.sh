@@ -5,6 +5,8 @@ set -eou pipefail
 update-readme() {
   # update flowlogs-pipeline command line output
 	help=$(./flowlogs-pipeline --help | sed ':a;N;$!ba;s|\n|  \\n|g')
+	# escape the sed delimiter: pflag prints bool flags as --flag[=true|false]
+	help=${help//|/\\|}
 	md_tag=AUTO-flowlogs-pipeline_help
 	sed -z -i 's|<!---'$md_tag'--->.*<!---END-'$md_tag'--->|<!---'$md_tag'--->'"\n\`\`\`bash\n$help\n\`\`\`\n"'<!---END-'$md_tag'--->|g' README.md
 
