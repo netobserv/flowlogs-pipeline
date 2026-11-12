@@ -76,6 +76,15 @@ func (m *MultusHandler) buildSNKeys(flow config.GenericMap, rule *api.K8sRule, s
 	}
 	for _, intf := range interfaces {
 		keys = append(keys, intf+macIP)
+		// kubevirt-style interface: see https://github.com/kubevirt/kubevirt/blob/6f56294e5da821198cee50ab80933ec54b420c3e/pkg/network/link/names.go#L34-L49
+		// Only if IP and/or MAC is also indexed, to prevent same-network collision
+		if mac != "" || ip != "" {
+			if strings.HasPrefix(intf, "tap") {
+				keys = append(keys, "pod"+intf[3:]+macIP)
+			} else if strings.HasSuffix(intf, "-nic") {
+				keys = append(keys, "pod"+intf[:len(intf)-4]+macIP)
+			}
+		}
 	}
 
 	return keys
