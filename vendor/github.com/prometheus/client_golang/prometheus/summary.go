@@ -25,7 +25,6 @@ import (
 	dto "github.com/prometheus/client_model/go"
 
 	"github.com/beorn7/perks/quantile"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -164,6 +163,10 @@ type SummaryVecOpts struct {
 	// of labels. Each label value will be constrained with the optional Constraint
 	// function, if provided.
 	VariableLabels ConstrainableLabels
+
+	// TTL, if greater than zero, enables per-child expiration for this vector.
+	// See MetricVecOpts.TTL for semantics.
+	TTL time.Duration
 }
 
 // Problem with the sliding-window decay algorithm... The Merge method of
@@ -337,8 +340,8 @@ func (s *summary) Write(out *dto.Metric) error {
 	s.bufMtx.Unlock()
 
 	s.flushColdBuf()
-	sum.SampleCount = proto.Uint64(s.cnt)
-	sum.SampleSum = proto.Float64(s.sum)
+	sum.SampleCount = new(s.cnt)
+	sum.SampleSum = new(s.sum)
 
 	for _, rank := range s.sortedObjectives {
 		var q float64
@@ -348,8 +351,8 @@ func (s *summary) Write(out *dto.Metric) error {
 			q = s.headStream.Query(rank)
 		}
 		qs = append(qs, &dto.Quantile{
-			Quantile: proto.Float64(rank),
-			Value:    proto.Float64(q),
+			Quantile: new(rank),
+			Value:    new(q),
 		})
 	}
 
@@ -511,26 +514,30 @@ func (s *noObjectivesSummary) Write(out *dto.Metric) error {
 		runtime.Gosched() // Let observations get work done.
 	}
 
-	sum := &dto.Summary{
-		SampleCount:      proto.Uint64(count),
-		SampleSum:        proto.Float64(math.Float64frombits(atomic.LoadUint64(&coldCounts.sumBits))),
-		CreatedTimestamp: s.createdTs,
-	}
+	coldSum := math.Float64frombits(atomic.LoadUint64(&coldCounts.sumBits))
 
-	out.Summary = sum
-	out.Label = s.labelPairs
-
-	// Finally add all the cold counts to the new hot counts and reset the cold counts.
+	// NOTE: Merge cold counts into the new hot counts and reset the cold counts
+	// immediately after cooldown so a panic below (e.g. out == nil) cannot
+	// leave s.writeMtx unlocked with unmerged counts.
 	atomic.AddUint64(&hotCounts.count, count)
 	atomic.StoreUint64(&coldCounts.count, 0)
 	for {
 		oldBits := atomic.LoadUint64(&hotCounts.sumBits)
-		newBits := math.Float64bits(math.Float64frombits(oldBits) + sum.GetSampleSum())
+		newBits := math.Float64bits(math.Float64frombits(oldBits) + coldSum)
 		if atomic.CompareAndSwapUint64(&hotCounts.sumBits, oldBits, newBits) {
 			atomic.StoreUint64(&coldCounts.sumBits, 0)
 			break
 		}
 	}
+
+	sum := &dto.Summary{
+		SampleCount:      new(count),
+		SampleSum:        new(coldSum),
+		CreatedTimestamp: s.createdTs,
+	}
+
+	out.Summary = sum
+	out.Label = s.labelPairs
 	return nil
 }
 
@@ -585,8 +592,16 @@ func (v2) NewSummaryVec(opts SummaryVecOpts) *SummaryVec {
 		WithUnit(opts.Unit),
 	)
 	return &SummaryVec{
-		MetricVec: NewMetricVec(desc, func(lvs ...string) Metric {
-			return newSummary(desc, opts.SummaryOpts, lvs...)
+		MetricVec: V2.NewMetricVec(MetricVecOpts{
+			Desc: desc,
+			NewMetric: func(lvs ...string) Metric {
+				s := newSummary(desc, opts.SummaryOpts, lvs...)
+				if opts.TTL <= 0 {
+					return s
+				}
+				return newTTLSummary(s)
+			},
+			TTL: opts.TTL,
 		}),
 	}
 }
@@ -605,6 +620,9 @@ func (v2) NewSummaryVec(opts SummaryVecOpts) *SummaryVec {
 // the Summary will still exist, but it will not be exported anymore, even if a
 // Summary with the same label values is created later. See also the CounterVec
 // example.
+//
+// TTL cleanup and looking up an expired metric can also remove or replace it.
+// The same rules for cached references apply. See MetricVecOpts.TTL for details.
 //
 // An error is returned if the number of label values is not the same as the
 // number of variable labels in Desc (minus any curried labels).
@@ -718,13 +736,13 @@ func (s *constSummary) Write(out *dto.Metric) error {
 	}
 	qs := make([]*dto.Quantile, 0, len(s.quantiles))
 
-	sum.SampleCount = proto.Uint64(s.count)
-	sum.SampleSum = proto.Float64(s.sum)
+	sum.SampleCount = new(s.count)
+	sum.SampleSum = new(s.sum)
 
 	for rank, q := range s.quantiles {
 		qs = append(qs, &dto.Quantile{
-			Quantile: proto.Float64(rank),
-			Value:    proto.Float64(q),
+			Quantile: new(rank),
+			Value:    new(q),
 		})
 	}
 
