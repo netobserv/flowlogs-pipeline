@@ -1,0 +1,1 @@
+netobserv-proxy-v1 {"client_addr":"%ci","client_port":"%cp","frontend_addr":"%fi","frontend_port":"%fp","backend_addr":"%bi","backend_port":"%bp","server_addr":"%si","server_port":"%sp","request_time":"%trg","request_time_local":"%tr","duration_ms":"%Ta","instance":"%H","process":"%pid","request_id":"%rt"}

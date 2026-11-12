@@ -118,18 +118,19 @@ func NewMetrics(settings *config.MetricsSettings) *Metrics {
 }
 
 // register will register against the default registry. May panic or not depending on settings
-func (o *Metrics) register(c prometheus.Collector, name string) {
+func (o *Metrics) register(c prometheus.Collector, name string) prometheus.Collector {
 	err := prometheus.DefaultRegisterer.Register(c)
 	if err != nil {
 		var castErr prometheus.AlreadyRegisteredError
 		if errors.As(err, &castErr) {
-			logrus.Warningf("metrics registration error [%s]: %v", name, err)
+			return castErr.ExistingCollector
 		} else if o.settings.NoPanic {
 			logrus.Errorf("metrics registration error [%s]: %v", name, err)
 		} else {
 			logrus.Panicf("metrics registration error [%s]: %v", name, err)
 		}
 	}
+	return c
 }
 
 func (o *Metrics) NewCounter(def *MetricDefinition, labels ...string) prometheus.Counter {
@@ -151,8 +152,7 @@ func (o *Metrics) NewCounterVec(def *MetricDefinition) *prometheus.CounterVec {
 		Name: fullName,
 		Help: def.Help,
 	}, def.Labels)
-	o.register(c, fullName)
-	return c
+	return o.register(c, fullName).(*prometheus.CounterVec)
 }
 
 func (o *Metrics) NewGauge(def *MetricDefinition, labels ...string) prometheus.Gauge {
