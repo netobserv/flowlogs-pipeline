@@ -49,21 +49,21 @@ Usage:
   flowlogs-pipeline [flags]  
   
 Flags:  
-      --config string                   config file (default is $HOME/.flowlogs-pipeline)  
-      --dynamicParameters string        json of configmap location for dynamic parameters  
-      --healthAddr string               Health server address such as ':8080' (default: disabled)  
-  -h, --help                            help for flowlogs-pipeline  
-      --k8scache.address string         K8s cache sync server address (default "0.0.0.0")  
-      --k8scache.port int               K8s cache sync server port (default: disabled)  
-      --k8scache.tls-ca-path string     Path to TLS CA certificate for client verification  
-      --k8scache.tls-cert-path string   Path to TLS server certificate  
-      --k8scache.tls-enabled            Enable TLS for K8s cache sync server  
-      --k8scache.tls-key-path string    Path to TLS server private key  
-      --log-level string                Log level: debug, info, warning, error (default "error")  
-      --metricsSettings string          json for global metrics settings  
-      --parameters string               json of config file parameters field  
-      --pipeline string                 json of config file pipeline field  
-      --pprofAddr string                Go pprof address such as '127.0.0.1:6060', used for profiling (default: disabled). Do not expose publicly.
+      --config string                       config file (default is $HOME/.flowlogs-pipeline)  
+      --dynamicParameters string            json of configmap location for dynamic parameters  
+      --healthAddr string                   Health server address such as ':8080' (default: disabled)  
+  -h, --help[=true|false]                   help for flowlogs-pipeline  
+      --k8scache.address string             K8s cache sync server address (default "0.0.0.0")  
+      --k8scache.port int                   K8s cache sync server port (default: disabled)  
+      --k8scache.tls-ca-path string         Path to TLS CA certificate for client verification  
+      --k8scache.tls-cert-path string       Path to TLS server certificate  
+      --k8scache.tls-enabled[=true|false]   Enable TLS for K8s cache sync server  
+      --k8scache.tls-key-path string        Path to TLS server private key  
+      --log-level string                    Log level: debug, info, warning, error (default "error")  
+      --metricsSettings string              json for global metrics settings  
+      --parameters string                   json of config file parameters field  
+      --pipeline string                     json of config file pipeline field  
+      --pprofAddr string                    Go pprof address such as '127.0.0.1:6060', used for profiling (default: disabled). Do not expose publicly.
 ```
 <!---END-AUTO-flowlogs-pipeline_help--->
 

@@ -27,7 +27,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.51
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
-	github.com/spf13/pflag v1.0.10
+	github.com/spf13/pflag v1.1.0
 	github.com/stretchr/testify v1.12.1
 	github.com/vladimirvivien/gexe v0.5.0
 	github.com/vmware/go-ipfix v0.17.0
