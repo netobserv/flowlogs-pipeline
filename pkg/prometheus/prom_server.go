@@ -27,6 +27,7 @@ import (
 	"github.com/netobserv/flowlogs-pipeline/pkg/api"
 	"github.com/netobserv/flowlogs-pipeline/pkg/config"
 	"github.com/netobserv/flowlogs-pipeline/pkg/server"
+	"github.com/netobserv/flowlogs-pipeline/pkg/server/auth"
 	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	dto "github.com/prometheus/client_model/go"
@@ -79,12 +80,19 @@ func InitializePrometheus(settings *config.MetricsSettings) *PromServer {
 		prom.DefaultGatherer = nr
 		r = nr
 	}
-	SharedServer = StartServerAsync(&settings.PromConnectionInfo, "", r)
+	promSrv, err := StartServerAsync(&settings.PromConnectionInfo, "", r)
+	if err != nil {
+		// Note that we deliberately do not fall back to an unauthenticated server here:
+		// if authentication was requested but could not be set up, no metrics server runs.
+		maybePanic("Cannot start Prometheus server: %v", err)
+		return nil
+	}
+	SharedServer = promSrv
 	return SharedServer
 }
 
 // StartServerAsync listens for prometheus resource usage requests
-func StartServerAsync(conn *api.PromConnectionInfo, regName string, registry prom.Gatherer) *PromServer {
+func StartServerAsync(conn *api.PromConnectionInfo, regName string, registry prom.Gatherer) (*PromServer, error) {
 	// create prometheus server for operational metrics
 	// if value of address is empty, then by default it will take 0.0.0.0
 	port := conn.Port
@@ -97,10 +105,22 @@ func StartServerAsync(conn *api.PromConnectionInfo, regName string, registry pro
 	httpServer := http.Server{
 		Addr: addr,
 	}
+
+	p := PromServer{httpServer: &httpServer}
+	p.namedRegistries.Store(regName, registry)
+
 	// The Handler function provides a default handler to expose metrics
 	// via an HTTP server. "/metrics" is the usual endpoint for that.
 	mux := http.NewServeMux()
-	httpServer.Handler = mux
+	mux.Handle("/metrics", promhttp.HandlerFor(&p, promhttp.HandlerOpts{}))
+
+	// Authentication must wrap the mux before server.Default, which adds the body-size
+	// limit on top of whatever handler is set.
+	handler, err := auth.NewHandler(conn.Auth, mux)
+	if err != nil {
+		return nil, fmt.Errorf("cannot set up metrics endpoint authentication: %w", err)
+	}
+	httpServer.Handler = handler
 	server.Default(&httpServer)
 
 	go func() {
@@ -115,10 +135,5 @@ func StartServerAsync(conn *api.PromConnectionInfo, regName string, registry pro
 		}
 	}()
 
-	p := PromServer{httpServer: &httpServer}
-	p.namedRegistries.Store(regName, registry)
-
-	mux.Handle("/metrics", promhttp.HandlerFor(&p, promhttp.HandlerOpts{}))
-
-	return &p
+	return &p, nil
 }

@@ -1,7 +1,13 @@
 # More info: https://docs.docker.com/engine/reference/builder/#dockerignore-file
 
+# Note: the patterns below for the repository's own directories are deliberately anchored
+# at the context root rather than written as `**/<name>/`. An unanchored pattern also
+# matches identically-named directories inside vendor/, which silently drops vendored
+# packages from the build context and breaks `go build -mod=vendor` inside the image.
+# For instance `**/contrib/` also matches vendor/go.opentelemetry.io/contrib/.
+
 # Build artifacts
-**/bin/
+/bin/
 flowlogs-pipeline
 confgenerator
 *.o
@@ -12,28 +18,28 @@ confgenerator
 **/*_test.go
 cover*.out
 test.out
-**/e2e/
+/pkg/test/e2e/
 
 # Documentation
-**/docs/
+/docs/
 CONTRIBUTING.md
 *.md
 !README.md
 
 # Examples and contributions (not needed for build)
-**/contrib/
-**/hack/
-**/network_definitions/
-proto/
+/contrib/
+/hack/
+/network_definitions/
+/proto/
 
 # CI/CD and development files
-**/.git/
+/.git/
 .gitignore
 .gitattributes
 OWNERS
 renovate.json
 Makefile
-**/scripts/
+/scripts/
 
 # Dockerfiles (not needed in build context)
 Dockerfile*

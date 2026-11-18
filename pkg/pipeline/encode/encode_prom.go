@@ -308,7 +308,11 @@ func NewEncodeProm(opMetrics *operational.Metrics, params config.StageParam) (En
 
 	if cfg.PromConnectionInfo != nil {
 		// Start new server
-		w.server = promserver.StartServerAsync(cfg.PromConnectionInfo, params.Name, registry)
+		promSrv, err := promserver.StartServerAsync(cfg.PromConnectionInfo, params.Name, registry)
+		if err != nil {
+			return nil, err
+		}
+		w.server = promSrv
 	}
 
 	metricCommon := NewMetricsCommonStruct(opMetrics, cfg.MaxMetrics, params.Name, expiryTime, w.Cleanup)
