@@ -1,4 +1,13 @@
 
+## Ingest HAProxy access logs
+Versioned HTTP correlation logs received over UDP syslog. TLS passthrough is not supported.
+
+<pre>
+ haproxy:
+         address: UDP listen address (default: :10514)
+         bufferLength: maximum queued syslog datagrams (default: 1000)
+         maxMessageSize: maximum datagram size in bytes, from 512 to 65507 (default: 2048)
+</pre>
 ## Prometheus encode API
 Following is the supported API format for prometheus encode:
 
