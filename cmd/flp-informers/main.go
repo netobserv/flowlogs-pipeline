@@ -49,7 +49,9 @@ type options struct {
 	// High availability configuration
 	EnableLeaderElection bool // Enable leader election for HA
 	HealthPort           int  // Port for health check HTTP server
-	MetricsPort          int  // Port for Prometheus metrics HTTP server
+	MetricsPort          int  // Port for Prometheus metrics HTTP(S) server
+	MetricsTLSCertPath   string
+	MetricsTLSKeyPath    string
 	// Kubernetes informer configuration (must match processor settings)
 	ManagedCNI        string // Comma-separated list of CNI plugins to manage (e.g., "ovn")
 	TrackedKinds      string // Comma-separated list of Kubernetes kinds to track (e.g., "Deployment,Gateway")
@@ -114,7 +116,9 @@ func initFlags() {
 	// High availability configuration
 	rootCmd.PersistentFlags().BoolVar(&opts.EnableLeaderElection, "enable-leader-election", true, "Enable leader election for high availability")
 	rootCmd.PersistentFlags().IntVar(&opts.HealthPort, "health-port", 8080, "Port for health check HTTP server")
-	rootCmd.PersistentFlags().IntVar(&opts.MetricsPort, "metrics-port", 9091, "Port for Prometheus metrics HTTP server")
+	rootCmd.PersistentFlags().IntVar(&opts.MetricsPort, "metrics-port", 9091, "Port for Prometheus metrics HTTP(S) server")
+	rootCmd.PersistentFlags().StringVar(&opts.MetricsTLSCertPath, "metrics-tls-cert-path", "", "Certificate for the Prometheus metrics HTTPS server")
+	rootCmd.PersistentFlags().StringVar(&opts.MetricsTLSKeyPath, "metrics-tls-key-path", "", "Private key for the Prometheus metrics HTTPS server")
 	// Kubernetes informer configuration
 	rootCmd.PersistentFlags().StringVar(&opts.ManagedCNI, "managed-cni", "", "Comma-separated list of CNI plugins to manage (e.g., 'ovn'). Must match processor configuration.")
 	rootCmd.PersistentFlags().StringVar(&opts.TrackedKinds, "tracked-kinds", "", "Comma-separated list of Kubernetes kinds to track for ownership (e.g., 'Deployment,Gateway'). Must match processor configuration.")
@@ -147,7 +151,7 @@ func run(_ *cobra.Command, _ []string) {
 	}()
 
 	// Start metrics server
-	metricsServer := metrics.NewServer(opts.MetricsPort)
+	metricsServer := metrics.NewServer(opts.MetricsPort, opts.MetricsTLSCertPath, opts.MetricsTLSKeyPath)
 	if err := metricsServer.Start(); err != nil {
 		log.WithError(err).Fatal("failed to start metrics server")
 	}

@@ -921,6 +921,15 @@ If a `prefix` is specified, then the specified prefix is prepended to each of th
 A different `prefix` may be specified on an `encode prom` stage to be prepended to the prometheus metrics defined in that stage.
 The `suppressDefaultMetrics` parameter may be set to `true` in order to suppress the reporting of the default Prometheus metrics, such as `Go` and process metrics.
 
+## Informer metrics
+
+`flp-informers` exposes Prometheus metrics at `/metrics` on port 9091 by default
+(`--metrics-port`). Set both `--metrics-tls-cert-path` and `--metrics-tls-key-path`
+to serve HTTPS using a PEM certificate and private key. Without these flags, the
+endpoint serves HTTP. Incomplete or invalid TLS configuration prevents the metrics
+server from starting. The HTTPS server follows the `TLS_*` profile environment
+variables used by the other pipeline servers.
+
 # Development
 
 ## Build
