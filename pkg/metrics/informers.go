@@ -1,9 +1,13 @@
 package metrics
 
 import (
+	"crypto/tls"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 
+	"github.com/netobserv/flowlogs-pipeline/pkg/server"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -123,30 +127,50 @@ func InitMetrics() {
 	)
 }
 
-// Server provides HTTP endpoint for Prometheus metrics
+// Server provides an HTTP or HTTPS endpoint for Prometheus metrics.
 type Server struct {
-	server *http.Server
+	server   *http.Server
+	certPath string
+	keyPath  string
 }
 
 // NewServer creates a new metrics server listening on the specified port
-func NewServer(port int) *Server {
+func NewServer(port int, certPath, keyPath string) *Server {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 
 	return &Server{
-		server: &http.Server{
+		server: server.Default(&http.Server{
 			Addr:    fmt.Sprintf(":%d", port),
 			Handler: mux,
-		},
+		}),
+		certPath: certPath,
+		keyPath:  keyPath,
 	}
 }
 
 // Start starts the metrics server in a goroutine
 func (ms *Server) Start() error {
+	if (ms.certPath == "") != (ms.keyPath == "") {
+		return errors.New("metrics TLS certificate and key must be configured together")
+	}
+	listener, err := net.Listen("tcp", ms.server.Addr)
+	if err != nil {
+		return fmt.Errorf("listen for informer metrics: %w", err)
+	}
+	if ms.certPath != "" {
+		cert, err := tls.LoadX509KeyPair(ms.certPath, ms.keyPath)
+		if err != nil {
+			_ = listener.Close()
+			return fmt.Errorf("load informer metrics TLS certificate: %w", err)
+		}
+		ms.server.TLSConfig.Certificates = []tls.Certificate{cert}
+		listener = tls.NewListener(listener, ms.server.TLSConfig)
+	}
 	log.WithField("address", ms.server.Addr).Info("Starting metrics server")
 
 	go func() {
-		if err := ms.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := ms.server.Serve(listener); err != nil && err != http.ErrServerClosed {
 			log.WithError(err).Error("Metrics server error")
 		}
 	}()
